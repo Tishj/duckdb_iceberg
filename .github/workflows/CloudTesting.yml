@@ -8,7 +8,7 @@ defaults:
     shell: bash
 
 env:
-  CMAKE_POLICY_VERSION_MINIMUM: 3.5
+  CMAKE_VARS_BUILD: "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
 jobs:
   rest:

@@ -73,7 +73,7 @@ select * from my_datalake.default.table_more_deletes order by all;
 2023-03-12	12	l
 
 query I
-SELECT message FROM duckdb_logs where type='iceberg.Catalog.Curl.HTTPRequest' order by timestamp
+SELECT message FROM duckdb_logs where type='iceberg.Catalog.Curl.HTTPRequest' order by all
 ----
 POST http://127.0.0.1:8181/v1/oauth/tokens (curl code 'No error')
 GET http://127.0.0.1:8181/v1/config?warehouse= (curl code 'No error')
