@@ -50,6 +50,7 @@ jobs:
         env:
           GEN: ninja
           STATIC_LIBCPP: 1
+          CMAKE_VARS_BUILD: "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
         run: |
           make release
 
