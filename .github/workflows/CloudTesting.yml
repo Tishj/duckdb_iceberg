@@ -8,7 +8,7 @@ defaults:
     shell: bash
 
 env:
-  CMAKE_VARS_BUILD: "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+  CMAKE_ARGS: "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
 jobs:
   rest:
@@ -50,7 +50,7 @@ jobs:
         env:
           GEN: ninja
           STATIC_LIBCPP: 1
-          CMAKE_VARS_BUILD: "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+          CMAKE_ARGS: "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
         run: |
           make release
 
