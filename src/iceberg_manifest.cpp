@@ -1,5 +1,7 @@
 #include "manifest_reader.hpp"
 #include "iceberg_manifest.hpp"
+#include "iceberg_extension.hpp"
+#include "duckdb/main/extension_helper.hpp"
 #include "duckdb/main/database.hpp"
 
 //! Iceberg Manifest scan routines
@@ -15,6 +17,8 @@ idx_t IcebergManifestV1::ProduceEntries(DataChunk &chunk, idx_t offset, idx_t co
                                         vector<entry_type> &result) {
 	auto &name_to_vec = input.name_to_vec;
 	auto manifest_path = FlatVector::GetData<string_t>(chunk.data[name_to_vec.at("manifest_path").GetPrimaryIndex()]);
+	auto partition_spec_id =
+	    FlatVector::GetData<int32_t>(chunk.data[name_to_vec.at("partition_spec_id").GetPrimaryIndex()]);
 
 	for (idx_t i = 0; i < count; i++) {
 		idx_t index = i + offset;
@@ -23,6 +27,7 @@ idx_t IcebergManifestV1::ProduceEntries(DataChunk &chunk, idx_t offset, idx_t co
 		manifest.manifest_path = manifest_path[index].GetString();
 		manifest.content = IcebergManifestContentType::DATA;
 		manifest.sequence_number = 0;
+		manifest.partition_spec_id = partition_spec_id[index];
 
 		result.push_back(manifest);
 	}
@@ -48,6 +53,8 @@ idx_t IcebergManifestV2::ProduceEntries(DataChunk &chunk, idx_t offset, idx_t co
 	auto content = FlatVector::GetData<int32_t>(chunk.data[name_to_vec.at("content").GetPrimaryIndex()]);
 	auto sequence_number =
 	    FlatVector::GetData<int64_t>(chunk.data[name_to_vec.at("sequence_number").GetPrimaryIndex()]);
+	auto partition_spec_id =
+	    FlatVector::GetData<int32_t>(chunk.data[name_to_vec.at("partition_spec_id").GetPrimaryIndex()]);
 
 	for (idx_t i = 0; i < count; i++) {
 		idx_t index = i + offset;
@@ -56,6 +63,7 @@ idx_t IcebergManifestV2::ProduceEntries(DataChunk &chunk, idx_t offset, idx_t co
 		manifest.manifest_path = manifest_path[index].GetString();
 		manifest.content = IcebergManifestContentType(content[index]);
 		manifest.sequence_number = sequence_number[index];
+		manifest.partition_spec_id = partition_spec_id[index];
 
 		result.push_back(manifest);
 	}
@@ -99,6 +107,27 @@ static void EntryNameMapping(idx_t column_id, const LogicalType &type, const str
 	}
 }
 
+static unordered_map<int32_t, string> GetBounds(Vector &bounds, idx_t index) {
+	auto &bounds_child = ListVector::GetEntry(bounds);
+	auto keys = FlatVector::GetData<int32_t>(*StructVector::GetEntries(bounds_child)[0]);
+	auto values = FlatVector::GetData<string_t>(*StructVector::GetEntries(bounds_child)[1]);
+	auto bounds_list = FlatVector::GetData<list_entry_t>(bounds);
+
+	unordered_map<int32_t, string> parsed_bounds;
+
+	auto &validity = FlatVector::Validity(bounds);
+	if (!validity.RowIsValid(index)) {
+		return parsed_bounds;
+	}
+
+	auto list_entry = bounds_list[index];
+	for (idx_t j = 0; j < list_entry.length; j++) {
+		auto list_idx = list_entry.offset + j;
+		parsed_bounds[keys[list_idx]] = values[list_idx].GetString();
+	}
+	return parsed_bounds;
+}
+
 idx_t IcebergManifestEntryV1::ProduceEntries(DataChunk &chunk, idx_t offset, idx_t count,
                                              const ManifestReaderInput &input, vector<entry_type> &result) {
 	auto &name_to_vec = input.name_to_vec;
@@ -110,11 +139,25 @@ idx_t IcebergManifestEntryV1::ProduceEntries(DataChunk &chunk, idx_t offset, idx
 	D_ASSERT(name_to_vec.at("file_format").GetPrimaryIndex());
 	D_ASSERT(name_to_vec.at("record_count").GetPrimaryIndex());
 
+	auto partition_idx = name_to_vec.at("partition");
+
 	auto file_path = FlatVector::GetData<string_t>(*child_entries[file_path_idx.GetChildIndex(0).GetPrimaryIndex()]);
 	auto file_format =
 	    FlatVector::GetData<string_t>(*child_entries[name_to_vec.at("file_format").GetChildIndex(0).GetPrimaryIndex()]);
 	auto record_count =
 	    FlatVector::GetData<int64_t>(*child_entries[name_to_vec.at("record_count").GetChildIndex(0).GetPrimaryIndex()]);
+	optional_ptr<Vector> lower_bounds;
+	optional_ptr<Vector> upper_bounds;
+
+	auto lower_bounds_it = name_to_vec.find("lower_bounds");
+	if (lower_bounds_it != name_to_vec.end()) {
+		lower_bounds = *child_entries[lower_bounds_it->second.GetChildIndex(0).GetPrimaryIndex()];
+	}
+	auto upper_bounds_it = name_to_vec.find("upper_bounds");
+	if (upper_bounds_it != name_to_vec.end()) {
+		upper_bounds = *child_entries[upper_bounds_it->second.GetChildIndex(0).GetPrimaryIndex()];
+	}
+	auto &partition_vec = *child_entries[partition_idx.GetChildIndex(0).GetPrimaryIndex()];
 
 	idx_t produced = 0;
 	for (idx_t i = 0; i < count; i++) {
@@ -123,15 +166,24 @@ idx_t IcebergManifestEntryV1::ProduceEntries(DataChunk &chunk, idx_t offset, idx
 		IcebergManifestEntry entry;
 
 		entry.status = (IcebergManifestEntryStatusType)status[index];
-		entry.content = IcebergManifestEntryContentType::DATA;
-		entry.file_path = file_path[index].GetString();
-		entry.file_format = file_format[index].GetString();
-		entry.record_count = record_count[index];
-
 		if (input.skip_deleted && entry.status == IcebergManifestEntryStatusType::DELETED) {
 			//! Skip this entry, we don't care about deleted entries
 			continue;
 		}
+
+		entry.content = IcebergManifestEntryContentType::DATA;
+		entry.file_path = file_path[index].GetString();
+		entry.file_format = file_format[index].GetString();
+		entry.record_count = record_count[index];
+		entry.sequence_number = input.sequence_number;
+		entry.partition = partition_vec.GetValue(index);
+		entry.partition_spec_id = input.partition_spec_id;
+
+		if (lower_bounds && upper_bounds) {
+			entry.lower_bounds = GetBounds(*lower_bounds, index);
+			entry.upper_bounds = GetBounds(*upper_bounds, index);
+		}
+
 		produced++;
 		result.push_back(entry);
 	}
@@ -159,6 +211,25 @@ void IcebergManifestEntryV1::PopulateNameMapping(idx_t column_id, const LogicalT
 	EntryNameMapping(column_id, type, name, name_to_vec);
 }
 
+static vector<int32_t> GetEqualityIds(Vector &equality_ids, idx_t index) {
+	vector<int32_t> result;
+
+	if (!FlatVector::Validity(equality_ids).RowIsValid(index)) {
+		return result;
+	}
+	auto &equality_ids_child = ListVector::GetEntry(equality_ids);
+	auto equality_ids_data = FlatVector::GetData<int32_t>(equality_ids_child);
+	auto equality_ids_list = FlatVector::GetData<list_entry_t>(equality_ids);
+	auto list_entry = equality_ids_list[index];
+
+	for (idx_t j = 0; j < list_entry.length; j++) {
+		auto list_idx = list_entry.offset + j;
+		result.push_back(equality_ids_data[list_idx]);
+	}
+
+	return result;
+}
+
 idx_t IcebergManifestEntryV2::ProduceEntries(DataChunk &chunk, idx_t offset, idx_t count,
                                              const ManifestReaderInput &input, vector<entry_type> &result) {
 	auto &name_to_vec = input.name_to_vec;
@@ -170,6 +241,19 @@ idx_t IcebergManifestEntryV2::ProduceEntries(DataChunk &chunk, idx_t offset, idx
 	D_ASSERT(name_to_vec.at("file_format").GetPrimaryIndex() == data_file_idx);
 	D_ASSERT(name_to_vec.at("record_count").GetPrimaryIndex() == data_file_idx);
 	D_ASSERT(name_to_vec.at("content").GetPrimaryIndex() == data_file_idx);
+	optional_ptr<Vector> equality_ids;
+	optional_ptr<Vector> sequence_number;
+
+	auto equality_ids_it = name_to_vec.find("equality_ids");
+	if (equality_ids_it != name_to_vec.end()) {
+		equality_ids = *child_entries[equality_ids_it->second.GetChildIndex(0).GetPrimaryIndex()];
+	}
+	auto partition_idx = name_to_vec.at("partition");
+
+	auto sequence_number_it = name_to_vec.find("sequence_number");
+	if (sequence_number_it != name_to_vec.end()) {
+		sequence_number = chunk.data[sequence_number_it->second.GetPrimaryIndex()];
+	}
 
 	auto content =
 	    FlatVector::GetData<int32_t>(*child_entries[name_to_vec.at("content").GetChildIndex(0).GetPrimaryIndex()]);
@@ -178,6 +262,18 @@ idx_t IcebergManifestEntryV2::ProduceEntries(DataChunk &chunk, idx_t offset, idx
 	    FlatVector::GetData<string_t>(*child_entries[name_to_vec.at("file_format").GetChildIndex(0).GetPrimaryIndex()]);
 	auto record_count =
 	    FlatVector::GetData<int64_t>(*child_entries[name_to_vec.at("record_count").GetChildIndex(0).GetPrimaryIndex()]);
+	optional_ptr<Vector> lower_bounds;
+	optional_ptr<Vector> upper_bounds;
+
+	auto lower_bounds_it = name_to_vec.find("lower_bounds");
+	if (lower_bounds_it != name_to_vec.end()) {
+		lower_bounds = *child_entries[lower_bounds_it->second.GetChildIndex(0).GetPrimaryIndex()];
+	}
+	auto upper_bounds_it = name_to_vec.find("upper_bounds");
+	if (upper_bounds_it != name_to_vec.end()) {
+		upper_bounds = *child_entries[upper_bounds_it->second.GetChildIndex(0).GetPrimaryIndex()];
+	}
+	auto &partition_vec = child_entries[partition_idx.GetChildIndex(0).GetPrimaryIndex()];
 
 	idx_t produced = 0;
 	for (idx_t i = 0; i < count; i++) {
@@ -186,18 +282,42 @@ idx_t IcebergManifestEntryV2::ProduceEntries(DataChunk &chunk, idx_t offset, idx
 		IcebergManifestEntry entry;
 
 		entry.status = (IcebergManifestEntryStatusType)status[index];
+		if (input.skip_deleted && entry.status == IcebergManifestEntryStatusType::DELETED) {
+			//! Skip this entry, we don't care about deleted entries
+			continue;
+		}
+
 		entry.content = (IcebergManifestEntryContentType)content[index];
 		entry.file_path = file_path[index].GetString();
 		entry.file_format = file_format[index].GetString();
 		entry.record_count = record_count[index];
 
-		if (input.skip_deleted && entry.status == IcebergManifestEntryStatusType::DELETED) {
-			//! Skip this entry, we don't care about deleted entries
-			continue;
+		if (lower_bounds && upper_bounds) {
+			entry.lower_bounds = GetBounds(*lower_bounds, index);
+			entry.upper_bounds = GetBounds(*upper_bounds, index);
 		}
-		if (entry.content == IcebergManifestEntryContentType::EQUALITY_DELETES) {
-			throw NotImplementedException("Support for equality deletes is not added yet");
+		if (equality_ids) {
+			entry.equality_ids = GetEqualityIds(*equality_ids, index);
 		}
+
+		if (sequence_number) {
+			auto sequence_numbers = FlatVector::GetData<int64_t>(*sequence_number);
+			if (FlatVector::Validity(*sequence_number).RowIsValid(index)) {
+				entry.sequence_number = sequence_numbers[index];
+			} else {
+				//! Value should only be NULL for ADDED manifest entries, to support inheritance
+				D_ASSERT(entry.status == IcebergManifestEntryStatusType::ADDED);
+				entry.sequence_number = input.sequence_number;
+			}
+		} else {
+			//! Default to sequence number 0
+			//! (The 'manifest_file' should also have defaulted to 0)
+			D_ASSERT(input.sequence_number == 0);
+			entry.sequence_number = 0;
+		}
+		entry.partition_spec_id = input.partition_spec_id;
+
+		entry.partition = partition_vec->GetValue(index);
 		produced++;
 		result.push_back(entry);
 	}
@@ -221,6 +341,8 @@ void IcebergManifestEntryV2::PopulateNameMapping(idx_t column_id, const LogicalT
 
 AvroScan::AvroScan(const string &scan_name, ClientContext &context, const string &path) : context(context) {
 	auto &instance = DatabaseInstance::GetDatabase(context);
+	ExtensionHelper::AutoLoadExtension(instance, "avro");
+
 	auto &avro_scan_entry = ExtensionUtil::GetTableFunction(instance, "read_avro");
 	avro_scan = avro_scan_entry.functions.functions[0];
 
