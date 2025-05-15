@@ -112,40 +112,13 @@ public:
 //! An Iceberg snapshot https://iceberg.apache.org/spec/#snapshots
 class IcebergSnapshot {
 public:
-	//! Snapshot metadata
-	uint64_t snapshot_id;
-	uint64_t sequence_number;
-	string manifest_list;
-	timestamp_t timestamp_ms;
-	idx_t iceberg_format_version;
-	uint64_t schema_id;
-	vector<unique_ptr<IcebergColumnDefinition>> schema;
-	string metadata_compression_codec = "none";
-
-public:
-	static shared_ptr<IcebergSnapshot> GetLatestSnapshot(IcebergMetadata &info, const IcebergOptions &options);
-	static shared_ptr<IcebergSnapshot> GetSnapshotById(IcebergMetadata &info, idx_t snapshot_id,
-	                                                   const IcebergOptions &options);
-	static shared_ptr<IcebergSnapshot> GetSnapshotByTimestamp(IcebergMetadata &info, timestamp_t timestamp,
-	                                                          const IcebergOptions &options);
-
-	static shared_ptr<IcebergSnapshot> ParseSnapShot(yyjson_val *snapshot, IcebergMetadata &metadata,
-	                                                 const IcebergOptions &options);
 	static string GetMetaDataPath(ClientContext &context, const string &path, FileSystem &fs,
 	                              const IcebergOptions &options);
-
-protected:
 	//! Version extraction and identification
 	static bool UnsafeVersionGuessingEnabled(ClientContext &context);
 	static string GetTableVersionFromHint(const string &path, FileSystem &fs, string version_format);
 	static string GuessTableVersion(const string &meta_path, FileSystem &fs, const IcebergOptions &options);
 	static string PickTableVersion(vector<OpenFileInfo> &found_metadata, string &version_pattern, string &glob);
-
-	//! Internal JSON parsing functions
-	static yyjson_val *FindLatestSnapshotInternal(yyjson_val *snapshots);
-	static yyjson_val *FindSnapshotByIdInternal(yyjson_val *snapshots, idx_t target_id);
-	static yyjson_val *FindSnapshotByIdTimestampInternal(yyjson_val *snapshots, timestamp_t timestamp);
-	static vector<unique_ptr<IcebergColumnDefinition>> ParseSchema(vector<yyjson_val *> &schemas, idx_t schema_id);
 };
 
 //! Represents the iceberg table at a specific IcebergSnapshot. Corresponds to a single Manifest List.

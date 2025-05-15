@@ -13,8 +13,8 @@
 
 namespace duckdb {
 
-IRCSchemaEntry::IRCSchemaEntry(Catalog &catalog, CreateSchemaInfo &info)
-    : SchemaCatalogEntry(catalog, info), tables(*this) {
+IRCSchemaEntry::IRCSchemaEntry(Catalog &catalog, CreateSchemaInfo &info, IRCNamespaceInformation &namespace_info)
+    : SchemaCatalogEntry(catalog, info), namespace_info(namespace_info) {
 }
 
 IRCSchemaEntry::~IRCSchemaEntry() {
@@ -93,17 +93,6 @@ void IRCSchemaEntry::Alter(CatalogTransaction transaction, AlterInfo &info) {
 	throw NotImplementedException("Alter Schema Entry");
 }
 
-static bool CatalogTypeIsSupported(CatalogType type) {
-	switch (type) {
-	case CatalogType::INDEX_ENTRY:
-	case CatalogType::TABLE_ENTRY:
-	case CatalogType::VIEW_ENTRY:
-		return true;
-	default:
-		return false;
-	}
-}
-
 void IRCSchemaEntry::Scan(ClientContext &context, CatalogType type,
                           const std::function<void(CatalogEntry &)> &callback) {
 	if (!CatalogTypeIsSupported(type)) {
@@ -118,20 +107,31 @@ void IRCSchemaEntry::Scan(CatalogType type, const std::function<void(CatalogEntr
 optional_ptr<CatalogEntry> IRCSchemaEntry::LookupEntry(CatalogTransaction transaction,
                                                        const EntryLookupInfo &lookup_info) {
 	auto type = lookup_info.GetCatalogType();
-	if (!CatalogTypeIsSupported(type)) {
+	if (type != CatalogType::TABLE_ENTRY) {
+		throw NotImplementedException("The Iceberg REST Catalog only contains tables");
+	}
+
+	auto &entry_name = lookup_info.GetEntryName();
+	auto &context = transaction.GetContext();
+	auto &irc_transaction = transaction.transaction->Cast<IRCTransaction>();
+	auto entry = irc_transaction.GetTable(context, entry_name);
+	if (!entry) {
+		if (if_not_found != OnEntryNotFound::RETURN_NULL) {
+			throw CatalogException(lookup_info.GetErrorContext(), "Table with name \"%s\" not found", schema_name);
+		}
 		return nullptr;
 	}
-	return GetCatalogSet(type).GetEntry(transaction.GetContext(), lookup_info.GetEntryName());
+	return entry->Cast<CatalogEntry>();
 }
 
-IRCCatalogSet &IRCSchemaEntry::GetCatalogSet(CatalogType type) {
-	switch (type) {
-	case CatalogType::TABLE_ENTRY:
-	case CatalogType::VIEW_ENTRY:
-		return tables;
-	default:
-		throw InternalException("Type not supported for GetCatalogSet");
-	}
-}
+// IRCCatalogSet &IRCSchemaEntry::GetCatalogSet(CatalogType type) {
+//	switch (type) {
+//	case CatalogType::TABLE_ENTRY:
+//	case CatalogType::VIEW_ENTRY:
+//		return tables;
+//	default:
+//		throw InternalException("Type not supported for GetCatalogSet");
+//	}
+//}
 
 } // namespace duckdb

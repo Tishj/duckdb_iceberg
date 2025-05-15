@@ -25,7 +25,7 @@ namespace duckdb {
 IRCatalog::IRCatalog(AttachedDatabase &db_p, AccessMode access_mode, unique_ptr<IRCAuthorization> auth_handler,
                      const string &warehouse, const string &uri, const string &version)
     : Catalog(db_p), access_mode(access_mode), auth_handler(std::move(auth_handler)), warehouse(warehouse), uri(uri),
-      version(version), schemas(*this) {
+      version(version) {
 	if (version.empty()) {
 		throw InternalException("version can not be empty");
 	}
@@ -41,19 +41,23 @@ void IRCatalog::Initialize(bool load_builtin) {
 }
 
 void IRCatalog::ScanSchemas(ClientContext &context, std::function<void(SchemaCatalogEntry &)> callback) {
-	schemas.Scan(context, [&](CatalogEntry &schema) { callback(schema.Cast<IRCSchemaEntry>()); });
+	throw NotImplementedException("TODO: ScanSchemas not implemented");
 }
 
 optional_ptr<SchemaCatalogEntry> IRCatalog::LookupSchema(CatalogTransaction transaction,
                                                          const EntryLookupInfo &schema_lookup,
                                                          OnEntryNotFound if_not_found) {
 	auto &schema_name = schema_lookup.GetEntryName();
-	auto entry = schemas.GetEntry(transaction.GetContext(), schema_name);
-	if (!entry && if_not_found != OnEntryNotFound::RETURN_NULL) {
-		throw CatalogException(schema_lookup.GetErrorContext(), "Schema with name \"%s\" not found", schema_name);
+	auto &context = transaction.GetContext();
+	auto &irc_transaction = transaction.transaction->Cast<IRCTransaction>();
+	auto entry = irc_transaction.GetSchema(context, schema_name);
+	if (!entry) {
+		if (if_not_found != OnEntryNotFound::RETURN_NULL) {
+			throw CatalogException(schema_lookup.GetErrorContext(), "Schema with name \"%s\" not found", schema_name);
+		}
+		return nullptr;
 	}
-
-	return reinterpret_cast<SchemaCatalogEntry *>(entry.get());
+	return entry->Cast<SchemaCatalogEntry>();
 }
 
 optional_ptr<CatalogEntry> IRCatalog::CreateSchema(CatalogTransaction transaction, CreateSchemaInfo &info) {
@@ -204,40 +208,40 @@ void IRCatalog::GetConfig(ClientContext &context) {
 	//  are allowed to be hit
 }
 
-string IRCatalog::OptionalGetCachedValue(const string &url) {
-	std::lock_guard<std::mutex> lock(metadata_cache_mutex);
-	auto value = metadata_cache.find(url);
-	if (value != metadata_cache.end()) {
-		auto now = system_clock::now();
-		if (now < value->second->expires_at) {
-			return value->second->data;
-		}
-	}
-	return "";
-}
+// string IRCatalog::OptionalGetCachedValue(const string &url) {
+//	std::lock_guard<std::mutex> lock(metadata_cache_mutex);
+//	auto value = metadata_cache.find(url);
+//	if (value != metadata_cache.end()) {
+//		auto now = system_clock::now();
+//		if (now < value->second->expires_at) {
+//			return value->second->data;
+//		}
+//	}
+//	return "";
+//}
 
-bool IRCatalog::SetCachedValue(const string &url, const string &value,
-                               const rest_api_objects::LoadTableResult &result) {
-	//! FIXME: shouldn't this also store the 'storage-credentials' ??
-	if (!result.has_config) {
-		return false;
-	}
-	auto &credentials = result.config;
-	auto expires_at_it = credentials.find("s3.session-token-expires-at-ms");
-	if (expires_at_it == credentials.end()) {
-		return false;
-	}
+// bool IRCatalog::SetCachedValue(const string &url, const string &value,
+//                               const rest_api_objects::LoadTableResult &result) {
+//	//! FIXME: shouldn't this also store the 'storage-credentials' ??
+//	if (!result.has_config) {
+//		return false;
+//	}
+//	auto &credentials = result.config;
+//	auto expires_at_it = credentials.find("s3.session-token-expires-at-ms");
+//	if (expires_at_it == credentials.end()) {
+//		return false;
+//	}
 
-	auto &expires_at = expires_at_it->second;
-	auto epochMillis = std::stoll(expires_at);
-	auto expired_time = system_clock::time_point(milliseconds(epochMillis));
-	auto val = make_uniq<MetadataCacheValue>(value, expired_time);
-	{
-		std::lock_guard<std::mutex> lock(metadata_cache_mutex);
-		metadata_cache[url] = std::move(val);
-	}
-	return true;
-}
+//	auto &expires_at = expires_at_it->second;
+//	auto epochMillis = std::stoll(expires_at);
+//	auto expired_time = system_clock::time_point(milliseconds(epochMillis));
+//	auto val = make_uniq<MetadataCacheValue>(value, expired_time);
+//	{
+//		std::lock_guard<std::mutex> lock(metadata_cache_mutex);
+//		metadata_cache[url] = std::move(val);
+//	}
+//	return true;
+//}
 
 //===--------------------------------------------------------------------===//
 // Attach

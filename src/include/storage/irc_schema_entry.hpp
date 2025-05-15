@@ -4,16 +4,15 @@
 #include "catalog_api.hpp"
 #include "duckdb/catalog/catalog_entry/schema_catalog_entry.hpp"
 #include "storage/irc_table_set.hpp"
+#include "storage/irc_transaction.hpp"
 
 namespace duckdb {
 class IRCTransaction;
 
 class IRCSchemaEntry : public SchemaCatalogEntry {
 public:
-	IRCSchemaEntry(Catalog &catalog, CreateSchemaInfo &info);
+	IRCSchemaEntry(Catalog &catalog, CreateSchemaInfo &info, IRCNamespaceInformation &schema_info);
 	~IRCSchemaEntry() override;
-
-	unique_ptr<IRCAPISchema> schema_data;
 
 public:
 	optional_ptr<CatalogEntry> CreateTable(CatalogTransaction transaction, BoundCreateTableInfo &info) override;
@@ -37,10 +36,11 @@ public:
 	optional_ptr<CatalogEntry> LookupEntry(CatalogTransaction transaction, const EntryLookupInfo &lookup_info) override;
 
 private:
-	IRCCatalogSet &GetCatalogSet(CatalogType type);
+	// IRCCatalogSet &GetCatalogSet(CatalogType type);
 
 private:
-	ICTableSet tables;
+	// ICTableSet tables;
+	IRCNamespaceInformation &namespace_info;
 };
 
 } // namespace duckdb
