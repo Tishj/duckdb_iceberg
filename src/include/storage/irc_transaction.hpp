@@ -6,6 +6,8 @@
 #include "rest_catalog/objects/list_tables_response.hpp"
 #include "rest_catalog/objects/load_table_result.hpp"
 #include "rest_catalog/objects/schema.hpp"
+#include "rest_catalog/objects/table_metadata.hpp"
+#include "rest_catalog/objects/storage_credential.hpp"
 #include "duckdb/planner/tableref/bound_at_clause.hpp"
 #include "iceberg_metadata.hpp"
 
@@ -19,38 +21,53 @@ enum class IRCTransactionState { TRANSACTION_NOT_YET_STARTED, TRANSACTION_STARTE
 
 enum class IRCNamespaceState { MISSING, EXISTS, UNKNOWN };
 
+//! Table Schema
 struct IcebergSchemaInformation {
 public:
-	IcebergSchemaInformation(const string &table_name, rest_api_objects::Schema &schema);
+	IcebergSchemaInformation(rest_api_objects::Schema &schema);
 
 public:
-	unique_ptr<ICTableEntry> table_entry;
+	int32_t schema_id;
 	vector<unique_ptr<IcebergColumnDefinition>> columns;
 };
 
-struct IcebergTableInformation {
+//! Table Metadata
+struct IcebergTableMetadata {
 public:
-	IcebergTableInformation(Catalog &catalog, IRCSchemaEntry &schema, const string &name);
+	IcebergTableMetadata(rest_api_objects::TableMetadata &&metadata);
 
 public:
-	int64_t GetSnapshot(const BoundAtClause &at);
+	const rest_api_objects::Snapshot &GetSnapshot(const BoundAtClause &at) const;
 
 private:
-	int64_t SnapshotFromTimestamp(timestamp_t timestamp);
+	int64_t SnapshotFromTimestamp(timestamp_t timestamp) const;
 
 public:
-	bool has_metadata = false;
-	rest_api_objects::LoadTableResult metadata;
-
+	rest_api_objects::TableMetadata metadata;
 	//! schema_id -> table entry
 	unordered_map<int32_t, IcebergSchemaInformation> table_schemas;
 	//! snapshot_id -> snapshot info
 	unordered_map<int64_t, rest_api_objects::Snapshot> table_snapshots;
 	//! timestamp_ms -> snapshot_id
 	map<int64_t, int64_t> timestamp_to_snapshot;
+};
 
+struct IcebergTableInformation {
+public:
+	IcebergTableInformation(IcebergTableMetadata &&metadata, IRCSchemaEntry &schema, const string &name);
+
+public:
+	optional_ptr<ICTableEntry> GetTableSchema(optional_ptr<BoundAtClause> at);
+
+public:
+	IcebergTableMetadata table_metadata;
 	IRCSchemaEntry &schema;
 	string name;
+	case_insensitive_map_t<string> config;
+	vector<rest_api_objects::StorageCredential> storage_credentials;
+
+	//! schema_id -> table entry
+	unordered_map<int32_t, unique_ptr<ICTableEntry>> schema_versions;
 };
 
 struct IRCNamespaceInformation {
@@ -63,7 +80,7 @@ public:
 	bool has_tables = false;
 	rest_api_objects::ListTablesResponse tables;
 
-	case_insensitive_map_t<IcebergTableInformation> table_metadata;
+	case_insensitive_map_t<IcebergTableInformation> table_info;
 	IRCNamespaceState state = IRCNamespaceState::UNKNOWN;
 };
 

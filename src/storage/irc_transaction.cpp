@@ -11,23 +11,69 @@
 
 namespace duckdb {
 
-IcebergSchemaInformation::IcebergSchemaInformation(const string &table_name, rest_api_objects::Schema &schema) {
-	CreateTableInfo info;
-	info.table = table_name;
-
+IcebergSchemaInformation::IcebergSchemaInformation(rest_api_objects::Schema &schema) {
+	D_ASSERT(schema.object_1.has_schema_id);
+	schema_id = schema.object_1.schema_id;
 	for (auto &field : schema.struct_type.fields) {
 		auto column_def = IcebergColumnDefinition::ParseStructField(*field);
-
-		info.columns.AddColumn(ColumnDefinition(column_def->name, column_def->type));
 		columns.push_back(std::move(column_def));
 	}
 }
 
-IcebergTableInformation::IcebergTableInformation(Catalog &catalog, IRCSchemaEntry &schema, const string &name)
-    : schema(schema), name(name) {
+IcebergTableInformation::IcebergTableInformation(IcebergTableMetadata &&metadata, IRCSchemaEntry &schema,
+                                                 const string &name)
+    : metadata(std::move(metadata)), schema(schema), name(name) {
 }
 
-int64_t IcebergTableInformation::SnapshotFromTimestamp(timestamp_t timestamp) {
+optional_ptr<ICTableEntry> IcebergTableInformation::GetTableSchema(optional_ptr<BoundAtClause> at) {
+	int32_t schema_id;
+	if (at) {
+		//! Specific snapshot information is attached, look up the corresponding schema
+		auto &snapshot = table_metadata.GetSnapshot(*at);
+		D_ASSERT(snapshot.has_schema_id);
+		schema_id = snapshot.schema_id;
+	} else {
+		auto &metadata = table_metadata.metadata.metadata;
+		D_ASSERT(metadata.has_current_schema_id);
+		schema_id = metadata.current_schema_id;
+	}
+
+	auto it = schema_versions.find(schema_id);
+	if (it != schema_versions.end()) {
+		return it.second.get();
+	}
+	auto &table_schema = table_metadata.table_schemas[schema_id];
+	CreateTableInfo info;
+	info.table = name;
+	for (auto &column : table_schema.columns) {
+		info.columns.AddColumn(ColumnDefinition(column->name, column->type));
+	}
+	auto entry = make_uniq<ICTableEntry>(schema.ParentCatalog(), schema, info, *this);
+	auto result = schema_versions.emplace(schema_id, std::move(entry));
+	return result.second.get();
+}
+
+IcebergTableMetadata::IcebergTableMetadata(rest_api_objects::Metadata &&metadata_p) : metadata(std::move(metadata_p)) {
+	auto &snapshot_log = metadata.snapshot_log;
+	for (auto &entry : snapshot_log.value) {
+		timestamp_to_snapshot[entry.timestamp_ms] = entry.snapshot_id;
+	}
+
+	auto &snapshots = metadata.snapshots;
+	for (auto &entry : snapshots) {
+		auto snapshot_id = entry.snapshot_id;
+		table_snapshots.emplace(snapshot_id, std::move(entry));
+	}
+
+	auto &schemas = metadata.schemas;
+	for (auto &entry : schemas) {
+		D_ASSERT(entry.object_1.has_schema_id);
+		auto schema_id = entry.object_1.schema_id;
+		table_schemas.emplace(schema_id, IcebergSchemaInformation(table_name, entry));
+	}
+}
+
+int64_t IcebergTableMetadata::SnapshotFromTimestamp(timestamp_t timestamp) const {
 	auto timestamp_millis = Timestamp::GetEpochMs(timestamp);
 
 	uint64_t max_millis = NumericLimits<uint64_t>::Minimum();
@@ -47,7 +93,7 @@ int64_t IcebergTableInformation::SnapshotFromTimestamp(timestamp_t timestamp) {
 	return snapshot_id;
 }
 
-int64_t IcebergTableInformation::GetSnapshot(const BoundAtClause &at) {
+const rest_api_objects::Snapshot &IcebergTableMetadata::GetSnapshot(const BoundAtClause &at) const {
 	D_ASSERT(has_metadata);
 
 	auto &unit = at.Unit();
@@ -68,7 +114,7 @@ int64_t IcebergTableInformation::GetSnapshot(const BoundAtClause &at) {
 		throw InvalidInputException(
 		    "Unit '%s' for time travel is not valid, supported options are 'version' and 'timestamp'", unit);
 	}
-	return snapshot_id;
+	return table_snapshots[snapshot_id];
 }
 
 IRCNamespaceInformation::IRCNamespaceInformation(Catalog &catalog, const string &name) {
@@ -114,59 +160,19 @@ optional_ptr<IRCSchemaEntry> IRCTransaction::GetSchema(ClientContext &context, c
 optional_ptr<ICTableEntry> IRCTransaction::GetTable(ClientContext &context, IRCSchemaEntry &schema,
                                                     const EntryLookupInfo &lookup) {
 	auto &namespace_info = schema.namespace_info;
-	auto cached_result = namespace_info.table_metadata.find(name);
+	auto cached_result = namespace_info.table_info.find(name);
 	auto at = lookup.GetAtClause();
-	if (cached_result != namespace_info.table_metadata.end()) {
+	if (cached_result != namespace_info.table_info.end()) {
 		auto &table_info = cached_result.second;
-		auto &metadata = table_info.metadata.metadata;
-		if (at) {
-			//! Specific snapshot information is attached, look up the corresponding schema
-			auto schema_id = table_info.GetSnapshot(*at);
-			auto it = table_info.table_schemas.find(schema_id);
-			D_ASSERT(it != table_info.table_schemas.end());
-			auto &schema_info = it.second;
-			return schema_info.table_entry.get();
-		} else {
-			//! Since this is cached, we're assuming we already have the latest version
-			//! Just return the last snapshot of the table
-			D_ASSERT(metadata.has_current_schema_id);
-			auto schema_id = metadata.current_schema_id;
-			auto it = table_info.table_schemas.find(schema_id);
-			D_ASSERT(it != table_info.table_schemas.end());
-			auto &schema_info = it.second;
-			return schema_info.table_entry.get();
-		}
+		return table_info.GetTableSchema(at);
 	}
 
 	auto table_name = lookup.GetEntryName();
-	IcebergTableInformation new_table_info(catalog, schema, table_name);
+	rest_api_objects::LoadTableResult load_table_result;
 
 	//! FIXME: we want to get the raw response back, with error status, instead of try/catching
 	try {
-		new_table_info.metadata = IRCAPI::GetTable(context, catalog, schema, table_name);
-		new_table_info.has_metadata = true;
-
-		auto &metadata = new_table_info.metadata.metadata;
-		auto &timestamp_to_snapshot = new_table_info.timestamp_to_snapshot;
-		auto &snapshot_log = metadata.snapshot_log;
-		for (auto &entry : snapshot_log.value) {
-			timestamp_to_snapshot[entry.timestamp_ms] = entry.snapshot_id;
-		}
-
-		auto &table_snapshots = new_table_info.table_snapshots;
-		auto &snapshots = metadata.snapshots;
-		for (auto &entry : snapshots) {
-			auto snapshot_id = entry.snapshot_id;
-			table_snapshots.emplace(snapshot_id, std::move(entry));
-		}
-
-		auto &table_schemas = new_table_info.table_schemas;
-		auto &schemas = metadata.schemas;
-		for (auto &entry : schemas) {
-			D_ASSERT(entry.object_1.has_schema_id);
-			auto schema_id = entry.object_1.schema_id;
-			table_schemas.emplace(schema_id, IcebergSchemaInformation(table_name, entry));
-		}
+		load_table_result = IRCAPI::GetTable(context, catalog, schema, table_name);
 	} catch (std::exception &ex) {
 		error = ErrorData(ex);
 		if (error.Type() == ExceptionType::INVALID_CONFIGURATION || error.Type() == ExceptionType::INVALID_INPUT) {
@@ -175,23 +181,14 @@ optional_ptr<ICTableEntry> IRCTransaction::GetTable(ClientContext &context, IRCS
 		}
 		throw;
 	}
-	auto it = namespace_info.table_metadata.emplace(table_name, std::move(new_table_info));
+
+	IcebergTableInformation new_table_info(load_table_result.metadata, schema, table_name);
+	new_table.config = std::move(load_table_result.config);
+	new_table.storage_credentials = std::move(load_table_result.storage_credentials);
+
+	auto it = namespace_info.table_info.emplace(table_name, std::move(new_table_info));
 	auto &table_info = it.second;
-	if (at) {
-		auto schema_id = table_info.GetSnapshot(*at);
-		auto it = table_info.table_schemas.find(schema_id);
-		D_ASSERT(it != table_info.table_schemas.end());
-		auto &schema_info = it.second;
-		return schema_info.table_entry.get();
-	} else {
-		auto &metadata = table_info.metadata.metadata;
-		D_ASSERT(metadata.has_current_schema_id);
-		auto schema_id = metadata.current_schema_id;
-		auto it = table_info.table_schemas.find(schema_id);
-		D_ASSERT(it != table_info.table_schemas.end());
-		auto &schema_info = it.second;
-		return schema_info.table_entry.get();
-	}
+	return table_info.GetTableSchema(at);
 }
 
 } // namespace duckdb
