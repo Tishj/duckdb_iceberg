@@ -73,6 +73,7 @@
 #include "rest_catalog/objects/enable_row_lineage_update.hpp"
 #include "rest_catalog/objects/table_update.hpp"
 #include "rest_catalog/objects/view_update.hpp"
+#include "rest_catalog/objects/table_requirement_type.hpp"
 #include "rest_catalog/objects/table_requirement.hpp"
 #include "rest_catalog/objects/assert_create.hpp"
 #include "rest_catalog/objects/assert_table_uuid.hpp"

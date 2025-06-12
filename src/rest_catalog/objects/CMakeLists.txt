@@ -72,6 +72,7 @@ add_library(
   enable_row_lineage_update.cpp
   table_update.cpp
   view_update.cpp
+  table_requirement_type.cpp
   table_requirement.cpp
   assert_create.cpp
   assert_table_uuid.cpp
