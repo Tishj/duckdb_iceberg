@@ -1,0 +1,66 @@
+# name: test/sql/local/partitioning/issue_312.test
+# group: [partitioning]
+
+require avro
+
+require parquet
+
+require iceberg
+
+require httpfs
+
+require icu
+
+require-env DUCKDB_ICEBERG_HAVE_GENERATED_DATA
+
+# Do not ignore 'HTTP' error messages!
+set ignore_error_messages
+
+statement ok
+set enable_logging=true
+
+statement ok
+set logging_level='debug'
+
+statement ok
+SET Calendar='gregorian';
+
+statement ok
+SET TimeZone='UTC';
+
+#statement ok
+#pragma enable_verification
+
+query I
+WITH test_filter_table AS (
+	SELECT * FROM iceberg_scan('data/generated/iceberg/spark-local/default/test_filter')
+) 
+SELECT DISTINCT
+	fetch_insertion_time
+FROM
+	test_filter_table
+WHERE fetch_insertion_time <= '2025-06-19 10:08:14.65'
+ORDER BY
+	all
+----
+2025-06-19 10:08:14.33211+00
+2025-06-19 10:08:14.383272+00
+2025-06-19 10:08:14.641228+00
+
+statement ok
+pragma truncate_duckdb_logs;
+
+query I
+WITH test_filter_table AS (
+	SELECT * FROM iceberg_scan('data/generated/iceberg/spark-local/default/test_filter')
+)
+SELECT DISTINCT
+	fetch_insertion_time
+FROM
+	test_filter_table
+WHERE fetch_insertion_time <= '2025-06-19 10:08:14.64'
+ORDER BY
+	all
+----
+2025-06-19 10:08:14.33211+00
+2025-06-19 10:08:14.383272+00

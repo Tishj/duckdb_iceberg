@@ -383,7 +383,7 @@ OpenFileInfo IcebergMultiFileList::GetFileInternal(idx_t file_id, lock_guard<mut
 		return OpenFileInfo();
 	}
 
-	const auto &data_file = data_files[file_id];
+	const auto &data_file = *found_data_file;
 	const auto &path = data_file.file_path;
 
 	if (!StringUtil::CIEquals(data_file.file_format, "parquet")) {
