@@ -24,12 +24,11 @@ class Test(IcebergTest):
     def setup(self, con):
         con.con.sql(
             """
-            CREATE TABLE IF NOT EXISTS default.test_filter(
+            CREATE OR REPLACE TABLE default.test_filter(
                 `id` string,
                 `fetch_insertion_time` timestamp
             )
             USING iceberg
-            PARTITIONED BY (date(fetch_insertion_time))
         """
         )
         insert_statement = """
