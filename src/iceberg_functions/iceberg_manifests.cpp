@@ -30,28 +30,28 @@
 
 namespace duckdb {
 
-struct IcebergMetaDataBindData : public TableFunctionData {
+struct IcebergManifestsBindData : public TableFunctionData {
 	unique_ptr<IcebergTable> iceberg_table;
 };
 
-struct IcebergMetaDataGlobalTableFunctionState : public GlobalTableFunctionState {
+struct IcebergManifestsGlobalTableFunctionState : public GlobalTableFunctionState {
 public:
-	IcebergMetaDataGlobalTableFunctionState() {
+	IcebergManifestsGlobalTableFunctionState() {
 
 	};
 
 	static unique_ptr<GlobalTableFunctionState> Init(ClientContext &context, TableFunctionInitInput &input) {
-		return make_uniq<IcebergMetaDataGlobalTableFunctionState>();
+		return make_uniq<IcebergManifestsGlobalTableFunctionState>();
 	}
 
 	idx_t current_manifest_idx = 0;
 	idx_t current_manifest_entry_idx = 0;
 };
 
-static unique_ptr<FunctionData> IcebergMetaDataBind(ClientContext &context, TableFunctionBindInput &input,
+static unique_ptr<FunctionData> IcebergManifestsBind(ClientContext &context, TableFunctionBindInput &input,
                                                     vector<LogicalType> &return_types, vector<string> &names) {
 	// return a TableRef that contains the scans for the
-	auto ret = make_uniq<IcebergMetaDataBindData>();
+	auto ret = make_uniq<IcebergManifestsBindData>();
 
 	FileSystem &fs = FileSystem::GetFileSystem(context);
 	auto input_string = input.inputs[0].ToString();
@@ -105,17 +105,23 @@ static unique_ptr<FunctionData> IcebergMetaDataBind(ClientContext &context, Tabl
 		ret->iceberg_table = IcebergTable::Load(filename, metadata, *snapshot_to_scan, context, options);
 	}
 
-	auto manifest_types = IcebergManifestListEntry::Types();
-	return_types.insert(return_types.end(), manifest_types.begin(), manifest_types.end());
-	auto manifest_entry_types = IcebergManifestEntry::Types();
-	return_types.insert(return_types.end(), manifest_entry_types.begin(), manifest_entry_types.end());
+	names.emplace_back("manifest_path");
+	return_types.emplace_back(LogicalType::VARCHAR);
 
-	auto manifest_names = IcebergManifestListEntry::Names();
-	names.insert(names.end(), manifest_names.begin(), manifest_names.end());
-	auto manifest_entry_names = IcebergManifestEntry::Names();
-	names.insert(names.end(), manifest_entry_names.begin(), manifest_entry_names.end());
+	names.emplace_back("manifest_length");
+	return_types.emplace_back(LogicalType::BIGINT);
 
-	D_ASSERT(manifest_types.size() == manifest_names.size());
+	names.emplace_back("manifest_content_type");
+	return_types.emplace_back(LogicalType::VARCHAR);
+
+	names.emplace_back("manifest_sequence_number");
+	return_types.emplace_back(LogicalType::BIGINT);
+
+	names.emplace_back("added_snapshot_id");
+	return_types.emplace_back(LogicalType::BIGINT);
+
+	names.emplace_back("partition_spec_id");
+	return_types.emplace_back(LogicalType::INTEGER);
 
 	return std::move(ret);
 }
@@ -124,9 +130,9 @@ static void AddString(Vector &vec, idx_t index, string_t &&str) {
 	FlatVector::GetData<string_t>(vec)[index] = StringVector::AddString(vec, std::move(str));
 }
 
-static void IcebergMetaDataFunction(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
-	auto &bind_data = data.bind_data->Cast<IcebergMetaDataBindData>();
-	auto &global_state = data.global_state->Cast<IcebergMetaDataGlobalTableFunctionState>();
+static void IcebergManifestsFunction(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
+	auto &bind_data = data.bind_data->Cast<IcebergManifestsBindData>();
+	auto &global_state = data.global_state->Cast<IcebergManifestsGlobalTableFunctionState>();
 
 	if (!bind_data.iceberg_table) {
 		//! Table is empty
@@ -137,44 +143,41 @@ static void IcebergMetaDataFunction(ClientContext &context, TableFunctionInput &
 	auto &table_entries = bind_data.iceberg_table->entries;
 	for (; global_state.current_manifest_idx < table_entries.size(); global_state.current_manifest_idx++) {
 		auto &table_entry = table_entries[global_state.current_manifest_idx];
-		auto &data_files = table_entry.manifest_file.data_files;
-		for (; global_state.current_manifest_entry_idx < data_files.size(); global_state.current_manifest_entry_idx++) {
-			if (out >= STANDARD_VECTOR_SIZE) {
-				output.SetCardinality(out);
-				return;
-			}
-			auto &manifest = table_entry.manifest;
-			auto &data_file = data_files[global_state.current_manifest_entry_idx];
-
-			//! manifest_path
-			AddString(output.data[0], out, string_t(manifest.manifest_path));
-			//! manifest_sequence_number
-			FlatVector::GetData<int64_t>(output.data[1])[out] = manifest.sequence_number;
-			//! manifest_content
-			AddString(output.data[2], out, string_t(IcebergManifestListEntry::ContentTypeToString(manifest.content)));
-
-			//! status
-			AddString(output.data[3], out, string_t(IcebergManifestEntry::StatusTypeToString(data_file.status)));
-			//! content
-			AddString(output.data[4], out, string_t(IcebergManifestEntry::ContentTypeToString(data_file.content)));
-			//! file_path
-			AddString(output.data[5], out, string_t(data_file.file_path));
-			//! file_format
-			AddString(output.data[6], out, string_t(data_file.file_format));
-			//! record_count
-			FlatVector::GetData<int64_t>(output.data[7])[out] = data_file.record_count;
-			out++;
+		if (out >= STANDARD_VECTOR_SIZE) {
+			output.SetCardinality(out);
+			return;
 		}
+		auto &manifest = table_entry.manifest;
+
+		idx_t col = 0;
+		//! manifest_path
+		AddString(output.data[col++], out, string_t(manifest.manifest_path));
+		//! manifest_length
+		FlatVector::GetData<int64_t>(output.data[col++])[out] = manifest.manifest_length;
+		//! manifest_content_type
+		AddString(output.data[col++], out, string_t(IcebergManifestListEntry::ContentTypeToString(manifest.content)));
+		//! manifest_sequence_number
+		FlatVector::GetData<int64_t>(output.data[col++])[out] = manifest.sequence_number;
+		//! added_snapshot_id
+		FlatVector::GetData<int64_t>(output.data[col++])[out] = manifest.added_snapshot_id;
+		//! partition_spec_id
+		FlatVector::GetData<int32_t>(output.data[col++])[out] = manifest.partition_spec_id;
+
+		out++;
 		global_state.current_manifest_entry_idx = 0;
 	}
 	output.SetCardinality(out);
 }
 
-TableFunctionSet IcebergFunctions::GetIcebergMetadataFunction() {
-	TableFunctionSet function_set("iceberg_metadata");
+TableFunctionSet IcebergFunctions::GetIcebergManifestsFunction() {
+	TableFunctionSet function_set("iceberg_manifests");
+	TableFunction fun(
+		{LogicalType::VARCHAR},
+		IcebergManifestsFunction,
+		IcebergManifestsBind,
+		IcebergManifestsGlobalTableFunctionState::Init
+	);
 
-	auto fun = TableFunction({LogicalType::VARCHAR}, IcebergMetaDataFunction, IcebergMetaDataBind,
-	                         IcebergMetaDataGlobalTableFunctionState::Init);
 	fun.named_parameters["allow_moved_paths"] = LogicalType::BOOLEAN;
 	fun.named_parameters["metadata_compression_codec"] = LogicalType::VARCHAR;
 	fun.named_parameters["version"] = LogicalType::VARCHAR;
@@ -182,7 +185,6 @@ TableFunctionSet IcebergFunctions::GetIcebergMetadataFunction() {
 	fun.named_parameters["snapshot_from_timestamp"] = LogicalType::TIMESTAMP;
 	fun.named_parameters["snapshot_from_id"] = LogicalType::UBIGINT;
 	function_set.AddFunction(fun);
-
 	return function_set;
 }
 

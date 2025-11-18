@@ -1,0 +1,108 @@
+# name: test/sql/local/iceberg_scans/iceberg_metadata.test
+# description: test iceberg metadata function
+# group: [iceberg_scans]
+
+# Before we load the extension, this will fail
+statement error
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg');
+----
+Error
+
+require avro
+
+require parquet
+
+require iceberg
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg', ALLOW_MOVED_PATHS=TRUE);
+----
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m1.avro	7863	DATA	2	2354745328521181395	0
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m0.avro	7862	DATA	2	2354745328521181395	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg', ALLOW_MOVED_PATHS=TRUE, version='1');
+----
+lineitem_iceberg/metadata/787a5996-87e9-4d93-b258-066d524e82cc-m0.avro	7867	DATA	1	7817332053627255703	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg', ALLOW_MOVED_PATHS=TRUE, version_name_format='v%s%s.metadata.json');
+----
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m1.avro	7863	DATA	2	2354745328521181395	0
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m0.avro	7862	DATA	2	2354745328521181395	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg', ALLOW_MOVED_PATHS=TRUE, version='2', version_name_format='v%s%s.metadata.json');
+----
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m1.avro	7863	DATA	2	2354745328521181395	0
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m0.avro	7862	DATA	2	2354745328521181395	0
+
+statement error
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_gz', ALLOW_MOVED_PATHS=TRUE);
+----
+Invalid Configuration Error: Iceberg metadata file not found for table version '2' using 'none' compression and format(s): 'v%s%s.metadata.json,%s%s.metadata.json'
+
+statement error
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_gz', ALLOW_MOVED_PATHS=TRUE, METADATA_COMPRESSION_CODEC="blarg", version_name_format='blat%s%s');
+----
+Invalid Configuration Error: Iceberg metadata file not found for table version '2' using 'blarg' compression and format(s): 'blat%s%s'
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_gz', ALLOW_MOVED_PATHS=TRUE, METADATA_COMPRESSION_CODEC="gzip");
+----
+lineitem_iceberg_gz/metadata/23f9dbea-1e7f-4694-a82c-dc3c9a94953e-m0.avro	6953	DATA	0	4468019210336628573	0
+
+statement error
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_nonexistent');
+----
+Invalid Configuration Error: Failed to read iceberg table. No version was provided and no version-hint could be found,
+
+statement error
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_no_hint', ALLOW_MOVED_PATHS=TRUE);
+----
+<REGEX>:.*SET unsafe_enable_version_guessing.*
+
+statement ok
+SET unsafe_enable_version_guessing = true;
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_no_hint', ALLOW_MOVED_PATHS=TRUE);
+----
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m1.avro	7863	DATA	2	2354745328521181395	0
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m0.avro	7862	DATA	2	2354745328521181395	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_no_hint', ALLOW_MOVED_PATHS=TRUE, version='1');
+----
+lineitem_iceberg/metadata/787a5996-87e9-4d93-b258-066d524e82cc-m0.avro	7867	DATA	1	7817332053627255703	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_no_hint', ALLOW_MOVED_PATHS=TRUE, version_name_format='v%s%s.metadata.json');
+----
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m1.avro	7863	DATA	2	2354745328521181395	0
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m0.avro	7862	DATA	2	2354745328521181395	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_no_hint', ALLOW_MOVED_PATHS=TRUE, version='?', version_name_format='v%s%s.metadata.json');
+----
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m1.avro	7863	DATA	2	2354745328521181395	0
+lineitem_iceberg/metadata/179b4fb1-0366-4f7d-ad35-99ee8da0abf5-m0.avro	7862	DATA	2	2354745328521181395	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_gz_no_hint', ALLOW_MOVED_PATHS=TRUE, METADATA_COMPRESSION_CODEC='gzip', version='?');
+----
+lineitem_iceberg_gz/metadata/23f9dbea-1e7f-4694-a82c-dc3c9a94953e-m0.avro	6953	DATA	0	4468019210336628573	0
+
+query IIIIII
+SELECT * FROM ICEBERG_MANIFESTS('__WORKING_DIRECTORY__/data/persistent/iceberg/lineitem_iceberg_gz_no_hint', ALLOW_MOVED_PATHS=TRUE, METADATA_COMPRESSION_CODEC='gzip');
+----
+lineitem_iceberg_gz/metadata/23f9dbea-1e7f-4694-a82c-dc3c9a94953e-m0.avro	6953	DATA	0	4468019210336628573	0
+
+statement ok
+create table t1 as select range a from range(10);
+
+statement error
+select * from iceberg_mANIFESTS(memory.main.t1);
+----
+<REGEX>:.*Invalid Input Error.*t1 is not an Iceberg table.*
+
