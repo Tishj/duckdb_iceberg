@@ -3,7 +3,7 @@ if (NOT EMSCRIPTEN)
 duckdb_extension_load(avro
 		LOAD_TESTS
 		GIT_URL https://github.com/tishj/duckdb_avro
-		GIT_TAG e4fb35bb4935438b04390f1908e4db280c451f69
+		GIT_TAG ed1a44e7fd20e3208bb3c9b82900c9b020459f2d
 )
 endif()
 

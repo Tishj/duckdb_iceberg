@@ -12,12 +12,6 @@ ManifestListReader::ManifestListReader(const AvroScan &scan) : BaseManifestReade
 ManifestListReader::~ManifestListReader() {
 }
 
-string ManifestListReader::GetMetadataValue(const string &key) const {
-	auto &multi_file_local_state = local_state->Cast<MultiFileLocalState>();
-	auto &avro_reader = multi_file_local_state.reader->Cast<AvroReader>();
-	return avro_reader.GetMetadataValue(key);
-}
-
 idx_t ManifestListReader::Read(idx_t count, vector<IcebergManifestFile> &result) {
 	if (finished) {
 		return 0;

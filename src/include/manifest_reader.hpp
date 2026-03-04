@@ -12,6 +12,12 @@ namespace duckdb {
 
 class AvroScan;
 
+struct IcebergManifestMetadata {
+	optional_idx format_version;
+	optional_idx sequence_number;
+	optional_idx snapshot_id;
+};
+
 class BaseManifestReader {
 public:
 	BaseManifestReader(const AvroScan &scan);
@@ -47,10 +53,12 @@ public:
 
 public:
 	idx_t Read(idx_t count, vector<IcebergManifestFile> &result);
-	string GetMetadataValue(const string &key) const;
 
 private:
 	idx_t ReadChunk(idx_t offset, idx_t count, vector<IcebergManifestFile> &result);
+
+public:
+	IcebergManifestListMetadata metadata;
 };
 
 } // namespace manifest_list
