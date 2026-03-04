@@ -1,5 +1,6 @@
 #include "manifest_reader.hpp"
 #include "include/metadata/iceberg_manifest_list.hpp"
+#include "duckdb/common/multi_file/multi_file_states.hpp"
 
 namespace duckdb {
 
@@ -9,6 +10,12 @@ ManifestListReader::ManifestListReader(const AvroScan &scan) : BaseManifestReade
 }
 
 ManifestListReader::~ManifestListReader() {
+}
+
+string ManifestListReader::GetMetadataValue(const string &key) const {
+	auto &multi_file_local_state = local_state->Cast<MultiFileLocalState>();
+	auto &avro_reader = multi_file_local_state.reader->Cast<AvroReader>();
+	return avro_reader.GetMetadataValue(key);
 }
 
 idx_t ManifestListReader::Read(idx_t count, vector<IcebergManifestFile> &result) {

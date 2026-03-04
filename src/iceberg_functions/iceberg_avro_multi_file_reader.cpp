@@ -7,8 +7,6 @@
 #include "duckdb/planner/expression/bound_constant_expression.hpp"
 
 namespace duckdb {
-constexpr column_t IcebergAvroMultiFileReader::PARTITION_SPEC_ID_FIELD_ID;
-constexpr column_t IcebergAvroMultiFileReader::SEQUENCE_NUMBER_FIELD_ID;
 constexpr column_t IcebergAvroMultiFileReader::MANIFEST_FILE_PATH_FIELD_ID;
 
 unique_ptr<MultiFileReader> IcebergAvroMultiFileReader::CreateInstance(const TableFunction &table) {

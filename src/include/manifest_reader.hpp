@@ -47,6 +47,7 @@ public:
 
 public:
 	idx_t Read(idx_t count, vector<IcebergManifestFile> &result);
+	string GetMetadataValue(const string &key) const;
 
 private:
 	idx_t ReadChunk(idx_t offset, idx_t count, vector<IcebergManifestFile> &result);
