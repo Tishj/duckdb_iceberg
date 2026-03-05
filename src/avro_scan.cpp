@@ -22,7 +22,7 @@ struct ManifestFileVirtualColumn {
 } // namespace
 
 AvroScan::AvroScan(const string &path, ClientContext &context, shared_ptr<IcebergAvroScanInfo> avro_scan_info)
-    : context(context), scan_info(avro_scan_info) {
+    : path(path), context(context), scan_info(avro_scan_info) {
 	auto &instance = DatabaseInstance::GetDatabase(context);
 	auto &system_catalog = Catalog::GetSystemCatalog(instance);
 	auto data = CatalogTransaction::GetSystemTransaction(instance);
@@ -90,70 +90,8 @@ unique_ptr<AvroScan> AvroScan::ScanManifest(const IcebergSnapshot &snapshot,
 	return make_uniq<AvroScan>("placeholder", context, std::move(avro_scan_info));
 }
 
-static IcebergManifestMetadata ScanMetadata(ClientContext &context, const string &path) {
-	auto &instance = DatabaseInstance::GetDatabase(context);
-	auto &system_catalog = Catalog::GetSystemCatalog(instance);
-	auto data = CatalogTransaction::GetSystemTransaction(instance);
-	auto &schema = system_catalog.GetSchema(data, DEFAULT_SCHEMA);
-	auto catalog_entry = schema.GetEntry(data, CatalogType::TABLE_FUNCTION_ENTRY, "avro_metadata");
-	if (!catalog_entry) {
-		throw InvalidInputException("Function with name \"avro_metadata\" not found!");
-	}
-	auto &avro_metadata_entry = catalog_entry->Cast<TableFunctionCatalogEntry>();
-	auto avro_metadata = avro_metadata_entry.functions.functions[0];
-	vector<Value> children;
-	children.reserve(1);
-	children.push_back(Value(path));
-	named_parameter_map_t named_params;
-	vector<LogicalType> input_types;
-	vector<string> input_names;
-
-	TableFunctionRef empty;
-	TableFunction dummy_table_function;
-	dummy_table_function.name = "avro_metadata";
-
-	TableFunctionBindInput bind_input(children, named_params, input_types, input_names, nullptr, nullptr,
-	                                  dummy_table_function, empty);
-	bind_data = avro_metadata->bind(context, bind_input, return_types, return_names);
-
-	for (idx_t i = 0; i < return_types.size(); i++) {
-		column_ids.push_back(i);
-	}
-	TableFunctionInitInput input(bind_data.get(), column_ids, vector<idx_t>(), nullptr);
-	global_state = avro_metadata->init_global(context, input);
-
-	DataChunk chunk;
-	chunk.Initialize(context, {LogicalType::VARCHAR, LogicalType::VARCHAR}, STANDARD_VECTOR_SIZE);
-	bool started = false;
-	while (!started || chunk.size() != 0) {
-		chunk.Reset();
-		started = true;
-		TableFunctionInput function_input(bind_data.get(), nullptr, global_state.get());
-		avro_metadata->function(context, function_input, chunk);
-		chunk.Flatten();
-		auto &key_vec = chunk.data[0];
-		auto &value_vec = chunk.data[1];
-		for (idx_t i = 0; i < chunk.size(); i++) {
-			auto &key = FlatVector::GetData<string_t>(key_vec)[i];
-			auto &value = FlatVector::GetData<string_t>(value_vec)[i];
-			if (StringUtil::CIEquals(key.GetString(), "format-version")) {
-			}
-		}
-	}
-
-	auto count = chunk.size();
-	for (auto &vec : chunk.data) {
-		vec.Flatten(count);
-	}
-
-	IcebergManifestListMetadata metadata;
-	return metadata;
-}
-
 unique_ptr<AvroScan> AvroScan::ScanManifestList(const IcebergSnapshot &snapshot, const IcebergTableMetadata &metadata,
                                                 ClientContext &context, const string &path) {
-	auto metadata = ScanMetadata(context, path);
-
 	auto avro_scan_info = make_shared_ptr<IcebergManifestListScanInfo>(metadata, snapshot);
 	return make_uniq<AvroScan>(path, context, std::move(avro_scan_info));
 }

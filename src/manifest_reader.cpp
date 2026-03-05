@@ -1,4 +1,5 @@
 #include "manifest_reader.hpp"
+#include "avro_scan.hpp"
 
 namespace duckdb {
 

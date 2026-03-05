@@ -5,8 +5,13 @@
 #include "metadata/iceberg_manifest.hpp"
 #include "iceberg_utils.hpp"
 #include "duckdb/planner/expression/bound_constant_expression.hpp"
+#include "duckdb/main/database.hpp"
+#include "duckdb/catalog/catalog_entry/table_function_catalog_entry.hpp"
+#include "duckdb/parser/tableref/table_function_ref.hpp"
 
 namespace duckdb {
+constexpr column_t IcebergAvroMultiFileReader::PARTITION_SPEC_ID_FIELD_ID;
+constexpr column_t IcebergAvroMultiFileReader::SEQUENCE_NUMBER_FIELD_ID;
 constexpr column_t IcebergAvroMultiFileReader::MANIFEST_FILE_PATH_FIELD_ID;
 
 unique_ptr<MultiFileReader> IcebergAvroMultiFileReader::CreateInstance(const TableFunction &table) {
@@ -431,6 +436,14 @@ void IcebergAvroMultiFileReader::FinalizeChunk(ClientContext &context, const Mul
 	if (scan_info->type == AvroScanInfoType::MANIFEST_LIST) {
 		return;
 	}
+
+	auto &options = reader_data.file_to_be_opened.extended_info->options;
+	auto it = options.find("format_version");
+	if (it == options.end()) {
+		throw InternalException("Scanning manifest, missing 'format_version' option");
+	}
+	auto format_version = it->second.GetValue<int64_t>();
+
 	auto &manifest_scan_info = scan_info->Cast<IcebergManifestFileScanInfo>();
 	auto manifest_file_idx = reader.file_list_idx.GetIndex();
 	auto &manifest_file = manifest_scan_info.manifest_files[manifest_file_idx];
@@ -539,6 +552,86 @@ unique_ptr<Expression> IcebergAvroMultiFileReader::GetVirtualColumnExpression(
 	}
 	return MultiFileReader::GetVirtualColumnExpression(context, reader_data, local_columns, column_id, type, local_idx,
 	                                                   global_column_reference);
+}
+
+static IcebergManifestMetadata ScanMetadata(ClientContext &context, const string &path) {
+	auto &instance = DatabaseInstance::GetDatabase(context);
+	auto &system_catalog = Catalog::GetSystemCatalog(instance);
+	auto data = CatalogTransaction::GetSystemTransaction(instance);
+	auto &schema = system_catalog.GetSchema(data, DEFAULT_SCHEMA);
+	auto catalog_entry = schema.GetEntry(data, CatalogType::TABLE_FUNCTION_ENTRY, "avro_metadata");
+	if (!catalog_entry) {
+		throw InvalidInputException("Function with name \"avro_metadata\" not found!");
+	}
+	auto &avro_metadata_entry = catalog_entry->Cast<TableFunctionCatalogEntry>();
+	auto avro_metadata = avro_metadata_entry.functions.functions[0];
+	vector<Value> children;
+	children.reserve(1);
+	children.push_back(Value(path));
+	named_parameter_map_t named_params;
+	vector<LogicalType> input_types;
+	vector<string> input_names;
+	vector<LogicalType> return_types;
+	vector<string> return_names;
+
+	TableFunctionRef empty;
+	TableFunction dummy_table_function;
+	dummy_table_function.name = "avro_metadata";
+
+	TableFunctionBindInput bind_input(children, named_params, input_types, input_names, nullptr, nullptr,
+	                                  dummy_table_function, empty);
+	auto bind_data = avro_metadata.bind(context, bind_input, return_types, return_names);
+
+	vector<column_t> column_ids;
+	for (idx_t i = 0; i < return_types.size(); i++) {
+		column_ids.push_back(i);
+	}
+	TableFunctionInitInput input(bind_data.get(), column_ids, vector<idx_t>(), nullptr);
+	auto global_state = avro_metadata.init_global(context, input);
+
+	IcebergManifestMetadata metadata;
+	DataChunk chunk;
+	chunk.Initialize(context, {LogicalType::VARCHAR, LogicalType::VARCHAR}, STANDARD_VECTOR_SIZE);
+	bool started = false;
+	while (!started || chunk.size() != 0) {
+		chunk.Reset();
+		started = true;
+		TableFunctionInput function_input(bind_data.get(), nullptr, global_state.get());
+		avro_metadata.function(context, function_input, chunk);
+		chunk.Flatten();
+		auto &key_vec = chunk.data[0];
+		auto &value_vec = chunk.data[1];
+		for (idx_t i = 0; i < chunk.size(); i++) {
+			auto &key = FlatVector::GetData<string_t>(key_vec)[i];
+			auto &value = FlatVector::GetData<string_t>(value_vec)[i];
+			if (StringUtil::CIEquals(key.GetString(), "format-version")) {
+				metadata.format_version = std::stol(value.GetString());
+				break;
+			}
+		}
+	}
+	return metadata;
+}
+
+ReaderInitializeType IcebergAvroMultiFileReader::InitializeReader(
+    MultiFileReaderData &reader_data, const MultiFileBindData &bind_data,
+    const vector<MultiFileColumnDefinition> &global_columns, const vector<ColumnIndex> &global_column_ids,
+    optional_ptr<TableFilterSet> table_filters, ClientContext &context, MultiFileGlobalState &gstate) {
+	auto scan_info = shared_ptr_cast<TableFunctionInfo, IcebergAvroScanInfo>(function_info);
+	if (scan_info->type == AvroScanInfoType::MANIFEST_FILE) {
+		auto &file_info = reader_data.file_to_be_opened;
+		auto metadata = ScanMetadata(context, file_info.path);
+		if (!metadata.format_version.IsValid()) {
+			//! Default to V1 if it's missing
+			metadata.format_version = 1;
+		}
+		D_ASSERT(file_info.extended_info);
+		auto &options = file_info.extended_info->options;
+		options["format_version"] = Value::BIGINT(metadata.format_version.GetIndex());
+	}
+
+	return MultiFileReader::InitializeReader(reader_data, bind_data, global_columns, global_column_ids, table_filters,
+	                                         context, gstate);
 }
 
 unique_ptr<MultiFileReaderGlobalState> IcebergAvroMultiFileReader::InitializeGlobalState(

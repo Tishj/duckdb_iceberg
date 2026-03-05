@@ -12,6 +12,12 @@
 
 namespace duckdb {
 
+struct IcebergManifestMetadata {
+	optional_idx format_version;
+	optional_idx sequence_number;
+	optional_idx snapshot_id;
+};
+
 struct IcebergAvroMultiFileReaderGlobalState : public MultiFileReaderGlobalState {
 public:
 	IcebergAvroMultiFileReaderGlobalState(vector<LogicalType> extra_columns_p, const MultiFileList &file_list_p)
@@ -49,6 +55,12 @@ public:
 	                      const MultiFileReaderBindData &bind_data, const MultiFileList &file_list,
 	                      const vector<MultiFileColumnDefinition> &global_columns,
 	                      const vector<ColumnIndex> &global_column_ids) override;
+
+	ReaderInitializeType InitializeReader(MultiFileReaderData &reader_data, const MultiFileBindData &bind_data,
+	                                      const vector<MultiFileColumnDefinition> &global_columns,
+	                                      const vector<ColumnIndex> &global_column_ids,
+	                                      optional_ptr<TableFilterSet> table_filters, ClientContext &context,
+	                                      MultiFileGlobalState &gstate) override;
 
 public:
 	static unique_ptr<MultiFileReader> CreateInstance(const TableFunction &table);
