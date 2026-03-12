@@ -29,11 +29,7 @@ public:
 	                                       const IcebergTableMetadata &table_metadata,
 	                                       IcebergManifestContentType manifest_content_type,
 	                                       vector<IcebergManifestEntry> &&data_files);
-	void AddSnapshot(IcebergSnapshotOperationType operation, vector<IcebergManifestEntry> &&data_files,
-	                 case_insensitive_map_t<IcebergManifestDeletes> &&altered_manifests);
-	void AddUpdateSnapshot(vector<IcebergManifestEntry> &&delete_files, vector<IcebergManifestEntry> &&data_files,
-	                       case_insensitive_map_t<IcebergManifestDeletes> &&altered_manifests);
-	// add a schema update for a table
+	IcebergAddSnapshot &GetSnapshotToAppendTo();
 	void TableAddSchema();
 	void TableAddAssertCreate();
 	void TableAssignUUID();
@@ -60,7 +56,6 @@ public:
 	vector<unique_ptr<IcebergTableRequirement>> requirements;
 	//! Cached manifest list from the source snapshot
 	vector<IcebergManifestFile> existing_manifest_list;
-
 	//! Every insert/update/delete creates an alter of the table data
 	vector<reference<IcebergAddSnapshot>> alters;
 	//! The 'referenced_data_file' -> 'data_file.file_path' of the currently active transaction-local deletes
@@ -69,6 +64,10 @@ public:
 	int64_t next_row_id = 0;
 
 	mutex lock;
+
+private:
+	//! Current valid snapshot to append to
+	optional_ptr<IcebergAddSnapshot> in_progress_snapshot;
 };
 
 } // namespace duckdb

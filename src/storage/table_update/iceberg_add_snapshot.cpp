@@ -14,11 +14,113 @@
 
 namespace duckdb {
 
-IcebergAddSnapshot::IcebergAddSnapshot(const IcebergTableInformation &table_info, const string &manifest_list_path,
-                                       IcebergSnapshot &&snapshot)
-    : IcebergTableUpdate(IcebergTableUpdateType::ADD_SNAPSHOT, table_info), manifest_list(manifest_list_path),
-      snapshot(std::move(snapshot)) {
+static int64_t NewSnapshotId() {
+	auto random_number = UUID::GenerateRandomUUID().upper;
+	if (random_number < 0) {
+		// Flip the sign bit using XOR with 1LL shifted left 63 bits
+		random_number ^= (1LL << 63);
+	}
+	return random_number;
 }
+
+IcebergAddSnapshot::IcebergAddSnapshot(const IcebergTableInformation &table_info, sequence_number_t sequence_number,
+                                       int64_t first_row_id)
+    : IcebergTableUpdate(IcebergTableUpdateType::ADD_SNAPSHOT, table_info) {
+	//! Construct the manifest list
+	snapshot_id = NewSnapshotId();
+	this->sequence_number = sequence_number;
+	this->first_row_id = first_row_id;
+	auto manifest_list_uuid = UUID::ToString(UUID::GenerateRandomUUID());
+	manifest_list_path =
+	    table_metadata.GetMetadataPath() + "/snap-" + std::to_string(snapshot_id) + "-" + manifest_list_uuid + ".avro";
+}
+
+IcebergManifestFile IcebergTransactionData::CreateManifestFile(lock_guard<mutex> &guard, int64_t snapshot_id,
+                                                               sequence_number_t sequence_number,
+                                                               const IcebergTableMetadata &table_metadata,
+                                                               IcebergManifestContentType manifest_content_type,
+                                                               vector<IcebergManifestEntry> &&manifest_entries) {
+	//! create manifest file path
+	auto manifest_file_uuid = UUID::ToString(UUID::GenerateRandomUUID());
+	auto manifest_file_path = table_metadata.GetMetadataPath() + "/" + manifest_file_uuid + "-m0.avro";
+
+	// Add a manifest list entry for the delete files
+	IcebergManifestFile manifest_file(manifest_file_path);
+	auto &manifest = manifest_file.manifest_file;
+	manifest.path = manifest_file_path;
+	if (table_metadata.iceberg_version >= 3) {
+		manifest_file.has_first_row_id = true;
+		manifest_file.first_row_id = next_row_id;
+	}
+
+	manifest_file.manifest_path = manifest_file_path;
+	manifest_file.sequence_number = sequence_number;
+	manifest_file.content = manifest_content_type;
+	manifest_file.added_files_count = 0;
+	manifest_file.deleted_files_count = 0;
+	manifest_file.existing_files_count = 0;
+	manifest_file.added_rows_count = 0;
+	manifest_file.existing_rows_count = 0;
+	manifest_file.deleted_rows_count = 0;
+	//! TODO: support partitions
+	manifest_file.partition_spec_id = 0;
+	//! manifest.partitions = CreateManifestPartition();
+
+	//! Add the files to the manifest
+	for (auto &manifest_entry : manifest_entries) {
+		manifest_entry.manifest_file_path = manifest_file_path;
+		auto &data_file = manifest_entry.data_file;
+		if (data_file.content == IcebergManifestEntryContentType::DATA) {
+			//! FIXME: this is required because we don't apply inheritance to uncommitted manifests
+			//! But this does result in serializing this to the avro file, which *should* be NULL
+			//! To fix this we should probably remove the inheritance application in the "manifest_reader"
+			//! and instead do the inheritance in a path that is used by both committed and uncommitted manifests
+			data_file.has_first_row_id = true;
+			data_file.first_row_id = next_row_id;
+			next_row_id += data_file.record_count;
+		}
+		switch (manifest_entry.status) {
+		case IcebergManifestEntryStatusType::ADDED: {
+			manifest_file.added_files_count++;
+			manifest_file.added_rows_count += data_file.record_count;
+			break;
+		}
+		case IcebergManifestEntryStatusType::DELETED: {
+			manifest_file.deleted_files_count++;
+			manifest_file.deleted_rows_count += data_file.record_count;
+			break;
+		}
+		case IcebergManifestEntryStatusType::EXISTING: {
+			manifest_file.existing_files_count++;
+			manifest_file.existing_rows_count += data_file.record_count;
+			break;
+		}
+		}
+
+		//! FIXME: these should be inherited - left NULL - for newly added data
+		manifest_entry.sequence_number = sequence_number;
+		manifest_entry.snapshot_id = snapshot_id;
+		manifest_entry.partition_spec_id = manifest_file.partition_spec_id;
+		if (!manifest_file.has_min_sequence_number ||
+		    manifest_entry.sequence_number < manifest_file.min_sequence_number) {
+			manifest_file.min_sequence_number = manifest_entry.sequence_number;
+		}
+		manifest_file.has_min_sequence_number = true;
+	}
+	manifest_file.added_snapshot_id = snapshot_id;
+	manifest.entries.insert(manifest.entries.end(), std::make_move_iterator(manifest_entries.begin()),
+	                        std::make_move_iterator(manifest_entries.end()));
+	return manifest_file;
+}
+
+void IcebergAddSnapshot::Insert(vector<IcebergManifestEntry> &&data_files) {
+}
+
+// IcebergAddSnapshot::IcebergAddSnapshot(const IcebergTableInformation &table_info, const string &manifest_list_path,
+//                                       IcebergSnapshot &&snapshot)
+//    : IcebergTableUpdate(IcebergTableUpdateType::ADD_SNAPSHOT, table_info), manifest_list(manifest_list_path),
+//      snapshot(std::move(snapshot)) {
+//}
 
 static rest_api_objects::TableUpdate CreateAddSnapshotUpdate(const IcebergTableInformation &table_info,
                                                              const IcebergSnapshot &snapshot) {
