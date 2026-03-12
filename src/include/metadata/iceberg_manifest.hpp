@@ -66,10 +66,15 @@ public:
 	IcebergManifestEntryStatusType status;
 	//! ----- Data File Struct ------
 	//! Inherited from the 'manifest_file' if NULL and 'status == EXISTING'
-	sequence_number_t sequence_number = 0xDEADBEEF;
-	sequence_number_t file_sequence_number = 0xDEADBEEF;
+	bool has_sequence_number = false;
+	sequence_number_t sequence_number;
+
+	bool has_file_sequence_number = false;
+	sequence_number_t file_sequence_number;
+
 	bool has_snapshot_id = false;
 	int64_t snapshot_id;
+
 	//! Inherited from the 'manifest_file'
 	int32_t partition_spec_id = 0xDEADBEEF;
 	string manifest_file_path;

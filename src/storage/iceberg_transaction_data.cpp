@@ -121,6 +121,8 @@ IcebergManifestFile IcebergTransactionData::CreateManifestFile(lock_guard<mutex>
                                                                const IcebergTableMetadata &table_metadata,
                                                                IcebergManifestContentType manifest_content_type,
                                                                vector<IcebergManifestEntry> &&manifest_entries) {
+	const auto iceberg_version = table_metadata.iceberg_version;
+
 	//! create manifest file path
 	auto manifest_file_uuid = UUID::ToString(UUID::GenerateRandomUUID());
 	auto manifest_file_path = table_metadata.GetMetadataPath() + "/" + manifest_file_uuid + "-m0.avro";
@@ -129,37 +131,37 @@ IcebergManifestFile IcebergTransactionData::CreateManifestFile(lock_guard<mutex>
 	IcebergManifestFile manifest_file(manifest_file_path);
 	auto &manifest = manifest_file.manifest_file;
 	manifest.path = manifest_file_path;
-	if (table_metadata.iceberg_version >= 3) {
-		manifest_file.has_first_row_id = true;
-		manifest_file.first_row_id = next_row_id;
-	}
 
 	manifest_file.manifest_path = manifest_file_path;
-	manifest_file.sequence_number = sequence_number;
+	//! NOTE: Populated on commit
+	manifest_file.manifest_length = 0XDEADBEEF;
+	manifest_file.partition_spec_id = 0;
 	manifest_file.content = manifest_content_type;
+	manifest_file.sequence_number = sequence_number;
+
+	manifest_file.added_snapshot_id = snapshot_id;
 	manifest_file.added_files_count = 0;
-	manifest_file.deleted_files_count = 0;
 	manifest_file.existing_files_count = 0;
+	manifest_file.deleted_files_count = 0;
 	manifest_file.added_rows_count = 0;
 	manifest_file.existing_rows_count = 0;
 	manifest_file.deleted_rows_count = 0;
 	//! TODO: support partitions
-	manifest_file.partition_spec_id = 0;
 	//! manifest.partitions = CreateManifestPartition();
+	if (iceberg_version >= 3) {
+		manifest_file.has_first_row_id = true;
+		manifest_file.first_row_id = next_row_id;
+	}
 
 	//! Add the files to the manifest
 	for (auto &manifest_entry : manifest_entries) {
 		manifest_entry.manifest_file_path = manifest_file_path;
 		auto &data_file = manifest_entry.data_file;
-		if (data_file.content == IcebergManifestEntryContentType::DATA) {
-			//! FIXME: this is required because we don't apply inheritance to uncommitted manifests
-			//! But this does result in serializing this to the avro file, which *should* be NULL
-			//! To fix this we should probably remove the inheritance application in the "manifest_reader"
-			//! and instead do the inheritance in a path that is used by both committed and uncommitted manifests
-			data_file.has_first_row_id = true;
-			data_file.first_row_id = next_row_id;
-			next_row_id += data_file.record_count;
-		}
+		const bool is_data = data_file.content == IcebergManifestEntryContentType::DATA;
+		const bool is_existing = manifest_entry.status == IcebergManifestEntryStatusType::EXISTING;
+		const bool is_deleted = manifest_entry.status == IcebergManifestEntryStatusType::DELETED;
+
+		//! Update file count and row count stats
 		switch (manifest_entry.status) {
 		case IcebergManifestEntryStatusType::ADDED: {
 			manifest_file.added_files_count++;
@@ -178,17 +180,49 @@ IcebergManifestFile IcebergTransactionData::CreateManifestFile(lock_guard<mutex>
 		}
 		}
 
-		//! FIXME: these should be inherited - left NULL - for newly added data
-		manifest_entry.sequence_number = sequence_number;
-		manifest_entry.snapshot_id = snapshot_id;
-		manifest_entry.partition_spec_id = manifest_file.partition_spec_id;
-		if (!manifest_file.has_min_sequence_number ||
-		    manifest_entry.sequence_number < manifest_file.min_sequence_number) {
-			manifest_file.min_sequence_number = manifest_entry.sequence_number;
+		if (manifest_entry.status != IcebergManifestEntryStatusType::ADDED) {
+			//! Just assert that the necessary metadata is present
+			if (!manifest_entry.has_sequence_number) {
+				throw InvalidConfigurationException("'manifest_entry' that does not have status ADDED detected without "
+				                                    "a 'sequence_number', table is corrupted!");
+			}
+			if (!manifest_entry.has_file_sequence_number) {
+				throw InvalidConfigurationException("'manifest_entry' that does not have status ADDED detected without "
+				                                    "a 'file_sequence_number', table is corrupted!");
+			}
+			if (!manifest_entry.has_snapshot_id) {
+				throw InvalidConfigurationException("'manifest_entry' that does not have status ADDED detected without "
+				                                    "a 'snapshot_id', table is corrupted!");
+			}
+			if (iceberg_version >= 3) {
+				//! FIXME: to correctly do this, we need to read the 'format-version' in the AVRO metadata of the
+				//! manifest file
+				if (!data_file.has_first_row_id) {
+					throw InvalidConfigurationException("'data_file' that does not have status ADDED detected without "
+					                                    "a 'first_row_id', table is corrupted!");
+				}
+			}
+		} else {
+			//! NOTE: These will be inherited from the 'manifest_file'
+			manifest_entry.has_sequence_number = false;
+			manifest_entry.has_file_sequence_number = false;
+			manifest_entry.has_snapshot_id = false;
+			data_file.has_first_row_id = false;
 		}
-		manifest_file.has_min_sequence_number = true;
+
+		//! Record the sequence numbers for all live data referenced by the manifest file
+		if (!is_deleted) {
+			auto &entry_sequence_number = is_existing ? manifest_entry.sequence_number : manifest_file.sequence_number;
+			if (!manifest_file.has_min_sequence_number || entry_sequence_number < manifest_file.min_sequence_number) {
+				manifest_file.min_sequence_number = entry_sequence_number;
+			}
+			manifest_file.has_min_sequence_number = true;
+
+			if (is_data) {
+				next_row_id += data_file.record_count;
+			}
+		}
 	}
-	manifest_file.added_snapshot_id = snapshot_id;
 	manifest.entries.insert(manifest.entries.end(), std::make_move_iterator(manifest_entries.begin()),
 	                        std::make_move_iterator(manifest_entries.end()));
 	return manifest_file;
