@@ -12,6 +12,11 @@ namespace duckdb {
 
 class AvroScan;
 
+struct IcebergManifestEntryScan {
+	const IcebergManifestEntry &entry;
+	idx_t manifest_file_index;
+};
+
 class BaseManifestReader {
 public:
 	BaseManifestReader(const AvroScan &scan);
@@ -66,7 +71,7 @@ public:
 	idx_t Read(idx_t count, vector<IcebergManifestEntry> &result);
 
 private:
-	idx_t ReadChunk(idx_t offset, idx_t count, vector<IcebergManifestEntry> &result);
+	idx_t ReadChunk(idx_t offset, idx_t count, vector<IcebergManifestEntryScan> &result);
 
 public:
 	//! Whether the deleted entries should be skipped outright

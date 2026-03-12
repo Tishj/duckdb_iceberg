@@ -131,6 +131,7 @@ public:
 	vector<LogicalType> types;
 	TableFilterSet table_filters;
 
+	mutable vector<reference<const IcebergManifestFile>> manifest_files;
 	mutable mutex entry_lock;
 	mutable vector<IcebergManifestEntry> manifest_entries;
 	mutable vector<IcebergManifestEntry> delete_manifest_entries;
@@ -145,7 +146,6 @@ public:
 	//! The data files of the manifest file that we last scanned
 	mutable vector<IcebergManifestEntry> current_manifest_entries;
 	mutable vector<IcebergManifestFile> data_manifests;
-	mutable vector<reference<IcebergManifest>> transaction_data_manifests;
 	mutable idx_t transaction_data_idx = 0;
 	mutable unique_ptr<IcebergManifestReadingState> manifest_read_state;
 	mutable atomic<bool> finished;

@@ -41,8 +41,10 @@ public:
 	string file_format;
 	vector<pair<int32_t, Value>> partition_values;
 	int64_t record_count;
+
 	bool has_first_row_id = false;
 	int64_t first_row_id = 0xDEADBEEF;
+
 	int64_t file_size_in_bytes;
 	unordered_map<int32_t, int64_t> column_sizes;
 	unordered_map<int32_t, int64_t> value_counts;
@@ -53,8 +55,10 @@ public:
 	unordered_map<int32_t, Value> upper_bounds;
 	vector<int32_t> equality_ids;
 	vector<int64_t> split_offsets;
+
 	bool has_sort_order_id = false;
 	int32_t sort_order_id;
+
 	string referenced_data_file;
 	Value content_offset;
 	Value content_size_in_bytes;
@@ -75,9 +79,6 @@ public:
 	bool has_snapshot_id = false;
 	int64_t snapshot_id;
 
-	//! Inherited from the 'manifest_file'
-	int32_t partition_spec_id = 0xDEADBEEF;
-	string manifest_file_path;
 	IcebergDataFile data_file;
 
 public:

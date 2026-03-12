@@ -688,7 +688,11 @@ OpenFileInfo IcebergMultiFileList::GetFileInternal(idx_t file_id, lock_guard<mut
 	if (data_file.has_first_row_id) {
 		extended_info->options["first_row_id"] = Value::BIGINT(data_file.first_row_id);
 	}
-	extended_info->options["sequence_number"] = Value::BIGINT(manifest_entry.sequence_number);
+	if (manifest_entry.has_sequence_number) {
+		extended_info->options["sequence_number"] = Value::BIGINT(manifest_entry.sequence_number);
+	} else {
+		extended_info->options["sequence_number"] = Value::BIGINT(manifest_file.)
+	}
 	res.extended_info = extended_info;
 	return res;
 }
