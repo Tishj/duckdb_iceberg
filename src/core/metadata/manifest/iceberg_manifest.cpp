@@ -3,7 +3,7 @@
 #include "duckdb/storage/caching_file_system.hpp"
 
 #include "catalog/rest/iceberg_table_set.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "common/json_wrapper.hpp"
 #include "core/expression/iceberg_value.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table_information.hpp"
 
@@ -679,7 +679,7 @@ idx_t WriteToFile(const IcebergTableMetadata &table_metadata, const string &path
 		col_idx++;
 	}
 	chunk.SetCardinality(manifest_entries.size());
-	auto iceberg_schema_string = ICUtils::JsonToString(std::move(doc_p));
+	auto iceberg_schema_string = JsonToString(std::move(doc_p));
 
 	child_list_t<Value> metadata_values;
 	metadata_values.emplace_back("schema", iceberg_schema_string);

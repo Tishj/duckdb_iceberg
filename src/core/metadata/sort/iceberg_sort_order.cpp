@@ -1,5 +1,5 @@
 #include "core/metadata/sort/iceberg_sort_order.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "common/json_wrapper.hpp"
 
 namespace duckdb {
 

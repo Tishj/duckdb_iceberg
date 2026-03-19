@@ -13,7 +13,7 @@
 #include "catalog/rest/catalog_entry/table/iceberg_table_entry.hpp"
 #include "catalog/rest/transaction/iceberg_transaction.hpp"
 #include "catalog/rest/api/catalog_api.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "common/json_wrapper.hpp"
 #include "common/iceberg_utils.hpp"
 #include "iceberg_logging.hpp"
 #include "catalog/rest/api/api_utils.hpp"

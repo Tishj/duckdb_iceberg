@@ -11,7 +11,7 @@
 #include "duckdb/planner/expression_binder/table_function_binder.hpp"
 
 #include "catalog/rest/api/catalog_api.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "common/json_wrapper.hpp"
 #include "iceberg_logging.hpp"
 #include "catalog/rest/iceberg_catalog.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table_entry.hpp"
@@ -205,7 +205,7 @@ IcebergTableInformation &IcebergTableSet::CreateNewEntry(ClientContext &context,
 	table_entry->table_info.schema_versions[0] = std::move(table_entry);
 	table_metadata.iceberg_version = iceberg_version.GetIndex();
 	int32_t last_column_id;
-	table_metadata.schemas[0] = IcebergCreateTableRequest::CreateIcebergSchema(
+	table_metadata.schemas[0] = IcebergTableSchema::CreateIcebergSchema(
 	    context, table_metadata, table_ptr->GetColumns(), table_ptr->GetConstraints(), last_column_id);
 	table_metadata.current_schema_id = 0;
 	table_metadata.schemas[0]->schema_id = 0;

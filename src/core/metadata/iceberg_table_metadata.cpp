@@ -3,9 +3,10 @@
 #include "duckdb/common/exception.hpp"
 
 #include "common/iceberg_utils.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "common/json_wrapper.hpp"
 #include "core/metadata/snapshot/iceberg_snapshot.hpp"
 #include "rest_catalog/objects/list.hpp"
+#include "core/metadata/schema/iceberg_table_schema.hpp"
 #include "catalog/rest/api/iceberg_create_table_request.hpp"
 
 namespace duckdb {
@@ -533,7 +534,7 @@ string IcebergTableMetadata::ToJSON() const {
 	                       yyjson_mut_int(doc, default_sort_order_id.GetIndex()));
 	// yyjson_mut_obj_add_val(doc, root_obj, "refs", RefToJSON(doc));
 	// yyjson_mut_obj_add_val(doc, root_obj, "encryption-keys", EncryptionKeyToJSON(doc));
-	return ICUtils::JsonToString(std::move(doc_p));
+	return JsonToString(std::move(doc_p));
 }
 
 void IcebergTableMetadata::WriteMetadata(ClientContext &context, const string &path) const {

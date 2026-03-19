@@ -4,7 +4,7 @@
 #include "duckdb/parser/column_list.hpp"
 
 #include "execution/operator/copy/iceberg_copy.hpp"
-#include "catalog/rest/api/iceberg_create_table_request.hpp"
+#include "core/metadata/schema/iceberg_table_schema.hpp"
 
 namespace duckdb {
 
@@ -56,8 +56,7 @@ CopyIcebergBindData::CopyIcebergBindData(const CopyInfo &info, vector<string> &&
 	}
 
 	int32_t last_column_id;
-	table_schema =
-	    IcebergCreateTableRequest::CreateIcebergSchema(context, *table_metadata, columns, nullptr, last_column_id);
+	table_schema = IcebergTableSchema::CreateIcebergSchema(context, *table_metadata, columns, nullptr, last_column_id);
 	table_metadata->schemas[0] = table_schema;
 	table_metadata->current_schema_id = 0;
 	//! FIXME: adapt when we have partitioning support

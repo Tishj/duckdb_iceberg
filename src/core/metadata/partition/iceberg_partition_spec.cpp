@@ -1,5 +1,5 @@
 #include "core/metadata/partition/iceberg_partition_spec.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "common/json_wrapper.hpp"
 
 namespace duckdb {
 
@@ -69,7 +69,7 @@ string IcebergPartitionSpec::FieldsToJSONString() const {
 	auto doc = doc_p.get();
 	auto root_arr = FieldsToJSON(doc);
 	yyjson_mut_doc_set_root(doc, root_arr);
-	return ICUtils::JsonToString(std::move(doc_p));
+	return JsonToString(std::move(doc_p));
 }
 
 yyjson_mut_val *IcebergPartitionSpec::ToJSON(yyjson_mut_doc *doc) const {

@@ -1,12 +1,16 @@
 #pragma once
 
 #include "duckdb/common/column_index.hpp"
+#include "duckdb/parser/column_list.hpp"
+#include "duckdb/parser/constraint.hpp"
 
 #include "core/metadata/schema/iceberg_column_definition.hpp"
 #include "rest_catalog/objects/schema.hpp"
 #include "rest_catalog/objects/add_schema_update.hpp"
 
 namespace duckdb {
+
+struct IcebergTableMetadata;
 
 class IcebergTableSchema {
 public:
@@ -24,6 +28,9 @@ public:
 	static void SchemaToJson(yyjson_mut_doc *doc, yyjson_mut_val *root_object, const rest_api_objects::Schema &schema);
 	shared_ptr<IcebergTableSchema> Copy() const;
 	const LogicalType &GetColumnTypeFromFieldId(idx_t field_id) const;
+	static shared_ptr<IcebergTableSchema>
+	CreateIcebergSchema(ClientContext &context, const IcebergTableMetadata &table_metadata, const ColumnList &columns,
+	                    optional_ptr<const vector<unique_ptr<Constraint>>> constraints, int32_t &last_column_id);
 
 	void GetColumnNamesAndTypes(vector<string> &names, vector<LogicalType> &types) const;
 

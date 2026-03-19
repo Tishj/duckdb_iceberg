@@ -1,8 +1,22 @@
 #include "core/metadata/schema/iceberg_table_schema.hpp"
 
 #include "duckdb/common/exception.hpp"
+#include "duckdb/planner/expression_binder/constant_binder.hpp"
+#include "duckdb/parser/constraints/not_null_constraint.hpp"
+#include "duckdb/common/enums/catalog_type.hpp"
+#include "duckdb/catalog/catalog_entry/copy_function_catalog_entry.hpp"
+#include "duckdb/parser/parsed_data/copy_info.hpp"
+#include "duckdb/parser/parsed_data/create_table_info.hpp"
+#include "duckdb/execution/execution_context.hpp"
+#include "duckdb/parallel/thread_context.hpp"
+#include "duckdb/storage/buffer_manager.hpp"
+#include "duckdb/common/types/blob.hpp"
+#include "duckdb/planner/binder.hpp"
+
+#include "core/metadata/iceberg_table_metadata.hpp"
 #include "common/iceberg_utils.hpp"
 #include "rest_catalog/objects/list.hpp"
+#include "catalog/rest/api/iceberg_type.hpp"
 
 namespace duckdb {
 
@@ -265,6 +279,81 @@ void IcebergTableSchema::GetColumnNamesAndTypes(vector<string> &names, vector<Lo
 		names.push_back(column.name);
 		types.push_back(column.type);
 	}
+}
+
+static Value ExtractInitialValue(ConstantBinder &binder, ClientContext &context,
+                                 optional_ptr<const ParsedExpression> initial_expr, const LogicalType &type) {
+	if (!initial_expr) {
+		return Value(type);
+	}
+	auto expr = initial_expr->Copy();
+	auto bound_expr = binder.Bind(expr, nullptr);
+	return ExpressionExecutor::EvaluateScalar(context, *bound_expr).DefaultCastAs(type);
+}
+
+shared_ptr<IcebergTableSchema> IcebergTableSchema::CreateIcebergSchema(
+    ClientContext &context, const IcebergTableMetadata &table_metadata, const ColumnList &columns,
+    optional_ptr<const vector<unique_ptr<Constraint>>> constraints_p, int32_t &last_column_id) {
+	auto schema = make_shared_ptr<IcebergTableSchema>();
+	// should this be a different schema id?
+	schema->schema_id = table_metadata.current_schema_id;
+
+	// TODO: this can all be refactored out
+	//  this makes the IcebergTableSchema, and we use that to dump data to JSON.
+	//  we can just directly dump it to json.
+	auto column_iterator = columns.Logical();
+	int32_t field_id = 1;
+
+	auto next_field_id = [&field_id]() -> idx_t {
+		return field_id++;
+	};
+
+	unordered_set<idx_t> required_columns;
+	if (constraints_p) {
+		auto &constraints = *constraints_p;
+		for (auto &constraint : constraints) {
+			if (constraint->type != ConstraintType::NOT_NULL) {
+				continue;
+			}
+			auto &not_null_constraint = constraint->Cast<NotNullConstraint>();
+			if (!not_null_constraint.index.IsValid()) {
+				continue;
+			}
+			required_columns.insert(not_null_constraint.index.index);
+		}
+	}
+
+	auto binder = Binder::CreateBinder(context);
+	ConstantBinder constant_binder(*binder, context, "DEFAULT");
+	for (auto column = column_iterator.begin(); column != column_iterator.end(); ++column) {
+		auto &column_def = *column;
+		auto name = column_def.Name();
+		// check if there is a not null constraint
+		const bool required = required_columns.count(column.pos);
+
+		const auto &logical_type = column_def.GetType();
+		idx_t first_id = next_field_id();
+		rest_api_objects::Type type;
+		if (logical_type.IsNested()) {
+			type = IcebergTypeHelper::CreateIcebergRestType(logical_type, next_field_id);
+		} else {
+			type.has_primitive_type = true;
+			type.primitive_type = rest_api_objects::PrimitiveType();
+			type.primitive_type.value = IcebergTypeHelper::LogicalTypeToIcebergType(logical_type);
+		}
+		auto iceberg_column_def = IcebergColumnDefinition::ParseType(name, first_id, required, type, nullptr);
+		if (column_def.HasDefaultValue()) {
+			auto &default_expr = column_def.DefaultValue();
+			auto val = ExtractInitialValue(constant_binder, context, default_expr, logical_type);
+			if (table_metadata.iceberg_version < 3 && !val.IsNull()) {
+				throw InvalidInputException("non-null DEFAULT values are not supported for <V3 tables");
+			}
+			iceberg_column_def->initial_default = make_uniq<Value>(val);
+		}
+		schema->columns.push_back(std::move(iceberg_column_def));
+	}
+	last_column_id = field_id - 1;
+	return schema;
 }
 
 } // namespace duckdb

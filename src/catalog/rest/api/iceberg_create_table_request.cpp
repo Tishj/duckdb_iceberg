@@ -205,81 +205,6 @@ static void AddUnnamedField(yyjson_mut_doc *doc, yyjson_mut_val *field_obj, cons
 	}
 }
 
-static Value ExtractInitialValue(ConstantBinder &binder, ClientContext &context,
-                                 optional_ptr<const ParsedExpression> initial_expr, const LogicalType &type) {
-	if (!initial_expr) {
-		return Value(type);
-	}
-	auto expr = initial_expr->Copy();
-	auto bound_expr = binder.Bind(expr, nullptr);
-	return ExpressionExecutor::EvaluateScalar(context, *bound_expr).DefaultCastAs(type);
-}
-
-shared_ptr<IcebergTableSchema> IcebergCreateTableRequest::CreateIcebergSchema(
-    ClientContext &context, const IcebergTableMetadata &table_metadata, const ColumnList &columns,
-    optional_ptr<const vector<unique_ptr<Constraint>>> constraints_p, int32_t &last_column_id) {
-	auto schema = make_shared_ptr<IcebergTableSchema>();
-	// should this be a different schema id?
-	schema->schema_id = table_metadata.current_schema_id;
-
-	// TODO: this can all be refactored out
-	//  this makes the IcebergTableSchema, and we use that to dump data to JSON.
-	//  we can just directly dump it to json.
-	auto column_iterator = columns.Logical();
-	int32_t field_id = 1;
-
-	auto next_field_id = [&field_id]() -> idx_t {
-		return field_id++;
-	};
-
-	unordered_set<idx_t> required_columns;
-	if (constraints_p) {
-		auto &constraints = *constraints_p;
-		for (auto &constraint : constraints) {
-			if (constraint->type != ConstraintType::NOT_NULL) {
-				continue;
-			}
-			auto &not_null_constraint = constraint->Cast<NotNullConstraint>();
-			if (!not_null_constraint.index.IsValid()) {
-				continue;
-			}
-			required_columns.insert(not_null_constraint.index.index);
-		}
-	}
-
-	auto binder = Binder::CreateBinder(context);
-	ConstantBinder constant_binder(*binder, context, "DEFAULT");
-	for (auto column = column_iterator.begin(); column != column_iterator.end(); ++column) {
-		auto &column_def = *column;
-		auto name = column_def.Name();
-		// check if there is a not null constraint
-		const bool required = required_columns.count(column.pos);
-
-		const auto &logical_type = column_def.GetType();
-		idx_t first_id = next_field_id();
-		rest_api_objects::Type type;
-		if (logical_type.IsNested()) {
-			type = IcebergTypeHelper::CreateIcebergRestType(logical_type, next_field_id);
-		} else {
-			type.has_primitive_type = true;
-			type.primitive_type = rest_api_objects::PrimitiveType();
-			type.primitive_type.value = IcebergTypeHelper::LogicalTypeToIcebergType(logical_type);
-		}
-		auto iceberg_column_def = IcebergColumnDefinition::ParseType(name, first_id, required, type, nullptr);
-		if (column_def.HasDefaultValue()) {
-			auto &default_expr = column_def.DefaultValue();
-			auto val = ExtractInitialValue(constant_binder, context, default_expr, logical_type);
-			if (table_metadata.iceberg_version < 3 && !val.IsNull()) {
-				throw InvalidInputException("non-null DEFAULT values are not supported for <V3 tables");
-			}
-			iceberg_column_def->initial_default = make_uniq<Value>(val);
-		}
-		schema->columns.push_back(std::move(iceberg_column_def));
-	}
-	last_column_id = field_id - 1;
-	return schema;
-}
-
 void IcebergCreateTableRequest::PopulateSchema(yyjson_mut_doc *doc, yyjson_mut_val *schema_json,
                                                const IcebergTableSchema &schema) {
 	yyjson_mut_obj_add_strcpy(doc, schema_json, "type", "struct");
@@ -336,7 +261,7 @@ string IcebergCreateTableRequest::CreateTableToJSON(std::unique_ptr<yyjson_mut_d
 	if (!table_info.table_metadata.location.empty()) {
 		yyjson_mut_obj_add_str(doc, root_object, "location", table_info.table_metadata.location.c_str());
 	}
-	return ICUtils::JsonToString(std::move(doc_p));
+	return JsonToString(std::move(doc_p));
 }
 
 } // namespace duckdb

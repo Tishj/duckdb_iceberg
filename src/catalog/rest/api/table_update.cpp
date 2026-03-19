@@ -12,7 +12,7 @@ static rest_api_objects::Schema CopySchema(const IcebergTableSchema &schema) {
 	auto root_object = yyjson_mut_obj(doc);
 	yyjson_mut_doc_set_root(doc, root_object);
 	IcebergCreateTableRequest::PopulateSchema(doc, root_object, schema);
-	auto schema_str = ICUtils::JsonToString(std::move(doc_p));
+	auto schema_str = JsonToString(std::move(doc_p));
 
 	// Parse it back as immutable
 	yyjson_doc *new_doc = yyjson_read(schema_str.c_str(), strlen(schema_str.c_str()), 0);
