@@ -458,7 +458,7 @@ IcebergPredicateStats IcebergPredicateStats::DeserializeBounds(const Value &lowe
 }
 
 bool IcebergMultiFileList::FileMatchesFilter(const IcebergManifestEntry &manifest_entry,
-                                             IcebergDataFileType file_type) const {
+                                             IcebergManifestContentType file_type) const {
 	D_ASSERT(!table_filters.filters.empty());
 
 	auto &filters = table_filters.filters;
@@ -536,7 +536,7 @@ bool IcebergMultiFileList::FileMatchesFilter(const IcebergManifestEntry &manifes
 			}
 		}
 		if (data_file.lower_bounds.empty() || data_file.upper_bounds.empty() ||
-		    file_type == IcebergDataFileType::DELETE) {
+		    file_type == IcebergManifestContentType::DELETE) {
 			// There are no bounds statistics for the file, can't filter,
 			// or it is a delete file, which should only be filtered on partitions
 			continue;
@@ -664,7 +664,8 @@ optional_ptr<const IcebergManifestEntry> IcebergMultiFileList::GetDataFile(idx_t
 			auto &manifest_entry = manifest_entries[current_batch.start_index];
 			auto &data_file = manifest_entry.data_file;
 			// Check whether current data file is filtered out.
-			if (!table_filters.filters.empty() && !FileMatchesFilter(manifest_entry, IcebergDataFileType::DATA)) {
+			if (!table_filters.filters.empty() &&
+			    !FileMatchesFilter(manifest_entry, IcebergManifestContentType::DATA)) {
 				DUCKDB_LOG(context, IcebergLogType, "Iceberg Filter Pushdown, skipped 'data_file': '%s'",
 				           data_file.file_path);
 				//! Skip this file
@@ -977,7 +978,8 @@ void IcebergMultiFileList::ProcessDeletes(const vector<MultiFileColumnDefinition
 		for (auto &manifest_entry : entries) {
 			auto &data_file = manifest_entry.data_file;
 			// Check whether current data file is filtered out.
-			if (!table_filters.filters.empty() && !FileMatchesFilter(manifest_entry, IcebergDataFileType::DELETE)) {
+			if (!table_filters.filters.empty() &&
+			    !FileMatchesFilter(manifest_entry, IcebergManifestContentType::DELETE)) {
 				DUCKDB_LOG(context, IcebergLogType, "Iceberg Filter Pushdown, skipped 'data_file': '%s'",
 				           data_file.file_path);
 				//! Skip this file
