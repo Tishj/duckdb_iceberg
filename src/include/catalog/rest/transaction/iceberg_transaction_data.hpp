@@ -57,7 +57,7 @@ public:
 	bool is_deleted;
 	vector<unique_ptr<IcebergTableRequirement>> requirements;
 	//! Cached manifest list from the source snapshot
-	vector<IcebergManifestListEntry> existing_manifest_list;
+	vector<shared_ptr<IcebergManifestListEntry>> existing_manifest_list;
 
 	//! Every insert/update/delete creates an alter of the table data
 	vector<reference<IcebergAddSnapshot>> alters;

@@ -12,7 +12,7 @@ IcebergAvroScanInfo::~IcebergAvroScanInfo() {
 
 IcebergManifestListScanInfo::IcebergManifestListScanInfo(const IcebergTableMetadata &metadata,
                                                          const IcebergSnapshot &snapshot,
-                                                         vector<IcebergManifestListEntry> &result)
+                                                         vector<shared_ptr<IcebergManifestListEntry>> &result)
     : IcebergAvroScanInfo(TYPE, metadata, snapshot), result(result) {
 }
 IcebergManifestListScanInfo::~IcebergManifestListScanInfo() {
@@ -20,7 +20,7 @@ IcebergManifestListScanInfo::~IcebergManifestListScanInfo() {
 
 IcebergManifestFileScanInfo::IcebergManifestFileScanInfo(const IcebergTableMetadata &metadata,
                                                          const IcebergSnapshot &snapshot,
-                                                         vector<IcebergManifestListEntry> &manifest_files,
+                                                         vector<shared_ptr<IcebergManifestListEntry>> &manifest_files,
                                                          const IcebergOptions &options, FileSystem &fs,
                                                          const string &iceberg_path,
                                                          optional_ptr<ManifestEntryReadState> read_state)
@@ -28,7 +28,7 @@ IcebergManifestFileScanInfo::IcebergManifestFileScanInfo(const IcebergTableMetad
       iceberg_path(iceberg_path), read_state(read_state) {
 	unordered_set<int32_t> partition_spec_ids;
 	for (auto &manifest_list_entry : manifest_files) {
-		auto &manifest = manifest_list_entry.file;
+		auto &manifest = manifest_list_entry->file;
 		partition_spec_ids.insert(manifest.partition_spec_id);
 	}
 	//! The schema of a manifest is affected by the 'partition_spec_id' of the 'manifest_file',

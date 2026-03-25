@@ -27,9 +27,9 @@ public:
 public:
 	static unique_ptr<AvroScan> ScanManifestList(const IcebergSnapshot &snapshot, const IcebergTableMetadata &metadata,
 	                                             ClientContext &context, const string &path,
-	                                             vector<IcebergManifestListEntry> &result);
+	                                             vector<shared_ptr<IcebergManifestListEntry>> &result);
 	static unique_ptr<AvroScan> ScanManifest(const IcebergSnapshot &snapshot,
-	                                         vector<IcebergManifestListEntry> &manifest_files,
+	                                         vector<shared_ptr<IcebergManifestListEntry>> &manifest_files,
 	                                         const IcebergOptions &options, FileSystem &fs, const string &iceberg_path,
 	                                         const IcebergTableMetadata &metadata, ClientContext &context,
 	                                         optional_ptr<ManifestEntryReadState> read_state = nullptr);

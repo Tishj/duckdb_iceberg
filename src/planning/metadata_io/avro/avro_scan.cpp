@@ -63,7 +63,7 @@ AvroScan::AvroScan(const string &path, ClientContext &context, shared_ptr<Iceber
 }
 
 unique_ptr<AvroScan> AvroScan::ScanManifest(const IcebergSnapshot &snapshot,
-                                            vector<IcebergManifestListEntry> &manifest_files,
+                                            vector<shared_ptr<IcebergManifestListEntry>> &manifest_files,
                                             const IcebergOptions &options, FileSystem &fs, const string &iceberg_path,
                                             const IcebergTableMetadata &metadata, ClientContext &context,
                                             optional_ptr<ManifestEntryReadState> read_state) {
@@ -75,7 +75,7 @@ unique_ptr<AvroScan> AvroScan::ScanManifest(const IcebergSnapshot &snapshot,
 
 unique_ptr<AvroScan> AvroScan::ScanManifestList(const IcebergSnapshot &snapshot, const IcebergTableMetadata &metadata,
                                                 ClientContext &context, const string &path,
-                                                vector<IcebergManifestListEntry> &result) {
+                                                vector<shared_ptr<IcebergManifestListEntry>> &result) {
 	auto avro_scan_info = make_shared_ptr<IcebergManifestListScanInfo>(metadata, snapshot, result);
 	return make_uniq<AvroScan>(path, context, std::move(avro_scan_info));
 }

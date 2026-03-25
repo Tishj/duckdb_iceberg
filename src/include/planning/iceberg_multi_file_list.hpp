@@ -33,7 +33,7 @@ namespace duckdb {
 struct IcebergManifestScanningState {
 public:
 	IcebergManifestScanningState(ClientContext &context, unique_ptr<AvroScan> scan,
-	                             vector<IcebergManifestListEntry> &list_entries)
+	                             vector<shared_ptr<IcebergManifestListEntry>> &list_entries)
 	    : context(context), executor(context), scan(std::move(scan)), list_entries(list_entries), in_progress_tasks(0) {
 	}
 
@@ -41,7 +41,7 @@ public:
 	ClientContext &context;
 	TaskExecutor executor;
 	unique_ptr<AvroScan> scan;
-	vector<IcebergManifestListEntry> &list_entries;
+	vector<shared_ptr<IcebergManifestListEntry>> &list_entries;
 	atomic<idx_t> in_progress_tasks;
 };
 
@@ -156,7 +156,7 @@ public:
 	//! Scanned delete manifests of the snapshot being scanned
 	mutable unique_ptr<AvroScan> delete_manifest_scan;
 	mutable unique_ptr<manifest_file::ManifestReader> delete_manifest_reader;
-	mutable vector<IcebergManifestListEntry> committed_delete_manifests;
+	mutable vector<shared_ptr<IcebergManifestListEntry>> committed_delete_manifests;
 	//! Cached, uncommitted delete manifests created by earlier statements in the transaction
 	mutable vector<reference<const IcebergManifestListEntry>> transaction_delete_manifests;
 
@@ -168,7 +168,7 @@ private:
 	//! Scanned data manifests of the snapshot being scanned
 	mutable unique_ptr<IcebergManifestScanningState> data_manifest_read_state;
 	mutable unique_ptr<manifest_file::ManifestReader> data_manifest_reader;
-	mutable vector<IcebergManifestListEntry> committed_data_manifests;
+	mutable vector<shared_ptr<IcebergManifestListEntry>> committed_data_manifests;
 	//! Cached, uncommitted data manifests created by earlier statements in the transaction
 	mutable vector<reference<const IcebergManifestListEntry>> transaction_data_manifests;
 };

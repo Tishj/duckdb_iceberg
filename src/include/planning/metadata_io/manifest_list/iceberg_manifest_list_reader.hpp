@@ -16,7 +16,8 @@ public:
 	void Read();
 
 public:
-	static void ReadChunk(DataChunk &chunk, idx_t iceberg_version, vector<IcebergManifestListEntry> &result);
+	static void ReadChunk(DataChunk &chunk, idx_t iceberg_version,
+	                      vector<shared_ptr<IcebergManifestListEntry>> &result);
 };
 
 } // namespace manifest_list

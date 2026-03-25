@@ -7,6 +7,7 @@
 #include "duckdb/function/copy_function.hpp"
 #include "duckdb/execution/execution_context.hpp"
 #include "duckdb/parallel/thread_context.hpp"
+#include "duckdb/storage/object_cache.hpp"
 
 #include "core/metadata/manifest/iceberg_manifest.hpp"
 
@@ -111,19 +112,44 @@ public:
 	}
 };
 
-struct IcebergManifestListEntry {
+struct IcebergManifestListEntry : public ObjectCacheEntry {
 public:
 	IcebergManifestListEntry(IcebergManifestFile file) : file(std::move(file)) {
 	}
+	// disable copy constructors
+	IcebergManifestListEntry(const IcebergManifestListEntry &other) = delete;
+	IcebergManifestListEntry &operator=(const IcebergManifestListEntry &) = delete;
+	//! disable move constructors
+	DUCKDB_API IcebergManifestListEntry(IcebergManifestListEntry &&other) = delete;
+	DUCKDB_API IcebergManifestListEntry &operator=(IcebergManifestListEntry &&) = delete;
 
 public:
-	static IcebergManifestListEntry
+	string GetObjectType() override {
+		return "iceberg_manifest";
+	}
+
+	//! Get the rough cache memory usage in bytes for this entry.
+	//! Used for eviction decisions. Return invalid index to prevent eviction.
+	virtual optional_idx GetEstimatedCacheMemory() const override {
+		//! TODO: return an actual size
+		return optional_idx();
+	}
+
+public:
+	static shared_ptr<IcebergManifestListEntry>
 	CreateFromEntries(FileSystem &fs, int64_t snapshot_id, sequence_number_t sequence_number,
 	                  const IcebergTableMetadata &table_metadata, IcebergManifestContentType manifest_content_type,
 	                  vector<IcebergManifestEntry> &&manifest_entries, int64_t &next_row_id);
+	shared_ptr<IcebergManifestListEntry> Copy() const;
+
+public:
+	bool CanCache() const {
+		return has_manifest_entries;
+	}
 
 public:
 	IcebergManifestFile file;
+	bool has_manifest_entries = false;
 	vector<IcebergManifestEntry> manifest_entries;
 };
 
@@ -134,14 +160,14 @@ public:
 	}
 
 public:
-	vector<IcebergManifestListEntry> &GetManifestFilesMutable();
-	const vector<IcebergManifestListEntry> &GetManifestFilesConst() const;
+	vector<shared_ptr<IcebergManifestListEntry>> &GetManifestFilesMutable();
+	const vector<shared_ptr<IcebergManifestListEntry>> &GetManifestFilesConst() const;
 	const string &GetPath() const {
 		return path;
 	}
 
-	void AddNewManifestFile(IcebergManifestListEntry &&manifest_list_entry) {
-		auto &manifest_file = manifest_list_entry.file;
+	void AddNewManifestFile(shared_ptr<IcebergManifestListEntry> &&manifest_list_entry) {
+		auto &manifest_file = manifest_list_entry->file;
 		manifest_file.sequence_number = sequence_number;
 		manifest_file.added_snapshot_id = snapshot_id;
 
@@ -151,13 +177,13 @@ public:
 		}
 		manifest_entries.push_back(std::move(manifest_list_entry));
 	}
-	void AddExistingManifestFile(IcebergManifestListEntry &&manifest_file) {
+	void AddExistingManifestFile(shared_ptr<IcebergManifestListEntry> &&manifest_file) {
 		manifest_entries.push_back(std::move(manifest_file));
 	}
 	idx_t GetManifestListEntriesCount() const;
 
-	void AddToManifestEntries(vector<IcebergManifestListEntry> &manifest_list_entries);
-	vector<IcebergManifestListEntry> GetManifestListEntries();
+	void AddToManifestEntries(vector<shared_ptr<IcebergManifestListEntry>> &manifest_list_entries);
+	vector<shared_ptr<IcebergManifestListEntry>> GetManifestListEntries();
 
 public:
 	static LogicalType FieldSummaryType();
@@ -170,7 +196,7 @@ private:
 	string path;
 	int64_t snapshot_id;
 	sequence_number_t sequence_number;
-	vector<IcebergManifestListEntry> manifest_entries;
+	vector<shared_ptr<IcebergManifestListEntry>> manifest_entries;
 };
 
 namespace manifest_list {

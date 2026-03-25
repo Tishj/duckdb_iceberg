@@ -19,7 +19,8 @@ void ManifestListReader::Read() {
 	ScanInternal();
 }
 
-void ManifestListReader::ReadChunk(DataChunk &chunk, idx_t iceberg_version, vector<IcebergManifestListEntry> &result) {
+void ManifestListReader::ReadChunk(DataChunk &chunk, idx_t iceberg_version,
+                                   vector<shared_ptr<IcebergManifestListEntry>> &result) {
 	auto count = chunk.size();
 
 	//! NOTE: the order of these columns is defined by the order that they are produced in BuildManifestListSchema
@@ -142,7 +143,7 @@ void ManifestListReader::ReadChunk(DataChunk &chunk, idx_t iceberg_version, vect
 				summaries.push_back(summary);
 			}
 		}
-		result.push_back(std::move(manifest));
+		result.push_back(make_shared_ptr<IcebergManifestListEntry>(std::move(manifest)));
 	}
 }
 

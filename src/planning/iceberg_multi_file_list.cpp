@@ -838,7 +838,7 @@ void IcebergMultiFileList::InitializeFiles(lock_guard<mutex> &guard) const {
 		auto &metadata = GetMetadata();
 		auto &fs = FileSystem::GetFileSystem(context);
 
-		vector<IcebergManifestListEntry> manifest_list_entries;
+		vector<shared_ptr<IcebergManifestListEntry>> manifest_list_entries;
 		if (HasTransactionData() && !GetTransactionData().alters.empty()) {
 			auto &transaction_data = GetTransactionData();
 			manifest_list_entries = transaction_data.existing_manifest_list;
@@ -857,7 +857,7 @@ void IcebergMultiFileList::InitializeFiles(lock_guard<mutex> &guard) const {
 		}
 
 		for (auto &manifest_list_entry : manifest_list_entries) {
-			auto &manifest_file = manifest_list_entry.file;
+			auto &manifest_file = manifest_list_entry->file;
 			if (!ManifestMatchesFilter(manifest_file)) {
 				DUCKDB_LOG(context, IcebergLogType, "Iceberg Filter Pushdown, skipped 'manifest_file': '%s'",
 				           manifest_file.manifest_path);
@@ -886,7 +886,7 @@ void IcebergMultiFileList::InitializeFiles(lock_guard<mutex> &guard) const {
 			auto &alter = alter_p.get();
 			const auto &manifest_list_entries = alter.GetManifestFiles();
 			for (auto &manifest_list_entry : manifest_list_entries) {
-				auto &manifest = manifest_list_entry.file;
+				auto &manifest = manifest_list_entry->file;
 				if (!ManifestMatchesFilter(manifest)) {
 					DUCKDB_LOG(context, IcebergLogType, "Iceberg Filter Pushdown, skipped 'manifest_file': '%s'",
 					           manifest.manifest_path);
@@ -895,11 +895,11 @@ void IcebergMultiFileList::InitializeFiles(lock_guard<mutex> &guard) const {
 				}
 				switch (manifest.content) {
 				case IcebergManifestContentType::DATA: {
-					transaction_data_manifests.push_back(manifest_list_entry);
+					transaction_data_manifests.push_back(*manifest_list_entry);
 					break;
 				}
 				case IcebergManifestContentType::DELETE: {
-					transaction_delete_manifests.push_back(manifest_list_entry);
+					transaction_delete_manifests.push_back(*manifest_list_entry);
 					break;
 				}
 				default:
@@ -919,11 +919,11 @@ void IcebergMultiFileList::InitializeFiles(lock_guard<mutex> &guard) const {
 	for (auto &manifest : committed_data_manifests) {
 		auto manifest_list_entry_idx = data_manifests.size();
 		// reserve upfront → guarantees no reallocation
-		auto &file = manifest.file;
+		auto &file = manifest->file;
 		idx_t reserve_size = file.existing_files_count + file.added_files_count + file.deleted_files_count;
-		manifest.manifest_entries.reserve(reserve_size);
+		manifest->manifest_entries.reserve(reserve_size);
 
-		data_manifests.emplace_back(manifest_list_entry_idx, manifest);
+		data_manifests.emplace_back(manifest_list_entry_idx, *manifest);
 	}
 	for (auto &manifest : transaction_data_manifests) {
 		auto manifest_list_entry_idx = data_manifests.size();
@@ -939,7 +939,7 @@ void IcebergMultiFileList::InitializeFiles(lock_guard<mutex> &guard) const {
 	//! Add all delete manifests
 	for (auto &manifest : committed_delete_manifests) {
 		auto index = delete_manifests.size();
-		delete_manifests.emplace_back(index, manifest);
+		delete_manifests.emplace_back(index, *manifest);
 	}
 	for (auto &manifest : transaction_delete_manifests) {
 		auto index = delete_manifests.size();

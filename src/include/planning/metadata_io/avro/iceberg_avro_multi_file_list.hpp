@@ -51,11 +51,11 @@ public:
 
 public:
 	IcebergManifestListScanInfo(const IcebergTableMetadata &metadata, const IcebergSnapshot &snapshot,
-	                            vector<IcebergManifestListEntry> &result);
+	                            vector<shared_ptr<IcebergManifestListEntry>> &result);
 	virtual ~IcebergManifestListScanInfo();
 
 public:
-	vector<IcebergManifestListEntry> &result;
+	vector<shared_ptr<IcebergManifestListEntry>> &result;
 };
 
 class IcebergManifestFileScanInfo : public IcebergAvroScanInfo {
@@ -64,13 +64,13 @@ public:
 
 public:
 	IcebergManifestFileScanInfo(const IcebergTableMetadata &metadata, const IcebergSnapshot &snapshot,
-	                            vector<IcebergManifestListEntry> &manifest_files, const IcebergOptions &options,
-	                            FileSystem &fs, const string &iceberg_pat,
+	                            vector<shared_ptr<IcebergManifestListEntry>> &manifest_files,
+	                            const IcebergOptions &options, FileSystem &fs, const string &iceberg_pat,
 	                            optional_ptr<ManifestEntryReadState> read_state);
 	virtual ~IcebergManifestFileScanInfo();
 
 public:
-	vector<IcebergManifestListEntry> &manifest_files;
+	vector<shared_ptr<IcebergManifestListEntry>> &manifest_files;
 	const IcebergOptions &options;
 	FileSystem &fs;
 	string iceberg_path;

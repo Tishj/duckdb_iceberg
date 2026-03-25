@@ -30,19 +30,25 @@ string IcebergManifestContentTypeToString(IcebergManifestContentType type) {
 	}
 }
 
-IcebergManifestListEntry IcebergManifestListEntry::CreateFromEntries(FileSystem &fs, int64_t snapshot_id,
-                                                                     sequence_number_t sequence_number,
-                                                                     const IcebergTableMetadata &table_metadata,
-                                                                     IcebergManifestContentType manifest_content_type,
-                                                                     vector<IcebergManifestEntry> &&manifest_entries,
-                                                                     int64_t &next_row_id) {
+shared_ptr<IcebergManifestListEntry> IcebergManifestListEntry::Copy() const {
+	auto res = make_shared_ptr<IcebergManifestListEntry>(file);
+	res->manifest_entries = manifest_entries;
+	res->has_manifest_entries = has_manifest_entries;
+	return res;
+}
+
+shared_ptr<IcebergManifestListEntry>
+IcebergManifestListEntry::CreateFromEntries(FileSystem &fs, int64_t snapshot_id, sequence_number_t sequence_number,
+                                            const IcebergTableMetadata &table_metadata,
+                                            IcebergManifestContentType manifest_content_type,
+                                            vector<IcebergManifestEntry> &&manifest_entries, int64_t &next_row_id) {
 	//! create manifest file path
 	auto manifest_file_uuid = UUID::ToString(UUID::GenerateRandomUUID());
 	auto manifest_file_path = fs.JoinPath(table_metadata.GetMetadataPath(fs), manifest_file_uuid + "-m0.avro");
 
 	// Add a manifest list entry for the delete files
-	IcebergManifestListEntry manifest_list_entry(manifest_file_path);
-	auto &manifest_file = manifest_list_entry.file;
+	auto manifest_list_entry = make_shared_ptr<IcebergManifestListEntry>(manifest_file_path);
+	auto &manifest_file = manifest_list_entry->file;
 	manifest_file.manifest_path = manifest_file_path;
 	if (table_metadata.iceberg_version >= 3) {
 		manifest_file.has_first_row_id = true;
@@ -106,9 +112,10 @@ IcebergManifestListEntry IcebergManifestListEntry::CreateFromEntries(FileSystem 
 		manifest_file.partitions.Create(partition_spec, manifest_entries);
 	}
 
-	manifest_list_entry.manifest_entries.insert(manifest_list_entry.manifest_entries.end(),
-	                                            std::make_move_iterator(manifest_entries.begin()),
-	                                            std::make_move_iterator(manifest_entries.end()));
+	manifest_list_entry->manifest_entries.insert(manifest_list_entry->manifest_entries.end(),
+	                                             std::make_move_iterator(manifest_entries.begin()),
+	                                             std::make_move_iterator(manifest_entries.end()));
+	manifest_list_entry->has_manifest_entries = true;
 	return manifest_list_entry;
 }
 
@@ -214,11 +221,11 @@ void ManifestPartitions::Create(const IcebergPartitionSpec &partition_spec,
 	}
 }
 
-vector<IcebergManifestListEntry> &IcebergManifestList::GetManifestFilesMutable() {
+vector<shared_ptr<IcebergManifestListEntry>> &IcebergManifestList::GetManifestFilesMutable() {
 	return manifest_entries;
 }
 
-const vector<IcebergManifestListEntry> &IcebergManifestList::GetManifestFilesConst() const {
+const vector<shared_ptr<IcebergManifestListEntry>> &IcebergManifestList::GetManifestFilesConst() const {
 	return manifest_entries;
 }
 
@@ -226,12 +233,12 @@ idx_t IcebergManifestList::GetManifestListEntriesCount() const {
 	return manifest_entries.size();
 }
 
-void IcebergManifestList::AddToManifestEntries(vector<IcebergManifestListEntry> &manifest_list_entries) {
+void IcebergManifestList::AddToManifestEntries(vector<shared_ptr<IcebergManifestListEntry>> &manifest_list_entries) {
 	manifest_entries.insert(manifest_entries.begin(), std::make_move_iterator(manifest_list_entries.begin()),
 	                        std::make_move_iterator(manifest_list_entries.end()));
 }
 
-vector<IcebergManifestListEntry> IcebergManifestList::GetManifestListEntries() {
+vector<shared_ptr<IcebergManifestListEntry>> IcebergManifestList::GetManifestListEntries() {
 	return std::move(manifest_entries);
 }
 
@@ -371,7 +378,7 @@ void WriteToFile(const IcebergTableMetadata &table_metadata, const IcebergManife
 
 	for (idx_t i = 0; i < manifest_files.size(); i++) {
 		const auto &manifest_entry = manifest_files[i];
-		const auto &manifest = manifest_entry.file;
+		const auto &manifest = manifest_entry->file;
 		idx_t col_idx = 0;
 
 		// manifest_path: string - 500

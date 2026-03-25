@@ -26,14 +26,14 @@ public:
 	void ConstructManifestList(IcebergManifestList &manifest_list, CopyFunction &avro_copy, DatabaseInstance &db,
 	                           IcebergCommitState &commit_state) const;
 	void CreateUpdate(DatabaseInstance &db, ClientContext &context, IcebergCommitState &commit_state) const override;
-	const vector<IcebergManifestListEntry> &GetManifestFiles() const;
-	void AddManifestFile(IcebergManifestListEntry &&manifest_file);
+	const vector<shared_ptr<IcebergManifestListEntry>> &GetManifestFiles() const;
+	void AddManifestFile(shared_ptr<IcebergManifestListEntry> &&manifest_file);
 
 public:
 	IcebergManifestDeletes altered_manifests;
 
 private:
-	vector<IcebergManifestListEntry> manifest_files;
+	vector<shared_ptr<IcebergManifestListEntry>> manifest_files;
 };
 
 } // namespace duckdb
