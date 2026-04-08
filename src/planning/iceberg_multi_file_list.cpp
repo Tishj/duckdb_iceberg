@@ -658,8 +658,19 @@ void IcebergMultiFileList::FinishScanTasks(lock_guard<mutex> &guard) const {
 	}
 	auto &read_state = *data_manifest_read_state;
 	auto &executor = read_state.executor;
+
+	//! NOTE: this is executor.WorkOnTasks without throwing exceptions
 	//! Make sure all tasks are done before shutting down
-	executor.WorkOnTasks();
+	shared_ptr<Task> task_from_producer;
+	while (executor.GetTask(task_from_producer)) {
+		auto res = task_from_producer->Execute(TaskExecutionMode::PROCESS_ALL);
+		(void)res;
+		D_ASSERT(res != TaskExecutionResult::TASK_BLOCKED);
+		task_from_producer.reset();
+	}
+	// wait for all active tasks to finish
+	while (read_state.in_progress_tasks.load()) {
+	}
 };
 
 optional_ptr<const BoundIcebergManifestEntry> IcebergMultiFileList::GetDataFile(idx_t file_id,
