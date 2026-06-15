@@ -87,8 +87,9 @@ string AssertRefSnapshotId::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-ref-snapshot-id") {
-		return "AssertRefSnapshotId property 'type' must be assert-ref-snapshot-id";
+	if (!StringUtil::CIEquals(type.value, "assert-ref-snapshot-id")) {
+		return StringUtil::Format("AssertRefSnapshotId property 'type' must be assert-ref-snapshot-id, not %s",
+		                          type.value);
 	}
 	return "";
 }

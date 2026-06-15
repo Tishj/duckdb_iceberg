@@ -91,8 +91,8 @@ string SetExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "in" && type.value != "not-in") {
-		return "SetExpression property 'type' must be one of [in, not-in]";
+	if (!StringUtil::CIEquals(type.value, "in") && !StringUtil::CIEquals(type.value, "not-in")) {
+		return StringUtil::Format("SetExpression property 'type' must be one of [in, not-in], not %s", type.value);
 	}
 	error = term.Validate();
 	if (!error.empty()) {

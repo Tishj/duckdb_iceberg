@@ -78,8 +78,9 @@ string AssertDefaultSortOrderId::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-default-sort-order-id") {
-		return "AssertDefaultSortOrderId property 'type' must be assert-default-sort-order-id";
+	if (!StringUtil::CIEquals(type.value, "assert-default-sort-order-id")) {
+		return StringUtil::Format(
+		    "AssertDefaultSortOrderId property 'type' must be assert-default-sort-order-id, not %s", type.value);
 	}
 	return "";
 }

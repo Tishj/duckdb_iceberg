@@ -78,8 +78,8 @@ string AssertTableUUID::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-table-uuid") {
-		return "AssertTableUUID property 'type' must be assert-table-uuid";
+	if (!StringUtil::CIEquals(type.value, "assert-table-uuid")) {
+		return StringUtil::Format("AssertTableUUID property 'type' must be assert-table-uuid, not %s", type.value);
 	}
 	return "";
 }

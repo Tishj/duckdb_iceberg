@@ -83,8 +83,8 @@ string CompletedPlanningResult::Object5::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (status.value != "completed") {
-		return "Object5 property 'status' must be completed";
+	if (!StringUtil::CIEquals(status.value, "completed")) {
+		return StringUtil::Format("Object5 property 'status' must be completed, not %s", status.value);
 	}
 	if (storage_credentials.has_value()) {
 		for (const auto &item : (*storage_credentials)) {

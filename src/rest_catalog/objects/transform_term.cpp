@@ -84,8 +84,8 @@ TransformTerm TransformTerm::Copy() const {
 
 string TransformTerm::Validate() const {
 	string error;
-	if (type != "transform") {
-		return "TransformTerm property 'type' must be transform";
+	if (!StringUtil::CIEquals(type, "transform")) {
+		return StringUtil::Format("TransformTerm property 'type' must be transform, not %s", type);
 	}
 	error = transform.Validate();
 	if (!error.empty()) {

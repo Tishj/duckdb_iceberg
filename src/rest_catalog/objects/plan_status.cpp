@@ -34,8 +34,10 @@ PlanStatus PlanStatus::Copy() const {
 
 string PlanStatus::Validate() const {
 	string error;
-	if (value != "completed" && value != "submitted" && value != "cancelled" && value != "failed") {
-		return "PlanStatus property 'value' must be one of [completed, submitted, cancelled, failed]";
+	if (!StringUtil::CIEquals(value, "completed") && !StringUtil::CIEquals(value, "submitted") &&
+	    !StringUtil::CIEquals(value, "cancelled") && !StringUtil::CIEquals(value, "failed")) {
+		return StringUtil::Format(
+		    "PlanStatus property 'value' must be one of [completed, submitted, cancelled, failed], not %s", value);
 	}
 	return "";
 }

@@ -34,14 +34,18 @@ TokenType TokenType::Copy() const {
 
 string TokenType::Validate() const {
 	string error;
-	if (value != "urn:ietf:params:oauth:token-type:access_token" &&
-	    value != "urn:ietf:params:oauth:token-type:refresh_token" &&
-	    value != "urn:ietf:params:oauth:token-type:id_token" && value != "urn:ietf:params:oauth:token-type:saml1" &&
-	    value != "urn:ietf:params:oauth:token-type:saml2" && value != "urn:ietf:params:oauth:token-type:jwt") {
-		return "TokenType property 'value' must be one of [urn:ietf:params:oauth:token-type:access_token, "
-		       "urn:ietf:params:oauth:token-type:refresh_token, urn:ietf:params:oauth:token-type:id_token, "
-		       "urn:ietf:params:oauth:token-type:saml1, urn:ietf:params:oauth:token-type:saml2, "
-		       "urn:ietf:params:oauth:token-type:jwt]";
+	if (!StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:access_token") &&
+	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:refresh_token") &&
+	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:id_token") &&
+	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:saml1") &&
+	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:saml2") &&
+	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:jwt")) {
+		return StringUtil::Format(
+		    "TokenType property 'value' must be one of [urn:ietf:params:oauth:token-type:access_token, "
+		    "urn:ietf:params:oauth:token-type:refresh_token, urn:ietf:params:oauth:token-type:id_token, "
+		    "urn:ietf:params:oauth:token-type:saml1, urn:ietf:params:oauth:token-type:saml2, "
+		    "urn:ietf:params:oauth:token-type:jwt], not %s",
+		    value);
 	}
 	return "";
 }

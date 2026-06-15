@@ -68,8 +68,8 @@ string FalseExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "false") {
-		return "FalseExpression property 'type' must be false";
+	if (!StringUtil::CIEquals(type.value, "false")) {
+		return StringUtil::Format("FalseExpression property 'type' must be false, not %s", type.value);
 	}
 	return "";
 }

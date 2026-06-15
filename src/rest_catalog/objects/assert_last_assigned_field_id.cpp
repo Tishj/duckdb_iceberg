@@ -78,8 +78,9 @@ string AssertLastAssignedFieldId::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-last-assigned-field-id") {
-		return "AssertLastAssignedFieldId property 'type' must be assert-last-assigned-field-id";
+	if (!StringUtil::CIEquals(type.value, "assert-last-assigned-field-id")) {
+		return StringUtil::Format(
+		    "AssertLastAssignedFieldId property 'type' must be assert-last-assigned-field-id, not %s", type.value);
 	}
 	return "";
 }

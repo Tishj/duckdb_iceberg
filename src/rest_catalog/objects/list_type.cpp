@@ -94,8 +94,8 @@ ListType ListType::Copy() const {
 
 string ListType::Validate() const {
 	string error;
-	if (type != "list") {
-		return "ListType property 'type' must be list";
+	if (!StringUtil::CIEquals(type, "list")) {
+		return StringUtil::Format("ListType property 'type' must be list, not %s", type);
 	}
 	error = element->Validate();
 	if (!error.empty()) {

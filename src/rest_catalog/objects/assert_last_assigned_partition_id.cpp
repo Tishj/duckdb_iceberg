@@ -78,8 +78,10 @@ string AssertLastAssignedPartitionId::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-last-assigned-partition-id") {
-		return "AssertLastAssignedPartitionId property 'type' must be assert-last-assigned-partition-id";
+	if (!StringUtil::CIEquals(type.value, "assert-last-assigned-partition-id")) {
+		return StringUtil::Format(
+		    "AssertLastAssignedPartitionId property 'type' must be assert-last-assigned-partition-id, not %s",
+		    type.value);
 	}
 	return "";
 }

@@ -78,8 +78,10 @@ string UnaryExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "is-null" && type.value != "not-null" && type.value != "is-nan" && type.value != "not-nan") {
-		return "UnaryExpression property 'type' must be one of [is-null, not-null, is-nan, not-nan]";
+	if (!StringUtil::CIEquals(type.value, "is-null") && !StringUtil::CIEquals(type.value, "not-null") &&
+	    !StringUtil::CIEquals(type.value, "is-nan") && !StringUtil::CIEquals(type.value, "not-nan")) {
+		return StringUtil::Format(
+		    "UnaryExpression property 'type' must be one of [is-null, not-null, is-nan, not-nan], not %s", type.value);
 	}
 	error = term.Validate();
 	if (!error.empty()) {

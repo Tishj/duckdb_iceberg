@@ -74,8 +74,10 @@ Snapshot::Object2 Snapshot::Object2::Copy() const {
 
 string Snapshot::Object2::Validate() const {
 	string error;
-	if (operation != "append" && operation != "replace" && operation != "overwrite" && operation != "delete") {
-		return "Object2 property 'operation' must be one of [append, replace, overwrite, delete]";
+	if (!StringUtil::CIEquals(operation, "append") && !StringUtil::CIEquals(operation, "replace") &&
+	    !StringUtil::CIEquals(operation, "overwrite") && !StringUtil::CIEquals(operation, "delete")) {
+		return StringUtil::Format(
+		    "Object2 property 'operation' must be one of [append, replace, overwrite, delete], not %s", operation);
 	}
 	return "";
 }

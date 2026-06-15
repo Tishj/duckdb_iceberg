@@ -68,8 +68,8 @@ string TrueExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "true") {
-		return "TrueExpression property 'type' must be true";
+	if (!StringUtil::CIEquals(type.value, "true")) {
+		return StringUtil::Format("TrueExpression property 'type' must be true, not %s", type.value);
 	}
 	return "";
 }

@@ -78,8 +78,8 @@ string AsyncPlanningResult::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (status.value != "submitted") {
-		return "AsyncPlanningResult property 'status' must be submitted";
+	if (!StringUtil::CIEquals(status.value, "submitted")) {
+		return StringUtil::Format("AsyncPlanningResult property 'status' must be submitted, not %s", status.value);
 	}
 	return "";
 }

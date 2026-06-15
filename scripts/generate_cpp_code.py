@@ -755,20 +755,35 @@ class CPPClass:
         primitive_type = primitive_schema.primitive_type
 
         if constraint_schema.const is not None:
-            literal = cpp_literal(constraint_schema.const)
-            lines.append(f'{prefix}if ({access_expression} != {literal}) {{')
-            lines.append(
-                f"""{prefix}\treturn "{self.name} property '{property_name}' must be {constraint_schema.const}";"""
-            )
+            if primitive_type == 'string' and isinstance(constraint_schema.const, str):
+                lines.append(f'{prefix}if (!StringUtil::CIEquals({access_expression}, {cpp_literal(constraint_schema.const)})) {{')
+                lines.append(
+                    f"""{prefix}\treturn StringUtil::Format("{self.name} property '{property_name}' must be {constraint_schema.const}, not %s", {access_expression});"""
+                )
+            else:
+                literal = cpp_literal(constraint_schema.const)
+                lines.append(f'{prefix}if ({access_expression} != {literal}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must be {constraint_schema.const}";"""
+                )
             lines.append(f'{prefix}}}')
 
         if constraint_schema.enum:
-            enum_condition = ' && '.join(f'{access_expression} != {cpp_literal(value)}' for value in constraint_schema.enum)
             enum_values = ', '.join(str(value) for value in constraint_schema.enum)
-            lines.append(f'{prefix}if ({enum_condition}) {{')
-            lines.append(
-                f"""{prefix}\treturn "{self.name} property '{property_name}' must be one of [{enum_values}]";"""
-            )
+            if primitive_type == 'string' and all(isinstance(value, str) for value in constraint_schema.enum):
+                enum_condition = ' && '.join(
+                    f'!StringUtil::CIEquals({access_expression}, {cpp_literal(value)})' for value in constraint_schema.enum
+                )
+                lines.append(f'{prefix}if ({enum_condition}) {{')
+                lines.append(
+                    f"""{prefix}\treturn StringUtil::Format("{self.name} property '{property_name}' must be one of [{enum_values}], not %s", {access_expression});"""
+                )
+            else:
+                enum_condition = ' && '.join(f'{access_expression} != {cpp_literal(value)}' for value in constraint_schema.enum)
+                lines.append(f'{prefix}if ({enum_condition}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must be one of [{enum_values}]";"""
+                )
             lines.append(f'{prefix}}}')
 
         if primitive_type == 'string':

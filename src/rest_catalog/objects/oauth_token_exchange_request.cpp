@@ -120,9 +120,10 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::Copy() const {
 
 string OAuthTokenExchangeRequest::Validate() const {
 	string error;
-	if (grant_type != "urn:ietf:params:oauth:grant-type:token-exchange") {
-		return "OAuthTokenExchangeRequest property 'grant_type' must be one of "
-		       "[urn:ietf:params:oauth:grant-type:token-exchange]";
+	if (!StringUtil::CIEquals(grant_type, "urn:ietf:params:oauth:grant-type:token-exchange")) {
+		return StringUtil::Format("OAuthTokenExchangeRequest property 'grant_type' must be one of "
+		                          "[urn:ietf:params:oauth:grant-type:token-exchange], not %s",
+		                          grant_type);
 	}
 	error = subject_token_type.Validate();
 	if (!error.empty()) {

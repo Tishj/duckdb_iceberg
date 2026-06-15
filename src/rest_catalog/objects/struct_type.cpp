@@ -77,8 +77,8 @@ StructType StructType::Copy() const {
 
 string StructType::Validate() const {
 	string error;
-	if (type != "struct") {
-		return "StructType property 'type' must be struct";
+	if (!StringUtil::CIEquals(type, "struct")) {
+		return StringUtil::Format("StructType property 'type' must be struct, not %s", type);
 	}
 	for (const auto &item : fields) {
 		error = item->Validate();

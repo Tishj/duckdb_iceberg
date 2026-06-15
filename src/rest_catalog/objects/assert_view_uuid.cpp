@@ -74,8 +74,8 @@ AssertViewUUID AssertViewUUID::Copy() const {
 
 string AssertViewUUID::Validate() const {
 	string error;
-	if (type != "assert-view-uuid") {
-		return "AssertViewUUID property 'type' must be assert-view-uuid";
+	if (!StringUtil::CIEquals(type, "assert-view-uuid")) {
+		return StringUtil::Format("AssertViewUUID property 'type' must be assert-view-uuid, not %s", type);
 	}
 	return "";
 }

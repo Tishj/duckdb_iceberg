@@ -34,8 +34,10 @@ FileFormat FileFormat::Copy() const {
 
 string FileFormat::Validate() const {
 	string error;
-	if (value != "avro" && value != "orc" && value != "parquet" && value != "puffin") {
-		return "FileFormat property 'value' must be one of [avro, orc, parquet, puffin]";
+	if (!StringUtil::CIEquals(value, "avro") && !StringUtil::CIEquals(value, "orc") &&
+	    !StringUtil::CIEquals(value, "parquet") && !StringUtil::CIEquals(value, "puffin")) {
+		return StringUtil::Format("FileFormat property 'value' must be one of [avro, orc, parquet, puffin], not %s",
+		                          value);
 	}
 	return "";
 }

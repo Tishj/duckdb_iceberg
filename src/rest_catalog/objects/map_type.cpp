@@ -114,8 +114,8 @@ MapType MapType::Copy() const {
 
 string MapType::Validate() const {
 	string error;
-	if (type != "map") {
-		return "MapType property 'type' must be map";
+	if (!StringUtil::CIEquals(type, "map")) {
+		return StringUtil::Format("MapType property 'type' must be map, not %s", type);
 	}
 	error = key->Validate();
 	if (!error.empty()) {

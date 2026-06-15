@@ -110,8 +110,10 @@ OAuthTokenResponse OAuthTokenResponse::Copy() const {
 
 string OAuthTokenResponse::Validate() const {
 	string error;
-	if (token_type != "bearer" && token_type != "mac" && token_type != "N_A") {
-		return "OAuthTokenResponse property 'token_type' must be one of [bearer, mac, N_A]";
+	if (!StringUtil::CIEquals(token_type, "bearer") && !StringUtil::CIEquals(token_type, "mac") &&
+	    !StringUtil::CIEquals(token_type, "N_A")) {
+		return StringUtil::Format("OAuthTokenResponse property 'token_type' must be one of [bearer, mac, N_A], not %s",
+		                          token_type);
 	}
 	if (issued_token_type.has_value()) {
 		error = (*issued_token_type).Validate();

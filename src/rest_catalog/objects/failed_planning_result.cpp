@@ -70,8 +70,8 @@ string FailedPlanningResult::Object7::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (status.value != "failed") {
-		return "Object7 property 'status' must be failed";
+	if (!StringUtil::CIEquals(status.value, "failed")) {
+		return StringUtil::Format("Object7 property 'status' must be failed, not %s", status.value);
 	}
 	return "";
 }

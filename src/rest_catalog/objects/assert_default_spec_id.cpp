@@ -78,8 +78,9 @@ string AssertDefaultSpecId::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-default-spec-id") {
-		return "AssertDefaultSpecId property 'type' must be assert-default-spec-id";
+	if (!StringUtil::CIEquals(type.value, "assert-default-spec-id")) {
+		return StringUtil::Format("AssertDefaultSpecId property 'type' must be assert-default-spec-id, not %s",
+		                          type.value);
 	}
 	return "";
 }

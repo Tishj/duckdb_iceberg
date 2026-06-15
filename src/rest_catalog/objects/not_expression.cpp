@@ -78,8 +78,8 @@ string NotExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "not") {
-		return "NotExpression property 'type' must be not";
+	if (!StringUtil::CIEquals(type.value, "not")) {
+		return StringUtil::Format("NotExpression property 'type' must be not, not %s", type.value);
 	}
 	error = child->Validate();
 	if (!error.empty()) {

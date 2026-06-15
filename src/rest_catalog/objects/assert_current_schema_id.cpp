@@ -78,8 +78,9 @@ string AssertCurrentSchemaId::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-current-schema-id") {
-		return "AssertCurrentSchemaId property 'type' must be assert-current-schema-id";
+	if (!StringUtil::CIEquals(type.value, "assert-current-schema-id")) {
+		return StringUtil::Format("AssertCurrentSchemaId property 'type' must be assert-current-schema-id, not %s",
+		                          type.value);
 	}
 	return "";
 }

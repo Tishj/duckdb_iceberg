@@ -68,8 +68,8 @@ string AssertCreate::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "assert-create") {
-		return "AssertCreate property 'type' must be assert-create";
+	if (!StringUtil::CIEquals(type.value, "assert-create")) {
+		return StringUtil::Format("AssertCreate property 'type' must be assert-create, not %s", type.value);
 	}
 	return "";
 }

@@ -34,8 +34,8 @@ NullOrder NullOrder::Copy() const {
 
 string NullOrder::Validate() const {
 	string error;
-	if (value != "nulls-first" && value != "nulls-last") {
-		return "NullOrder property 'value' must be one of [nulls-first, nulls-last]";
+	if (!StringUtil::CIEquals(value, "nulls-first") && !StringUtil::CIEquals(value, "nulls-last")) {
+		return StringUtil::Format("NullOrder property 'value' must be one of [nulls-first, nulls-last], not %s", value);
 	}
 	return "";
 }

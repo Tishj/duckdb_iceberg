@@ -101,8 +101,8 @@ SnapshotReference SnapshotReference::Copy() const {
 
 string SnapshotReference::Validate() const {
 	string error;
-	if (type != "tag" && type != "branch") {
-		return "SnapshotReference property 'type' must be one of [tag, branch]";
+	if (!StringUtil::CIEquals(type, "tag") && !StringUtil::CIEquals(type, "branch")) {
+		return StringUtil::Format("SnapshotReference property 'type' must be one of [tag, branch], not %s", type);
 	}
 	return "";
 }

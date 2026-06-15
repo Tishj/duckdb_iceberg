@@ -68,8 +68,9 @@ string EmptyPlanningResult::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (status.value != "submitted" && status.value != "cancelled") {
-		return "EmptyPlanningResult property 'status' must be one of [submitted, cancelled]";
+	if (!StringUtil::CIEquals(status.value, "submitted") && !StringUtil::CIEquals(status.value, "cancelled")) {
+		return StringUtil::Format("EmptyPlanningResult property 'status' must be one of [submitted, cancelled], not %s",
+		                          status.value);
 	}
 	return "";
 }

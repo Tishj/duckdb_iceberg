@@ -34,8 +34,8 @@ SortDirection SortDirection::Copy() const {
 
 string SortDirection::Validate() const {
 	string error;
-	if (value != "asc" && value != "desc") {
-		return "SortDirection property 'value' must be one of [asc, desc]";
+	if (!StringUtil::CIEquals(value, "asc") && !StringUtil::CIEquals(value, "desc")) {
+		return StringUtil::Format("SortDirection property 'value' must be one of [asc, desc], not %s", value);
 	}
 	return "";
 }

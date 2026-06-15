@@ -88,11 +88,13 @@ string LiteralExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "lt" && type.value != "lt-eq" && type.value != "gt" && type.value != "gt-eq" &&
-	    type.value != "eq" && type.value != "not-eq" && type.value != "starts-with" &&
-	    type.value != "not-starts-with") {
-		return "LiteralExpression property 'type' must be one of [lt, lt-eq, gt, gt-eq, eq, not-eq, starts-with, "
-		       "not-starts-with]";
+	if (!StringUtil::CIEquals(type.value, "lt") && !StringUtil::CIEquals(type.value, "lt-eq") &&
+	    !StringUtil::CIEquals(type.value, "gt") && !StringUtil::CIEquals(type.value, "gt-eq") &&
+	    !StringUtil::CIEquals(type.value, "eq") && !StringUtil::CIEquals(type.value, "not-eq") &&
+	    !StringUtil::CIEquals(type.value, "starts-with") && !StringUtil::CIEquals(type.value, "not-starts-with")) {
+		return StringUtil::Format("LiteralExpression property 'type' must be one of [lt, lt-eq, gt, gt-eq, eq, not-eq, "
+		                          "starts-with, not-starts-with], not %s",
+		                          type.value);
 	}
 	error = term.Validate();
 	if (!error.empty()) {

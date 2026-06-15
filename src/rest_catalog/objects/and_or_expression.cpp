@@ -88,8 +88,8 @@ string AndOrExpression::Validate() const {
 	if (!error.empty()) {
 		return error;
 	}
-	if (type.value != "and" && type.value != "or") {
-		return "AndOrExpression property 'type' must be one of [and, or]";
+	if (!StringUtil::CIEquals(type.value, "and") && !StringUtil::CIEquals(type.value, "or")) {
+		return StringUtil::Format("AndOrExpression property 'type' must be one of [and, or], not %s", type.value);
 	}
 	error = left->Validate();
 	if (!error.empty()) {

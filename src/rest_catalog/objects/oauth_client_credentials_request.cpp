@@ -93,8 +93,10 @@ OAuthClientCredentialsRequest OAuthClientCredentialsRequest::Copy() const {
 
 string OAuthClientCredentialsRequest::Validate() const {
 	string error;
-	if (grant_type != "client_credentials") {
-		return "OAuthClientCredentialsRequest property 'grant_type' must be one of [client_credentials]";
+	if (!StringUtil::CIEquals(grant_type, "client_credentials")) {
+		return StringUtil::Format(
+		    "OAuthClientCredentialsRequest property 'grant_type' must be one of [client_credentials], not %s",
+		    grant_type);
 	}
 	return "";
 }

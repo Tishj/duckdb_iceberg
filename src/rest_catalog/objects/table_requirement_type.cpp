@@ -34,13 +34,18 @@ TableRequirementType TableRequirementType::Copy() const {
 
 string TableRequirementType::Validate() const {
 	string error;
-	if (value != "assert-create" && value != "assert-table-uuid" && value != "assert-ref-snapshot-id" &&
-	    value != "assert-last-assigned-field-id" && value != "assert-current-schema-id" &&
-	    value != "assert-last-assigned-partition-id" && value != "assert-default-spec-id" &&
-	    value != "assert-default-sort-order-id") {
-		return "TableRequirementType property 'value' must be one of [assert-create, assert-table-uuid, "
-		       "assert-ref-snapshot-id, assert-last-assigned-field-id, assert-current-schema-id, "
-		       "assert-last-assigned-partition-id, assert-default-spec-id, assert-default-sort-order-id]";
+	if (!StringUtil::CIEquals(value, "assert-create") && !StringUtil::CIEquals(value, "assert-table-uuid") &&
+	    !StringUtil::CIEquals(value, "assert-ref-snapshot-id") &&
+	    !StringUtil::CIEquals(value, "assert-last-assigned-field-id") &&
+	    !StringUtil::CIEquals(value, "assert-current-schema-id") &&
+	    !StringUtil::CIEquals(value, "assert-last-assigned-partition-id") &&
+	    !StringUtil::CIEquals(value, "assert-default-spec-id") &&
+	    !StringUtil::CIEquals(value, "assert-default-sort-order-id")) {
+		return StringUtil::Format(
+		    "TableRequirementType property 'value' must be one of [assert-create, assert-table-uuid, "
+		    "assert-ref-snapshot-id, assert-last-assigned-field-id, assert-current-schema-id, "
+		    "assert-last-assigned-partition-id, assert-default-spec-id, assert-default-sort-order-id], not %s",
+		    value);
 	}
 	return "";
 }

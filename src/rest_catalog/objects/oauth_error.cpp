@@ -82,10 +82,12 @@ OAuthError OAuthError::Copy() const {
 
 string OAuthError::Validate() const {
 	string error;
-	if (_error != "invalid_request" && _error != "invalid_client" && _error != "invalid_grant" &&
-	    _error != "unauthorized_client" && _error != "unsupported_grant_type" && _error != "invalid_scope") {
-		return "OAuthError property 'error' must be one of [invalid_request, invalid_client, invalid_grant, "
-		       "unauthorized_client, unsupported_grant_type, invalid_scope]";
+	if (!StringUtil::CIEquals(_error, "invalid_request") && !StringUtil::CIEquals(_error, "invalid_client") &&
+	    !StringUtil::CIEquals(_error, "invalid_grant") && !StringUtil::CIEquals(_error, "unauthorized_client") &&
+	    !StringUtil::CIEquals(_error, "unsupported_grant_type") && !StringUtil::CIEquals(_error, "invalid_scope")) {
+		return StringUtil::Format("OAuthError property 'error' must be one of [invalid_request, invalid_client, "
+		                          "invalid_grant, unauthorized_client, unsupported_grant_type, invalid_scope], not %s",
+		                          _error);
 	}
 	return "";
 }
