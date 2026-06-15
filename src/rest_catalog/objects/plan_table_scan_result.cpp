@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/plan_table_scan_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,48 @@ namespace duckdb {
 namespace rest_api_objects {
 
 PlanTableScanResult::PlanTableScanResult() {
+}
+
+PlanTableScanResultBuilder::PlanTableScanResultBuilder() {
+}
+
+PlanTableScanResultBuilder &
+PlanTableScanResultBuilder::SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult value) {
+	result_.completed_planning_with_idresult = std::move(value);
+	return *this;
+}
+
+PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetFailedPlanningResult(FailedPlanningResult value) {
+	result_.failed_planning_result = std::move(value);
+	return *this;
+}
+
+PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetAsyncPlanningResult(AsyncPlanningResult value) {
+	result_.async_planning_result = std::move(value);
+	return *this;
+}
+
+PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetEmptyPlanningResult(EmptyPlanningResult value) {
+	result_.empty_planning_result = std::move(value);
+	return *this;
+}
+
+string PlanTableScanResultBuilder::TryBuild(PlanTableScanResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+PlanTableScanResult PlanTableScanResultBuilder::Build() {
+	PlanTableScanResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
@@ -43,6 +87,43 @@ PlanTableScanResult PlanTableScanResult::Copy() const {
 		(*res.empty_planning_result) = (*empty_planning_result).Copy();
 	}
 	return res;
+}
+
+string PlanTableScanResult::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (completed_planning_with_idresult.has_value()) {
+		matched_one_of_variants++;
+		error = completed_planning_with_idresult->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (failed_planning_result.has_value()) {
+		matched_one_of_variants++;
+		error = failed_planning_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (async_planning_result.has_value()) {
+		matched_one_of_variants++;
+		error = async_planning_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (empty_planning_result.has_value()) {
+		matched_one_of_variants++;
+		error = empty_planning_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "PlanTableScanResult must have exactly one oneOf variant set";
+	}
+	return "";
 }
 
 string PlanTableScanResult::TryFromJSON(yyjson_val *obj) {
@@ -78,7 +159,7 @@ string PlanTableScanResult::TryFromJSON(yyjson_val *obj) {
 		}
 		return "PlanTableScanResult failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void PlanTableScanResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

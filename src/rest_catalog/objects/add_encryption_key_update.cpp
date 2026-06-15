@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/add_encryption_key_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AddEncryptionKeyUpdate::AddEncryptionKeyUpdate() {
+}
+
+AddEncryptionKeyUpdateBuilder::AddEncryptionKeyUpdateBuilder() {
+}
+
+AddEncryptionKeyUpdateBuilder &AddEncryptionKeyUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+AddEncryptionKeyUpdateBuilder &AddEncryptionKeyUpdateBuilder::SetEncryptionKey(EncryptedKey value) {
+	result_.encryption_key = std::move(value);
+	has_encryption_key_ = true;
+	return *this;
+}
+
+string AddEncryptionKeyUpdateBuilder::TryBuild(AddEncryptionKeyUpdate &result) {
+	if (!has_encryption_key_) {
+		return "AddEncryptionKeyUpdate required property 'encryption-key' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AddEncryptionKeyUpdate AddEncryptionKeyUpdateBuilder::Build() {
+	AddEncryptionKeyUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
@@ -31,6 +68,19 @@ AddEncryptionKeyUpdate AddEncryptionKeyUpdate::Copy() const {
 	return res;
 }
 
+string AddEncryptionKeyUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = encryption_key.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = base_update.TryFromJSON(obj);
@@ -46,7 +96,7 @@ string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AddEncryptionKeyUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

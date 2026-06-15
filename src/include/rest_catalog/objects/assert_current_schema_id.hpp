@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertCurrentSchemaId FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertCurrentSchemaId Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	TableRequirementType type;
 	int32_t current_schema_id;
+};
+
+class AssertCurrentSchemaIdBuilder {
+public:
+	AssertCurrentSchemaIdBuilder();
+	AssertCurrentSchemaIdBuilder &SetType(TableRequirementType value);
+	AssertCurrentSchemaIdBuilder &SetCurrentSchemaId(int32_t value);
+	string TryBuild(AssertCurrentSchemaId &result);
+	AssertCurrentSchemaId Build();
+
+private:
+	AssertCurrentSchemaId result_;
+	bool has_type_ = false;
+	bool has_current_schema_id_ = false;
 };
 
 } // namespace rest_api_objects

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_current_schema_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetCurrentSchemaUpdate::SetCurrentSchemaUpdate() {
+}
+
+SetCurrentSchemaUpdateBuilder::SetCurrentSchemaUpdateBuilder() {
+}
+
+SetCurrentSchemaUpdateBuilder &SetCurrentSchemaUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetCurrentSchemaUpdateBuilder &SetCurrentSchemaUpdateBuilder::SetSchemaId(int32_t value) {
+	result_.schema_id = std::move(value);
+	has_schema_id_ = true;
+	return *this;
+}
+
+string SetCurrentSchemaUpdateBuilder::TryBuild(SetCurrentSchemaUpdate &result) {
+	if (!has_schema_id_) {
+		return "SetCurrentSchemaUpdate required property 'schema-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetCurrentSchemaUpdate SetCurrentSchemaUpdateBuilder::Build() {
+	SetCurrentSchemaUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ SetCurrentSchemaUpdate SetCurrentSchemaUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.schema_id = schema_id;
 	return res;
+}
+
+string SetCurrentSchemaUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(schema_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetCurrentSchemaUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

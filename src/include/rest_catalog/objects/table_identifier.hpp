@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static TableIdentifier FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TableIdentifier Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	Namespace _namespace;
 	string name;
+};
+
+class TableIdentifierBuilder {
+public:
+	TableIdentifierBuilder();
+	TableIdentifierBuilder &SetNamespace(Namespace value);
+	TableIdentifierBuilder &SetName(string value);
+	string TryBuild(TableIdentifier &result);
+	TableIdentifier Build();
+
+private:
+	TableIdentifier result_;
+	bool has__namespace_ = false;
+	bool has_name_ = false;
 };
 
 } // namespace rest_api_objects

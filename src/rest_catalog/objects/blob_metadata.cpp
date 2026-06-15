@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/blob_metadata.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,68 @@ namespace duckdb {
 namespace rest_api_objects {
 
 BlobMetadata::BlobMetadata() {
+}
+
+BlobMetadataBuilder::BlobMetadataBuilder() {
+}
+
+BlobMetadataBuilder &BlobMetadataBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+BlobMetadataBuilder &BlobMetadataBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+BlobMetadataBuilder &BlobMetadataBuilder::SetSequenceNumber(int64_t value) {
+	result_.sequence_number = std::move(value);
+	has_sequence_number_ = true;
+	return *this;
+}
+
+BlobMetadataBuilder &BlobMetadataBuilder::SetFields(vector<int32_t> value) {
+	result_.fields = std::move(value);
+	has_fields_ = true;
+	return *this;
+}
+
+BlobMetadataBuilder &BlobMetadataBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	return *this;
+}
+
+string BlobMetadataBuilder::TryBuild(BlobMetadata &result) {
+	if (!has_type_) {
+		return "BlobMetadata required property 'type' is missing";
+	}
+	if (!has_snapshot_id_) {
+		return "BlobMetadata required property 'snapshot-id' is missing";
+	}
+	if (!has_sequence_number_) {
+		return "BlobMetadata required property 'sequence-number' is missing";
+	}
+	if (!has_fields_) {
+		return "BlobMetadata required property 'fields' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+BlobMetadata BlobMetadataBuilder::Build() {
+	BlobMetadata result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 BlobMetadata BlobMetadata::FromJSON(yyjson_val *obj) {
@@ -40,6 +104,11 @@ BlobMetadata BlobMetadata::Copy() const {
 		}
 	}
 	return res;
+}
+
+string BlobMetadata::Validate() const {
+	string error;
+	return "";
 }
 
 string BlobMetadata::TryFromJSON(yyjson_val *obj) {
@@ -128,7 +197,7 @@ string BlobMetadata::TryFromJSON(yyjson_val *obj) {
 		}
 		properties = std::move(properties_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void BlobMetadata::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assign_uuidupdate.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssignUUIDUpdate::AssignUUIDUpdate() {
+}
+
+AssignUUIDUpdateBuilder::AssignUUIDUpdateBuilder() {
+}
+
+AssignUUIDUpdateBuilder &AssignUUIDUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+AssignUUIDUpdateBuilder &AssignUUIDUpdateBuilder::SetUuid(string value) {
+	result_.uuid = std::move(value);
+	has_uuid_ = true;
+	return *this;
+}
+
+string AssignUUIDUpdateBuilder::TryBuild(AssignUUIDUpdate &result) {
+	if (!has_uuid_) {
+		return "AssignUUIDUpdate required property 'uuid' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssignUUIDUpdate AssignUUIDUpdateBuilder::Build() {
+	AssignUUIDUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ AssignUUIDUpdate AssignUUIDUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.uuid = uuid;
 	return res;
+}
+
+string AssignUUIDUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj) {
@@ -48,7 +94,7 @@ string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(uuid_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssignUUIDUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

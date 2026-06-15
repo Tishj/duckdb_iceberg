@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/oauth_token_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,65 @@ namespace duckdb {
 namespace rest_api_objects {
 
 OAuthTokenResponse::OAuthTokenResponse() {
+}
+
+OAuthTokenResponseBuilder::OAuthTokenResponseBuilder() {
+}
+
+OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetAccessToken(string value) {
+	result_.access_token = std::move(value);
+	has_access_token_ = true;
+	return *this;
+}
+
+OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetTokenType(string value) {
+	result_.token_type = std::move(value);
+	has_token_type_ = true;
+	return *this;
+}
+
+OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetExpiresIn(int32_t value) {
+	result_.expires_in = std::move(value);
+	return *this;
+}
+
+OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetIssuedTokenType(TokenType value) {
+	result_.issued_token_type = std::move(value);
+	return *this;
+}
+
+OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetRefreshToken(string value) {
+	result_.refresh_token = std::move(value);
+	return *this;
+}
+
+OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetScope(string value) {
+	result_.scope = std::move(value);
+	return *this;
+}
+
+string OAuthTokenResponseBuilder::TryBuild(OAuthTokenResponse &result) {
+	if (!has_access_token_) {
+		return "OAuthTokenResponse required property 'access_token' is missing";
+	}
+	if (!has_token_type_) {
+		return "OAuthTokenResponse required property 'token_type' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+OAuthTokenResponse OAuthTokenResponseBuilder::Build() {
+	OAuthTokenResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 OAuthTokenResponse OAuthTokenResponse::FromJSON(yyjson_val *obj) {
@@ -45,6 +106,20 @@ OAuthTokenResponse OAuthTokenResponse::Copy() const {
 		(*res.scope) = (*scope);
 	}
 	return res;
+}
+
+string OAuthTokenResponse::Validate() const {
+	string error;
+	if (token_type != "bearer" && token_type != "mac" && token_type != "N_A") {
+		return "OAuthTokenResponse property 'token_type' must be one of [bearer, mac, N_A]";
+	}
+	if (issued_token_type.has_value()) {
+		error = (*issued_token_type).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string OAuthTokenResponse::TryFromJSON(yyjson_val *obj) {
@@ -118,7 +193,7 @@ string OAuthTokenResponse::TryFromJSON(yyjson_val *obj) {
 		}
 		scope = std::move(scope_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void OAuthTokenResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

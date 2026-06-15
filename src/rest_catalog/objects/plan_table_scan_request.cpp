@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/plan_table_scan_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,72 @@ namespace duckdb {
 namespace rest_api_objects {
 
 PlanTableScanRequest::PlanTableScanRequest() {
+}
+
+PlanTableScanRequestBuilder::PlanTableScanRequestBuilder() {
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetSelect(vector<FieldName> value) {
+	result_.select = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetFilter(unique_ptr<Expression> value) {
+	result_.filter = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetMinRowsRequested(int64_t value) {
+	result_.min_rows_requested = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetCaseSensitive(bool value) {
+	result_.case_sensitive = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetUseSnapshotSchema(bool value) {
+	result_.use_snapshot_schema = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetStartSnapshotId(int64_t value) {
+	result_.start_snapshot_id = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetEndSnapshotId(int64_t value) {
+	result_.end_snapshot_id = std::move(value);
+	return *this;
+}
+
+PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetStatsFields(vector<FieldName> value) {
+	result_.stats_fields = std::move(value);
+	return *this;
+}
+
+string PlanTableScanRequestBuilder::TryBuild(PlanTableScanRequest &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+PlanTableScanRequest PlanTableScanRequestBuilder::Build() {
+	PlanTableScanRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
@@ -68,6 +136,33 @@ PlanTableScanRequest PlanTableScanRequest::Copy() const {
 		}
 	}
 	return res;
+}
+
+string PlanTableScanRequest::Validate() const {
+	string error;
+	if (select.has_value()) {
+		for (const auto &item : (*select)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (filter != nullptr) {
+		error = filter->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (stats_fields.has_value()) {
+		for (const auto &item : (*stats_fields)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string PlanTableScanRequest::TryFromJSON(yyjson_val *obj) {
@@ -202,7 +297,7 @@ string PlanTableScanRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		stats_fields = std::move(stats_fields_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void PlanTableScanRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

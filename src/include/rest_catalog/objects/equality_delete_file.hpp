@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static EqualityDeleteFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	EqualityDeleteFile Copy() const;
@@ -36,6 +37,18 @@ public:
 public:
 	ContentFile content_file;
 	optional<vector<int32_t>> equality_ids;
+};
+
+class EqualityDeleteFileBuilder {
+public:
+	EqualityDeleteFileBuilder();
+	EqualityDeleteFileBuilder &SetContentFile(ContentFile value);
+	EqualityDeleteFileBuilder &SetEqualityIds(vector<int32_t> value);
+	string TryBuild(EqualityDeleteFile &result);
+	EqualityDeleteFile Build();
+
+private:
+	EqualityDeleteFile result_;
 };
 
 } // namespace rest_api_objects

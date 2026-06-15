@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/literal_expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 LiteralExpression::LiteralExpression() {
+}
+
+LiteralExpressionBuilder::LiteralExpressionBuilder() {
+}
+
+LiteralExpressionBuilder &LiteralExpressionBuilder::SetType(ExpressionType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+LiteralExpressionBuilder &LiteralExpressionBuilder::SetTerm(Term value) {
+	result_.term = std::move(value);
+	has_term_ = true;
+	return *this;
+}
+
+LiteralExpressionBuilder &LiteralExpressionBuilder::SetValue(PrimitiveTypeValue value) {
+	result_.value = std::move(value);
+	has_value_ = true;
+	return *this;
+}
+
+string LiteralExpressionBuilder::TryBuild(LiteralExpression &result) {
+	if (!has_type_) {
+		return "LiteralExpression required property 'type' is missing";
+	}
+	if (!has_term_) {
+		return "LiteralExpression required property 'term' is missing";
+	}
+	if (!has_value_) {
+		return "LiteralExpression required property 'value' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+LiteralExpression LiteralExpressionBuilder::Build() {
+	LiteralExpression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
@@ -30,6 +80,29 @@ LiteralExpression LiteralExpression::Copy() const {
 	res.term = term.Copy();
 	res.value = value.Copy();
 	return res;
+}
+
+string LiteralExpression::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "lt" && type.value != "lt-eq" && type.value != "gt" && type.value != "gt-eq" &&
+	    type.value != "eq" && type.value != "not-eq" && type.value != "starts-with" &&
+	    type.value != "not-starts-with") {
+		return "LiteralExpression property 'type' must be one of [lt, lt-eq, gt, gt-eq, eq, not-eq, starts-with, "
+		       "not-starts-with]";
+	}
+	error = term.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = value.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string LiteralExpression::TryFromJSON(yyjson_val *obj) {
@@ -61,7 +134,7 @@ string LiteralExpression::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *LiteralExpression::ToJSON(yyjson_mut_doc *doc) const {

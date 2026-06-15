@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/oauth_client_credentials_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,59 @@ namespace duckdb {
 namespace rest_api_objects {
 
 OAuthClientCredentialsRequest::OAuthClientCredentialsRequest() {
+}
+
+OAuthClientCredentialsRequestBuilder::OAuthClientCredentialsRequestBuilder() {
+}
+
+OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetGrantType(string value) {
+	result_.grant_type = std::move(value);
+	has_grant_type_ = true;
+	return *this;
+}
+
+OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetClientId(string value) {
+	result_.client_id = std::move(value);
+	has_client_id_ = true;
+	return *this;
+}
+
+OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetClientSecret(string value) {
+	result_.client_secret = std::move(value);
+	has_client_secret_ = true;
+	return *this;
+}
+
+OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetScope(string value) {
+	result_.scope = std::move(value);
+	return *this;
+}
+
+string OAuthClientCredentialsRequestBuilder::TryBuild(OAuthClientCredentialsRequest &result) {
+	if (!has_grant_type_) {
+		return "OAuthClientCredentialsRequest required property 'grant_type' is missing";
+	}
+	if (!has_client_id_) {
+		return "OAuthClientCredentialsRequest required property 'client_id' is missing";
+	}
+	if (!has_client_secret_) {
+		return "OAuthClientCredentialsRequest required property 'client_secret' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+OAuthClientCredentialsRequest OAuthClientCredentialsRequestBuilder::Build() {
+	OAuthClientCredentialsRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 OAuthClientCredentialsRequest OAuthClientCredentialsRequest::FromJSON(yyjson_val *obj) {
@@ -34,6 +89,14 @@ OAuthClientCredentialsRequest OAuthClientCredentialsRequest::Copy() const {
 		(*res.scope) = (*scope);
 	}
 	return res;
+}
+
+string OAuthClientCredentialsRequest::Validate() const {
+	string error;
+	if (grant_type != "client_credentials") {
+		return "OAuthClientCredentialsRequest property 'grant_type' must be one of [client_credentials]";
+	}
+	return "";
 }
 
 string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj) {
@@ -86,7 +149,7 @@ string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		scope = std::move(scope_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void OAuthClientCredentialsRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/data_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,67 @@ namespace duckdb {
 namespace rest_api_objects {
 
 DataFile::DataFile() {
+}
+
+DataFileBuilder::DataFileBuilder() {
+}
+
+DataFileBuilder &DataFileBuilder::SetContentFile(ContentFile value) {
+	result_.content_file = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetFirstRowId(int64_t value) {
+	result_.first_row_id = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetColumnSizes(CountMap value) {
+	result_.column_sizes = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetValueCounts(CountMap value) {
+	result_.value_counts = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetNullValueCounts(CountMap value) {
+	result_.null_value_counts = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetNanValueCounts(CountMap value) {
+	result_.nan_value_counts = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetLowerBounds(ValueMap value) {
+	result_.lower_bounds = std::move(value);
+	return *this;
+}
+
+DataFileBuilder &DataFileBuilder::SetUpperBounds(ValueMap value) {
+	result_.upper_bounds = std::move(value);
+	return *this;
+}
+
+string DataFileBuilder::TryBuild(DataFile &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+DataFile DataFileBuilder::Build() {
+	DataFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 DataFile DataFile::FromJSON(yyjson_val *obj) {
@@ -56,6 +119,51 @@ DataFile DataFile::Copy() const {
 		(*res.upper_bounds) = (*upper_bounds).Copy();
 	}
 	return res;
+}
+
+string DataFile::Validate() const {
+	string error;
+	error = content_file.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (column_sizes.has_value()) {
+		error = (*column_sizes).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (value_counts.has_value()) {
+		error = (*value_counts).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (null_value_counts.has_value()) {
+		error = (*null_value_counts).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (nan_value_counts.has_value()) {
+		error = (*nan_value_counts).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (lower_bounds.has_value()) {
+		error = (*lower_bounds).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (upper_bounds.has_value()) {
+		error = (*upper_bounds).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string DataFile::TryFromJSON(yyjson_val *obj) {
@@ -132,7 +240,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 		}
 		upper_bounds = std::move(upper_bounds_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void DataFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

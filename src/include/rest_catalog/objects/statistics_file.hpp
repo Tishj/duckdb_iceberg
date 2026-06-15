@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static StatisticsFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	StatisticsFile Copy() const;
@@ -39,6 +40,26 @@ public:
 	int64_t file_size_in_bytes;
 	int64_t file_footer_size_in_bytes;
 	vector<BlobMetadata> blob_metadata;
+};
+
+class StatisticsFileBuilder {
+public:
+	StatisticsFileBuilder();
+	StatisticsFileBuilder &SetSnapshotId(int64_t value);
+	StatisticsFileBuilder &SetStatisticsPath(string value);
+	StatisticsFileBuilder &SetFileSizeInBytes(int64_t value);
+	StatisticsFileBuilder &SetFileFooterSizeInBytes(int64_t value);
+	StatisticsFileBuilder &SetBlobMetadata(vector<BlobMetadata> value);
+	string TryBuild(StatisticsFile &result);
+	StatisticsFile Build();
+
+private:
+	StatisticsFile result_;
+	bool has_snapshot_id_ = false;
+	bool has_statistics_path_ = false;
+	bool has_file_size_in_bytes_ = false;
+	bool has_file_footer_size_in_bytes_ = false;
+	bool has_blob_metadata_ = false;
 };
 
 } // namespace rest_api_objects

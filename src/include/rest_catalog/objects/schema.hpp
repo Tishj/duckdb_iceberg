@@ -32,6 +32,7 @@ public:
 		// Deserialization
 		static Object1 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object1 Copy() const;
@@ -45,10 +46,23 @@ public:
 		optional<vector<int32_t>> identifier_field_ids;
 	};
 
+	class Object1Builder {
+	public:
+		Object1Builder();
+		Object1Builder &SetSchemaId(int32_t value);
+		Object1Builder &SetIdentifierFieldIds(vector<int32_t> value);
+		string TryBuild(Object1 &result);
+		Object1 Build();
+
+	private:
+		Object1 result_;
+	};
+
 public:
 	// Deserialization
 	static Schema FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Schema Copy() const;
@@ -60,6 +74,18 @@ public:
 public:
 	StructType struct_type;
 	Object1 object_1;
+};
+
+class SchemaBuilder {
+public:
+	SchemaBuilder();
+	SchemaBuilder &SetStructType(StructType value);
+	SchemaBuilder &SetObject1(Schema::Object1 value);
+	string TryBuild(Schema &result);
+	Schema Build();
+
+private:
+	Schema result_;
 };
 
 } // namespace rest_api_objects

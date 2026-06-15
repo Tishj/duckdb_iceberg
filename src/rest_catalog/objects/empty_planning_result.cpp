@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/empty_planning_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 EmptyPlanningResult::EmptyPlanningResult() {
+}
+
+EmptyPlanningResultBuilder::EmptyPlanningResultBuilder() {
+}
+
+EmptyPlanningResultBuilder &EmptyPlanningResultBuilder::SetStatus(PlanStatus value) {
+	result_.status = std::move(value);
+	has_status_ = true;
+	return *this;
+}
+
+string EmptyPlanningResultBuilder::TryBuild(EmptyPlanningResult &result) {
+	if (!has_status_) {
+		return "EmptyPlanningResult required property 'status' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+EmptyPlanningResult EmptyPlanningResultBuilder::Build() {
+	EmptyPlanningResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,18 @@ EmptyPlanningResult EmptyPlanningResult::Copy() const {
 	return res;
 }
 
+string EmptyPlanningResult::Validate() const {
+	string error;
+	error = status.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (status.value != "submitted" && status.value != "cancelled") {
+		return "EmptyPlanningResult property 'status' must be one of [submitted, cancelled]";
+	}
+	return "";
+}
+
 string EmptyPlanningResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto status_val = yyjson_obj_get(obj, "status");
@@ -41,7 +85,7 @@ string EmptyPlanningResult::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void EmptyPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

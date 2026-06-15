@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static AssertViewUUID FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertViewUUID Copy() const;
@@ -35,6 +36,20 @@ public:
 public:
 	string type;
 	string uuid;
+};
+
+class AssertViewUUIDBuilder {
+public:
+	AssertViewUUIDBuilder();
+	AssertViewUUIDBuilder &SetType(string value);
+	AssertViewUUIDBuilder &SetUuid(string value);
+	string TryBuild(AssertViewUUID &result);
+	AssertViewUUID Build();
+
+private:
+	AssertViewUUID result_;
+	bool has_type_ = false;
+	bool has_uuid_ = false;
 };
 
 } // namespace rest_api_objects

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/remove_schemas_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RemoveSchemasUpdate::RemoveSchemasUpdate() {
+}
+
+RemoveSchemasUpdateBuilder::RemoveSchemasUpdateBuilder() {
+}
+
+RemoveSchemasUpdateBuilder &RemoveSchemasUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+RemoveSchemasUpdateBuilder &RemoveSchemasUpdateBuilder::SetSchemaIds(vector<int32_t> value) {
+	result_.schema_ids = std::move(value);
+	has_schema_ids_ = true;
+	return *this;
+}
+
+string RemoveSchemasUpdateBuilder::TryBuild(RemoveSchemasUpdate &result) {
+	if (!has_schema_ids_) {
+		return "RemoveSchemasUpdate required property 'schema-ids' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RemoveSchemasUpdate RemoveSchemasUpdateBuilder::Build() {
+	RemoveSchemasUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RemoveSchemasUpdate RemoveSchemasUpdate::FromJSON(yyjson_val *obj) {
@@ -32,6 +69,15 @@ RemoveSchemasUpdate RemoveSchemasUpdate::Copy() const {
 		res.schema_ids.emplace_back(item);
 	}
 	return res;
+}
+
+string RemoveSchemasUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj) {
@@ -64,7 +110,7 @@ string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(schema_ids_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RemoveSchemasUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

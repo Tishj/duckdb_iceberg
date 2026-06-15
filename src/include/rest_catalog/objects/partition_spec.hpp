@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static PartitionSpec FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PartitionSpec Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	vector<PartitionField> fields;
 	optional<int32_t> spec_id;
+};
+
+class PartitionSpecBuilder {
+public:
+	PartitionSpecBuilder();
+	PartitionSpecBuilder &SetFields(vector<PartitionField> value);
+	PartitionSpecBuilder &SetSpecId(int32_t value);
+	string TryBuild(PartitionSpec &result);
+	PartitionSpec Build();
+
+private:
+	PartitionSpec result_;
+	bool has_fields_ = false;
 };
 
 } // namespace rest_api_objects

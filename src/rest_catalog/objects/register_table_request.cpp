@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/register_table_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,50 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RegisterTableRequest::RegisterTableRequest() {
+}
+
+RegisterTableRequestBuilder::RegisterTableRequestBuilder() {
+}
+
+RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetMetadataLocation(string value) {
+	result_.metadata_location = std::move(value);
+	has_metadata_location_ = true;
+	return *this;
+}
+
+RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetOverwrite(bool value) {
+	result_.overwrite = std::move(value);
+	return *this;
+}
+
+string RegisterTableRequestBuilder::TryBuild(RegisterTableRequest &result) {
+	if (!has_name_) {
+		return "RegisterTableRequest required property 'name' is missing";
+	}
+	if (!has_metadata_location_) {
+		return "RegisterTableRequest required property 'metadata-location' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RegisterTableRequest RegisterTableRequestBuilder::Build() {
+	RegisterTableRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RegisterTableRequest RegisterTableRequest::FromJSON(yyjson_val *obj) {
@@ -33,6 +79,11 @@ RegisterTableRequest RegisterTableRequest::Copy() const {
 		(*res.overwrite) = (*overwrite);
 	}
 	return res;
+}
+
+string RegisterTableRequest::Validate() const {
+	string error;
+	return "";
 }
 
 string RegisterTableRequest::TryFromJSON(yyjson_val *obj) {
@@ -73,7 +124,7 @@ string RegisterTableRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		overwrite = std::move(overwrite_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void RegisterTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

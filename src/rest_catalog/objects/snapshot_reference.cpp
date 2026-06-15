@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/snapshot_reference.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,60 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SnapshotReference::SnapshotReference() {
+}
+
+SnapshotReferenceBuilder::SnapshotReferenceBuilder() {
+}
+
+SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetMaxRefAgeMs(int64_t value) {
+	result_.max_ref_age_ms = std::move(value);
+	return *this;
+}
+
+SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetMaxSnapshotAgeMs(int64_t value) {
+	result_.max_snapshot_age_ms = std::move(value);
+	return *this;
+}
+
+SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetMinSnapshotsToKeep(int32_t value) {
+	result_.min_snapshots_to_keep = std::move(value);
+	return *this;
+}
+
+string SnapshotReferenceBuilder::TryBuild(SnapshotReference &result) {
+	if (!has_type_) {
+		return "SnapshotReference required property 'type' is missing";
+	}
+	if (!has_snapshot_id_) {
+		return "SnapshotReference required property 'snapshot-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SnapshotReference SnapshotReferenceBuilder::Build() {
+	SnapshotReference result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SnapshotReference SnapshotReference::FromJSON(yyjson_val *obj) {
@@ -41,6 +97,14 @@ SnapshotReference SnapshotReference::Copy() const {
 		(*res.min_snapshots_to_keep) = (*min_snapshots_to_keep);
 	}
 	return res;
+}
+
+string SnapshotReference::Validate() const {
+	string error;
+	if (type != "tag" && type != "branch") {
+		return "SnapshotReference property 'type' must be one of [tag, branch]";
+	}
+	return "";
 }
 
 string SnapshotReference::TryFromJSON(yyjson_val *obj) {
@@ -110,7 +174,7 @@ string SnapshotReference::TryFromJSON(yyjson_val *obj) {
 		}
 		min_snapshots_to_keep = std::move(min_snapshots_to_keep_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void SnapshotReference::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

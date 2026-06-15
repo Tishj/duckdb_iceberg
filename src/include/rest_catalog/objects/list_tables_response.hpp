@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static ListTablesResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ListTablesResponse Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<PageToken> next_page_token;
 	optional<vector<TableIdentifier>> identifiers;
+};
+
+class ListTablesResponseBuilder {
+public:
+	ListTablesResponseBuilder();
+	ListTablesResponseBuilder &SetNextPageToken(PageToken value);
+	ListTablesResponseBuilder &SetIdentifiers(vector<TableIdentifier> value);
+	string TryBuild(ListTablesResponse &result);
+	ListTablesResponse Build();
+
+private:
+	ListTablesResponse result_;
 };
 
 } // namespace rest_api_objects

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_default_spec_id.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertDefaultSpecId::AssertDefaultSpecId() {
+}
+
+AssertDefaultSpecIdBuilder::AssertDefaultSpecIdBuilder() {
+}
+
+AssertDefaultSpecIdBuilder &AssertDefaultSpecIdBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertDefaultSpecIdBuilder &AssertDefaultSpecIdBuilder::SetDefaultSpecId(int32_t value) {
+	result_.default_spec_id = std::move(value);
+	has_default_spec_id_ = true;
+	return *this;
+}
+
+string AssertDefaultSpecIdBuilder::TryBuild(AssertDefaultSpecId &result) {
+	if (!has_type_) {
+		return "AssertDefaultSpecId required property 'type' is missing";
+	}
+	if (!has_default_spec_id_) {
+		return "AssertDefaultSpecId required property 'default-spec-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertDefaultSpecId AssertDefaultSpecIdBuilder::Build() {
+	AssertDefaultSpecId result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertDefaultSpecId AssertDefaultSpecId::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AssertDefaultSpecId AssertDefaultSpecId::Copy() const {
 	res.type = type.Copy();
 	res.default_spec_id = default_spec_id;
 	return res;
+}
+
+string AssertDefaultSpecId::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-default-spec-id") {
+		return "AssertDefaultSpecId property 'type' must be assert-default-spec-id";
+	}
+	return "";
 }
 
 string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +107,7 @@ string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(default_spec_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertDefaultSpecId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

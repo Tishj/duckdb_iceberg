@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RemoveSnapshotRefUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RemoveSnapshotRefUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	string ref_name;
+};
+
+class RemoveSnapshotRefUpdateBuilder {
+public:
+	RemoveSnapshotRefUpdateBuilder();
+	RemoveSnapshotRefUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	RemoveSnapshotRefUpdateBuilder &SetRefName(string value);
+	string TryBuild(RemoveSnapshotRefUpdate &result);
+	RemoveSnapshotRefUpdate Build();
+
+private:
+	RemoveSnapshotRefUpdate result_;
+	bool has_ref_name_ = false;
 };
 
 } // namespace rest_api_objects

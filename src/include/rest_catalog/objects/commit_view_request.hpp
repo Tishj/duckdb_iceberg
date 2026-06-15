@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static CommitViewRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CommitViewRequest Copy() const;
@@ -39,6 +40,20 @@ public:
 	vector<ViewUpdate> updates;
 	optional<TableIdentifier> identifier;
 	optional<vector<ViewRequirement>> requirements;
+};
+
+class CommitViewRequestBuilder {
+public:
+	CommitViewRequestBuilder();
+	CommitViewRequestBuilder &SetUpdates(vector<ViewUpdate> value);
+	CommitViewRequestBuilder &SetIdentifier(TableIdentifier value);
+	CommitViewRequestBuilder &SetRequirements(vector<ViewRequirement> value);
+	string TryBuild(CommitViewRequest &result);
+	CommitViewRequest Build();
+
+private:
+	CommitViewRequest result_;
+	bool has_updates_ = false;
 };
 
 } // namespace rest_api_objects

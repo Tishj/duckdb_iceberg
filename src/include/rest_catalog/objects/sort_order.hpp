@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static SortOrder FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SortOrder Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	int32_t order_id;
 	vector<SortField> fields;
+};
+
+class SortOrderBuilder {
+public:
+	SortOrderBuilder();
+	SortOrderBuilder &SetOrderId(int32_t value);
+	SortOrderBuilder &SetFields(vector<SortField> value);
+	string TryBuild(SortOrder &result);
+	SortOrder Build();
+
+private:
+	SortOrder result_;
+	bool has_order_id_ = false;
+	bool has_fields_ = false;
 };
 
 } // namespace rest_api_objects

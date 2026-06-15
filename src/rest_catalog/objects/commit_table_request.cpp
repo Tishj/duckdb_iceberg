@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/commit_table_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,50 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CommitTableRequest::CommitTableRequest() {
+}
+
+CommitTableRequestBuilder::CommitTableRequestBuilder() {
+}
+
+CommitTableRequestBuilder &CommitTableRequestBuilder::SetRequirements(vector<TableRequirement> value) {
+	result_.requirements = std::move(value);
+	has_requirements_ = true;
+	return *this;
+}
+
+CommitTableRequestBuilder &CommitTableRequestBuilder::SetUpdates(vector<TableUpdate> value) {
+	result_.updates = std::move(value);
+	has_updates_ = true;
+	return *this;
+}
+
+CommitTableRequestBuilder &CommitTableRequestBuilder::SetIdentifier(TableIdentifier value) {
+	result_.identifier = std::move(value);
+	return *this;
+}
+
+string CommitTableRequestBuilder::TryBuild(CommitTableRequest &result) {
+	if (!has_requirements_) {
+		return "CommitTableRequest required property 'requirements' is missing";
+	}
+	if (!has_updates_) {
+		return "CommitTableRequest required property 'updates' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CommitTableRequest CommitTableRequestBuilder::Build() {
+	CommitTableRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
@@ -39,6 +85,29 @@ CommitTableRequest CommitTableRequest::Copy() const {
 		(*res.identifier) = (*identifier).Copy();
 	}
 	return res;
+}
+
+string CommitTableRequest::Validate() const {
+	string error;
+	for (const auto &item : requirements) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	for (const auto &item : updates) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (identifier.has_value()) {
+		error = (*identifier).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string CommitTableRequest::TryFromJSON(yyjson_val *obj) {
@@ -94,7 +163,7 @@ string CommitTableRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		identifier = std::move(identifier_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CommitTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

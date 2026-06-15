@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static TimestampNanoTypeValue FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TimestampNanoTypeValue Copy() const;

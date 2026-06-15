@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static CommitTableRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CommitTableRequest Copy() const;
@@ -39,6 +40,21 @@ public:
 	vector<TableRequirement> requirements;
 	vector<TableUpdate> updates;
 	optional<TableIdentifier> identifier;
+};
+
+class CommitTableRequestBuilder {
+public:
+	CommitTableRequestBuilder();
+	CommitTableRequestBuilder &SetRequirements(vector<TableRequirement> value);
+	CommitTableRequestBuilder &SetUpdates(vector<TableUpdate> value);
+	CommitTableRequestBuilder &SetIdentifier(TableIdentifier value);
+	string TryBuild(CommitTableRequest &result);
+	CommitTableRequest Build();
+
+private:
+	CommitTableRequest result_;
+	bool has_requirements_ = false;
+	bool has_updates_ = false;
 };
 
 } // namespace rest_api_objects

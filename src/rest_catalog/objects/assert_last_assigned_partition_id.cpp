@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_last_assigned_partition_id.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertLastAssignedPartitionId::AssertLastAssignedPartitionId() {
+}
+
+AssertLastAssignedPartitionIdBuilder::AssertLastAssignedPartitionIdBuilder() {
+}
+
+AssertLastAssignedPartitionIdBuilder &AssertLastAssignedPartitionIdBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertLastAssignedPartitionIdBuilder &AssertLastAssignedPartitionIdBuilder::SetLastAssignedPartitionId(int32_t value) {
+	result_.last_assigned_partition_id = std::move(value);
+	has_last_assigned_partition_id_ = true;
+	return *this;
+}
+
+string AssertLastAssignedPartitionIdBuilder::TryBuild(AssertLastAssignedPartitionId &result) {
+	if (!has_type_) {
+		return "AssertLastAssignedPartitionId required property 'type' is missing";
+	}
+	if (!has_last_assigned_partition_id_) {
+		return "AssertLastAssignedPartitionId required property 'last-assigned-partition-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertLastAssignedPartitionId AssertLastAssignedPartitionIdBuilder::Build() {
+	AssertLastAssignedPartitionId result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertLastAssignedPartitionId AssertLastAssignedPartitionId::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AssertLastAssignedPartitionId AssertLastAssignedPartitionId::Copy() const {
 	res.type = type.Copy();
 	res.last_assigned_partition_id = last_assigned_partition_id;
 	return res;
+}
+
+string AssertLastAssignedPartitionId::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-last-assigned-partition-id") {
+		return "AssertLastAssignedPartitionId property 'type' must be assert-last-assigned-partition-id";
+	}
+	return "";
 }
 
 string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +107,7 @@ string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(last_assigned_partition_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertLastAssignedPartitionId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

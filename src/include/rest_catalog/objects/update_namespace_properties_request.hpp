@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static UpdateNamespacePropertiesRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	UpdateNamespacePropertiesRequest Copy() const;
@@ -35,6 +36,18 @@ public:
 public:
 	optional<vector<string>> removals;
 	optional<case_insensitive_map_t<string>> updates;
+};
+
+class UpdateNamespacePropertiesRequestBuilder {
+public:
+	UpdateNamespacePropertiesRequestBuilder();
+	UpdateNamespacePropertiesRequestBuilder &SetRemovals(vector<string> value);
+	UpdateNamespacePropertiesRequestBuilder &SetUpdates(case_insensitive_map_t<string> value);
+	string TryBuild(UpdateNamespacePropertiesRequest &result);
+	UpdateNamespacePropertiesRequest Build();
+
+private:
+	UpdateNamespacePropertiesRequest result_;
 };
 
 } // namespace rest_api_objects

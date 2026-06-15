@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static FetchScanTasksRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FetchScanTasksRequest Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	PlanTask plan_task;
+};
+
+class FetchScanTasksRequestBuilder {
+public:
+	FetchScanTasksRequestBuilder();
+	FetchScanTasksRequestBuilder &SetPlanTask(PlanTask value);
+	string TryBuild(FetchScanTasksRequest &result);
+	FetchScanTasksRequest Build();
+
+private:
+	FetchScanTasksRequest result_;
+	bool has_plan_task_ = false;
 };
 
 } // namespace rest_api_objects

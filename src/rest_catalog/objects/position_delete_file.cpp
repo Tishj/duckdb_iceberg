@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/position_delete_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,42 @@ namespace duckdb {
 namespace rest_api_objects {
 
 PositionDeleteFile::PositionDeleteFile() {
+}
+
+PositionDeleteFileBuilder::PositionDeleteFileBuilder() {
+}
+
+PositionDeleteFileBuilder &PositionDeleteFileBuilder::SetContentFile(ContentFile value) {
+	result_.content_file = std::move(value);
+	return *this;
+}
+
+PositionDeleteFileBuilder &PositionDeleteFileBuilder::SetContentOffset(int64_t value) {
+	result_.content_offset = std::move(value);
+	return *this;
+}
+
+PositionDeleteFileBuilder &PositionDeleteFileBuilder::SetContentSizeInBytes(int64_t value) {
+	result_.content_size_in_bytes = std::move(value);
+	return *this;
+}
+
+string PositionDeleteFileBuilder::TryBuild(PositionDeleteFile &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+PositionDeleteFile PositionDeleteFileBuilder::Build() {
+	PositionDeleteFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 PositionDeleteFile PositionDeleteFile::FromJSON(yyjson_val *obj) {
@@ -36,6 +74,15 @@ PositionDeleteFile PositionDeleteFile::Copy() const {
 		(*res.content_size_in_bytes) = (*content_size_in_bytes);
 	}
 	return res;
+}
+
+string PositionDeleteFile::Validate() const {
+	string error;
+	error = content_file.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string PositionDeleteFile::TryFromJSON(yyjson_val *obj) {
@@ -72,7 +119,7 @@ string PositionDeleteFile::TryFromJSON(yyjson_val *obj) {
 		}
 		content_size_in_bytes = std::move(content_size_in_bytes_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void PositionDeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/partition_spec.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 PartitionSpec::PartitionSpec() {
+}
+
+PartitionSpecBuilder::PartitionSpecBuilder() {
+}
+
+PartitionSpecBuilder &PartitionSpecBuilder::SetFields(vector<PartitionField> value) {
+	result_.fields = std::move(value);
+	has_fields_ = true;
+	return *this;
+}
+
+PartitionSpecBuilder &PartitionSpecBuilder::SetSpecId(int32_t value) {
+	result_.spec_id = std::move(value);
+	return *this;
+}
+
+string PartitionSpecBuilder::TryBuild(PartitionSpec &result) {
+	if (!has_fields_) {
+		return "PartitionSpec required property 'fields' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+PartitionSpec PartitionSpecBuilder::Build() {
+	PartitionSpec result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 PartitionSpec PartitionSpec::FromJSON(yyjson_val *obj) {
@@ -35,6 +72,17 @@ PartitionSpec PartitionSpec::Copy() const {
 		(*res.spec_id) = (*spec_id);
 	}
 	return res;
+}
+
+string PartitionSpec::Validate() const {
+	string error;
+	for (const auto &item : fields) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string PartitionSpec::TryFromJSON(yyjson_val *obj) {
@@ -71,7 +119,7 @@ string PartitionSpec::TryFromJSON(yyjson_val *obj) {
 		}
 		spec_id = std::move(spec_id_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void PartitionSpec::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

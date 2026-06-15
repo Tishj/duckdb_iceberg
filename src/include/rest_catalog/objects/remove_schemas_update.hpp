@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RemoveSchemasUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RemoveSchemasUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	vector<int32_t> schema_ids;
+};
+
+class RemoveSchemasUpdateBuilder {
+public:
+	RemoveSchemasUpdateBuilder();
+	RemoveSchemasUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	RemoveSchemasUpdateBuilder &SetSchemaIds(vector<int32_t> value);
+	string TryBuild(RemoveSchemasUpdate &result);
+	RemoveSchemasUpdate Build();
+
+private:
+	RemoveSchemasUpdate result_;
+	bool has_schema_ids_ = false;
 };
 
 } // namespace rest_api_objects

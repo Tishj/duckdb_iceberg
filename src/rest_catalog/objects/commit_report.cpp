@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/commit_report.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,77 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CommitReport::CommitReport() {
+}
+
+CommitReportBuilder::CommitReportBuilder() {
+}
+
+CommitReportBuilder &CommitReportBuilder::SetTableName(string value) {
+	result_.table_name = std::move(value);
+	has_table_name_ = true;
+	return *this;
+}
+
+CommitReportBuilder &CommitReportBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+CommitReportBuilder &CommitReportBuilder::SetSequenceNumber(int64_t value) {
+	result_.sequence_number = std::move(value);
+	has_sequence_number_ = true;
+	return *this;
+}
+
+CommitReportBuilder &CommitReportBuilder::SetOperation(string value) {
+	result_.operation = std::move(value);
+	has_operation_ = true;
+	return *this;
+}
+
+CommitReportBuilder &CommitReportBuilder::SetMetrics(Metrics value) {
+	result_.metrics = std::move(value);
+	has_metrics_ = true;
+	return *this;
+}
+
+CommitReportBuilder &CommitReportBuilder::SetMetadata(case_insensitive_map_t<string> value) {
+	result_.metadata = std::move(value);
+	return *this;
+}
+
+string CommitReportBuilder::TryBuild(CommitReport &result) {
+	if (!has_table_name_) {
+		return "CommitReport required property 'table-name' is missing";
+	}
+	if (!has_snapshot_id_) {
+		return "CommitReport required property 'snapshot-id' is missing";
+	}
+	if (!has_sequence_number_) {
+		return "CommitReport required property 'sequence-number' is missing";
+	}
+	if (!has_operation_) {
+		return "CommitReport required property 'operation' is missing";
+	}
+	if (!has_metrics_) {
+		return "CommitReport required property 'metrics' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CommitReport CommitReportBuilder::Build() {
+	CommitReport result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CommitReport CommitReport::FromJSON(yyjson_val *obj) {
@@ -38,6 +111,15 @@ CommitReport CommitReport::Copy() const {
 		}
 	}
 	return res;
+}
+
+string CommitReport::Validate() const {
+	string error;
+	error = metrics.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string CommitReport::TryFromJSON(yyjson_val *obj) {
@@ -123,7 +205,7 @@ string CommitReport::TryFromJSON(yyjson_val *obj) {
 		}
 		metadata = std::move(metadata_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CommitReport::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/oauth_token_exchange_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,74 @@ namespace duckdb {
 namespace rest_api_objects {
 
 OAuthTokenExchangeRequest::OAuthTokenExchangeRequest() {
+}
+
+OAuthTokenExchangeRequestBuilder::OAuthTokenExchangeRequestBuilder() {
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetGrantType(string value) {
+	result_.grant_type = std::move(value);
+	has_grant_type_ = true;
+	return *this;
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetSubjectToken(string value) {
+	result_.subject_token = std::move(value);
+	has_subject_token_ = true;
+	return *this;
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetSubjectTokenType(TokenType value) {
+	result_.subject_token_type = std::move(value);
+	has_subject_token_type_ = true;
+	return *this;
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetScope(string value) {
+	result_.scope = std::move(value);
+	return *this;
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetRequestedTokenType(TokenType value) {
+	result_.requested_token_type = std::move(value);
+	return *this;
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetActorToken(string value) {
+	result_.actor_token = std::move(value);
+	return *this;
+}
+
+OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetActorTokenType(TokenType value) {
+	result_.actor_token_type = std::move(value);
+	return *this;
+}
+
+string OAuthTokenExchangeRequestBuilder::TryBuild(OAuthTokenExchangeRequest &result) {
+	if (!has_grant_type_) {
+		return "OAuthTokenExchangeRequest required property 'grant_type' is missing";
+	}
+	if (!has_subject_token_) {
+		return "OAuthTokenExchangeRequest required property 'subject_token' is missing";
+	}
+	if (!has_subject_token_type_) {
+		return "OAuthTokenExchangeRequest required property 'subject_token_type' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+OAuthTokenExchangeRequest OAuthTokenExchangeRequestBuilder::Build() {
+	OAuthTokenExchangeRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 OAuthTokenExchangeRequest OAuthTokenExchangeRequest::FromJSON(yyjson_val *obj) {
@@ -46,6 +116,31 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::Copy() const {
 		(*res.actor_token_type) = (*actor_token_type).Copy();
 	}
 	return res;
+}
+
+string OAuthTokenExchangeRequest::Validate() const {
+	string error;
+	if (grant_type != "urn:ietf:params:oauth:grant-type:token-exchange") {
+		return "OAuthTokenExchangeRequest property 'grant_type' must be one of "
+		       "[urn:ietf:params:oauth:grant-type:token-exchange]";
+	}
+	error = subject_token_type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (requested_token_type.has_value()) {
+		error = (*requested_token_type).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (actor_token_type.has_value()) {
+		error = (*actor_token_type).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string OAuthTokenExchangeRequest::TryFromJSON(yyjson_val *obj) {
@@ -125,7 +220,7 @@ string OAuthTokenExchangeRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		actor_token_type = std::move(actor_token_type_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void OAuthTokenExchangeRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

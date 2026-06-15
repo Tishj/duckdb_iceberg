@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static IntegerTypeValue FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	IntegerTypeValue Copy() const;

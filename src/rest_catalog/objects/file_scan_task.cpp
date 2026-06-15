@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/file_scan_task.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 FileScanTask::FileScanTask() {
+}
+
+FileScanTaskBuilder::FileScanTaskBuilder() {
+}
+
+FileScanTaskBuilder &FileScanTaskBuilder::SetDataFile(DataFile value) {
+	result_.data_file = std::move(value);
+	has_data_file_ = true;
+	return *this;
+}
+
+FileScanTaskBuilder &FileScanTaskBuilder::SetDeleteFileReferences(vector<int32_t> value) {
+	result_.delete_file_references = std::move(value);
+	return *this;
+}
+
+FileScanTaskBuilder &FileScanTaskBuilder::SetResidualFilter(unique_ptr<Expression> value) {
+	result_.residual_filter = std::move(value);
+	return *this;
+}
+
+string FileScanTaskBuilder::TryBuild(FileScanTask &result) {
+	if (!has_data_file_) {
+		return "FileScanTask required property 'data-file' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FileScanTask FileScanTaskBuilder::Build() {
+	FileScanTask result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 FileScanTask FileScanTask::FromJSON(yyjson_val *obj) {
@@ -38,6 +80,21 @@ FileScanTask FileScanTask::Copy() const {
 		res.residual_filter = residual_filter ? make_uniq<Expression>(residual_filter->Copy()) : nullptr;
 	}
 	return res;
+}
+
+string FileScanTask::Validate() const {
+	string error;
+	error = data_file.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (residual_filter != nullptr) {
+		error = residual_filter->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string FileScanTask::TryFromJSON(yyjson_val *obj) {
@@ -83,7 +140,7 @@ string FileScanTask::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void FileScanTask::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

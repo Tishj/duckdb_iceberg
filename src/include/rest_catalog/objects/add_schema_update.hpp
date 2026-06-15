@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static AddSchemaUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AddSchemaUpdate Copy() const;
@@ -38,6 +39,20 @@ public:
 	BaseUpdate base_update;
 	Schema schema;
 	optional<int32_t> last_column_id;
+};
+
+class AddSchemaUpdateBuilder {
+public:
+	AddSchemaUpdateBuilder();
+	AddSchemaUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AddSchemaUpdateBuilder &SetSchema(Schema value);
+	AddSchemaUpdateBuilder &SetLastColumnId(int32_t value);
+	string TryBuild(AddSchemaUpdate &result);
+	AddSchemaUpdate Build();
+
+private:
+	AddSchemaUpdate result_;
+	bool has_schema_ = false;
 };
 
 } // namespace rest_api_objects

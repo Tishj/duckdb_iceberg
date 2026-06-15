@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/add_partition_spec_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AddPartitionSpecUpdate::AddPartitionSpecUpdate() {
+}
+
+AddPartitionSpecUpdateBuilder::AddPartitionSpecUpdateBuilder() {
+}
+
+AddPartitionSpecUpdateBuilder &AddPartitionSpecUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+AddPartitionSpecUpdateBuilder &AddPartitionSpecUpdateBuilder::SetSpec(PartitionSpec value) {
+	result_.spec = std::move(value);
+	has_spec_ = true;
+	return *this;
+}
+
+string AddPartitionSpecUpdateBuilder::TryBuild(AddPartitionSpecUpdate &result) {
+	if (!has_spec_) {
+		return "AddPartitionSpecUpdate required property 'spec' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AddPartitionSpecUpdate AddPartitionSpecUpdateBuilder::Build() {
+	AddPartitionSpecUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
@@ -31,6 +68,19 @@ AddPartitionSpecUpdate AddPartitionSpecUpdate::Copy() const {
 	return res;
 }
 
+string AddPartitionSpecUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = spec.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = base_update.TryFromJSON(obj);
@@ -46,7 +96,7 @@ string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AddPartitionSpecUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

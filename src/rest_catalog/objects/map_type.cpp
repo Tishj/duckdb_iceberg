@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/map_type.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,81 @@ namespace duckdb {
 namespace rest_api_objects {
 
 MapType::MapType() {
+}
+
+MapTypeBuilder::MapTypeBuilder() {
+}
+
+MapTypeBuilder &MapTypeBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+MapTypeBuilder &MapTypeBuilder::SetKeyId(int32_t value) {
+	result_.key_id = std::move(value);
+	has_key_id_ = true;
+	return *this;
+}
+
+MapTypeBuilder &MapTypeBuilder::SetKey(unique_ptr<Type> value) {
+	result_.key = std::move(value);
+	has_key_ = true;
+	return *this;
+}
+
+MapTypeBuilder &MapTypeBuilder::SetValueId(int32_t value) {
+	result_.value_id = std::move(value);
+	has_value_id_ = true;
+	return *this;
+}
+
+MapTypeBuilder &MapTypeBuilder::SetValue(unique_ptr<Type> value) {
+	result_.value = std::move(value);
+	has_value_ = true;
+	return *this;
+}
+
+MapTypeBuilder &MapTypeBuilder::SetValueRequired(bool value) {
+	result_.value_required = std::move(value);
+	has_value_required_ = true;
+	return *this;
+}
+
+string MapTypeBuilder::TryBuild(MapType &result) {
+	if (!has_type_) {
+		return "MapType required property 'type' is missing";
+	}
+	if (!has_key_id_) {
+		return "MapType required property 'key-id' is missing";
+	}
+	if (!has_key_) {
+		return "MapType required property 'key' is missing";
+	}
+	if (!has_value_id_) {
+		return "MapType required property 'value-id' is missing";
+	}
+	if (!has_value_) {
+		return "MapType required property 'value' is missing";
+	}
+	if (!has_value_required_) {
+		return "MapType required property 'value-required' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+MapType MapTypeBuilder::Build() {
+	MapType result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 MapType MapType::FromJSON(yyjson_val *obj) {
@@ -33,6 +110,22 @@ MapType MapType::Copy() const {
 	res.value = value ? make_uniq<Type>(value->Copy()) : nullptr;
 	res.value_required = value_required;
 	return res;
+}
+
+string MapType::Validate() const {
+	string error;
+	if (type != "map") {
+		return "MapType property 'type' must be map";
+	}
+	error = key->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = value->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string MapType::TryFromJSON(yyjson_val *obj) {
@@ -101,7 +194,7 @@ string MapType::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(value_required_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void MapType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

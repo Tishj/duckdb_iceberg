@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_ref_snapshot_id.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,50 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertRefSnapshotId::AssertRefSnapshotId() {
+}
+
+AssertRefSnapshotIdBuilder::AssertRefSnapshotIdBuilder() {
+}
+
+AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetRef(string value) {
+	result_.ref = std::move(value);
+	has_ref_ = true;
+	return *this;
+}
+
+AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	return *this;
+}
+
+string AssertRefSnapshotIdBuilder::TryBuild(AssertRefSnapshotId &result) {
+	if (!has_type_) {
+		return "AssertRefSnapshotId required property 'type' is missing";
+	}
+	if (!has_ref_) {
+		return "AssertRefSnapshotId required property 'ref' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertRefSnapshotId AssertRefSnapshotIdBuilder::Build() {
+	AssertRefSnapshotId result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertRefSnapshotId AssertRefSnapshotId::FromJSON(yyjson_val *obj) {
@@ -33,6 +79,18 @@ AssertRefSnapshotId AssertRefSnapshotId::Copy() const {
 		(*res.snapshot_id) = (*snapshot_id);
 	}
 	return res;
+}
+
+string AssertRefSnapshotId::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-ref-snapshot-id") {
+		return "AssertRefSnapshotId property 'type' must be assert-ref-snapshot-id";
+	}
+	return "";
 }
 
 string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj) {
@@ -75,7 +133,7 @@ string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj) {
 			snapshot_id = std::move(snapshot_id_tmp);
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertRefSnapshotId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

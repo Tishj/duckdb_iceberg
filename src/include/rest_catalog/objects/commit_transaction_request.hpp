@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static CommitTransactionRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CommitTransactionRequest Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	vector<CommitTableRequest> table_changes;
+};
+
+class CommitTransactionRequestBuilder {
+public:
+	CommitTransactionRequestBuilder();
+	CommitTransactionRequestBuilder &SetTableChanges(vector<CommitTableRequest> value);
+	string TryBuild(CommitTransactionRequest &result);
+	CommitTransactionRequest Build();
+
+private:
+	CommitTransactionRequest result_;
+	bool has_table_changes_ = false;
 };
 
 } // namespace rest_api_objects

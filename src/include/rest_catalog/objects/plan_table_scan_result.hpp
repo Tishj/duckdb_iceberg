@@ -28,6 +28,7 @@ public:
 	// Deserialization
 	static PlanTableScanResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PlanTableScanResult Copy() const;
@@ -41,6 +42,20 @@ public:
 	optional<FailedPlanningResult> failed_planning_result;
 	optional<AsyncPlanningResult> async_planning_result;
 	optional<EmptyPlanningResult> empty_planning_result;
+};
+
+class PlanTableScanResultBuilder {
+public:
+	PlanTableScanResultBuilder();
+	PlanTableScanResultBuilder &SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult value);
+	PlanTableScanResultBuilder &SetFailedPlanningResult(FailedPlanningResult value);
+	PlanTableScanResultBuilder &SetAsyncPlanningResult(AsyncPlanningResult value);
+	PlanTableScanResultBuilder &SetEmptyPlanningResult(EmptyPlanningResult value);
+	string TryBuild(PlanTableScanResult &result);
+	PlanTableScanResult Build();
+
+private:
+	PlanTableScanResult result_;
 };
 
 } // namespace rest_api_objects

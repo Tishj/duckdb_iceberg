@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static AddViewVersionUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AddViewVersionUpdate Copy() const;
@@ -37,6 +38,19 @@ public:
 public:
 	BaseUpdate base_update;
 	ViewVersion view_version;
+};
+
+class AddViewVersionUpdateBuilder {
+public:
+	AddViewVersionUpdateBuilder();
+	AddViewVersionUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AddViewVersionUpdateBuilder &SetViewVersion(ViewVersion value);
+	string TryBuild(AddViewVersionUpdate &result);
+	AddViewVersionUpdate Build();
+
+private:
+	AddViewVersionUpdate result_;
+	bool has_view_version_ = false;
 };
 
 } // namespace rest_api_objects

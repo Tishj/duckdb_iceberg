@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static OAuthTokenRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	OAuthTokenRequest Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<OAuthClientCredentialsRequest> oauth_client_credentials_request;
 	optional<OAuthTokenExchangeRequest> oauth_token_exchange_request;
+};
+
+class OAuthTokenRequestBuilder {
+public:
+	OAuthTokenRequestBuilder();
+	OAuthTokenRequestBuilder &SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest value);
+	OAuthTokenRequestBuilder &SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest value);
+	string TryBuild(OAuthTokenRequest &result);
+	OAuthTokenRequest Build();
+
+private:
+	OAuthTokenRequest result_;
 };
 
 } // namespace rest_api_objects

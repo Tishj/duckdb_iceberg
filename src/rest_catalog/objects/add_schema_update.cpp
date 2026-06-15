@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/add_schema_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AddSchemaUpdate::AddSchemaUpdate() {
+}
+
+AddSchemaUpdateBuilder::AddSchemaUpdateBuilder() {
+}
+
+AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetSchema(Schema value) {
+	result_.schema = std::move(value);
+	has_schema_ = true;
+	return *this;
+}
+
+AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetLastColumnId(int32_t value) {
+	result_.last_column_id = std::move(value);
+	return *this;
+}
+
+string AddSchemaUpdateBuilder::TryBuild(AddSchemaUpdate &result) {
+	if (!has_schema_) {
+		return "AddSchemaUpdate required property 'schema' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AddSchemaUpdate AddSchemaUpdateBuilder::Build() {
+	AddSchemaUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
@@ -33,6 +75,19 @@ AddSchemaUpdate AddSchemaUpdate::Copy() const {
 		(*res.last_column_id) = (*last_column_id);
 	}
 	return res;
+}
+
+string AddSchemaUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = schema.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string AddSchemaUpdate::TryFromJSON(yyjson_val *obj) {
@@ -62,7 +117,7 @@ string AddSchemaUpdate::TryFromJSON(yyjson_val *obj) {
 		}
 		last_column_id = std::move(last_column_id_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void AddSchemaUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

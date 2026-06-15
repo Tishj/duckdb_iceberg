@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/uuidtype_value.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,21 @@ UUIDTypeValue UUIDTypeValue::Copy() const {
 	return res;
 }
 
+string UUIDTypeValue::Validate() const {
+	string error;
+	if (value.size() < 36) {
+		return "UUIDTypeValue property 'value' must have at least 36 characters";
+	}
+	if (value.size() > 36) {
+		return "UUIDTypeValue property 'value' must have at most 36 characters";
+	}
+	static const std::regex value_pattern("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+	if (!std::regex_match(value, value_pattern)) {
+		return "UUIDTypeValue property 'value' does not match the required pattern";
+	}
+	return "";
+}
+
 string UUIDTypeValue::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +55,7 @@ string UUIDTypeValue::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("UUIDTypeValue property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *UUIDTypeValue::ToJSON(yyjson_mut_doc *doc) const {

@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static Transform FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Transform Copy() const;

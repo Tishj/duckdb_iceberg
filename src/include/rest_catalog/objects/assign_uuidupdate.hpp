@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssignUUIDUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssignUUIDUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	string uuid;
+};
+
+class AssignUUIDUpdateBuilder {
+public:
+	AssignUUIDUpdateBuilder();
+	AssignUUIDUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AssignUUIDUpdateBuilder &SetUuid(string value);
+	string TryBuild(AssignUUIDUpdate &result);
+	AssignUUIDUpdate Build();
+
+private:
+	AssignUUIDUpdate result_;
+	bool has_uuid_ = false;
 };
 
 } // namespace rest_api_objects

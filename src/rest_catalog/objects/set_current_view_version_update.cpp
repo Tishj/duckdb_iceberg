@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_current_view_version_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetCurrentViewVersionUpdate::SetCurrentViewVersionUpdate() {
+}
+
+SetCurrentViewVersionUpdateBuilder::SetCurrentViewVersionUpdateBuilder() {
+}
+
+SetCurrentViewVersionUpdateBuilder &SetCurrentViewVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetCurrentViewVersionUpdateBuilder &SetCurrentViewVersionUpdateBuilder::SetViewVersionId(int32_t value) {
+	result_.view_version_id = std::move(value);
+	has_view_version_id_ = true;
+	return *this;
+}
+
+string SetCurrentViewVersionUpdateBuilder::TryBuild(SetCurrentViewVersionUpdate &result) {
+	if (!has_view_version_id_) {
+		return "SetCurrentViewVersionUpdate required property 'view-version-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetCurrentViewVersionUpdate SetCurrentViewVersionUpdateBuilder::Build() {
+	SetCurrentViewVersionUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.view_version_id = view_version_id;
 	return res;
+}
+
+string SetCurrentViewVersionUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(view_version_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetCurrentViewVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

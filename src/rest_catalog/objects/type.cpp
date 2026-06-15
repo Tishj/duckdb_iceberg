@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/type.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,47 @@ namespace duckdb {
 namespace rest_api_objects {
 
 Type::Type() {
+}
+
+TypeBuilder::TypeBuilder() {
+}
+
+TypeBuilder &TypeBuilder::SetPrimitiveType(PrimitiveType value) {
+	result_.primitive_type = std::move(value);
+	return *this;
+}
+
+TypeBuilder &TypeBuilder::SetStructType(StructType value) {
+	result_.struct_type = std::move(value);
+	return *this;
+}
+
+TypeBuilder &TypeBuilder::SetListType(ListType value) {
+	result_.list_type = std::move(value);
+	return *this;
+}
+
+TypeBuilder &TypeBuilder::SetMapType(MapType value) {
+	result_.map_type = std::move(value);
+	return *this;
+}
+
+string TypeBuilder::TryBuild(Type &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Type TypeBuilder::Build() {
+	Type result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Type Type::FromJSON(yyjson_val *obj) {
@@ -43,6 +86,43 @@ Type Type::Copy() const {
 		(*res.map_type) = (*map_type).Copy();
 	}
 	return res;
+}
+
+string Type::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (primitive_type.has_value()) {
+		matched_one_of_variants++;
+		error = primitive_type->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (struct_type.has_value()) {
+		matched_one_of_variants++;
+		error = struct_type->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (list_type.has_value()) {
+		matched_one_of_variants++;
+		error = list_type->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (map_type.has_value()) {
+		matched_one_of_variants++;
+		error = map_type->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "Type must have exactly one oneOf variant set";
+	}
+	return "";
 }
 
 string Type::TryFromJSON(yyjson_val *obj) {
@@ -78,7 +158,7 @@ string Type::TryFromJSON(yyjson_val *obj) {
 		}
 		return "Type failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *Type::ToJSON(yyjson_mut_doc *doc) const {

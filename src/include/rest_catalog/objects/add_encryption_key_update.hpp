@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static AddEncryptionKeyUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AddEncryptionKeyUpdate Copy() const;
@@ -37,6 +38,19 @@ public:
 public:
 	BaseUpdate base_update;
 	EncryptedKey encryption_key;
+};
+
+class AddEncryptionKeyUpdateBuilder {
+public:
+	AddEncryptionKeyUpdateBuilder();
+	AddEncryptionKeyUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AddEncryptionKeyUpdateBuilder &SetEncryptionKey(EncryptedKey value);
+	string TryBuild(AddEncryptionKeyUpdate &result);
+	AddEncryptionKeyUpdate Build();
+
+private:
+	AddEncryptionKeyUpdate result_;
+	bool has_encryption_key_ = false;
 };
 
 } // namespace rest_api_objects

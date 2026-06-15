@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static FetchPlanningResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FetchPlanningResult Copy() const;
@@ -39,6 +40,19 @@ public:
 	optional<CompletedPlanningResult> completed_planning_result;
 	optional<FailedPlanningResult> failed_planning_result;
 	optional<EmptyPlanningResult> empty_planning_result;
+};
+
+class FetchPlanningResultBuilder {
+public:
+	FetchPlanningResultBuilder();
+	FetchPlanningResultBuilder &SetCompletedPlanningResult(CompletedPlanningResult value);
+	FetchPlanningResultBuilder &SetFailedPlanningResult(FailedPlanningResult value);
+	FetchPlanningResultBuilder &SetEmptyPlanningResult(EmptyPlanningResult value);
+	string TryBuild(FetchPlanningResult &result);
+	FetchPlanningResult Build();
+
+private:
+	FetchPlanningResult result_;
 };
 
 } // namespace rest_api_objects

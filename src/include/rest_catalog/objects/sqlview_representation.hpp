@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static SQLViewRepresentation FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SQLViewRepresentation Copy() const;
@@ -36,6 +37,22 @@ public:
 	string type;
 	string sql;
 	string dialect;
+};
+
+class SQLViewRepresentationBuilder {
+public:
+	SQLViewRepresentationBuilder();
+	SQLViewRepresentationBuilder &SetType(string value);
+	SQLViewRepresentationBuilder &SetSql(string value);
+	SQLViewRepresentationBuilder &SetDialect(string value);
+	string TryBuild(SQLViewRepresentation &result);
+	SQLViewRepresentation Build();
+
+private:
+	SQLViewRepresentation result_;
+	bool has_type_ = false;
+	bool has_sql_ = false;
+	bool has_dialect_ = false;
 };
 
 } // namespace rest_api_objects

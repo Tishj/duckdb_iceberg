@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/view_version.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,86 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ViewVersion::ViewVersion() {
+}
+
+ViewVersionBuilder::ViewVersionBuilder() {
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetVersionId(int32_t value) {
+	result_.version_id = std::move(value);
+	has_version_id_ = true;
+	return *this;
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetTimestampMs(int64_t value) {
+	result_.timestamp_ms = std::move(value);
+	has_timestamp_ms_ = true;
+	return *this;
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetSchemaId(int32_t value) {
+	result_.schema_id = std::move(value);
+	has_schema_id_ = true;
+	return *this;
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetSummary(case_insensitive_map_t<string> value) {
+	result_.summary = std::move(value);
+	has_summary_ = true;
+	return *this;
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetRepresentations(vector<ViewRepresentation> value) {
+	result_.representations = std::move(value);
+	has_representations_ = true;
+	return *this;
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetDefaultNamespace(Namespace value) {
+	result_.default_namespace = std::move(value);
+	has_default_namespace_ = true;
+	return *this;
+}
+
+ViewVersionBuilder &ViewVersionBuilder::SetDefaultCatalog(string value) {
+	result_.default_catalog = std::move(value);
+	return *this;
+}
+
+string ViewVersionBuilder::TryBuild(ViewVersion &result) {
+	if (!has_version_id_) {
+		return "ViewVersion required property 'version-id' is missing";
+	}
+	if (!has_timestamp_ms_) {
+		return "ViewVersion required property 'timestamp-ms' is missing";
+	}
+	if (!has_schema_id_) {
+		return "ViewVersion required property 'schema-id' is missing";
+	}
+	if (!has_summary_) {
+		return "ViewVersion required property 'summary' is missing";
+	}
+	if (!has_representations_) {
+		return "ViewVersion required property 'representations' is missing";
+	}
+	if (!has_default_namespace_) {
+		return "ViewVersion required property 'default-namespace' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ViewVersion ViewVersionBuilder::Build() {
+	ViewVersion result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
@@ -42,6 +124,21 @@ ViewVersion ViewVersion::Copy() const {
 		(*res.default_catalog) = (*default_catalog);
 	}
 	return res;
+}
+
+string ViewVersion::Validate() const {
+	string error;
+	for (const auto &item : representations) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	error = default_namespace.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string ViewVersion::TryFromJSON(yyjson_val *obj) {
@@ -146,7 +243,7 @@ string ViewVersion::TryFromJSON(yyjson_val *obj) {
 		}
 		default_catalog = std::move(default_catalog_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ViewVersion::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

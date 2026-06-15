@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static ViewRepresentation FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ViewRepresentation Copy() const;
@@ -35,6 +36,17 @@ public:
 
 public:
 	optional<SQLViewRepresentation> sqlview_representation;
+};
+
+class ViewRepresentationBuilder {
+public:
+	ViewRepresentationBuilder();
+	ViewRepresentationBuilder &SetSqlviewRepresentation(SQLViewRepresentation value);
+	string TryBuild(ViewRepresentation &result);
+	ViewRepresentation Build();
+
+private:
+	ViewRepresentation result_;
 };
 
 } // namespace rest_api_objects

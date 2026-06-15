@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static ViewHistoryEntry FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ViewHistoryEntry Copy() const;
@@ -35,6 +36,20 @@ public:
 public:
 	int32_t version_id;
 	int64_t timestamp_ms;
+};
+
+class ViewHistoryEntryBuilder {
+public:
+	ViewHistoryEntryBuilder();
+	ViewHistoryEntryBuilder &SetVersionId(int32_t value);
+	ViewHistoryEntryBuilder &SetTimestampMs(int64_t value);
+	string TryBuild(ViewHistoryEntry &result);
+	ViewHistoryEntry Build();
+
+private:
+	ViewHistoryEntry result_;
+	bool has_version_id_ = false;
+	bool has_timestamp_ms_ = false;
 };
 
 } // namespace rest_api_objects

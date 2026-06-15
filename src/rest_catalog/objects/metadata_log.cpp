@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/metadata_log.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -17,6 +19,45 @@ MetadataLog::MetadataLog() {
 MetadataLog::Object4::Object4() {
 }
 
+MetadataLog::Object4Builder::Object4Builder() {
+}
+
+MetadataLog::Object4Builder &MetadataLog::Object4Builder::SetMetadataFile(string value) {
+	result_.metadata_file = std::move(value);
+	has_metadata_file_ = true;
+	return *this;
+}
+
+MetadataLog::Object4Builder &MetadataLog::Object4Builder::SetTimestampMs(int64_t value) {
+	result_.timestamp_ms = std::move(value);
+	has_timestamp_ms_ = true;
+	return *this;
+}
+
+string MetadataLog::Object4Builder::TryBuild(MetadataLog::Object4 &result) {
+	if (!has_metadata_file_) {
+		return "Object4 required property 'metadata-file' is missing";
+	}
+	if (!has_timestamp_ms_) {
+		return "Object4 required property 'timestamp-ms' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+MetadataLog::Object4 MetadataLog::Object4Builder::Build() {
+	MetadataLog::Object4 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
+}
+
 MetadataLog::Object4 MetadataLog::Object4::FromJSON(yyjson_val *obj) {
 	Object4 res;
 	auto error = res.TryFromJSON(obj);
@@ -31,6 +72,11 @@ MetadataLog::Object4 MetadataLog::Object4::Copy() const {
 	res.metadata_file = metadata_file;
 	res.timestamp_ms = timestamp_ms;
 	return res;
+}
+
+string MetadataLog::Object4::Validate() const {
+	string error;
+	return "";
 }
 
 string MetadataLog::Object4::TryFromJSON(yyjson_val *obj) {
@@ -59,7 +105,7 @@ string MetadataLog::Object4::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(timestamp_ms_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void MetadataLog::Object4::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -98,6 +144,17 @@ MetadataLog MetadataLog::Copy() const {
 	return res;
 }
 
+string MetadataLog::Validate() const {
+	string error;
+	for (const auto &item : value) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
+}
+
 string MetadataLog::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_arr(obj)) {
@@ -115,7 +172,7 @@ string MetadataLog::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("MetadataLog property 'value' is not of type 'array', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *MetadataLog::ToJSON(yyjson_mut_doc *doc) const {

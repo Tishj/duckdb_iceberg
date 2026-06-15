@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/table_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,132 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TableUpdate::TableUpdate() {
+}
+
+TableUpdateBuilder::TableUpdateBuilder() {
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetAssignUuidupdate(AssignUUIDUpdate value) {
+	result_.assign_uuidupdate = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value) {
+	result_.upgrade_format_version_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetAddSchemaUpdate(AddSchemaUpdate value) {
+	result_.add_schema_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate value) {
+	result_.set_current_schema_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetAddPartitionSpecUpdate(AddPartitionSpecUpdate value) {
+	result_.add_partition_spec_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetDefaultSpecUpdate(SetDefaultSpecUpdate value) {
+	result_.set_default_spec_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetAddSortOrderUpdate(AddSortOrderUpdate value) {
+	result_.add_sort_order_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate value) {
+	result_.set_default_sort_order_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetAddSnapshotUpdate(AddSnapshotUpdate value) {
+	result_.add_snapshot_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetSnapshotRefUpdate(SetSnapshotRefUpdate value) {
+	result_.set_snapshot_ref_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate value) {
+	result_.remove_snapshots_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate value) {
+	result_.remove_snapshot_ref_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetLocationUpdate(SetLocationUpdate value) {
+	result_.set_location_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetPropertiesUpdate(SetPropertiesUpdate value) {
+	result_.set_properties_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemovePropertiesUpdate(RemovePropertiesUpdate value) {
+	result_.remove_properties_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetSetStatisticsUpdate(SetStatisticsUpdate value) {
+	result_.set_statistics_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemoveStatisticsUpdate(RemoveStatisticsUpdate value) {
+	result_.remove_statistics_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate value) {
+	result_.remove_partition_specs_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemoveSchemasUpdate(RemoveSchemasUpdate value) {
+	result_.remove_schemas_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate value) {
+	result_.add_encryption_key_update = std::move(value);
+	return *this;
+}
+
+TableUpdateBuilder &TableUpdateBuilder::SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate value) {
+	result_.remove_encryption_key_update = std::move(value);
+	return *this;
+}
+
+string TableUpdateBuilder::TryBuild(TableUpdate &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TableUpdate TableUpdateBuilder::Build() {
+	TableUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
@@ -111,6 +239,162 @@ TableUpdate TableUpdate::Copy() const {
 		(*res.remove_encryption_key_update) = (*remove_encryption_key_update).Copy();
 	}
 	return res;
+}
+
+string TableUpdate::Validate() const {
+	string error;
+	int matched_any_of_variants = 0;
+	if (assign_uuidupdate.has_value()) {
+		matched_any_of_variants++;
+		error = assign_uuidupdate->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (upgrade_format_version_update.has_value()) {
+		matched_any_of_variants++;
+		error = upgrade_format_version_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_schema_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_schema_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_current_schema_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_current_schema_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_partition_spec_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_partition_spec_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_default_spec_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_default_spec_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_sort_order_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_sort_order_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_default_sort_order_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_default_sort_order_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_snapshot_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_snapshot_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_snapshot_ref_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_snapshot_ref_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_snapshots_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_snapshots_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_snapshot_ref_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_snapshot_ref_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_location_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_location_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_properties_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_properties_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_properties_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_properties_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_statistics_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_statistics_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_statistics_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_statistics_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_partition_specs_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_partition_specs_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_schemas_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_schemas_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_encryption_key_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_encryption_key_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_encryption_key_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_encryption_key_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_any_of_variants == 0) {
+		return "TableUpdate must have at least one anyOf variant set";
+	}
+	return "";
 }
 
 string TableUpdate::TryFromJSON(yyjson_val *obj) {
@@ -254,7 +538,7 @@ string TableUpdate::TryFromJSON(yyjson_val *obj) {
 	    !(upgrade_format_version_update.has_value())) {
 		return "TableUpdate failed to parse, none of the anyOf candidates matched";
 	}
-	return "";
+	return Validate();
 }
 
 void TableUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

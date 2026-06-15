@@ -34,6 +34,7 @@ public:
 		// Deserialization
 		static Object5 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object5 Copy() const;
@@ -47,10 +48,24 @@ public:
 		optional<vector<StorageCredential>> storage_credentials;
 	};
 
+	class Object5Builder {
+	public:
+		Object5Builder();
+		Object5Builder &SetStatus(PlanStatus value);
+		Object5Builder &SetStorageCredentials(vector<StorageCredential> value);
+		string TryBuild(Object5 &result);
+		Object5 Build();
+
+	private:
+		Object5 result_;
+		bool has_status_ = false;
+	};
+
 public:
 	// Deserialization
 	static CompletedPlanningResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CompletedPlanningResult Copy() const;
@@ -62,6 +77,18 @@ public:
 public:
 	ScanTasks scan_tasks;
 	Object5 object_5;
+};
+
+class CompletedPlanningResultBuilder {
+public:
+	CompletedPlanningResultBuilder();
+	CompletedPlanningResultBuilder &SetScanTasks(ScanTasks value);
+	CompletedPlanningResultBuilder &SetObject5(CompletedPlanningResult::Object5 value);
+	string TryBuild(CompletedPlanningResult &result);
+	CompletedPlanningResult Build();
+
+private:
+	CompletedPlanningResult result_;
 };
 
 } // namespace rest_api_objects

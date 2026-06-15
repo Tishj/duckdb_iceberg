@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/view_history_entry.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ViewHistoryEntry::ViewHistoryEntry() {
+}
+
+ViewHistoryEntryBuilder::ViewHistoryEntryBuilder() {
+}
+
+ViewHistoryEntryBuilder &ViewHistoryEntryBuilder::SetVersionId(int32_t value) {
+	result_.version_id = std::move(value);
+	has_version_id_ = true;
+	return *this;
+}
+
+ViewHistoryEntryBuilder &ViewHistoryEntryBuilder::SetTimestampMs(int64_t value) {
+	result_.timestamp_ms = std::move(value);
+	has_timestamp_ms_ = true;
+	return *this;
+}
+
+string ViewHistoryEntryBuilder::TryBuild(ViewHistoryEntry &result) {
+	if (!has_version_id_) {
+		return "ViewHistoryEntry required property 'version-id' is missing";
+	}
+	if (!has_timestamp_ms_) {
+		return "ViewHistoryEntry required property 'timestamp-ms' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ViewHistoryEntry ViewHistoryEntryBuilder::Build() {
+	ViewHistoryEntry result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ViewHistoryEntry ViewHistoryEntry::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,11 @@ ViewHistoryEntry ViewHistoryEntry::Copy() const {
 	res.version_id = version_id;
 	res.timestamp_ms = timestamp_ms;
 	return res;
+}
+
+string ViewHistoryEntry::Validate() const {
+	string error;
+	return "";
 }
 
 string ViewHistoryEntry::TryFromJSON(yyjson_val *obj) {
@@ -59,7 +105,7 @@ string ViewHistoryEntry::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(timestamp_ms_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void ViewHistoryEntry::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

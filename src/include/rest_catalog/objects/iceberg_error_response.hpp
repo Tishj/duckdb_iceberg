@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static IcebergErrorResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	IcebergErrorResponse Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	ErrorModel _error;
+};
+
+class IcebergErrorResponseBuilder {
+public:
+	IcebergErrorResponseBuilder();
+	IcebergErrorResponseBuilder &SetError(ErrorModel value);
+	string TryBuild(IcebergErrorResponse &result);
+	IcebergErrorResponse Build();
+
+private:
+	IcebergErrorResponse result_;
+	bool has__error_ = false;
 };
 
 } // namespace rest_api_objects

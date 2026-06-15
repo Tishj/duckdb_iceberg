@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/transform_term.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TransformTerm::TransformTerm() {
+}
+
+TransformTermBuilder::TransformTermBuilder() {
+}
+
+TransformTermBuilder &TransformTermBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+TransformTermBuilder &TransformTermBuilder::SetTransform(Transform value) {
+	result_.transform = std::move(value);
+	has_transform_ = true;
+	return *this;
+}
+
+TransformTermBuilder &TransformTermBuilder::SetTerm(Reference value) {
+	result_.term = std::move(value);
+	has_term_ = true;
+	return *this;
+}
+
+string TransformTermBuilder::TryBuild(TransformTerm &result) {
+	if (!has_type_) {
+		return "TransformTerm required property 'type' is missing";
+	}
+	if (!has_transform_) {
+		return "TransformTerm required property 'transform' is missing";
+	}
+	if (!has_term_) {
+		return "TransformTerm required property 'term' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TransformTerm TransformTermBuilder::Build() {
+	TransformTerm result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TransformTerm TransformTerm::FromJSON(yyjson_val *obj) {
@@ -30,6 +80,22 @@ TransformTerm TransformTerm::Copy() const {
 	res.transform = transform.Copy();
 	res.term = term.Copy();
 	return res;
+}
+
+string TransformTerm::Validate() const {
+	string error;
+	if (type != "transform") {
+		return "TransformTerm property 'type' must be transform";
+	}
+	error = transform.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = term.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string TransformTerm::TryFromJSON(yyjson_val *obj) {
@@ -63,7 +129,7 @@ string TransformTerm::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void TransformTerm::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

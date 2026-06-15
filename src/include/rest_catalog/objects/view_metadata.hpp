@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static ViewMetadata FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ViewMetadata Copy() const;
@@ -44,6 +45,31 @@ public:
 	vector<ViewHistoryEntry> version_log;
 	vector<Schema> schemas;
 	optional<case_insensitive_map_t<string>> properties;
+};
+
+class ViewMetadataBuilder {
+public:
+	ViewMetadataBuilder();
+	ViewMetadataBuilder &SetViewUuid(string value);
+	ViewMetadataBuilder &SetFormatVersion(int32_t value);
+	ViewMetadataBuilder &SetLocation(string value);
+	ViewMetadataBuilder &SetCurrentVersionId(int32_t value);
+	ViewMetadataBuilder &SetVersions(vector<ViewVersion> value);
+	ViewMetadataBuilder &SetVersionLog(vector<ViewHistoryEntry> value);
+	ViewMetadataBuilder &SetSchemas(vector<Schema> value);
+	ViewMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
+	string TryBuild(ViewMetadata &result);
+	ViewMetadata Build();
+
+private:
+	ViewMetadata result_;
+	bool has_view_uuid_ = false;
+	bool has_format_version_ = false;
+	bool has_location_ = false;
+	bool has_current_version_id_ = false;
+	bool has_versions_ = false;
+	bool has_version_log_ = false;
+	bool has_schemas_ = false;
 };
 
 } // namespace rest_api_objects

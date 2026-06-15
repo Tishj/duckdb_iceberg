@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/add_snapshot_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AddSnapshotUpdate::AddSnapshotUpdate() {
+}
+
+AddSnapshotUpdateBuilder::AddSnapshotUpdateBuilder() {
+}
+
+AddSnapshotUpdateBuilder &AddSnapshotUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+AddSnapshotUpdateBuilder &AddSnapshotUpdateBuilder::SetSnapshot(Snapshot value) {
+	result_.snapshot = std::move(value);
+	has_snapshot_ = true;
+	return *this;
+}
+
+string AddSnapshotUpdateBuilder::TryBuild(AddSnapshotUpdate &result) {
+	if (!has_snapshot_) {
+		return "AddSnapshotUpdate required property 'snapshot' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AddSnapshotUpdate AddSnapshotUpdateBuilder::Build() {
+	AddSnapshotUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
@@ -31,6 +68,19 @@ AddSnapshotUpdate AddSnapshotUpdate::Copy() const {
 	return res;
 }
 
+string AddSnapshotUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = snapshot.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = base_update.TryFromJSON(obj);
@@ -46,7 +96,7 @@ string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AddSnapshotUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

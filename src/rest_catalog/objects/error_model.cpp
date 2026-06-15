@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/error_model.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,59 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ErrorModel::ErrorModel() {
+}
+
+ErrorModelBuilder::ErrorModelBuilder() {
+}
+
+ErrorModelBuilder &ErrorModelBuilder::SetMessage(string value) {
+	result_.message = std::move(value);
+	has_message_ = true;
+	return *this;
+}
+
+ErrorModelBuilder &ErrorModelBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+ErrorModelBuilder &ErrorModelBuilder::SetCode(int32_t value) {
+	result_.code = std::move(value);
+	has_code_ = true;
+	return *this;
+}
+
+ErrorModelBuilder &ErrorModelBuilder::SetStack(vector<string> value) {
+	result_.stack = std::move(value);
+	return *this;
+}
+
+string ErrorModelBuilder::TryBuild(ErrorModel &result) {
+	if (!has_message_) {
+		return "ErrorModel required property 'message' is missing";
+	}
+	if (!has_type_) {
+		return "ErrorModel required property 'type' is missing";
+	}
+	if (!has_code_) {
+		return "ErrorModel required property 'code' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ErrorModel ErrorModelBuilder::Build() {
+	ErrorModel result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ErrorModel ErrorModel::FromJSON(yyjson_val *obj) {
@@ -37,6 +92,17 @@ ErrorModel ErrorModel::Copy() const {
 		}
 	}
 	return res;
+}
+
+string ErrorModel::Validate() const {
+	string error;
+	if (code < 400) {
+		return "ErrorModel property 'code' must be at least 400";
+	}
+	if (code > 600) {
+		return "ErrorModel property 'code' must be at most 600";
+	}
+	return "";
 }
 
 string ErrorModel::TryFromJSON(yyjson_val *obj) {
@@ -96,7 +162,7 @@ string ErrorModel::TryFromJSON(yyjson_val *obj) {
 		}
 		stack = std::move(stack_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ErrorModel::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -32,6 +32,7 @@ public:
 	// Deserialization
 	static ViewUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ViewUpdate Copy() const;
@@ -49,6 +50,24 @@ public:
 	optional<RemovePropertiesUpdate> remove_properties_update;
 	optional<AddViewVersionUpdate> add_view_version_update;
 	optional<SetCurrentViewVersionUpdate> set_current_view_version_update;
+};
+
+class ViewUpdateBuilder {
+public:
+	ViewUpdateBuilder();
+	ViewUpdateBuilder &SetAssignUuidupdate(AssignUUIDUpdate value);
+	ViewUpdateBuilder &SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value);
+	ViewUpdateBuilder &SetAddSchemaUpdate(AddSchemaUpdate value);
+	ViewUpdateBuilder &SetSetLocationUpdate(SetLocationUpdate value);
+	ViewUpdateBuilder &SetSetPropertiesUpdate(SetPropertiesUpdate value);
+	ViewUpdateBuilder &SetRemovePropertiesUpdate(RemovePropertiesUpdate value);
+	ViewUpdateBuilder &SetAddViewVersionUpdate(AddViewVersionUpdate value);
+	ViewUpdateBuilder &SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate value);
+	string TryBuild(ViewUpdate &result);
+	ViewUpdate Build();
+
+private:
+	ViewUpdate result_;
 };
 
 } // namespace rest_api_objects

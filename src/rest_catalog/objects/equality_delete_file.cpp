@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/equality_delete_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 EqualityDeleteFile::EqualityDeleteFile() {
+}
+
+EqualityDeleteFileBuilder::EqualityDeleteFileBuilder() {
+}
+
+EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetContentFile(ContentFile value) {
+	result_.content_file = std::move(value);
+	return *this;
+}
+
+EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetEqualityIds(vector<int32_t> value) {
+	result_.equality_ids = std::move(value);
+	return *this;
+}
+
+string EqualityDeleteFileBuilder::TryBuild(EqualityDeleteFile &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+EqualityDeleteFile EqualityDeleteFileBuilder::Build() {
+	EqualityDeleteFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
@@ -35,6 +68,15 @@ EqualityDeleteFile EqualityDeleteFile::Copy() const {
 		}
 	}
 	return res;
+}
+
+string EqualityDeleteFile::Validate() const {
+	string error;
+	error = content_file.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string EqualityDeleteFile::TryFromJSON(yyjson_val *obj) {
@@ -67,7 +109,7 @@ string EqualityDeleteFile::TryFromJSON(yyjson_val *obj) {
 		}
 		equality_ids = std::move(equality_ids_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void EqualityDeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

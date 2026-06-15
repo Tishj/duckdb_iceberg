@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static MetricResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	MetricResult Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<CounterResult> counter_result;
 	optional<TimerResult> timer_result;
+};
+
+class MetricResultBuilder {
+public:
+	MetricResultBuilder();
+	MetricResultBuilder &SetCounterResult(CounterResult value);
+	MetricResultBuilder &SetTimerResult(TimerResult value);
+	string TryBuild(MetricResult &result);
+	MetricResult Build();
+
+private:
+	MetricResult result_;
 };
 
 } // namespace rest_api_objects

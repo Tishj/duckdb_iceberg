@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/list_tables_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ListTablesResponse::ListTablesResponse() {
+}
+
+ListTablesResponseBuilder::ListTablesResponseBuilder() {
+}
+
+ListTablesResponseBuilder &ListTablesResponseBuilder::SetNextPageToken(PageToken value) {
+	result_.next_page_token = std::move(value);
+	return *this;
+}
+
+ListTablesResponseBuilder &ListTablesResponseBuilder::SetIdentifiers(vector<TableIdentifier> value) {
+	result_.identifiers = std::move(value);
+	return *this;
+}
+
+string ListTablesResponseBuilder::TryBuild(ListTablesResponse &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ListTablesResponse ListTablesResponseBuilder::Build() {
+	ListTablesResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
@@ -38,6 +71,25 @@ ListTablesResponse ListTablesResponse::Copy() const {
 		}
 	}
 	return res;
+}
+
+string ListTablesResponse::Validate() const {
+	string error;
+	if (next_page_token.has_value()) {
+		error = (*next_page_token).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (identifiers.has_value()) {
+		for (const auto &item : (*identifiers)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string ListTablesResponse::TryFromJSON(yyjson_val *obj) {
@@ -72,7 +124,7 @@ string ListTablesResponse::TryFromJSON(yyjson_val *obj) {
 		}
 		identifiers = std::move(identifiers_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ListTablesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

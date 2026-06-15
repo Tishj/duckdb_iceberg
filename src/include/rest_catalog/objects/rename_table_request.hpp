@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RenameTableRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RenameTableRequest Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	TableIdentifier source;
 	TableIdentifier destination;
+};
+
+class RenameTableRequestBuilder {
+public:
+	RenameTableRequestBuilder();
+	RenameTableRequestBuilder &SetSource(TableIdentifier value);
+	RenameTableRequestBuilder &SetDestination(TableIdentifier value);
+	string TryBuild(RenameTableRequest &result);
+	RenameTableRequest Build();
+
+private:
+	RenameTableRequest result_;
+	bool has_source_ = false;
+	bool has_destination_ = false;
 };
 
 } // namespace rest_api_objects

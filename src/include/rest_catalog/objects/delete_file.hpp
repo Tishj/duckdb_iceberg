@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static DeleteFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	DeleteFile Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<PositionDeleteFile> position_delete_file;
 	optional<EqualityDeleteFile> equality_delete_file;
+};
+
+class DeleteFileBuilder {
+public:
+	DeleteFileBuilder();
+	DeleteFileBuilder &SetPositionDeleteFile(PositionDeleteFile value);
+	DeleteFileBuilder &SetEqualityDeleteFile(EqualityDeleteFile value);
+	string TryBuild(DeleteFile &result);
+	DeleteFile Build();
+
+private:
+	DeleteFile result_;
 };
 
 } // namespace rest_api_objects

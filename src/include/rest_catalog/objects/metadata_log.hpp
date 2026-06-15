@@ -31,6 +31,7 @@ public:
 		// Deserialization
 		static Object4 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object4 Copy() const;
@@ -44,10 +45,25 @@ public:
 		int64_t timestamp_ms;
 	};
 
+	class Object4Builder {
+	public:
+		Object4Builder();
+		Object4Builder &SetMetadataFile(string value);
+		Object4Builder &SetTimestampMs(int64_t value);
+		string TryBuild(Object4 &result);
+		Object4 Build();
+
+	private:
+		Object4 result_;
+		bool has_metadata_file_ = false;
+		bool has_timestamp_ms_ = false;
+	};
+
 public:
 	// Deserialization
 	static MetadataLog FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	MetadataLog Copy() const;

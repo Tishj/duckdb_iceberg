@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static SetCurrentSchemaUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetCurrentSchemaUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	int32_t schema_id;
+};
+
+class SetCurrentSchemaUpdateBuilder {
+public:
+	SetCurrentSchemaUpdateBuilder();
+	SetCurrentSchemaUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetCurrentSchemaUpdateBuilder &SetSchemaId(int32_t value);
+	string TryBuild(SetCurrentSchemaUpdate &result);
+	SetCurrentSchemaUpdate Build();
+
+private:
+	SetCurrentSchemaUpdate result_;
+	bool has_schema_id_ = false;
 };
 
 } // namespace rest_api_objects

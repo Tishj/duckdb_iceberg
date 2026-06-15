@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/create_namespace_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CreateNamespaceRequest::CreateNamespaceRequest() {
+}
+
+CreateNamespaceRequestBuilder::CreateNamespaceRequestBuilder() {
+}
+
+CreateNamespaceRequestBuilder &CreateNamespaceRequestBuilder::SetNamespace(Namespace value) {
+	result_._namespace = std::move(value);
+	has__namespace_ = true;
+	return *this;
+}
+
+CreateNamespaceRequestBuilder &CreateNamespaceRequestBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	return *this;
+}
+
+string CreateNamespaceRequestBuilder::TryBuild(CreateNamespaceRequest &result) {
+	if (!has__namespace_) {
+		return "CreateNamespaceRequest required property 'namespace' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CreateNamespaceRequest CreateNamespaceRequestBuilder::Build() {
+	CreateNamespaceRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CreateNamespaceRequest CreateNamespaceRequest::FromJSON(yyjson_val *obj) {
@@ -34,6 +71,15 @@ CreateNamespaceRequest CreateNamespaceRequest::Copy() const {
 		}
 	}
 	return res;
+}
+
+string CreateNamespaceRequest::Validate() const {
+	string error;
+	error = _namespace.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj) {
@@ -70,7 +116,7 @@ string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		properties = std::move(properties_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CreateNamespaceRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

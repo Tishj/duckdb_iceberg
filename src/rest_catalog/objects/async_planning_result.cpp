@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/async_planning_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AsyncPlanningResult::AsyncPlanningResult() {
+}
+
+AsyncPlanningResultBuilder::AsyncPlanningResultBuilder() {
+}
+
+AsyncPlanningResultBuilder &AsyncPlanningResultBuilder::SetStatus(PlanStatus value) {
+	result_.status = std::move(value);
+	has_status_ = true;
+	return *this;
+}
+
+AsyncPlanningResultBuilder &AsyncPlanningResultBuilder::SetPlanId(string value) {
+	result_.plan_id = std::move(value);
+	has_plan_id_ = true;
+	return *this;
+}
+
+string AsyncPlanningResultBuilder::TryBuild(AsyncPlanningResult &result) {
+	if (!has_status_) {
+		return "AsyncPlanningResult required property 'status' is missing";
+	}
+	if (!has_plan_id_) {
+		return "AsyncPlanningResult required property 'plan-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AsyncPlanningResult AsyncPlanningResultBuilder::Build() {
+	AsyncPlanningResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AsyncPlanningResult AsyncPlanningResult::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AsyncPlanningResult AsyncPlanningResult::Copy() const {
 	res.status = status.Copy();
 	res.plan_id = plan_id;
 	return res;
+}
+
+string AsyncPlanningResult::Validate() const {
+	string error;
+	error = status.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (status.value != "submitted") {
+		return "AsyncPlanningResult property 'status' must be submitted";
+	}
+	return "";
 }
 
 string AsyncPlanningResult::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +107,7 @@ string AsyncPlanningResult::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(plan_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AsyncPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

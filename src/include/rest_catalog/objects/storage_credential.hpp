@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static StorageCredential FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	StorageCredential Copy() const;
@@ -35,6 +36,20 @@ public:
 public:
 	string prefix;
 	case_insensitive_map_t<string> config;
+};
+
+class StorageCredentialBuilder {
+public:
+	StorageCredentialBuilder();
+	StorageCredentialBuilder &SetPrefix(string value);
+	StorageCredentialBuilder &SetConfig(case_insensitive_map_t<string> value);
+	string TryBuild(StorageCredential &result);
+	StorageCredential Build();
+
+private:
+	StorageCredential result_;
+	bool has_prefix_ = false;
+	bool has_config_ = false;
 };
 
 } // namespace rest_api_objects

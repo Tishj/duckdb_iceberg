@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/and_or_expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AndOrExpression::AndOrExpression() {
+}
+
+AndOrExpressionBuilder::AndOrExpressionBuilder() {
+}
+
+AndOrExpressionBuilder &AndOrExpressionBuilder::SetType(ExpressionType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AndOrExpressionBuilder &AndOrExpressionBuilder::SetLeft(unique_ptr<Expression> value) {
+	result_.left = std::move(value);
+	has_left_ = true;
+	return *this;
+}
+
+AndOrExpressionBuilder &AndOrExpressionBuilder::SetRight(unique_ptr<Expression> value) {
+	result_.right = std::move(value);
+	has_right_ = true;
+	return *this;
+}
+
+string AndOrExpressionBuilder::TryBuild(AndOrExpression &result) {
+	if (!has_type_) {
+		return "AndOrExpression required property 'type' is missing";
+	}
+	if (!has_left_) {
+		return "AndOrExpression required property 'left' is missing";
+	}
+	if (!has_right_) {
+		return "AndOrExpression required property 'right' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AndOrExpression AndOrExpressionBuilder::Build() {
+	AndOrExpression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
@@ -30,6 +80,26 @@ AndOrExpression AndOrExpression::Copy() const {
 	res.left = left ? make_uniq<Expression>(left->Copy()) : nullptr;
 	res.right = right ? make_uniq<Expression>(right->Copy()) : nullptr;
 	return res;
+}
+
+string AndOrExpression::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "and" && type.value != "or") {
+		return "AndOrExpression property 'type' must be one of [and, or]";
+	}
+	error = left->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = right->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string AndOrExpression::TryFromJSON(yyjson_val *obj) {
@@ -63,7 +133,7 @@ string AndOrExpression::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AndOrExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

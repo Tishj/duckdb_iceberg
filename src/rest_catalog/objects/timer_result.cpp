@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/timer_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TimerResult::TimerResult() {
+}
+
+TimerResultBuilder::TimerResultBuilder() {
+}
+
+TimerResultBuilder &TimerResultBuilder::SetTimeUnit(string value) {
+	result_.time_unit = std::move(value);
+	has_time_unit_ = true;
+	return *this;
+}
+
+TimerResultBuilder &TimerResultBuilder::SetCount(int64_t value) {
+	result_.count = std::move(value);
+	has_count_ = true;
+	return *this;
+}
+
+TimerResultBuilder &TimerResultBuilder::SetTotalDuration(int64_t value) {
+	result_.total_duration = std::move(value);
+	has_total_duration_ = true;
+	return *this;
+}
+
+string TimerResultBuilder::TryBuild(TimerResult &result) {
+	if (!has_time_unit_) {
+		return "TimerResult required property 'time-unit' is missing";
+	}
+	if (!has_count_) {
+		return "TimerResult required property 'count' is missing";
+	}
+	if (!has_total_duration_) {
+		return "TimerResult required property 'total-duration' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TimerResult TimerResultBuilder::Build() {
+	TimerResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TimerResult TimerResult::FromJSON(yyjson_val *obj) {
@@ -30,6 +80,11 @@ TimerResult TimerResult::Copy() const {
 	res.count = count;
 	res.total_duration = total_duration;
 	return res;
+}
+
+string TimerResult::Validate() const {
+	string error;
+	return "";
 }
 
 string TimerResult::TryFromJSON(yyjson_val *obj) {
@@ -72,7 +127,7 @@ string TimerResult::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(total_duration_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void TimerResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/oauth_error.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 OAuthError::OAuthError() {
+}
+
+OAuthErrorBuilder::OAuthErrorBuilder() {
+}
+
+OAuthErrorBuilder &OAuthErrorBuilder::SetError(string value) {
+	result_._error = std::move(value);
+	has__error_ = true;
+	return *this;
+}
+
+OAuthErrorBuilder &OAuthErrorBuilder::SetErrorDescription(string value) {
+	result_.error_description = std::move(value);
+	return *this;
+}
+
+OAuthErrorBuilder &OAuthErrorBuilder::SetErrorUri(string value) {
+	result_.error_uri = std::move(value);
+	return *this;
+}
+
+string OAuthErrorBuilder::TryBuild(OAuthError &result) {
+	if (!has__error_) {
+		return "OAuthError required property 'error' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+OAuthError OAuthErrorBuilder::Build() {
+	OAuthError result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 OAuthError OAuthError::FromJSON(yyjson_val *obj) {
@@ -36,6 +78,16 @@ OAuthError OAuthError::Copy() const {
 		(*res.error_uri) = (*error_uri);
 	}
 	return res;
+}
+
+string OAuthError::Validate() const {
+	string error;
+	if (_error != "invalid_request" && _error != "invalid_client" && _error != "invalid_grant" &&
+	    _error != "unauthorized_client" && _error != "unsupported_grant_type" && _error != "invalid_scope") {
+		return "OAuthError property 'error' must be one of [invalid_request, invalid_client, invalid_grant, "
+		       "unauthorized_client, unsupported_grant_type, invalid_scope]";
+	}
+	return "";
 }
 
 string OAuthError::TryFromJSON(yyjson_val *obj) {
@@ -74,7 +126,7 @@ string OAuthError::TryFromJSON(yyjson_val *obj) {
 		}
 		error_uri = std::move(error_uri_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void OAuthError::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

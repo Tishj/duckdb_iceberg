@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/snapshot_references.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,33 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SnapshotReferences::SnapshotReferences() {
+}
+
+SnapshotReferencesBuilder::SnapshotReferencesBuilder() {
+}
+
+SnapshotReferencesBuilder &
+SnapshotReferencesBuilder::SetAdditionalProperties(case_insensitive_map_t<SnapshotReference> value) {
+	result_.additional_properties = std::move(value);
+	return *this;
+}
+
+string SnapshotReferencesBuilder::TryBuild(SnapshotReferences &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SnapshotReferences SnapshotReferencesBuilder::Build() {
+	SnapshotReferences result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SnapshotReferences SnapshotReferences::FromJSON(yyjson_val *obj) {
@@ -32,6 +61,17 @@ SnapshotReferences SnapshotReferences::Copy() const {
 	return res;
 }
 
+string SnapshotReferences::Validate() const {
+	string error;
+	for (const auto &entry : additional_properties) {
+		error = entry.second.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
+}
+
 string SnapshotReferences::TryFromJSON(yyjson_val *obj) {
 	string error;
 	size_t idx, max;
@@ -45,7 +85,7 @@ string SnapshotReferences::TryFromJSON(yyjson_val *obj) {
 		}
 		additional_properties.emplace(key_str, std::move(tmp));
 	}
-	return "";
+	return Validate();
 }
 
 void SnapshotReferences::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/create_view_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,68 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CreateViewRequest::CreateViewRequest() {
+}
+
+CreateViewRequestBuilder::CreateViewRequestBuilder() {
+}
+
+CreateViewRequestBuilder &CreateViewRequestBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+CreateViewRequestBuilder &CreateViewRequestBuilder::SetSchema(Schema value) {
+	result_.schema = std::move(value);
+	has_schema_ = true;
+	return *this;
+}
+
+CreateViewRequestBuilder &CreateViewRequestBuilder::SetViewVersion(ViewVersion value) {
+	result_.view_version = std::move(value);
+	has_view_version_ = true;
+	return *this;
+}
+
+CreateViewRequestBuilder &CreateViewRequestBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	has_properties_ = true;
+	return *this;
+}
+
+CreateViewRequestBuilder &CreateViewRequestBuilder::SetLocation(string value) {
+	result_.location = std::move(value);
+	return *this;
+}
+
+string CreateViewRequestBuilder::TryBuild(CreateViewRequest &result) {
+	if (!has_name_) {
+		return "CreateViewRequest required property 'name' is missing";
+	}
+	if (!has_schema_) {
+		return "CreateViewRequest required property 'schema' is missing";
+	}
+	if (!has_view_version_) {
+		return "CreateViewRequest required property 'view-version' is missing";
+	}
+	if (!has_properties_) {
+		return "CreateViewRequest required property 'properties' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CreateViewRequest CreateViewRequestBuilder::Build() {
+	CreateViewRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CreateViewRequest CreateViewRequest::FromJSON(yyjson_val *obj) {
@@ -37,6 +101,19 @@ CreateViewRequest CreateViewRequest::Copy() const {
 		(*res.location) = (*location);
 	}
 	return res;
+}
+
+string CreateViewRequest::Validate() const {
+	string error;
+	error = schema.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = view_version.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string CreateViewRequest::TryFromJSON(yyjson_val *obj) {
@@ -105,7 +182,7 @@ string CreateViewRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		location = std::move(location_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CreateViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

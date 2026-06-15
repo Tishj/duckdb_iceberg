@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/sqlview_representation.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SQLViewRepresentation::SQLViewRepresentation() {
+}
+
+SQLViewRepresentationBuilder::SQLViewRepresentationBuilder() {
+}
+
+SQLViewRepresentationBuilder &SQLViewRepresentationBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+SQLViewRepresentationBuilder &SQLViewRepresentationBuilder::SetSql(string value) {
+	result_.sql = std::move(value);
+	has_sql_ = true;
+	return *this;
+}
+
+SQLViewRepresentationBuilder &SQLViewRepresentationBuilder::SetDialect(string value) {
+	result_.dialect = std::move(value);
+	has_dialect_ = true;
+	return *this;
+}
+
+string SQLViewRepresentationBuilder::TryBuild(SQLViewRepresentation &result) {
+	if (!has_type_) {
+		return "SQLViewRepresentation required property 'type' is missing";
+	}
+	if (!has_sql_) {
+		return "SQLViewRepresentation required property 'sql' is missing";
+	}
+	if (!has_dialect_) {
+		return "SQLViewRepresentation required property 'dialect' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SQLViewRepresentation SQLViewRepresentationBuilder::Build() {
+	SQLViewRepresentation result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SQLViewRepresentation SQLViewRepresentation::FromJSON(yyjson_val *obj) {
@@ -30,6 +80,11 @@ SQLViewRepresentation SQLViewRepresentation::Copy() const {
 	res.sql = sql;
 	res.dialect = dialect;
 	return res;
+}
+
+string SQLViewRepresentation::Validate() const {
+	string error;
+	return "";
 }
 
 string SQLViewRepresentation::TryFromJSON(yyjson_val *obj) {
@@ -70,7 +125,7 @@ string SQLViewRepresentation::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(dialect_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SQLViewRepresentation::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

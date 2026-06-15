@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static LoadViewResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	LoadViewResult Copy() const;
@@ -37,6 +38,21 @@ public:
 	string metadata_location;
 	ViewMetadata metadata;
 	optional<case_insensitive_map_t<string>> config;
+};
+
+class LoadViewResultBuilder {
+public:
+	LoadViewResultBuilder();
+	LoadViewResultBuilder &SetMetadataLocation(string value);
+	LoadViewResultBuilder &SetMetadata(ViewMetadata value);
+	LoadViewResultBuilder &SetConfig(case_insensitive_map_t<string> value);
+	string TryBuild(LoadViewResult &result);
+	LoadViewResult Build();
+
+private:
+	LoadViewResult result_;
+	bool has_metadata_location_ = false;
+	bool has_metadata_ = false;
 };
 
 } // namespace rest_api_objects

@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertCreate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertCreate Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	TableRequirementType type;
+};
+
+class AssertCreateBuilder {
+public:
+	AssertCreateBuilder();
+	AssertCreateBuilder &SetType(TableRequirementType value);
+	string TryBuild(AssertCreate &result);
+	AssertCreate Build();
+
+private:
+	AssertCreate result_;
+	bool has_type_ = false;
 };
 
 } // namespace rest_api_objects

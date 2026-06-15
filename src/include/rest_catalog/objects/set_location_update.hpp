@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static SetLocationUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetLocationUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	string location;
+};
+
+class SetLocationUpdateBuilder {
+public:
+	SetLocationUpdateBuilder();
+	SetLocationUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetLocationUpdateBuilder &SetLocation(string value);
+	string TryBuild(SetLocationUpdate &result);
+	SetLocationUpdate Build();
+
+private:
+	SetLocationUpdate result_;
+	bool has_location_ = false;
 };
 
 } // namespace rest_api_objects

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/null_order.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,14 @@ NullOrder NullOrder::Copy() const {
 	return res;
 }
 
+string NullOrder::Validate() const {
+	string error;
+	if (value != "nulls-first" && value != "nulls-last") {
+		return "NullOrder property 'value' must be one of [nulls-first, nulls-last]";
+	}
+	return "";
+}
+
 string NullOrder::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +48,7 @@ string NullOrder::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("NullOrder property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *NullOrder::ToJSON(yyjson_mut_doc *doc) const {

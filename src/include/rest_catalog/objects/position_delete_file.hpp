@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static PositionDeleteFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PositionDeleteFile Copy() const;
@@ -37,6 +38,19 @@ public:
 	ContentFile content_file;
 	optional<int64_t> content_offset;
 	optional<int64_t> content_size_in_bytes;
+};
+
+class PositionDeleteFileBuilder {
+public:
+	PositionDeleteFileBuilder();
+	PositionDeleteFileBuilder &SetContentFile(ContentFile value);
+	PositionDeleteFileBuilder &SetContentOffset(int64_t value);
+	PositionDeleteFileBuilder &SetContentSizeInBytes(int64_t value);
+	string TryBuild(PositionDeleteFile &result);
+	PositionDeleteFile Build();
+
+private:
+	PositionDeleteFile result_;
 };
 
 } // namespace rest_api_objects

@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static OAuthClientCredentialsRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	OAuthClientCredentialsRequest Copy() const;
@@ -37,6 +38,23 @@ public:
 	string client_id;
 	string client_secret;
 	optional<string> scope;
+};
+
+class OAuthClientCredentialsRequestBuilder {
+public:
+	OAuthClientCredentialsRequestBuilder();
+	OAuthClientCredentialsRequestBuilder &SetGrantType(string value);
+	OAuthClientCredentialsRequestBuilder &SetClientId(string value);
+	OAuthClientCredentialsRequestBuilder &SetClientSecret(string value);
+	OAuthClientCredentialsRequestBuilder &SetScope(string value);
+	string TryBuild(OAuthClientCredentialsRequest &result);
+	OAuthClientCredentialsRequest Build();
+
+private:
+	OAuthClientCredentialsRequest result_;
+	bool has_grant_type_ = false;
+	bool has_client_id_ = false;
+	bool has_client_secret_ = false;
 };
 
 } // namespace rest_api_objects

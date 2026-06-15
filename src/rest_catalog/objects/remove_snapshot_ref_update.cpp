@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/remove_snapshot_ref_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RemoveSnapshotRefUpdate::RemoveSnapshotRefUpdate() {
+}
+
+RemoveSnapshotRefUpdateBuilder::RemoveSnapshotRefUpdateBuilder() {
+}
+
+RemoveSnapshotRefUpdateBuilder &RemoveSnapshotRefUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+RemoveSnapshotRefUpdateBuilder &RemoveSnapshotRefUpdateBuilder::SetRefName(string value) {
+	result_.ref_name = std::move(value);
+	has_ref_name_ = true;
+	return *this;
+}
+
+string RemoveSnapshotRefUpdateBuilder::TryBuild(RemoveSnapshotRefUpdate &result) {
+	if (!has_ref_name_) {
+		return "RemoveSnapshotRefUpdate required property 'ref-name' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RemoveSnapshotRefUpdate RemoveSnapshotRefUpdateBuilder::Build() {
+	RemoveSnapshotRefUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.ref_name = ref_name;
 	return res;
+}
+
+string RemoveSnapshotRefUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(ref_name_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RemoveSnapshotRefUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

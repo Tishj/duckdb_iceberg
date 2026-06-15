@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static LoadTableResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	LoadTableResult Copy() const;
@@ -39,6 +40,21 @@ public:
 	optional<string> metadata_location;
 	optional<case_insensitive_map_t<string>> config;
 	optional<vector<StorageCredential>> storage_credentials;
+};
+
+class LoadTableResultBuilder {
+public:
+	LoadTableResultBuilder();
+	LoadTableResultBuilder &SetMetadata(TableMetadata value);
+	LoadTableResultBuilder &SetMetadataLocation(string value);
+	LoadTableResultBuilder &SetConfig(case_insensitive_map_t<string> value);
+	LoadTableResultBuilder &SetStorageCredentials(vector<StorageCredential> value);
+	string TryBuild(LoadTableResult &result);
+	LoadTableResult Build();
+
+private:
+	LoadTableResult result_;
+	bool has_metadata_ = false;
 };
 
 } // namespace rest_api_objects

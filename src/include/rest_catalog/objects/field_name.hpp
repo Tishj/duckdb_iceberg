@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static FieldName FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FieldName Copy() const;

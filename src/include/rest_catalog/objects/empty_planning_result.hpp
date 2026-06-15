@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static EmptyPlanningResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	EmptyPlanningResult Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	PlanStatus status;
+};
+
+class EmptyPlanningResultBuilder {
+public:
+	EmptyPlanningResultBuilder();
+	EmptyPlanningResultBuilder &SetStatus(PlanStatus value);
+	string TryBuild(EmptyPlanningResult &result);
+	EmptyPlanningResult Build();
+
+private:
+	EmptyPlanningResult result_;
+	bool has_status_ = false;
 };
 
 } // namespace rest_api_objects

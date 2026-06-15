@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/rename_table_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RenameTableRequest::RenameTableRequest() {
+}
+
+RenameTableRequestBuilder::RenameTableRequestBuilder() {
+}
+
+RenameTableRequestBuilder &RenameTableRequestBuilder::SetSource(TableIdentifier value) {
+	result_.source = std::move(value);
+	has_source_ = true;
+	return *this;
+}
+
+RenameTableRequestBuilder &RenameTableRequestBuilder::SetDestination(TableIdentifier value) {
+	result_.destination = std::move(value);
+	has_destination_ = true;
+	return *this;
+}
+
+string RenameTableRequestBuilder::TryBuild(RenameTableRequest &result) {
+	if (!has_source_) {
+		return "RenameTableRequest required property 'source' is missing";
+	}
+	if (!has_destination_) {
+		return "RenameTableRequest required property 'destination' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RenameTableRequest RenameTableRequestBuilder::Build() {
+	RenameTableRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,19 @@ RenameTableRequest RenameTableRequest::Copy() const {
 	res.source = source.Copy();
 	res.destination = destination.Copy();
 	return res;
+}
+
+string RenameTableRequest::Validate() const {
+	string error;
+	error = source.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = destination.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RenameTableRequest::TryFromJSON(yyjson_val *obj) {
@@ -51,7 +105,7 @@ string RenameTableRequest::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RenameTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

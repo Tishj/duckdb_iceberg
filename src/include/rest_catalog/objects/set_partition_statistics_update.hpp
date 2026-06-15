@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static SetPartitionStatisticsUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetPartitionStatisticsUpdate Copy() const;
@@ -37,6 +38,19 @@ public:
 public:
 	BaseUpdate base_update;
 	PartitionStatisticsFile partition_statistics;
+};
+
+class SetPartitionStatisticsUpdateBuilder {
+public:
+	SetPartitionStatisticsUpdateBuilder();
+	SetPartitionStatisticsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetPartitionStatisticsUpdateBuilder &SetPartitionStatistics(PartitionStatisticsFile value);
+	string TryBuild(SetPartitionStatisticsUpdate &result);
+	SetPartitionStatisticsUpdate Build();
+
+private:
+	SetPartitionStatisticsUpdate result_;
+	bool has_partition_statistics_ = false;
 };
 
 } // namespace rest_api_objects

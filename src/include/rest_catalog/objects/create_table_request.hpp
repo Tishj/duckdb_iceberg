@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static CreateTableRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CreateTableRequest Copy() const;
@@ -43,6 +44,25 @@ public:
 	optional<SortOrder> write_order;
 	optional<bool> stage_create;
 	optional<case_insensitive_map_t<string>> properties;
+};
+
+class CreateTableRequestBuilder {
+public:
+	CreateTableRequestBuilder();
+	CreateTableRequestBuilder &SetName(string value);
+	CreateTableRequestBuilder &SetSchema(Schema value);
+	CreateTableRequestBuilder &SetLocation(string value);
+	CreateTableRequestBuilder &SetPartitionSpec(PartitionSpec value);
+	CreateTableRequestBuilder &SetWriteOrder(SortOrder value);
+	CreateTableRequestBuilder &SetStageCreate(bool value);
+	CreateTableRequestBuilder &SetProperties(case_insensitive_map_t<string> value);
+	string TryBuild(CreateTableRequest &result);
+	CreateTableRequest Build();
+
+private:
+	CreateTableRequest result_;
+	bool has_name_ = false;
+	bool has_schema_ = false;
 };
 
 } // namespace rest_api_objects

@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static PageToken FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PageToken Copy() const;

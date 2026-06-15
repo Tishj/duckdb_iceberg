@@ -31,6 +31,7 @@ public:
 	// Deserialization
 	static Expression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Expression Copy() const;
@@ -47,6 +48,23 @@ public:
 	optional<SetExpression> set_expression;
 	optional<LiteralExpression> literal_expression;
 	optional<UnaryExpression> unary_expression;
+};
+
+class ExpressionBuilder {
+public:
+	ExpressionBuilder();
+	ExpressionBuilder &SetTrueExpression(TrueExpression value);
+	ExpressionBuilder &SetFalseExpression(FalseExpression value);
+	ExpressionBuilder &SetAndOrExpression(AndOrExpression value);
+	ExpressionBuilder &SetNotExpression(NotExpression value);
+	ExpressionBuilder &SetSetExpression(SetExpression value);
+	ExpressionBuilder &SetLiteralExpression(LiteralExpression value);
+	ExpressionBuilder &SetUnaryExpression(UnaryExpression value);
+	string TryBuild(Expression &result);
+	Expression Build();
+
+private:
+	Expression result_;
 };
 
 } // namespace rest_api_objects

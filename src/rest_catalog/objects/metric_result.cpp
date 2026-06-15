@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/metric_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 MetricResult::MetricResult() {
+}
+
+MetricResultBuilder::MetricResultBuilder() {
+}
+
+MetricResultBuilder &MetricResultBuilder::SetCounterResult(CounterResult value) {
+	result_.counter_result = std::move(value);
+	return *this;
+}
+
+MetricResultBuilder &MetricResultBuilder::SetTimerResult(TimerResult value) {
+	result_.timer_result = std::move(value);
+	return *this;
+}
+
+string MetricResultBuilder::TryBuild(MetricResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+MetricResult MetricResultBuilder::Build() {
+	MetricResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 MetricResult MetricResult::FromJSON(yyjson_val *obj) {
@@ -37,6 +70,29 @@ MetricResult MetricResult::Copy() const {
 	return res;
 }
 
+string MetricResult::Validate() const {
+	string error;
+	int matched_any_of_variants = 0;
+	if (counter_result.has_value()) {
+		matched_any_of_variants++;
+		error = counter_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (timer_result.has_value()) {
+		matched_any_of_variants++;
+		error = timer_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_any_of_variants == 0) {
+		return "MetricResult must have at least one anyOf variant set";
+	}
+	return "";
+}
+
 string MetricResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	counter_result.emplace();
@@ -54,7 +110,7 @@ string MetricResult::TryFromJSON(yyjson_val *obj) {
 	if (!(counter_result.has_value()) && !(timer_result.has_value())) {
 		return "MetricResult failed to parse, none of the anyOf candidates matched";
 	}
-	return "";
+	return Validate();
 }
 
 void MetricResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

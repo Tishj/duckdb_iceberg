@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static ReportMetricsRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ReportMetricsRequest Copy() const;
@@ -38,6 +39,20 @@ public:
 	optional<ScanReport> scan_report;
 	optional<CommitReport> commit_report;
 	string report_type;
+};
+
+class ReportMetricsRequestBuilder {
+public:
+	ReportMetricsRequestBuilder();
+	ReportMetricsRequestBuilder &SetScanReport(ScanReport value);
+	ReportMetricsRequestBuilder &SetCommitReport(CommitReport value);
+	ReportMetricsRequestBuilder &SetReportType(string value);
+	string TryBuild(ReportMetricsRequest &result);
+	ReportMetricsRequest Build();
+
+private:
+	ReportMetricsRequest result_;
+	bool has_report_type_ = false;
 };
 
 } // namespace rest_api_objects

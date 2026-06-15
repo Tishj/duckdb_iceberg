@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/table_metadata.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,150 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TableMetadata::TableMetadata() {
+}
+
+TableMetadataBuilder::TableMetadataBuilder() {
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetFormatVersion(int32_t value) {
+	result_.format_version = std::move(value);
+	has_format_version_ = true;
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetTableUuid(string value) {
+	result_.table_uuid = std::move(value);
+	has_table_uuid_ = true;
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetLocation(string value) {
+	result_.location = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetLastUpdatedMs(int64_t value) {
+	result_.last_updated_ms = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetNextRowId(int64_t value) {
+	result_.next_row_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetSchemas(vector<Schema> value) {
+	result_.schemas = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetCurrentSchemaId(int32_t value) {
+	result_.current_schema_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetLastColumnId(int32_t value) {
+	result_.last_column_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetPartitionSpecs(vector<PartitionSpec> value) {
+	result_.partition_specs = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetDefaultSpecId(int32_t value) {
+	result_.default_spec_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetLastPartitionId(int32_t value) {
+	result_.last_partition_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetSortOrders(vector<SortOrder> value) {
+	result_.sort_orders = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetDefaultSortOrderId(int32_t value) {
+	result_.default_sort_order_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetEncryptionKeys(vector<EncryptedKey> value) {
+	result_.encryption_keys = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetSnapshots(vector<Snapshot> value) {
+	result_.snapshots = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetRefs(SnapshotReferences value) {
+	result_.refs = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetCurrentSnapshotId(int64_t value) {
+	result_.current_snapshot_id = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetLastSequenceNumber(int64_t value) {
+	result_.last_sequence_number = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetSnapshotLog(SnapshotLog value) {
+	result_.snapshot_log = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetMetadataLog(MetadataLog value) {
+	result_.metadata_log = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetStatistics(vector<StatisticsFile> value) {
+	result_.statistics = std::move(value);
+	return *this;
+}
+
+TableMetadataBuilder &TableMetadataBuilder::SetPartitionStatistics(vector<PartitionStatisticsFile> value) {
+	result_.partition_statistics = std::move(value);
+	return *this;
+}
+
+string TableMetadataBuilder::TryBuild(TableMetadata &result) {
+	if (!has_format_version_) {
+		return "TableMetadata required property 'format-version' is missing";
+	}
+	if (!has_table_uuid_) {
+		return "TableMetadata required property 'table-uuid' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TableMetadata TableMetadataBuilder::Build() {
+	TableMetadata result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TableMetadata TableMetadata::FromJSON(yyjson_val *obj) {
@@ -136,6 +282,91 @@ TableMetadata TableMetadata::Copy() const {
 		}
 	}
 	return res;
+}
+
+string TableMetadata::Validate() const {
+	string error;
+	if (format_version < 1) {
+		return "TableMetadata property 'format-version' must be at least 1";
+	}
+	if (format_version > 3) {
+		return "TableMetadata property 'format-version' must be at most 3";
+	}
+	if (schemas.has_value()) {
+		for (const auto &item : (*schemas)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (partition_specs.has_value()) {
+		for (const auto &item : (*partition_specs)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (sort_orders.has_value()) {
+		for (const auto &item : (*sort_orders)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (encryption_keys.has_value()) {
+		for (const auto &item : (*encryption_keys)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (snapshots.has_value()) {
+		for (const auto &item : (*snapshots)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (refs.has_value()) {
+		error = (*refs).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (snapshot_log.has_value()) {
+		error = (*snapshot_log).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (metadata_log.has_value()) {
+		error = (*metadata_log).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (statistics.has_value()) {
+		for (const auto &item : (*statistics)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (partition_statistics.has_value()) {
+		for (const auto &item : (*partition_statistics)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string TableMetadata::TryFromJSON(yyjson_val *obj) {
@@ -491,7 +722,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 		}
 		partition_statistics = std::move(partition_statistics_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void TableMetadata::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

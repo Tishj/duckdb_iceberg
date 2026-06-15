@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static ViewRequirement FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ViewRequirement Copy() const;
@@ -35,6 +36,17 @@ public:
 
 public:
 	optional<AssertViewUUID> assert_view_uuid;
+};
+
+class ViewRequirementBuilder {
+public:
+	ViewRequirementBuilder();
+	ViewRequirementBuilder &SetAssertViewUuid(AssertViewUUID value);
+	string TryBuild(ViewRequirement &result);
+	ViewRequirement Build();
+
+private:
+	ViewRequirement result_;
 };
 
 } // namespace rest_api_objects

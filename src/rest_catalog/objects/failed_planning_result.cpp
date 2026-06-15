@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/failed_planning_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -15,6 +17,36 @@ namespace rest_api_objects {
 FailedPlanningResult::FailedPlanningResult() {
 }
 FailedPlanningResult::Object7::Object7() {
+}
+
+FailedPlanningResult::Object7Builder::Object7Builder() {
+}
+
+FailedPlanningResult::Object7Builder &FailedPlanningResult::Object7Builder::SetStatus(PlanStatus value) {
+	result_.status = std::move(value);
+	has_status_ = true;
+	return *this;
+}
+
+string FailedPlanningResult::Object7Builder::TryBuild(FailedPlanningResult::Object7 &result) {
+	if (!has_status_) {
+		return "Object7 required property 'status' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FailedPlanningResult::Object7 FailedPlanningResult::Object7Builder::Build() {
+	FailedPlanningResult::Object7 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 FailedPlanningResult::Object7 FailedPlanningResult::Object7::FromJSON(yyjson_val *obj) {
@@ -32,6 +64,18 @@ FailedPlanningResult::Object7 FailedPlanningResult::Object7::Copy() const {
 	return res;
 }
 
+string FailedPlanningResult::Object7::Validate() const {
+	string error;
+	error = status.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (status.value != "failed") {
+		return "Object7 property 'status' must be failed";
+	}
+	return "";
+}
+
 string FailedPlanningResult::Object7::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto status_val = yyjson_obj_get(obj, "status");
@@ -43,7 +87,7 @@ string FailedPlanningResult::Object7::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void FailedPlanningResult::Object7::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -62,6 +106,37 @@ yyjson_mut_val *FailedPlanningResult::Object7::ToJSON(yyjson_mut_doc *doc) const
 	return obj;
 }
 
+FailedPlanningResultBuilder::FailedPlanningResultBuilder() {
+}
+
+FailedPlanningResultBuilder &FailedPlanningResultBuilder::SetIcebergErrorResponse(IcebergErrorResponse value) {
+	result_.iceberg_error_response = std::move(value);
+	return *this;
+}
+
+FailedPlanningResultBuilder &FailedPlanningResultBuilder::SetObject7(FailedPlanningResult::Object7 value) {
+	result_.object_7 = std::move(value);
+	return *this;
+}
+
+string FailedPlanningResultBuilder::TryBuild(FailedPlanningResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FailedPlanningResult FailedPlanningResultBuilder::Build() {
+	FailedPlanningResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
+}
+
 FailedPlanningResult FailedPlanningResult::FromJSON(yyjson_val *obj) {
 	FailedPlanningResult res;
 	auto error = res.TryFromJSON(obj);
@@ -78,6 +153,19 @@ FailedPlanningResult FailedPlanningResult::Copy() const {
 	return res;
 }
 
+string FailedPlanningResult::Validate() const {
+	string error;
+	error = iceberg_error_response.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = object_7.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string FailedPlanningResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = iceberg_error_response.TryFromJSON(obj);
@@ -88,7 +176,7 @@ string FailedPlanningResult::TryFromJSON(yyjson_val *obj) {
 	if (!error.empty()) {
 		return error;
 	}
-	return "";
+	return Validate();
 }
 
 void FailedPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

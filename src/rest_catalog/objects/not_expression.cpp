@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/not_expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 NotExpression::NotExpression() {
+}
+
+NotExpressionBuilder::NotExpressionBuilder() {
+}
+
+NotExpressionBuilder &NotExpressionBuilder::SetType(ExpressionType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+NotExpressionBuilder &NotExpressionBuilder::SetChild(unique_ptr<Expression> value) {
+	result_.child = std::move(value);
+	has_child_ = true;
+	return *this;
+}
+
+string NotExpressionBuilder::TryBuild(NotExpression &result) {
+	if (!has_type_) {
+		return "NotExpression required property 'type' is missing";
+	}
+	if (!has_child_) {
+		return "NotExpression required property 'child' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+NotExpression NotExpressionBuilder::Build() {
+	NotExpression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 NotExpression NotExpression::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,22 @@ NotExpression NotExpression::Copy() const {
 	res.type = type.Copy();
 	res.child = child ? make_uniq<Expression>(child->Copy()) : nullptr;
 	return res;
+}
+
+string NotExpression::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "not") {
+		return "NotExpression property 'type' must be not";
+	}
+	error = child->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string NotExpression::TryFromJSON(yyjson_val *obj) {
@@ -52,7 +109,7 @@ string NotExpression::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void NotExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

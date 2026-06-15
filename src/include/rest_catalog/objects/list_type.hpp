@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static ListType FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ListType Copy() const;
@@ -39,6 +40,24 @@ public:
 	int32_t element_id;
 	unique_ptr<Type> element;
 	bool element_required;
+};
+
+class ListTypeBuilder {
+public:
+	ListTypeBuilder();
+	ListTypeBuilder &SetType(string value);
+	ListTypeBuilder &SetElementId(int32_t value);
+	ListTypeBuilder &SetElement(unique_ptr<Type> value);
+	ListTypeBuilder &SetElementRequired(bool value);
+	string TryBuild(ListType &result);
+	ListType Build();
+
+private:
+	ListType result_;
+	bool has_type_ = false;
+	bool has_element_id_ = false;
+	bool has_element_ = false;
+	bool has_element_required_ = false;
 };
 
 } // namespace rest_api_objects

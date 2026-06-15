@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static CommitTableResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CommitTableResponse Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	string metadata_location;
 	TableMetadata metadata;
+};
+
+class CommitTableResponseBuilder {
+public:
+	CommitTableResponseBuilder();
+	CommitTableResponseBuilder &SetMetadataLocation(string value);
+	CommitTableResponseBuilder &SetMetadata(TableMetadata value);
+	string TryBuild(CommitTableResponse &result);
+	CommitTableResponse Build();
+
+private:
+	CommitTableResponse result_;
+	bool has_metadata_location_ = false;
+	bool has_metadata_ = false;
 };
 
 } // namespace rest_api_objects

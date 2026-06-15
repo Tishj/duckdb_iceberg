@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static SetStatisticsUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetStatisticsUpdate Copy() const;
@@ -38,6 +39,20 @@ public:
 	BaseUpdate base_update;
 	StatisticsFile statistics;
 	optional<int64_t> snapshot_id;
+};
+
+class SetStatisticsUpdateBuilder {
+public:
+	SetStatisticsUpdateBuilder();
+	SetStatisticsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetStatisticsUpdateBuilder &SetStatistics(StatisticsFile value);
+	SetStatisticsUpdateBuilder &SetSnapshotId(int64_t value);
+	string TryBuild(SetStatisticsUpdate &result);
+	SetStatisticsUpdate Build();
+
+private:
+	SetStatisticsUpdate result_;
+	bool has_statistics_ = false;
 };
 
 } // namespace rest_api_objects

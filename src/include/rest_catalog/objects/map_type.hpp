@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static MapType FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	MapType Copy() const;
@@ -41,6 +42,28 @@ public:
 	int32_t value_id;
 	unique_ptr<Type> value;
 	bool value_required;
+};
+
+class MapTypeBuilder {
+public:
+	MapTypeBuilder();
+	MapTypeBuilder &SetType(string value);
+	MapTypeBuilder &SetKeyId(int32_t value);
+	MapTypeBuilder &SetKey(unique_ptr<Type> value);
+	MapTypeBuilder &SetValueId(int32_t value);
+	MapTypeBuilder &SetValue(unique_ptr<Type> value);
+	MapTypeBuilder &SetValueRequired(bool value);
+	string TryBuild(MapType &result);
+	MapType Build();
+
+private:
+	MapType result_;
+	bool has_type_ = false;
+	bool has_key_id_ = false;
+	bool has_key_ = false;
+	bool has_value_id_ = false;
+	bool has_value_ = false;
+	bool has_value_required_ = false;
 };
 
 } // namespace rest_api_objects

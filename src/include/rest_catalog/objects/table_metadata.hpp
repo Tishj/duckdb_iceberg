@@ -34,6 +34,7 @@ public:
 	// Deserialization
 	static TableMetadata FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TableMetadata Copy() const;
@@ -66,6 +67,41 @@ public:
 	optional<MetadataLog> metadata_log;
 	optional<vector<StatisticsFile>> statistics;
 	optional<vector<PartitionStatisticsFile>> partition_statistics;
+};
+
+class TableMetadataBuilder {
+public:
+	TableMetadataBuilder();
+	TableMetadataBuilder &SetFormatVersion(int32_t value);
+	TableMetadataBuilder &SetTableUuid(string value);
+	TableMetadataBuilder &SetLocation(string value);
+	TableMetadataBuilder &SetLastUpdatedMs(int64_t value);
+	TableMetadataBuilder &SetNextRowId(int64_t value);
+	TableMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
+	TableMetadataBuilder &SetSchemas(vector<Schema> value);
+	TableMetadataBuilder &SetCurrentSchemaId(int32_t value);
+	TableMetadataBuilder &SetLastColumnId(int32_t value);
+	TableMetadataBuilder &SetPartitionSpecs(vector<PartitionSpec> value);
+	TableMetadataBuilder &SetDefaultSpecId(int32_t value);
+	TableMetadataBuilder &SetLastPartitionId(int32_t value);
+	TableMetadataBuilder &SetSortOrders(vector<SortOrder> value);
+	TableMetadataBuilder &SetDefaultSortOrderId(int32_t value);
+	TableMetadataBuilder &SetEncryptionKeys(vector<EncryptedKey> value);
+	TableMetadataBuilder &SetSnapshots(vector<Snapshot> value);
+	TableMetadataBuilder &SetRefs(SnapshotReferences value);
+	TableMetadataBuilder &SetCurrentSnapshotId(int64_t value);
+	TableMetadataBuilder &SetLastSequenceNumber(int64_t value);
+	TableMetadataBuilder &SetSnapshotLog(SnapshotLog value);
+	TableMetadataBuilder &SetMetadataLog(MetadataLog value);
+	TableMetadataBuilder &SetStatistics(vector<StatisticsFile> value);
+	TableMetadataBuilder &SetPartitionStatistics(vector<PartitionStatisticsFile> value);
+	string TryBuild(TableMetadata &result);
+	TableMetadata Build();
+
+private:
+	TableMetadata result_;
+	bool has_format_version_ = false;
+	bool has_table_uuid_ = false;
 };
 
 } // namespace rest_api_objects

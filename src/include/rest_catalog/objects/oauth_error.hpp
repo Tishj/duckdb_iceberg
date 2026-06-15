@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static OAuthError FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	OAuthError Copy() const;
@@ -36,6 +37,20 @@ public:
 	string _error;
 	optional<string> error_description;
 	optional<string> error_uri;
+};
+
+class OAuthErrorBuilder {
+public:
+	OAuthErrorBuilder();
+	OAuthErrorBuilder &SetError(string value);
+	OAuthErrorBuilder &SetErrorDescription(string value);
+	OAuthErrorBuilder &SetErrorUri(string value);
+	string TryBuild(OAuthError &result);
+	OAuthError Build();
+
+private:
+	OAuthError result_;
+	bool has__error_ = false;
 };
 
 } // namespace rest_api_objects

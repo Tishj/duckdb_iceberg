@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/iceberg_error_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 IcebergErrorResponse::IcebergErrorResponse() {
+}
+
+IcebergErrorResponseBuilder::IcebergErrorResponseBuilder() {
+}
+
+IcebergErrorResponseBuilder &IcebergErrorResponseBuilder::SetError(ErrorModel value) {
+	result_._error = std::move(value);
+	has__error_ = true;
+	return *this;
+}
+
+string IcebergErrorResponseBuilder::TryBuild(IcebergErrorResponse &result) {
+	if (!has__error_) {
+		return "IcebergErrorResponse required property 'error' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+IcebergErrorResponse IcebergErrorResponseBuilder::Build() {
+	IcebergErrorResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,15 @@ IcebergErrorResponse IcebergErrorResponse::Copy() const {
 	return res;
 }
 
+string IcebergErrorResponse::Validate() const {
+	string error;
+	error = _error.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string IcebergErrorResponse::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto _error_val = yyjson_obj_get(obj, "error");
@@ -41,7 +82,7 @@ string IcebergErrorResponse::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void IcebergErrorResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

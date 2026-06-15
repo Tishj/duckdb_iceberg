@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/update_namespace_properties_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,38 @@ namespace duckdb {
 namespace rest_api_objects {
 
 UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest() {
+}
+
+UpdateNamespacePropertiesRequestBuilder::UpdateNamespacePropertiesRequestBuilder() {
+}
+
+UpdateNamespacePropertiesRequestBuilder &UpdateNamespacePropertiesRequestBuilder::SetRemovals(vector<string> value) {
+	result_.removals = std::move(value);
+	return *this;
+}
+
+UpdateNamespacePropertiesRequestBuilder &
+UpdateNamespacePropertiesRequestBuilder::SetUpdates(case_insensitive_map_t<string> value) {
+	result_.updates = std::move(value);
+	return *this;
+}
+
+string UpdateNamespacePropertiesRequestBuilder::TryBuild(UpdateNamespacePropertiesRequest &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequestBuilder::Build() {
+	UpdateNamespacePropertiesRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjson_val *obj) {
@@ -40,6 +74,11 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const 
 		}
 	}
 	return res;
+}
+
+string UpdateNamespacePropertiesRequest::Validate() const {
+	string error;
+	return "";
 }
 
 string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj) {
@@ -91,7 +130,7 @@ string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		updates = std::move(updates_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void UpdateNamespacePropertiesRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -31,6 +31,7 @@ public:
 		// Deserialization
 		static Object3 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object3 Copy() const;
@@ -44,10 +45,25 @@ public:
 		int64_t timestamp_ms;
 	};
 
+	class Object3Builder {
+	public:
+		Object3Builder();
+		Object3Builder &SetSnapshotId(int64_t value);
+		Object3Builder &SetTimestampMs(int64_t value);
+		string TryBuild(Object3 &result);
+		Object3 Build();
+
+	private:
+		Object3 result_;
+		bool has_snapshot_id_ = false;
+		bool has_timestamp_ms_ = false;
+	};
+
 public:
 	// Deserialization
 	static SnapshotLog FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SnapshotLog Copy() const;

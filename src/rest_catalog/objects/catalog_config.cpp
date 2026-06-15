@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/catalog_config.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,55 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CatalogConfig::CatalogConfig() {
+}
+
+CatalogConfigBuilder::CatalogConfigBuilder() {
+}
+
+CatalogConfigBuilder &CatalogConfigBuilder::SetDefaults(case_insensitive_map_t<string> value) {
+	result_.defaults = std::move(value);
+	has_defaults_ = true;
+	return *this;
+}
+
+CatalogConfigBuilder &CatalogConfigBuilder::SetOverrides(case_insensitive_map_t<string> value) {
+	result_.overrides = std::move(value);
+	has_overrides_ = true;
+	return *this;
+}
+
+CatalogConfigBuilder &CatalogConfigBuilder::SetEndpoints(vector<string> value) {
+	result_.endpoints = std::move(value);
+	return *this;
+}
+
+CatalogConfigBuilder &CatalogConfigBuilder::SetIdempotencyKeyLifetime(string value) {
+	result_.idempotency_key_lifetime = std::move(value);
+	return *this;
+}
+
+string CatalogConfigBuilder::TryBuild(CatalogConfig &result) {
+	if (!has_defaults_) {
+		return "CatalogConfig required property 'defaults' is missing";
+	}
+	if (!has_overrides_) {
+		return "CatalogConfig required property 'overrides' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CatalogConfig CatalogConfigBuilder::Build() {
+	CatalogConfig result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CatalogConfig CatalogConfig::FromJSON(yyjson_val *obj) {
@@ -44,6 +95,11 @@ CatalogConfig CatalogConfig::Copy() const {
 		(*res.idempotency_key_lifetime) = (*idempotency_key_lifetime);
 	}
 	return res;
+}
+
+string CatalogConfig::Validate() const {
+	string error;
+	return "";
 }
 
 string CatalogConfig::TryFromJSON(yyjson_val *obj) {
@@ -130,7 +186,7 @@ string CatalogConfig::TryFromJSON(yyjson_val *obj) {
 		}
 		idempotency_key_lifetime = std::move(idempotency_key_lifetime_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CatalogConfig::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

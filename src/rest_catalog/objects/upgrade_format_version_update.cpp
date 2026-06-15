@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/upgrade_format_version_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 UpgradeFormatVersionUpdate::UpgradeFormatVersionUpdate() {
+}
+
+UpgradeFormatVersionUpdateBuilder::UpgradeFormatVersionUpdateBuilder() {
+}
+
+UpgradeFormatVersionUpdateBuilder &UpgradeFormatVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+UpgradeFormatVersionUpdateBuilder &UpgradeFormatVersionUpdateBuilder::SetFormatVersion(int32_t value) {
+	result_.format_version = std::move(value);
+	has_format_version_ = true;
+	return *this;
+}
+
+string UpgradeFormatVersionUpdateBuilder::TryBuild(UpgradeFormatVersionUpdate &result) {
+	if (!has_format_version_) {
+		return "UpgradeFormatVersionUpdate required property 'format-version' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+UpgradeFormatVersionUpdate UpgradeFormatVersionUpdateBuilder::Build() {
+	UpgradeFormatVersionUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.format_version = format_version;
 	return res;
+}
+
+string UpgradeFormatVersionUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(format_version_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void UpgradeFormatVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

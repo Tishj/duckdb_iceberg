@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static BlobMetadata FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	BlobMetadata Copy() const;
@@ -38,6 +39,25 @@ public:
 	int64_t sequence_number;
 	vector<int32_t> fields;
 	optional<case_insensitive_map_t<string>> properties;
+};
+
+class BlobMetadataBuilder {
+public:
+	BlobMetadataBuilder();
+	BlobMetadataBuilder &SetType(string value);
+	BlobMetadataBuilder &SetSnapshotId(int64_t value);
+	BlobMetadataBuilder &SetSequenceNumber(int64_t value);
+	BlobMetadataBuilder &SetFields(vector<int32_t> value);
+	BlobMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
+	string TryBuild(BlobMetadata &result);
+	BlobMetadata Build();
+
+private:
+	BlobMetadata result_;
+	bool has_type_ = false;
+	bool has_snapshot_id_ = false;
+	bool has_sequence_number_ = false;
+	bool has_fields_ = false;
 };
 
 } // namespace rest_api_objects

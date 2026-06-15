@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertLastAssignedFieldId FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertLastAssignedFieldId Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	TableRequirementType type;
 	int32_t last_assigned_field_id;
+};
+
+class AssertLastAssignedFieldIdBuilder {
+public:
+	AssertLastAssignedFieldIdBuilder();
+	AssertLastAssignedFieldIdBuilder &SetType(TableRequirementType value);
+	AssertLastAssignedFieldIdBuilder &SetLastAssignedFieldId(int32_t value);
+	string TryBuild(AssertLastAssignedFieldId &result);
+	AssertLastAssignedFieldId Build();
+
+private:
+	AssertLastAssignedFieldId result_;
+	bool has_type_ = false;
+	bool has_last_assigned_field_id_ = false;
 };
 
 } // namespace rest_api_objects

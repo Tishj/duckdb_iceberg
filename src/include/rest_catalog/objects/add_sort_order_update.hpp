@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static AddSortOrderUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AddSortOrderUpdate Copy() const;
@@ -37,6 +38,19 @@ public:
 public:
 	BaseUpdate base_update;
 	SortOrder sort_order;
+};
+
+class AddSortOrderUpdateBuilder {
+public:
+	AddSortOrderUpdateBuilder();
+	AddSortOrderUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AddSortOrderUpdateBuilder &SetSortOrder(SortOrder value);
+	string TryBuild(AddSortOrderUpdate &result);
+	AddSortOrderUpdate Build();
+
+private:
+	AddSortOrderUpdate result_;
+	bool has_sort_order_ = false;
 };
 
 } // namespace rest_api_objects

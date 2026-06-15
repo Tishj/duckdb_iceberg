@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static SortDirection FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SortDirection Copy() const;

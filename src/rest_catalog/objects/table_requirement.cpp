@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/table_requirement.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,68 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TableRequirement::TableRequirement() {
+}
+
+TableRequirementBuilder::TableRequirementBuilder() {
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertCreate(AssertCreate value) {
+	result_.assert_create = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertTableUuid(AssertTableUUID value) {
+	result_.assert_table_uuid = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertRefSnapshotId(AssertRefSnapshotId value) {
+	result_.assert_ref_snapshot_id = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertLastAssignedFieldId(AssertLastAssignedFieldId value) {
+	result_.assert_last_assigned_field_id = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertCurrentSchemaId(AssertCurrentSchemaId value) {
+	result_.assert_current_schema_id = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &
+TableRequirementBuilder::SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId value) {
+	result_.assert_last_assigned_partition_id = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertDefaultSpecId(AssertDefaultSpecId value) {
+	result_.assert_default_spec_id = std::move(value);
+	return *this;
+}
+
+TableRequirementBuilder &TableRequirementBuilder::SetAssertDefaultSortOrderId(AssertDefaultSortOrderId value) {
+	result_.assert_default_sort_order_id = std::move(value);
+	return *this;
+}
+
+string TableRequirementBuilder::TryBuild(TableRequirement &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TableRequirement TableRequirementBuilder::Build() {
+	TableRequirement result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TableRequirement TableRequirement::FromJSON(yyjson_val *obj) {
@@ -59,6 +123,71 @@ TableRequirement TableRequirement::Copy() const {
 		(*res.assert_default_sort_order_id) = (*assert_default_sort_order_id).Copy();
 	}
 	return res;
+}
+
+string TableRequirement::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (assert_create.has_value()) {
+		matched_one_of_variants++;
+		error = assert_create->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_table_uuid.has_value()) {
+		matched_one_of_variants++;
+		error = assert_table_uuid->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_ref_snapshot_id.has_value()) {
+		matched_one_of_variants++;
+		error = assert_ref_snapshot_id->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_last_assigned_field_id.has_value()) {
+		matched_one_of_variants++;
+		error = assert_last_assigned_field_id->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_current_schema_id.has_value()) {
+		matched_one_of_variants++;
+		error = assert_current_schema_id->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_last_assigned_partition_id.has_value()) {
+		matched_one_of_variants++;
+		error = assert_last_assigned_partition_id->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_default_spec_id.has_value()) {
+		matched_one_of_variants++;
+		error = assert_default_spec_id->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (assert_default_sort_order_id.has_value()) {
+		matched_one_of_variants++;
+		error = assert_default_sort_order_id->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "TableRequirement must have exactly one oneOf variant set";
+	}
+	return "";
 }
 
 string TableRequirement::TryFromJSON(yyjson_val *obj) {
@@ -122,7 +251,7 @@ string TableRequirement::TryFromJSON(yyjson_val *obj) {
 		}
 		return "TableRequirement failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void TableRequirement::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

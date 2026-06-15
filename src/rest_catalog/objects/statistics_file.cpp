@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/statistics_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,72 @@ namespace duckdb {
 namespace rest_api_objects {
 
 StatisticsFile::StatisticsFile() {
+}
+
+StatisticsFileBuilder::StatisticsFileBuilder() {
+}
+
+StatisticsFileBuilder &StatisticsFileBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+StatisticsFileBuilder &StatisticsFileBuilder::SetStatisticsPath(string value) {
+	result_.statistics_path = std::move(value);
+	has_statistics_path_ = true;
+	return *this;
+}
+
+StatisticsFileBuilder &StatisticsFileBuilder::SetFileSizeInBytes(int64_t value) {
+	result_.file_size_in_bytes = std::move(value);
+	has_file_size_in_bytes_ = true;
+	return *this;
+}
+
+StatisticsFileBuilder &StatisticsFileBuilder::SetFileFooterSizeInBytes(int64_t value) {
+	result_.file_footer_size_in_bytes = std::move(value);
+	has_file_footer_size_in_bytes_ = true;
+	return *this;
+}
+
+StatisticsFileBuilder &StatisticsFileBuilder::SetBlobMetadata(vector<BlobMetadata> value) {
+	result_.blob_metadata = std::move(value);
+	has_blob_metadata_ = true;
+	return *this;
+}
+
+string StatisticsFileBuilder::TryBuild(StatisticsFile &result) {
+	if (!has_snapshot_id_) {
+		return "StatisticsFile required property 'snapshot-id' is missing";
+	}
+	if (!has_statistics_path_) {
+		return "StatisticsFile required property 'statistics-path' is missing";
+	}
+	if (!has_file_size_in_bytes_) {
+		return "StatisticsFile required property 'file-size-in-bytes' is missing";
+	}
+	if (!has_file_footer_size_in_bytes_) {
+		return "StatisticsFile required property 'file-footer-size-in-bytes' is missing";
+	}
+	if (!has_blob_metadata_) {
+		return "StatisticsFile required property 'blob-metadata' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+StatisticsFile StatisticsFileBuilder::Build() {
+	StatisticsFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
@@ -35,6 +103,17 @@ StatisticsFile StatisticsFile::Copy() const {
 		res.blob_metadata.emplace_back(item.Copy());
 	}
 	return res;
+}
+
+string StatisticsFile::Validate() const {
+	string error;
+	for (const auto &item : blob_metadata) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string StatisticsFile::TryFromJSON(yyjson_val *obj) {
@@ -114,7 +193,7 @@ string StatisticsFile::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(blob_metadata_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void StatisticsFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

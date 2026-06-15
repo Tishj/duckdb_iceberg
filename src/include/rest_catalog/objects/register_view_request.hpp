@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static RegisterViewRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RegisterViewRequest Copy() const;
@@ -35,6 +36,20 @@ public:
 public:
 	string name;
 	string metadata_location;
+};
+
+class RegisterViewRequestBuilder {
+public:
+	RegisterViewRequestBuilder();
+	RegisterViewRequestBuilder &SetName(string value);
+	RegisterViewRequestBuilder &SetMetadataLocation(string value);
+	string TryBuild(RegisterViewRequest &result);
+	RegisterViewRequest Build();
+
+private:
+	RegisterViewRequest result_;
+	bool has_name_ = false;
+	bool has_metadata_location_ = false;
 };
 
 } // namespace rest_api_objects

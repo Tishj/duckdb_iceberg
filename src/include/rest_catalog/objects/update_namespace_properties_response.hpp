@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static UpdateNamespacePropertiesResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	UpdateNamespacePropertiesResponse Copy() const;
@@ -36,6 +37,21 @@ public:
 	vector<string> updated;
 	vector<string> removed;
 	optional<vector<string>> missing;
+};
+
+class UpdateNamespacePropertiesResponseBuilder {
+public:
+	UpdateNamespacePropertiesResponseBuilder();
+	UpdateNamespacePropertiesResponseBuilder &SetUpdated(vector<string> value);
+	UpdateNamespacePropertiesResponseBuilder &SetRemoved(vector<string> value);
+	UpdateNamespacePropertiesResponseBuilder &SetMissing(vector<string> value);
+	string TryBuild(UpdateNamespacePropertiesResponse &result);
+	UpdateNamespacePropertiesResponse Build();
+
+private:
+	UpdateNamespacePropertiesResponse result_;
+	bool has_updated_ = false;
+	bool has_removed_ = false;
 };
 
 } // namespace rest_api_objects

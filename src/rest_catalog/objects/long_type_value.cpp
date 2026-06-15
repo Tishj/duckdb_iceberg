@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/long_type_value.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,11 @@ LongTypeValue LongTypeValue::Copy() const {
 	return res;
 }
 
+string LongTypeValue::Validate() const {
+	string error;
+	return "";
+}
+
 string LongTypeValue::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_sint(obj)) {
@@ -40,7 +47,7 @@ string LongTypeValue::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("LongTypeValue property 'value' is not of type 'integer', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *LongTypeValue::ToJSON(yyjson_mut_doc *doc) const {

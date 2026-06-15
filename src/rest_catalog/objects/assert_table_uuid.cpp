@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_table_uuid.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertTableUUID::AssertTableUUID() {
+}
+
+AssertTableUUIDBuilder::AssertTableUUIDBuilder() {
+}
+
+AssertTableUUIDBuilder &AssertTableUUIDBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertTableUUIDBuilder &AssertTableUUIDBuilder::SetUuid(string value) {
+	result_.uuid = std::move(value);
+	has_uuid_ = true;
+	return *this;
+}
+
+string AssertTableUUIDBuilder::TryBuild(AssertTableUUID &result) {
+	if (!has_type_) {
+		return "AssertTableUUID required property 'type' is missing";
+	}
+	if (!has_uuid_) {
+		return "AssertTableUUID required property 'uuid' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertTableUUID AssertTableUUIDBuilder::Build() {
+	AssertTableUUID result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AssertTableUUID AssertTableUUID::Copy() const {
 	res.type = type.Copy();
 	res.uuid = uuid;
 	return res;
+}
+
+string AssertTableUUID::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-table-uuid") {
+		return "AssertTableUUID property 'type' must be assert-table-uuid";
+	}
+	return "";
 }
 
 string AssertTableUUID::TryFromJSON(yyjson_val *obj) {
@@ -53,7 +106,7 @@ string AssertTableUUID::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(uuid_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertTableUUID::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

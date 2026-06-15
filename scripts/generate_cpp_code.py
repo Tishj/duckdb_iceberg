@@ -7,7 +7,8 @@ from parse_openapi_spec import (
     ObjectProperty,
 )
 import os
-from typing import Dict, List, Tuple, Set, Optional, cast, Callable
+import json
+from typing import Any, Dict, List, Tuple, Set, Optional, cast, Callable
 from enum import Enum, auto
 from dataclasses import dataclass, field
 
@@ -58,6 +59,27 @@ def safe_cpp_name(name: str) -> str:
     return name
 
 
+def to_pascal_case(name: str) -> str:
+    parts = [part for part in name.strip('_').split('_') if part]
+    if not parts:
+        return 'Value'
+    return ''.join(part[:1].upper() + part[1:] for part in parts)
+
+
+def cpp_string_literal(value: str) -> str:
+    return json.dumps(value)
+
+
+def cpp_literal(value: Any) -> str:
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if value is None:
+        return 'nullptr'
+    if isinstance(value, str):
+        return cpp_string_literal(value)
+    return str(value)
+
+
 HEADER_FORMAT = """
 #pragma once
 
@@ -83,6 +105,8 @@ namespace rest_api_objects {{
 
 SOURCE_FORMAT = """
 #include "rest_catalog/objects/{HEADER_NAME}.hpp"
+
+#include <regex>
 
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
@@ -350,6 +374,54 @@ class CPPClass:
         else:
             print(f"Unrecognized 'from_property' type {schema.type}")
             exit(1)
+
+    def root_schema(self) -> Property:
+        return self.parse_info.parsed_schemas[self.name]
+
+    def is_object_schema(self) -> bool:
+        return self.root_schema().type == Property.Type.OBJECT
+
+    def reference_dereference_style(self, schema: SchemaReferenceProperty) -> str:
+        return '->' if schema.ref in self.parse_info.recursive_schemas else '.'
+
+    def resolve_schema(self, schema: Property) -> Property:
+        if schema.type != Property.Type.SCHEMA_REFERENCE:
+            return schema
+        schema_property = cast(SchemaReferenceProperty, schema)
+        return self.parse_info.parsed_schemas[schema_property.ref]
+
+    def resolved_schema_access_expression(self, access_expression: str, schema: Property) -> str:
+        if schema.type != Property.Type.SCHEMA_REFERENCE:
+            return access_expression
+        schema_property = cast(SchemaReferenceProperty, schema)
+        resolved = self.parse_info.parsed_schemas[schema_property.ref]
+        if resolved.type in (Property.Type.PRIMITIVE, Property.Type.ARRAY):
+            return f'{access_expression}{self.reference_dereference_style(schema_property)}value'
+        return access_expression
+
+    def has_local_validation_constraints(self, schema: Property) -> bool:
+        return any(
+            value is not None
+            for value in [
+                schema.enum,
+                schema.const,
+                schema.min_length,
+                schema.max_length,
+                schema.pattern,
+                schema.minimum,
+                schema.maximum,
+                schema.exclusive_minimum,
+                schema.exclusive_maximum,
+                schema.min_items,
+                schema.max_items,
+            ]
+        )
+
+    def builder_flag_name(self, variable_name: str) -> str:
+        return f'has_{variable_name}_'
+
+    def builder_class_name(self) -> str:
+        return f'{self.name}Builder'
 
     def write_required_property(self, required_property: RequiredProperty) -> List[str]:
         res = []
@@ -665,6 +737,334 @@ class CPPClass:
         res.extend(['\treturn res;', '}'])
         return res
 
+    def validation_target_expression(self, variable_name: str, schema: Property, uses_optional_wrapper: bool) -> str:
+        if schema.type == Property.Type.SCHEMA_REFERENCE and uses_optional_wrapper:
+            return f'(*{variable_name})'
+        return self.value_access_expression(variable_name, uses_optional_wrapper)
+
+    def generate_validation_lines_for_primitive(
+        self,
+        constraint_schema: Property,
+        primitive_schema: PrimitiveProperty,
+        access_expression: str,
+        property_name: str,
+        indent: int,
+    ) -> List[str]:
+        lines: List[str] = []
+        prefix = '\t' * indent
+        primitive_type = primitive_schema.primitive_type
+
+        if constraint_schema.const is not None:
+            literal = cpp_literal(constraint_schema.const)
+            lines.append(f'{prefix}if ({access_expression} != {literal}) {{')
+            lines.append(
+                f"""{prefix}\treturn "{self.name} property '{property_name}' must be {constraint_schema.const}";"""
+            )
+            lines.append(f'{prefix}}}')
+
+        if constraint_schema.enum:
+            enum_condition = ' && '.join(f'{access_expression} != {cpp_literal(value)}' for value in constraint_schema.enum)
+            enum_values = ', '.join(str(value) for value in constraint_schema.enum)
+            lines.append(f'{prefix}if ({enum_condition}) {{')
+            lines.append(
+                f"""{prefix}\treturn "{self.name} property '{property_name}' must be one of [{enum_values}]";"""
+            )
+            lines.append(f'{prefix}}}')
+
+        if primitive_type == 'string':
+            if constraint_schema.min_length is not None:
+                lines.append(f'{prefix}if ({access_expression}.size() < {constraint_schema.min_length}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must have at least {constraint_schema.min_length} characters";"""
+                )
+                lines.append(f'{prefix}}}')
+            if constraint_schema.max_length is not None:
+                lines.append(f'{prefix}if ({access_expression}.size() > {constraint_schema.max_length}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must have at most {constraint_schema.max_length} characters";"""
+                )
+                lines.append(f'{prefix}}}')
+            if constraint_schema.pattern is not None:
+                regex_name = f'{safe_cpp_name(property_name)}_pattern'
+                lines.append(f'{prefix}static const std::regex {regex_name}({cpp_literal(constraint_schema.pattern)});')
+                lines.append(f'{prefix}if (!std::regex_match({access_expression}, {regex_name})) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' does not match the required pattern";"""
+                )
+                lines.append(f'{prefix}}}')
+
+        if primitive_type in ('integer', 'number'):
+            if constraint_schema.minimum is not None:
+                lines.append(f'{prefix}if ({access_expression} < {cpp_literal(constraint_schema.minimum)}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must be at least {constraint_schema.minimum}";"""
+                )
+                lines.append(f'{prefix}}}')
+            if constraint_schema.maximum is not None:
+                lines.append(f'{prefix}if ({access_expression} > {cpp_literal(constraint_schema.maximum)}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must be at most {constraint_schema.maximum}";"""
+                )
+                lines.append(f'{prefix}}}')
+            if constraint_schema.exclusive_minimum is not None:
+                lines.append(f'{prefix}if ({access_expression} <= {cpp_literal(constraint_schema.exclusive_minimum)}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must be greater than {constraint_schema.exclusive_minimum}";"""
+                )
+                lines.append(f'{prefix}}}')
+            if constraint_schema.exclusive_maximum is not None:
+                lines.append(f'{prefix}if ({access_expression} >= {cpp_literal(constraint_schema.exclusive_maximum)}) {{')
+                lines.append(
+                    f"""{prefix}\treturn "{self.name} property '{property_name}' must be less than {constraint_schema.exclusive_maximum}";"""
+                )
+                lines.append(f'{prefix}}}')
+
+        return lines
+
+    def generate_validation_lines_for_array(
+        self,
+        constraint_schema: Property,
+        array_schema: ArrayProperty,
+        access_expression: str,
+        property_name: str,
+        indent: int,
+    ) -> List[str]:
+        lines: List[str] = []
+        prefix = '\t' * indent
+
+        if constraint_schema.min_items is not None:
+            lines.append(f'{prefix}if ({access_expression}.size() < {constraint_schema.min_items}) {{')
+            lines.append(
+                f"""{prefix}\treturn "{self.name} property '{property_name}' must have at least {constraint_schema.min_items} items";"""
+            )
+            lines.append(f'{prefix}}}')
+        if constraint_schema.max_items is not None:
+            lines.append(f'{prefix}if ({access_expression}.size() > {constraint_schema.max_items}) {{')
+            lines.append(
+                f"""{prefix}\treturn "{self.name} property '{property_name}' must have at most {constraint_schema.max_items} items";"""
+            )
+            lines.append(f'{prefix}}}')
+
+        item_lines = self.generate_validation_lines_for_schema(array_schema.item_type, 'item', property_name, indent + 1)
+        if item_lines:
+            lines.append(f'{prefix}for (const auto &item : {access_expression}) {{')
+            lines.extend(item_lines)
+            lines.append(f'{prefix}}}')
+        return lines
+
+    def generate_validation_lines_for_schema(
+        self, schema: Property, access_expression: str, property_name: str, indent: int = 1
+    ) -> List[str]:
+        lines: List[str] = []
+        prefix = '\t' * indent
+
+        if schema.type == Property.Type.SCHEMA_REFERENCE:
+            schema_property = cast(SchemaReferenceProperty, schema)
+            dereference_style = self.reference_dereference_style(schema_property)
+            lines.append(f'{prefix}error = {access_expression}{dereference_style}Validate();')
+            lines.extend(
+                [
+                    f'{prefix}if (!error.empty()) {{',
+                    f'{prefix}\treturn error;',
+                    f'{prefix}}}',
+                ]
+            )
+
+            if self.has_local_validation_constraints(schema):
+                resolved_schema = self.parse_info.parsed_schemas[schema_property.ref]
+                resolved_access = self.resolved_schema_access_expression(access_expression, schema)
+                if resolved_schema.type == Property.Type.PRIMITIVE:
+                    lines.extend(
+                        self.generate_validation_lines_for_primitive(
+                            schema, cast(PrimitiveProperty, resolved_schema), resolved_access, property_name, indent
+                        )
+                    )
+                elif resolved_schema.type == Property.Type.ARRAY:
+                    lines.extend(
+                        self.generate_validation_lines_for_array(
+                            schema, cast(ArrayProperty, resolved_schema), resolved_access, property_name, indent
+                        )
+                    )
+            return lines
+
+        if schema.type == Property.Type.PRIMITIVE:
+            return self.generate_validation_lines_for_primitive(
+                schema, cast(PrimitiveProperty, schema), access_expression, property_name, indent
+            )
+
+        if schema.type == Property.Type.ARRAY:
+            return self.generate_validation_lines_for_array(
+                schema, cast(ArrayProperty, schema), access_expression, property_name, indent
+            )
+
+        if schema.type == Property.Type.OBJECT:
+            object_schema = cast(ObjectProperty, schema)
+            if object_schema.additional_properties:
+                entry_lines = self.generate_validation_lines_for_schema(
+                    object_schema.additional_properties, 'entry.second', property_name, indent + 1
+                )
+                if entry_lines:
+                    lines.append(f'{prefix}for (const auto &entry : {access_expression}) {{')
+                    lines.extend(entry_lines)
+                    lines.append(f'{prefix}}}')
+            return lines
+
+        return lines
+
+    def write_validation_method_source(self, qualified_name: str) -> List[str]:
+        root_schema = self.root_schema()
+        lines = [
+            '',
+            f'string {qualified_name}::Validate() const {{',
+            '\tstring error;',
+        ]
+
+        if root_schema.type == Property.Type.OBJECT:
+            for item in self.all_of:
+                lines.append(f'\terror = {item.name}{item.dereference_style}Validate();')
+                lines.extend(['\tif (!error.empty()) {', '\t\treturn error;', '\t}'])
+
+            if self.one_of:
+                lines.append('\tint matched_one_of_variants = 0;')
+                for item in self.one_of:
+                    presence = self.presence_condition(item.name, item.class_name not in self.parse_info.recursive_schemas)
+                    lines.append(f'\tif ({presence}) {{')
+                    lines.append('\t\tmatched_one_of_variants++;')
+                    lines.append(f'\t\terror = {item.name}->Validate();')
+                    lines.extend(['\t\tif (!error.empty()) {', '\t\t\treturn error;', '\t\t}', '\t}'])
+                lines.append('\tif (matched_one_of_variants != 1) {')
+                lines.append(f'''\t\treturn "{self.name} must have exactly one oneOf variant set";''')
+                lines.append('\t}')
+            if self.any_of:
+                lines.append('\tint matched_any_of_variants = 0;')
+                for item in self.any_of:
+                    presence = self.presence_condition(item.name, item.class_name not in self.parse_info.recursive_schemas)
+                    lines.append(f'\tif ({presence}) {{')
+                    lines.append('\t\tmatched_any_of_variants++;')
+                    lines.append(f'\t\terror = {item.name}->Validate();')
+                    lines.extend(['\t\tif (!error.empty()) {', '\t\t\treturn error;', '\t\t}', '\t}'])
+                lines.append('\tif (matched_any_of_variants == 0) {')
+                lines.append(f'''\t\treturn "{self.name} must have at least one anyOf variant set";''')
+                lines.append('\t}')
+
+            for _, prop in self.required_properties.items():
+                lines.extend(self.generate_validation_lines_for_schema(prop.schema, prop.variable_name, prop.property_name))
+
+            for _, prop in self.optional_properties.items():
+                presence = self.presence_condition(prop.variable_name, prop.uses_optional_wrapper)
+                access_expression = self.validation_target_expression(
+                    prop.variable_name, prop.schema, prop.uses_optional_wrapper
+                )
+                property_lines = self.generate_validation_lines_for_schema(
+                    prop.schema, access_expression, prop.property_name, 2
+                )
+                if property_lines:
+                    lines.append(f'\tif ({presence}) {{')
+                    lines.extend(property_lines)
+                    lines.append('\t}')
+
+            if self.additional_properties and self.additional_properties.schema:
+                additional_lines = self.generate_validation_lines_for_schema(
+                    self.additional_properties.schema, 'entry.second', 'additional_properties', 2
+                )
+                if additional_lines:
+                    lines.append('\tfor (const auto &entry : additional_properties) {')
+                    lines.extend(additional_lines)
+                    lines.append('\t}')
+        elif root_schema.type == Property.Type.PRIMITIVE:
+            lines.extend(self.generate_validation_lines_for_schema(root_schema, 'value', 'value'))
+        elif root_schema.type == Property.Type.ARRAY:
+            lines.extend(self.generate_validation_lines_for_schema(root_schema, 'value', 'value'))
+
+        lines.extend(['\treturn "";', '}'])
+        return lines
+
+    def write_builder_header(self) -> List[str]:
+        if not self.is_object_schema():
+            return []
+
+        builder_name = self.builder_class_name()
+        lines = [f'class {builder_name} {{', 'public:', f'\t{builder_name}();']
+        for member in self.members:
+            parameter_type = (
+                member.variable_type if member.schema is None else self.generate_builder_parameter_type(member.schema)
+            )
+            setter_name = f'Set{to_pascal_case(member.variable_name)}'
+            lines.append(f'\t{builder_name} &{setter_name}({parameter_type} value);')
+        lines.extend(
+            [
+                f'\tstring TryBuild({self.name} &result);',
+                f'\t{self.name} Build();',
+                '',
+                'private:',
+                f'\t{self.name} result_;',
+            ]
+        )
+        for prop in self.required_properties.values():
+            lines.append(f'\tbool {self.builder_flag_name(prop.variable_name)} = false;')
+        lines.append('};')
+        return lines
+
+    def write_builder_source(self, base: str, qualified_name: str) -> List[str]:
+        if not self.is_object_schema():
+            return []
+
+        builder_name = self.builder_class_name()
+        builder_qualified_name = f'{base}{self.builder_class_name()}'
+        lines = ['', f'{builder_qualified_name}::{builder_name}() {{', '}']
+
+        for member in self.members:
+            parameter_type = (
+                member.variable_type if member.schema is None else self.generate_builder_parameter_type(member.schema)
+            )
+            setter_name = f'Set{to_pascal_case(member.variable_name)}'
+            lines.extend(
+                [
+                    '',
+                    f'{builder_qualified_name} &{builder_qualified_name}::{setter_name}({parameter_type} value) {{',
+                    f'\tresult_.{member.variable_name} = std::move(value);',
+                ]
+            )
+            if member.variable_name in [prop.variable_name for prop in self.required_properties.values()]:
+                lines.append(f'\t{self.builder_flag_name(member.variable_name)} = true;')
+            lines.extend(['\treturn *this;', '}'])
+
+        lines.extend(
+            [
+                '',
+                f'string {builder_qualified_name}::TryBuild({qualified_name} &result) {{',
+            ]
+        )
+        for prop in self.required_properties.values():
+            lines.extend(
+                [
+                    f'\tif (!{self.builder_flag_name(prop.variable_name)}) {{',
+                    f'''\t\treturn "{self.name} required property '{prop.property_name}' is missing";''',
+                    '\t}',
+                ]
+            )
+        lines.extend(
+            [
+                '\tauto error = result_.Validate();',
+                '\tif (!error.empty()) {',
+                '\t\treturn error;',
+                '\t}',
+                '\tresult = std::move(result_);',
+                '\treturn "";',
+                '}',
+                '',
+                f'{qualified_name} {builder_qualified_name}::Build() {{',
+                f'\t{qualified_name} result;',
+                '\tauto error = TryBuild(result);',
+                '\tif (!error.empty()) {',
+                '\t\tthrow InvalidInputException(error);',
+                '\t}',
+                '\treturn result;',
+                '}',
+            ]
+        )
+        return lines
+
     def write_source(self, base_class: List[str]) -> List[str]:
         res = []
         base = '::'.join(base_class) + '::' if base_class else ''
@@ -673,6 +1073,7 @@ class CPPClass:
 
         res.append(f'{qualified_name}::{self.name}() {{}}')
         res.extend(self.write_nested_classes_source(base_class))
+        res.extend(self.write_builder_source(base, qualified_name))
 
         # Deserialization method
         res.extend(
@@ -689,6 +1090,7 @@ class CPPClass:
             ]
         )
         res.extend(self.write_copy_method_source(base))
+        res.extend(self.write_validation_method_source(qualified_name))
         res.extend(
             [
                 '',
@@ -702,7 +1104,7 @@ class CPPClass:
         res.extend(self.try_from_json_body)
         res.extend(
             [
-                '\treturn "";',
+                '\treturn Validate();',
                 '}',
                 '',
             ]
@@ -743,6 +1145,7 @@ class CPPClass:
                 '\t// Deserialization',
                 f'\tstatic {self.name} FromJSON(yyjson_val *obj);',
                 '\tstring TryFromJSON(yyjson_val *obj);',
+                '\tstring Validate() const;',
                 '',
                 '\t// Copy',
                 f'\t{self.name} Copy() const;',
@@ -758,6 +1161,8 @@ class CPPClass:
         ])
         res.extend(self.write_variables())
         res.append('};')
+        res.extend([''])
+        res.extend(self.write_builder_header())
         return res
 
     def generate_all_of(self, property: Property):
@@ -1151,6 +1556,31 @@ class CPPClass:
         else:
             print(f"Unrecognized 'generate_variable_type' type {schema.type}")
             exit(1)
+
+    def generate_builder_parameter_type(self, schema: Property) -> str:
+        if schema.type == Property.Type.OBJECT:
+            object_property = cast(ObjectProperty, schema)
+            assert not object_property.properties
+            if object_property.additional_properties:
+                variable_type = self.generate_builder_parameter_type(object_property.additional_properties)
+                return f'case_insensitive_map_t<{variable_type}>'
+            return 'yyjson_val *'
+        if schema.type == Property.Type.ARRAY:
+            array_property = cast(ArrayProperty, schema)
+            item_type = self.generate_builder_parameter_type(array_property.item_type)
+            return f'vector<{item_type}>'
+        if schema.type == Property.Type.PRIMITIVE:
+            return self.generate_variable_type(schema)
+        if schema.type == Property.Type.SCHEMA_REFERENCE:
+            schema_property = cast(SchemaReferenceProperty, schema)
+            type_name = schema_property.ref
+            if schema_property.ref not in self.parse_info.schemas:
+                type_name = f'{self.name}::{schema_property.ref}'
+            if schema_property.ref in self.parse_info.recursive_schemas:
+                return f'unique_ptr<{type_name}>'
+            return type_name
+        print(f"Unrecognized 'generate_builder_parameter_type' type {schema.type}")
+        exit(1)
 
     def generate_nested_class_definitions(self):
         generated_schemas_referenced = [x for x in self.referenced_schemas if x not in self.parse_info.schemas]

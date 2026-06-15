@@ -32,6 +32,7 @@ public:
 		// Deserialization
 		static Object6 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object6 Copy() const;
@@ -44,10 +45,23 @@ public:
 		string plan_id;
 	};
 
+	class Object6Builder {
+	public:
+		Object6Builder();
+		Object6Builder &SetPlanId(string value);
+		string TryBuild(Object6 &result);
+		Object6 Build();
+
+	private:
+		Object6 result_;
+		bool has_plan_id_ = false;
+	};
+
 public:
 	// Deserialization
 	static CompletedPlanningWithIDResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CompletedPlanningWithIDResult Copy() const;
@@ -59,6 +73,18 @@ public:
 public:
 	CompletedPlanningResult completed_planning_result;
 	Object6 object_6;
+};
+
+class CompletedPlanningWithIDResultBuilder {
+public:
+	CompletedPlanningWithIDResultBuilder();
+	CompletedPlanningWithIDResultBuilder &SetCompletedPlanningResult(CompletedPlanningResult value);
+	CompletedPlanningWithIDResultBuilder &SetObject6(CompletedPlanningWithIDResult::Object6 value);
+	string TryBuild(CompletedPlanningWithIDResult &result);
+	CompletedPlanningWithIDResult Build();
+
+private:
+	CompletedPlanningWithIDResult result_;
 };
 
 } // namespace rest_api_objects

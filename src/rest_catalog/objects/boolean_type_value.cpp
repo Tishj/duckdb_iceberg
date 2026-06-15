@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/boolean_type_value.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,11 @@ BooleanTypeValue BooleanTypeValue::Copy() const {
 	return res;
 }
 
+string BooleanTypeValue::Validate() const {
+	string error;
+	return "";
+}
+
 string BooleanTypeValue::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_bool(obj)) {
@@ -38,7 +45,7 @@ string BooleanTypeValue::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("BooleanTypeValue property 'value' is not of type 'boolean', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *BooleanTypeValue::ToJSON(yyjson_mut_doc *doc) const {

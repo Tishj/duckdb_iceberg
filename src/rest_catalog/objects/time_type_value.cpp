@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/time_type_value.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,11 @@ TimeTypeValue TimeTypeValue::Copy() const {
 	return res;
 }
 
+string TimeTypeValue::Validate() const {
+	string error;
+	return "";
+}
+
 string TimeTypeValue::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +45,7 @@ string TimeTypeValue::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("TimeTypeValue property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *TimeTypeValue::ToJSON(yyjson_mut_doc *doc) const {

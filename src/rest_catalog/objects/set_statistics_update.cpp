@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_statistics_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetStatisticsUpdate::SetStatisticsUpdate() {
+}
+
+SetStatisticsUpdateBuilder::SetStatisticsUpdateBuilder() {
+}
+
+SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetStatistics(StatisticsFile value) {
+	result_.statistics = std::move(value);
+	has_statistics_ = true;
+	return *this;
+}
+
+SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	return *this;
+}
+
+string SetStatisticsUpdateBuilder::TryBuild(SetStatisticsUpdate &result) {
+	if (!has_statistics_) {
+		return "SetStatisticsUpdate required property 'statistics' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetStatisticsUpdate SetStatisticsUpdateBuilder::Build() {
+	SetStatisticsUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
@@ -33,6 +75,19 @@ SetStatisticsUpdate SetStatisticsUpdate::Copy() const {
 		(*res.snapshot_id) = (*snapshot_id);
 	}
 	return res;
+}
+
+string SetStatisticsUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = statistics.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
@@ -64,7 +119,7 @@ string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
 		}
 		snapshot_id = std::move(snapshot_id_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void SetStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

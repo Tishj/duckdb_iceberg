@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/base_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 BaseUpdate::BaseUpdate() {
+}
+
+BaseUpdateBuilder::BaseUpdateBuilder() {
+}
+
+BaseUpdateBuilder &BaseUpdateBuilder::SetAction(string value) {
+	result_.action = std::move(value);
+	has_action_ = true;
+	return *this;
+}
+
+string BaseUpdateBuilder::TryBuild(BaseUpdate &result) {
+	if (!has_action_) {
+		return "BaseUpdate required property 'action' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+BaseUpdate BaseUpdateBuilder::Build() {
+	BaseUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,11 @@ BaseUpdate BaseUpdate::Copy() const {
 	return res;
 }
 
+string BaseUpdate::Validate() const {
+	string error;
+	return "";
+}
+
 string BaseUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto action_val = yyjson_obj_get(obj, "action");
@@ -43,7 +80,7 @@ string BaseUpdate::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(action_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void BaseUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

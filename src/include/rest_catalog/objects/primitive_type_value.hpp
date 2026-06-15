@@ -40,6 +40,7 @@ public:
 	// Deserialization
 	static PrimitiveTypeValue FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PrimitiveTypeValue Copy() const;
@@ -64,6 +65,32 @@ public:
 	optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value;
 	optional<FixedTypeValue> fixed_type_value;
 	optional<BinaryTypeValue> binary_type_value;
+};
+
+class PrimitiveTypeValueBuilder {
+public:
+	PrimitiveTypeValueBuilder();
+	PrimitiveTypeValueBuilder &SetBooleanTypeValue(BooleanTypeValue value);
+	PrimitiveTypeValueBuilder &SetIntegerTypeValue(IntegerTypeValue value);
+	PrimitiveTypeValueBuilder &SetLongTypeValue(LongTypeValue value);
+	PrimitiveTypeValueBuilder &SetFloatTypeValue(FloatTypeValue value);
+	PrimitiveTypeValueBuilder &SetDoubleTypeValue(DoubleTypeValue value);
+	PrimitiveTypeValueBuilder &SetDecimalTypeValue(DecimalTypeValue value);
+	PrimitiveTypeValueBuilder &SetStringTypeValue(StringTypeValue value);
+	PrimitiveTypeValueBuilder &SetUuidtypeValue(UUIDTypeValue value);
+	PrimitiveTypeValueBuilder &SetDateTypeValue(DateTypeValue value);
+	PrimitiveTypeValueBuilder &SetTimeTypeValue(TimeTypeValue value);
+	PrimitiveTypeValueBuilder &SetTimestampTypeValue(TimestampTypeValue value);
+	PrimitiveTypeValueBuilder &SetTimestampTzTypeValue(TimestampTzTypeValue value);
+	PrimitiveTypeValueBuilder &SetTimestampNanoTypeValue(TimestampNanoTypeValue value);
+	PrimitiveTypeValueBuilder &SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue value);
+	PrimitiveTypeValueBuilder &SetFixedTypeValue(FixedTypeValue value);
+	PrimitiveTypeValueBuilder &SetBinaryTypeValue(BinaryTypeValue value);
+	string TryBuild(PrimitiveTypeValue &result);
+	PrimitiveTypeValue Build();
+
+private:
+	PrimitiveTypeValue result_;
 };
 
 } // namespace rest_api_objects

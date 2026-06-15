@@ -32,6 +32,7 @@ public:
 	// Deserialization
 	static TableRequirement FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TableRequirement Copy() const;
@@ -49,6 +50,24 @@ public:
 	optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id;
 	optional<AssertDefaultSpecId> assert_default_spec_id;
 	optional<AssertDefaultSortOrderId> assert_default_sort_order_id;
+};
+
+class TableRequirementBuilder {
+public:
+	TableRequirementBuilder();
+	TableRequirementBuilder &SetAssertCreate(AssertCreate value);
+	TableRequirementBuilder &SetAssertTableUuid(AssertTableUUID value);
+	TableRequirementBuilder &SetAssertRefSnapshotId(AssertRefSnapshotId value);
+	TableRequirementBuilder &SetAssertLastAssignedFieldId(AssertLastAssignedFieldId value);
+	TableRequirementBuilder &SetAssertCurrentSchemaId(AssertCurrentSchemaId value);
+	TableRequirementBuilder &SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId value);
+	TableRequirementBuilder &SetAssertDefaultSpecId(AssertDefaultSpecId value);
+	TableRequirementBuilder &SetAssertDefaultSortOrderId(AssertDefaultSortOrderId value);
+	string TryBuild(TableRequirement &result);
+	TableRequirement Build();
+
+private:
+	TableRequirement result_;
 };
 
 } // namespace rest_api_objects

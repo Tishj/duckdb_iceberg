@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/plan_status.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,14 @@ PlanStatus PlanStatus::Copy() const {
 	return res;
 }
 
+string PlanStatus::Validate() const {
+	string error;
+	if (value != "completed" && value != "submitted" && value != "cancelled" && value != "failed") {
+		return "PlanStatus property 'value' must be one of [completed, submitted, cancelled, failed]";
+	}
+	return "";
+}
+
 string PlanStatus::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +48,7 @@ string PlanStatus::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("PlanStatus property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *PlanStatus::ToJSON(yyjson_mut_doc *doc) const {

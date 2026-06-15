@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/encrypted_key.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,55 @@ namespace duckdb {
 namespace rest_api_objects {
 
 EncryptedKey::EncryptedKey() {
+}
+
+EncryptedKeyBuilder::EncryptedKeyBuilder() {
+}
+
+EncryptedKeyBuilder &EncryptedKeyBuilder::SetKeyId(string value) {
+	result_.key_id = std::move(value);
+	has_key_id_ = true;
+	return *this;
+}
+
+EncryptedKeyBuilder &EncryptedKeyBuilder::SetEncryptedKeyMetadata(string value) {
+	result_.encrypted_key_metadata = std::move(value);
+	has_encrypted_key_metadata_ = true;
+	return *this;
+}
+
+EncryptedKeyBuilder &EncryptedKeyBuilder::SetEncryptedById(string value) {
+	result_.encrypted_by_id = std::move(value);
+	return *this;
+}
+
+EncryptedKeyBuilder &EncryptedKeyBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	return *this;
+}
+
+string EncryptedKeyBuilder::TryBuild(EncryptedKey &result) {
+	if (!has_key_id_) {
+		return "EncryptedKey required property 'key-id' is missing";
+	}
+	if (!has_encrypted_key_metadata_) {
+		return "EncryptedKey required property 'encrypted-key-metadata' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+EncryptedKey EncryptedKeyBuilder::Build() {
+	EncryptedKey result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 EncryptedKey EncryptedKey::FromJSON(yyjson_val *obj) {
@@ -39,6 +90,11 @@ EncryptedKey EncryptedKey::Copy() const {
 		}
 	}
 	return res;
+}
+
+string EncryptedKey::Validate() const {
+	string error;
+	return "";
 }
 
 string EncryptedKey::TryFromJSON(yyjson_val *obj) {
@@ -100,7 +156,7 @@ string EncryptedKey::TryFromJSON(yyjson_val *obj) {
 		}
 		properties = std::move(properties_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void EncryptedKey::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static StructType FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	StructType Copy() const;
@@ -37,6 +38,20 @@ public:
 public:
 	string type;
 	vector<unique_ptr<StructField>> fields;
+};
+
+class StructTypeBuilder {
+public:
+	StructTypeBuilder();
+	StructTypeBuilder &SetType(string value);
+	StructTypeBuilder &SetFields(vector<unique_ptr<StructField>> value);
+	string TryBuild(StructType &result);
+	StructType Build();
+
+private:
+	StructType result_;
+	bool has_type_ = false;
+	bool has_fields_ = false;
 };
 
 } // namespace rest_api_objects

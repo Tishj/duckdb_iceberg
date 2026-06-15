@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/commit_transaction_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CommitTransactionRequest::CommitTransactionRequest() {
+}
+
+CommitTransactionRequestBuilder::CommitTransactionRequestBuilder() {
+}
+
+CommitTransactionRequestBuilder &CommitTransactionRequestBuilder::SetTableChanges(vector<CommitTableRequest> value) {
+	result_.table_changes = std::move(value);
+	has_table_changes_ = true;
+	return *this;
+}
+
+string CommitTransactionRequestBuilder::TryBuild(CommitTransactionRequest &result) {
+	if (!has_table_changes_) {
+		return "CommitTransactionRequest required property 'table-changes' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CommitTransactionRequest CommitTransactionRequestBuilder::Build() {
+	CommitTransactionRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
@@ -31,6 +63,17 @@ CommitTransactionRequest CommitTransactionRequest::Copy() const {
 		res.table_changes.emplace_back(item.Copy());
 	}
 	return res;
+}
+
+string CommitTransactionRequest::Validate() const {
+	string error;
+	for (const auto &item : table_changes) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string CommitTransactionRequest::TryFromJSON(yyjson_val *obj) {
@@ -56,7 +99,7 @@ string CommitTransactionRequest::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(table_changes_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void CommitTransactionRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

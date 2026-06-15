@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/completed_planning_with_idresult.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -15,6 +17,36 @@ namespace rest_api_objects {
 CompletedPlanningWithIDResult::CompletedPlanningWithIDResult() {
 }
 CompletedPlanningWithIDResult::Object6::Object6() {
+}
+
+CompletedPlanningWithIDResult::Object6Builder::Object6Builder() {
+}
+
+CompletedPlanningWithIDResult::Object6Builder &CompletedPlanningWithIDResult::Object6Builder::SetPlanId(string value) {
+	result_.plan_id = std::move(value);
+	has_plan_id_ = true;
+	return *this;
+}
+
+string CompletedPlanningWithIDResult::Object6Builder::TryBuild(CompletedPlanningWithIDResult::Object6 &result) {
+	if (!has_plan_id_) {
+		return "Object6 required property 'plan-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6Builder::Build() {
+	CompletedPlanningWithIDResult::Object6 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::FromJSON(yyjson_val *obj) {
@@ -32,6 +64,11 @@ CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::C
 	return res;
 }
 
+string CompletedPlanningWithIDResult::Object6::Validate() const {
+	string error;
+	return "";
+}
+
 string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto plan_id_val = yyjson_obj_get(obj, "plan-id");
@@ -45,7 +82,7 @@ string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(plan_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void CompletedPlanningWithIDResult::Object6::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -61,6 +98,39 @@ yyjson_mut_val *CompletedPlanningWithIDResult::Object6::ToJSON(yyjson_mut_doc *d
 	yyjson_mut_val *obj = yyjson_mut_obj(doc);
 	PopulateJSON(doc, obj);
 	return obj;
+}
+
+CompletedPlanningWithIDResultBuilder::CompletedPlanningWithIDResultBuilder() {
+}
+
+CompletedPlanningWithIDResultBuilder &
+CompletedPlanningWithIDResultBuilder::SetCompletedPlanningResult(CompletedPlanningResult value) {
+	result_.completed_planning_result = std::move(value);
+	return *this;
+}
+
+CompletedPlanningWithIDResultBuilder &
+CompletedPlanningWithIDResultBuilder::SetObject6(CompletedPlanningWithIDResult::Object6 value) {
+	result_.object_6 = std::move(value);
+	return *this;
+}
+
+string CompletedPlanningWithIDResultBuilder::TryBuild(CompletedPlanningWithIDResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CompletedPlanningWithIDResult CompletedPlanningWithIDResultBuilder::Build() {
+	CompletedPlanningWithIDResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CompletedPlanningWithIDResult CompletedPlanningWithIDResult::FromJSON(yyjson_val *obj) {
@@ -79,6 +149,19 @@ CompletedPlanningWithIDResult CompletedPlanningWithIDResult::Copy() const {
 	return res;
 }
 
+string CompletedPlanningWithIDResult::Validate() const {
+	string error;
+	error = completed_planning_result.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = object_6.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = completed_planning_result.TryFromJSON(obj);
@@ -89,7 +172,7 @@ string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj) {
 	if (!error.empty()) {
 		return error;
 	}
-	return "";
+	return Validate();
 }
 
 void CompletedPlanningWithIDResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

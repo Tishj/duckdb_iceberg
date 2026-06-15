@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RemovePartitionSpecsUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RemovePartitionSpecsUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	vector<int32_t> spec_ids;
+};
+
+class RemovePartitionSpecsUpdateBuilder {
+public:
+	RemovePartitionSpecsUpdateBuilder();
+	RemovePartitionSpecsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	RemovePartitionSpecsUpdateBuilder &SetSpecIds(vector<int32_t> value);
+	string TryBuild(RemovePartitionSpecsUpdate &result);
+	RemovePartitionSpecsUpdate Build();
+
+private:
+	RemovePartitionSpecsUpdate result_;
+	bool has_spec_ids_ = false;
 };
 
 } // namespace rest_api_objects

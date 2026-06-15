@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/namespace.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -33,6 +35,11 @@ Namespace Namespace::Copy() const {
 	return res;
 }
 
+string Namespace::Validate() const {
+	string error;
+	return "";
+}
+
 string Namespace::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_arr(obj)) {
@@ -52,7 +59,7 @@ string Namespace::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("Namespace property 'value' is not of type 'array', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *Namespace::ToJSON(yyjson_mut_doc *doc) const {

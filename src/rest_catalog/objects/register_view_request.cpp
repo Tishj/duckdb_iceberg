@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/register_view_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RegisterViewRequest::RegisterViewRequest() {
+}
+
+RegisterViewRequestBuilder::RegisterViewRequestBuilder() {
+}
+
+RegisterViewRequestBuilder &RegisterViewRequestBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+RegisterViewRequestBuilder &RegisterViewRequestBuilder::SetMetadataLocation(string value) {
+	result_.metadata_location = std::move(value);
+	has_metadata_location_ = true;
+	return *this;
+}
+
+string RegisterViewRequestBuilder::TryBuild(RegisterViewRequest &result) {
+	if (!has_name_) {
+		return "RegisterViewRequest required property 'name' is missing";
+	}
+	if (!has_metadata_location_) {
+		return "RegisterViewRequest required property 'metadata-location' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RegisterViewRequest RegisterViewRequestBuilder::Build() {
+	RegisterViewRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RegisterViewRequest RegisterViewRequest::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,11 @@ RegisterViewRequest RegisterViewRequest::Copy() const {
 	res.name = name;
 	res.metadata_location = metadata_location;
 	return res;
+}
+
+string RegisterViewRequest::Validate() const {
+	string error;
+	return "";
 }
 
 string RegisterViewRequest::TryFromJSON(yyjson_val *obj) {
@@ -56,7 +102,7 @@ string RegisterViewRequest::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(metadata_location_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RegisterViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

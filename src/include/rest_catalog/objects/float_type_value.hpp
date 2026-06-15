@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static FloatTypeValue FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FloatTypeValue Copy() const;

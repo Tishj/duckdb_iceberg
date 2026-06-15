@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/fetch_scan_tasks_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,32 @@ namespace duckdb {
 namespace rest_api_objects {
 
 FetchScanTasksResult::FetchScanTasksResult() {
+}
+
+FetchScanTasksResultBuilder::FetchScanTasksResultBuilder() {
+}
+
+FetchScanTasksResultBuilder &FetchScanTasksResultBuilder::SetScanTasks(ScanTasks value) {
+	result_.scan_tasks = std::move(value);
+	return *this;
+}
+
+string FetchScanTasksResultBuilder::TryBuild(FetchScanTasksResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FetchScanTasksResult FetchScanTasksResultBuilder::Build() {
+	FetchScanTasksResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
@@ -30,13 +58,22 @@ FetchScanTasksResult FetchScanTasksResult::Copy() const {
 	return res;
 }
 
+string FetchScanTasksResult::Validate() const {
+	string error;
+	error = scan_tasks.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string FetchScanTasksResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = scan_tasks.TryFromJSON(obj);
 	if (!error.empty()) {
 		return error;
 	}
-	return "";
+	return Validate();
 }
 
 void FetchScanTasksResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

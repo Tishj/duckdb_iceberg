@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/table_requirement_type.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,19 @@ TableRequirementType TableRequirementType::Copy() const {
 	return res;
 }
 
+string TableRequirementType::Validate() const {
+	string error;
+	if (value != "assert-create" && value != "assert-table-uuid" && value != "assert-ref-snapshot-id" &&
+	    value != "assert-last-assigned-field-id" && value != "assert-current-schema-id" &&
+	    value != "assert-last-assigned-partition-id" && value != "assert-default-spec-id" &&
+	    value != "assert-default-sort-order-id") {
+		return "TableRequirementType property 'value' must be one of [assert-create, assert-table-uuid, "
+		       "assert-ref-snapshot-id, assert-last-assigned-field-id, assert-current-schema-id, "
+		       "assert-last-assigned-partition-id, assert-default-spec-id, assert-default-sort-order-id]";
+	}
+	return "";
+}
+
 string TableRequirementType::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +53,7 @@ string TableRequirementType::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("TableRequirementType property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *TableRequirementType::ToJSON(yyjson_mut_doc *doc) const {

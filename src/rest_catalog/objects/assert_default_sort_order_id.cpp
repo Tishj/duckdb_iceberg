@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_default_sort_order_id.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertDefaultSortOrderId::AssertDefaultSortOrderId() {
+}
+
+AssertDefaultSortOrderIdBuilder::AssertDefaultSortOrderIdBuilder() {
+}
+
+AssertDefaultSortOrderIdBuilder &AssertDefaultSortOrderIdBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertDefaultSortOrderIdBuilder &AssertDefaultSortOrderIdBuilder::SetDefaultSortOrderId(int32_t value) {
+	result_.default_sort_order_id = std::move(value);
+	has_default_sort_order_id_ = true;
+	return *this;
+}
+
+string AssertDefaultSortOrderIdBuilder::TryBuild(AssertDefaultSortOrderId &result) {
+	if (!has_type_) {
+		return "AssertDefaultSortOrderId required property 'type' is missing";
+	}
+	if (!has_default_sort_order_id_) {
+		return "AssertDefaultSortOrderId required property 'default-sort-order-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertDefaultSortOrderId AssertDefaultSortOrderIdBuilder::Build() {
+	AssertDefaultSortOrderId result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertDefaultSortOrderId AssertDefaultSortOrderId::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AssertDefaultSortOrderId AssertDefaultSortOrderId::Copy() const {
 	res.type = type.Copy();
 	res.default_sort_order_id = default_sort_order_id;
 	return res;
+}
+
+string AssertDefaultSortOrderId::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-default-sort-order-id") {
+		return "AssertDefaultSortOrderId property 'type' must be assert-default-sort-order-id";
+	}
+	return "";
 }
 
 string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +107,7 @@ string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(default_sort_order_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertDefaultSortOrderId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

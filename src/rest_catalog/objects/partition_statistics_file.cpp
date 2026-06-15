@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/partition_statistics_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 PartitionStatisticsFile::PartitionStatisticsFile() {
+}
+
+PartitionStatisticsFileBuilder::PartitionStatisticsFileBuilder() {
+}
+
+PartitionStatisticsFileBuilder &PartitionStatisticsFileBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+PartitionStatisticsFileBuilder &PartitionStatisticsFileBuilder::SetStatisticsPath(string value) {
+	result_.statistics_path = std::move(value);
+	has_statistics_path_ = true;
+	return *this;
+}
+
+PartitionStatisticsFileBuilder &PartitionStatisticsFileBuilder::SetFileSizeInBytes(int64_t value) {
+	result_.file_size_in_bytes = std::move(value);
+	has_file_size_in_bytes_ = true;
+	return *this;
+}
+
+string PartitionStatisticsFileBuilder::TryBuild(PartitionStatisticsFile &result) {
+	if (!has_snapshot_id_) {
+		return "PartitionStatisticsFile required property 'snapshot-id' is missing";
+	}
+	if (!has_statistics_path_) {
+		return "PartitionStatisticsFile required property 'statistics-path' is missing";
+	}
+	if (!has_file_size_in_bytes_) {
+		return "PartitionStatisticsFile required property 'file-size-in-bytes' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+PartitionStatisticsFile PartitionStatisticsFileBuilder::Build() {
+	PartitionStatisticsFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 PartitionStatisticsFile PartitionStatisticsFile::FromJSON(yyjson_val *obj) {
@@ -30,6 +80,11 @@ PartitionStatisticsFile PartitionStatisticsFile::Copy() const {
 	res.statistics_path = statistics_path;
 	res.file_size_in_bytes = file_size_in_bytes;
 	return res;
+}
+
+string PartitionStatisticsFile::Validate() const {
+	string error;
+	return "";
 }
 
 string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj) {
@@ -74,7 +129,7 @@ string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(file_size_in_bytes_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void PartitionStatisticsFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

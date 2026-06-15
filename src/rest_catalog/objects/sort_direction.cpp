@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/sort_direction.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,14 @@ SortDirection SortDirection::Copy() const {
 	return res;
 }
 
+string SortDirection::Validate() const {
+	string error;
+	if (value != "asc" && value != "desc") {
+		return "SortDirection property 'value' must be one of [asc, desc]";
+	}
+	return "";
+}
+
 string SortDirection::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +48,7 @@ string SortDirection::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("SortDirection property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *SortDirection::ToJSON(yyjson_mut_doc *doc) const {

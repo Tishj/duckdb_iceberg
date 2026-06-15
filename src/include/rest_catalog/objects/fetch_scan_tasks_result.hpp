@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static FetchScanTasksResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FetchScanTasksResult Copy() const;
@@ -35,6 +36,17 @@ public:
 
 public:
 	ScanTasks scan_tasks;
+};
+
+class FetchScanTasksResultBuilder {
+public:
+	FetchScanTasksResultBuilder();
+	FetchScanTasksResultBuilder &SetScanTasks(ScanTasks value);
+	string TryBuild(FetchScanTasksResult &result);
+	FetchScanTasksResult Build();
+
+private:
+	FetchScanTasksResult result_;
 };
 
 } // namespace rest_api_objects

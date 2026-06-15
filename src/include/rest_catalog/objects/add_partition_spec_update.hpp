@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static AddPartitionSpecUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AddPartitionSpecUpdate Copy() const;
@@ -37,6 +38,19 @@ public:
 public:
 	BaseUpdate base_update;
 	PartitionSpec spec;
+};
+
+class AddPartitionSpecUpdateBuilder {
+public:
+	AddPartitionSpecUpdateBuilder();
+	AddPartitionSpecUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AddPartitionSpecUpdateBuilder &SetSpec(PartitionSpec value);
+	string TryBuild(AddPartitionSpecUpdate &result);
+	AddPartitionSpecUpdate Build();
+
+private:
+	AddPartitionSpecUpdate result_;
+	bool has_spec_ = false;
 };
 
 } // namespace rest_api_objects

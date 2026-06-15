@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static BinaryTypeValue FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	BinaryTypeValue Copy() const;

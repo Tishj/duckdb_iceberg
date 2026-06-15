@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/schema.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -15,6 +17,37 @@ namespace rest_api_objects {
 Schema::Schema() {
 }
 Schema::Object1::Object1() {
+}
+
+Schema::Object1Builder::Object1Builder() {
+}
+
+Schema::Object1Builder &Schema::Object1Builder::SetSchemaId(int32_t value) {
+	result_.schema_id = std::move(value);
+	return *this;
+}
+
+Schema::Object1Builder &Schema::Object1Builder::SetIdentifierFieldIds(vector<int32_t> value) {
+	result_.identifier_field_ids = std::move(value);
+	return *this;
+}
+
+string Schema::Object1Builder::TryBuild(Schema::Object1 &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Schema::Object1 Schema::Object1Builder::Build() {
+	Schema::Object1 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Schema::Object1 Schema::Object1::FromJSON(yyjson_val *obj) {
@@ -40,6 +73,11 @@ Schema::Object1 Schema::Object1::Copy() const {
 		}
 	}
 	return res;
+}
+
+string Schema::Object1::Validate() const {
+	string error;
+	return "";
 }
 
 string Schema::Object1::TryFromJSON(yyjson_val *obj) {
@@ -78,7 +116,7 @@ string Schema::Object1::TryFromJSON(yyjson_val *obj) {
 		}
 		identifier_field_ids = std::move(identifier_field_ids_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void Schema::Object1::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -110,6 +148,37 @@ yyjson_mut_val *Schema::Object1::ToJSON(yyjson_mut_doc *doc) const {
 	return obj;
 }
 
+SchemaBuilder::SchemaBuilder() {
+}
+
+SchemaBuilder &SchemaBuilder::SetStructType(StructType value) {
+	result_.struct_type = std::move(value);
+	return *this;
+}
+
+SchemaBuilder &SchemaBuilder::SetObject1(Schema::Object1 value) {
+	result_.object_1 = std::move(value);
+	return *this;
+}
+
+string SchemaBuilder::TryBuild(Schema &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Schema SchemaBuilder::Build() {
+	Schema result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
+}
+
 Schema Schema::FromJSON(yyjson_val *obj) {
 	Schema res;
 	auto error = res.TryFromJSON(obj);
@@ -126,6 +195,19 @@ Schema Schema::Copy() const {
 	return res;
 }
 
+string Schema::Validate() const {
+	string error;
+	error = struct_type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = object_1.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string Schema::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = struct_type.TryFromJSON(obj);
@@ -136,7 +218,7 @@ string Schema::TryFromJSON(yyjson_val *obj) {
 	if (!error.empty()) {
 		return error;
 	}
-	return "";
+	return Validate();
 }
 
 void Schema::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

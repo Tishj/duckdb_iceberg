@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/view_metadata.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,95 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ViewMetadata::ViewMetadata() {
+}
+
+ViewMetadataBuilder::ViewMetadataBuilder() {
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetViewUuid(string value) {
+	result_.view_uuid = std::move(value);
+	has_view_uuid_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetFormatVersion(int32_t value) {
+	result_.format_version = std::move(value);
+	has_format_version_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetLocation(string value) {
+	result_.location = std::move(value);
+	has_location_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetCurrentVersionId(int32_t value) {
+	result_.current_version_id = std::move(value);
+	has_current_version_id_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetVersions(vector<ViewVersion> value) {
+	result_.versions = std::move(value);
+	has_versions_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetVersionLog(vector<ViewHistoryEntry> value) {
+	result_.version_log = std::move(value);
+	has_version_log_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetSchemas(vector<Schema> value) {
+	result_.schemas = std::move(value);
+	has_schemas_ = true;
+	return *this;
+}
+
+ViewMetadataBuilder &ViewMetadataBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	return *this;
+}
+
+string ViewMetadataBuilder::TryBuild(ViewMetadata &result) {
+	if (!has_view_uuid_) {
+		return "ViewMetadata required property 'view-uuid' is missing";
+	}
+	if (!has_format_version_) {
+		return "ViewMetadata required property 'format-version' is missing";
+	}
+	if (!has_location_) {
+		return "ViewMetadata required property 'location' is missing";
+	}
+	if (!has_current_version_id_) {
+		return "ViewMetadata required property 'current-version-id' is missing";
+	}
+	if (!has_versions_) {
+		return "ViewMetadata required property 'versions' is missing";
+	}
+	if (!has_version_log_) {
+		return "ViewMetadata required property 'version-log' is missing";
+	}
+	if (!has_schemas_) {
+		return "ViewMetadata required property 'schemas' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ViewMetadata ViewMetadataBuilder::Build() {
+	ViewMetadata result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
@@ -49,6 +140,35 @@ ViewMetadata ViewMetadata::Copy() const {
 		}
 	}
 	return res;
+}
+
+string ViewMetadata::Validate() const {
+	string error;
+	if (format_version < 1) {
+		return "ViewMetadata property 'format-version' must be at least 1";
+	}
+	if (format_version > 1) {
+		return "ViewMetadata property 'format-version' must be at most 1";
+	}
+	for (const auto &item : versions) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	for (const auto &item : version_log) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	for (const auto &item : schemas) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string ViewMetadata::TryFromJSON(yyjson_val *obj) {
@@ -181,7 +301,7 @@ string ViewMetadata::TryFromJSON(yyjson_val *obj) {
 		}
 		properties = std::move(properties_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ViewMetadata::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

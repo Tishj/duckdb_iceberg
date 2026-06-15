@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/term.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 Term::Term() {
+}
+
+TermBuilder::TermBuilder() {
+}
+
+TermBuilder &TermBuilder::SetReference(Reference value) {
+	result_.reference = std::move(value);
+	return *this;
+}
+
+TermBuilder &TermBuilder::SetTransformTerm(TransformTerm value) {
+	result_.transform_term = std::move(value);
+	return *this;
+}
+
+string TermBuilder::TryBuild(Term &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Term TermBuilder::Build() {
+	Term result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Term Term::FromJSON(yyjson_val *obj) {
@@ -37,6 +70,29 @@ Term Term::Copy() const {
 	return res;
 }
 
+string Term::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (reference.has_value()) {
+		matched_one_of_variants++;
+		error = reference->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (transform_term.has_value()) {
+		matched_one_of_variants++;
+		error = transform_term->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "Term must have exactly one oneOf variant set";
+	}
+	return "";
+}
+
 string Term::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
@@ -56,7 +112,7 @@ string Term::TryFromJSON(yyjson_val *obj) {
 		}
 		return "Term failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *Term::ToJSON(yyjson_mut_doc *doc) const {

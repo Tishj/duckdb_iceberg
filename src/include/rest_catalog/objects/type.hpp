@@ -28,6 +28,7 @@ public:
 	// Deserialization
 	static Type FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Type Copy() const;
@@ -40,6 +41,20 @@ public:
 	optional<StructType> struct_type;
 	optional<ListType> list_type;
 	optional<MapType> map_type;
+};
+
+class TypeBuilder {
+public:
+	TypeBuilder();
+	TypeBuilder &SetPrimitiveType(PrimitiveType value);
+	TypeBuilder &SetStructType(StructType value);
+	TypeBuilder &SetListType(ListType value);
+	TypeBuilder &SetMapType(MapType value);
+	string TryBuild(Type &result);
+	Type Build();
+
+private:
+	Type result_;
 };
 
 } // namespace rest_api_objects

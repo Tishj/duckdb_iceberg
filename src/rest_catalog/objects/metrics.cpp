@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/metrics.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,32 @@ namespace duckdb {
 namespace rest_api_objects {
 
 Metrics::Metrics() {
+}
+
+MetricsBuilder::MetricsBuilder() {
+}
+
+MetricsBuilder &MetricsBuilder::SetAdditionalProperties(case_insensitive_map_t<MetricResult> value) {
+	result_.additional_properties = std::move(value);
+	return *this;
+}
+
+string MetricsBuilder::TryBuild(Metrics &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Metrics MetricsBuilder::Build() {
+	Metrics result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Metrics Metrics::FromJSON(yyjson_val *obj) {
@@ -32,6 +60,17 @@ Metrics Metrics::Copy() const {
 	return res;
 }
 
+string Metrics::Validate() const {
+	string error;
+	for (const auto &entry : additional_properties) {
+		error = entry.second.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
+}
+
 string Metrics::TryFromJSON(yyjson_val *obj) {
 	string error;
 	size_t idx, max;
@@ -45,7 +84,7 @@ string Metrics::TryFromJSON(yyjson_val *obj) {
 		}
 		additional_properties.emplace(key_str, std::move(tmp));
 	}
-	return "";
+	return Validate();
 }
 
 void Metrics::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

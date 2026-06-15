@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/list_namespaces_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ListNamespacesResponse::ListNamespacesResponse() {
+}
+
+ListNamespacesResponseBuilder::ListNamespacesResponseBuilder() {
+}
+
+ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNextPageToken(PageToken value) {
+	result_.next_page_token = std::move(value);
+	return *this;
+}
+
+ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNamespaces(vector<Namespace> value) {
+	result_.namespaces = std::move(value);
+	return *this;
+}
+
+string ListNamespacesResponseBuilder::TryBuild(ListNamespacesResponse &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ListNamespacesResponse ListNamespacesResponseBuilder::Build() {
+	ListNamespacesResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
@@ -38,6 +71,25 @@ ListNamespacesResponse ListNamespacesResponse::Copy() const {
 		}
 	}
 	return res;
+}
+
+string ListNamespacesResponse::Validate() const {
+	string error;
+	if (next_page_token.has_value()) {
+		error = (*next_page_token).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (namespaces.has_value()) {
+		for (const auto &item : (*namespaces)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string ListNamespacesResponse::TryFromJSON(yyjson_val *obj) {
@@ -72,7 +124,7 @@ string ListNamespacesResponse::TryFromJSON(yyjson_val *obj) {
 		}
 		namespaces = std::move(namespaces_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ListNamespacesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

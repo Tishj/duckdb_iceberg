@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/count_map.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CountMap::CountMap() {
+}
+
+CountMapBuilder::CountMapBuilder() {
+}
+
+CountMapBuilder &CountMapBuilder::SetKeys(vector<IntegerTypeValue> value) {
+	result_.keys = std::move(value);
+	return *this;
+}
+
+CountMapBuilder &CountMapBuilder::SetValues(vector<LongTypeValue> value) {
+	result_.values = std::move(value);
+	return *this;
+}
+
+string CountMapBuilder::TryBuild(CountMap &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CountMap CountMapBuilder::Build() {
+	CountMap result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CountMap CountMap::FromJSON(yyjson_val *obj) {
@@ -41,6 +74,27 @@ CountMap CountMap::Copy() const {
 		}
 	}
 	return res;
+}
+
+string CountMap::Validate() const {
+	string error;
+	if (keys.has_value()) {
+		for (const auto &item : (*keys)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (values.has_value()) {
+		for (const auto &item : (*values)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string CountMap::TryFromJSON(yyjson_val *obj) {
@@ -85,7 +139,7 @@ string CountMap::TryFromJSON(yyjson_val *obj) {
 		}
 		values = std::move(values_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CountMap::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

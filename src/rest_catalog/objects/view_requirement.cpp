@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/view_requirement.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,32 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ViewRequirement::ViewRequirement() {
+}
+
+ViewRequirementBuilder::ViewRequirementBuilder() {
+}
+
+ViewRequirementBuilder &ViewRequirementBuilder::SetAssertViewUuid(AssertViewUUID value) {
+	result_.assert_view_uuid = std::move(value);
+	return *this;
+}
+
+string ViewRequirementBuilder::TryBuild(ViewRequirement &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ViewRequirement ViewRequirementBuilder::Build() {
+	ViewRequirement result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
@@ -33,6 +61,22 @@ ViewRequirement ViewRequirement::Copy() const {
 	return res;
 }
 
+string ViewRequirement::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (assert_view_uuid.has_value()) {
+		matched_one_of_variants++;
+		error = assert_view_uuid->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "ViewRequirement must have exactly one oneOf variant set";
+	}
+	return "";
+}
+
 string ViewRequirement::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
@@ -45,7 +89,7 @@ string ViewRequirement::TryFromJSON(yyjson_val *obj) {
 		}
 		return "ViewRequirement failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void ViewRequirement::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

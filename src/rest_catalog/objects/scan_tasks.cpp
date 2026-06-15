@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/scan_tasks.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,42 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ScanTasks::ScanTasks() {
+}
+
+ScanTasksBuilder::ScanTasksBuilder() {
+}
+
+ScanTasksBuilder &ScanTasksBuilder::SetDeleteFiles(vector<DeleteFile> value) {
+	result_.delete_files = std::move(value);
+	return *this;
+}
+
+ScanTasksBuilder &ScanTasksBuilder::SetFileScanTasks(vector<FileScanTask> value) {
+	result_.file_scan_tasks = std::move(value);
+	return *this;
+}
+
+ScanTasksBuilder &ScanTasksBuilder::SetPlanTasks(vector<PlanTask> value) {
+	result_.plan_tasks = std::move(value);
+	return *this;
+}
+
+string ScanTasksBuilder::TryBuild(ScanTasks &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ScanTasks ScanTasksBuilder::Build() {
+	ScanTasks result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
@@ -48,6 +86,35 @@ ScanTasks ScanTasks::Copy() const {
 		}
 	}
 	return res;
+}
+
+string ScanTasks::Validate() const {
+	string error;
+	if (delete_files.has_value()) {
+		for (const auto &item : (*delete_files)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (file_scan_tasks.has_value()) {
+		for (const auto &item : (*file_scan_tasks)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	if (plan_tasks.has_value()) {
+		for (const auto &item : (*plan_tasks)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string ScanTasks::TryFromJSON(yyjson_val *obj) {
@@ -114,7 +181,7 @@ string ScanTasks::TryFromJSON(yyjson_val *obj) {
 		}
 		plan_tasks = std::move(plan_tasks_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ScanTasks::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

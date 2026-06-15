@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static CountMap FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CountMap Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<vector<IntegerTypeValue>> keys;
 	optional<vector<LongTypeValue>> values;
+};
+
+class CountMapBuilder {
+public:
+	CountMapBuilder();
+	CountMapBuilder &SetKeys(vector<IntegerTypeValue> value);
+	CountMapBuilder &SetValues(vector<LongTypeValue> value);
+	string TryBuild(CountMap &result);
+	CountMap Build();
+
+private:
+	CountMap result_;
 };
 
 } // namespace rest_api_objects

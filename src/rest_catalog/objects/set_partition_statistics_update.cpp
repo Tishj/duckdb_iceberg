@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_partition_statistics_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,42 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate() {
+}
+
+SetPartitionStatisticsUpdateBuilder::SetPartitionStatisticsUpdateBuilder() {
+}
+
+SetPartitionStatisticsUpdateBuilder &SetPartitionStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetPartitionStatisticsUpdateBuilder &
+SetPartitionStatisticsUpdateBuilder::SetPartitionStatistics(PartitionStatisticsFile value) {
+	result_.partition_statistics = std::move(value);
+	has_partition_statistics_ = true;
+	return *this;
+}
+
+string SetPartitionStatisticsUpdateBuilder::TryBuild(SetPartitionStatisticsUpdate &result) {
+	if (!has_partition_statistics_) {
+		return "SetPartitionStatisticsUpdate required property 'partition-statistics' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetPartitionStatisticsUpdate SetPartitionStatisticsUpdateBuilder::Build() {
+	SetPartitionStatisticsUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
@@ -31,6 +69,19 @@ SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::Copy() const {
 	return res;
 }
 
+string SetPartitionStatisticsUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = partition_statistics.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = base_update.TryFromJSON(obj);
@@ -46,7 +97,7 @@ string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetPartitionStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

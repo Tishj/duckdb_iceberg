@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,62 @@ namespace duckdb {
 namespace rest_api_objects {
 
 Expression::Expression() {
+}
+
+ExpressionBuilder::ExpressionBuilder() {
+}
+
+ExpressionBuilder &ExpressionBuilder::SetTrueExpression(TrueExpression value) {
+	result_.true_expression = std::move(value);
+	return *this;
+}
+
+ExpressionBuilder &ExpressionBuilder::SetFalseExpression(FalseExpression value) {
+	result_.false_expression = std::move(value);
+	return *this;
+}
+
+ExpressionBuilder &ExpressionBuilder::SetAndOrExpression(AndOrExpression value) {
+	result_.and_or_expression = std::move(value);
+	return *this;
+}
+
+ExpressionBuilder &ExpressionBuilder::SetNotExpression(NotExpression value) {
+	result_.not_expression = std::move(value);
+	return *this;
+}
+
+ExpressionBuilder &ExpressionBuilder::SetSetExpression(SetExpression value) {
+	result_.set_expression = std::move(value);
+	return *this;
+}
+
+ExpressionBuilder &ExpressionBuilder::SetLiteralExpression(LiteralExpression value) {
+	result_.literal_expression = std::move(value);
+	return *this;
+}
+
+ExpressionBuilder &ExpressionBuilder::SetUnaryExpression(UnaryExpression value) {
+	result_.unary_expression = std::move(value);
+	return *this;
+}
+
+string ExpressionBuilder::TryBuild(Expression &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Expression ExpressionBuilder::Build() {
+	Expression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Expression Expression::FromJSON(yyjson_val *obj) {
@@ -55,6 +113,64 @@ Expression Expression::Copy() const {
 		(*res.unary_expression) = (*unary_expression).Copy();
 	}
 	return res;
+}
+
+string Expression::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (true_expression.has_value()) {
+		matched_one_of_variants++;
+		error = true_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (false_expression.has_value()) {
+		matched_one_of_variants++;
+		error = false_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (and_or_expression.has_value()) {
+		matched_one_of_variants++;
+		error = and_or_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (not_expression.has_value()) {
+		matched_one_of_variants++;
+		error = not_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_expression.has_value()) {
+		matched_one_of_variants++;
+		error = set_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (literal_expression.has_value()) {
+		matched_one_of_variants++;
+		error = literal_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (unary_expression.has_value()) {
+		matched_one_of_variants++;
+		error = unary_expression->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "Expression must have exactly one oneOf variant set";
+	}
+	return "";
 }
 
 string Expression::TryFromJSON(yyjson_val *obj) {
@@ -111,7 +227,7 @@ string Expression::TryFromJSON(yyjson_val *obj) {
 		}
 		return "Expression failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void Expression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

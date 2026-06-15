@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static SetDefaultSpecUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetDefaultSpecUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	int32_t spec_id;
+};
+
+class SetDefaultSpecUpdateBuilder {
+public:
+	SetDefaultSpecUpdateBuilder();
+	SetDefaultSpecUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetDefaultSpecUpdateBuilder &SetSpecId(int32_t value);
+	string TryBuild(SetDefaultSpecUpdate &result);
+	SetDefaultSpecUpdate Build();
+
+private:
+	SetDefaultSpecUpdate result_;
+	bool has_spec_id_ = false;
 };
 
 } // namespace rest_api_objects

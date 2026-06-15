@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/token_type.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,20 @@ TokenType TokenType::Copy() const {
 	return res;
 }
 
+string TokenType::Validate() const {
+	string error;
+	if (value != "urn:ietf:params:oauth:token-type:access_token" &&
+	    value != "urn:ietf:params:oauth:token-type:refresh_token" &&
+	    value != "urn:ietf:params:oauth:token-type:id_token" && value != "urn:ietf:params:oauth:token-type:saml1" &&
+	    value != "urn:ietf:params:oauth:token-type:saml2" && value != "urn:ietf:params:oauth:token-type:jwt") {
+		return "TokenType property 'value' must be one of [urn:ietf:params:oauth:token-type:access_token, "
+		       "urn:ietf:params:oauth:token-type:refresh_token, urn:ietf:params:oauth:token-type:id_token, "
+		       "urn:ietf:params:oauth:token-type:saml1, urn:ietf:params:oauth:token-type:saml2, "
+		       "urn:ietf:params:oauth:token-type:jwt]";
+	}
+	return "";
+}
+
 string TokenType::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -38,7 +54,7 @@ string TokenType::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("TokenType property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *TokenType::ToJSON(yyjson_mut_doc *doc) const {

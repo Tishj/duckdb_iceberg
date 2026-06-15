@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static BaseUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	BaseUpdate Copy() const;
@@ -34,6 +35,18 @@ public:
 
 public:
 	string action;
+};
+
+class BaseUpdateBuilder {
+public:
+	BaseUpdateBuilder();
+	BaseUpdateBuilder &SetAction(string value);
+	string TryBuild(BaseUpdate &result);
+	BaseUpdate Build();
+
+private:
+	BaseUpdate result_;
+	bool has_action_ = false;
 };
 
 } // namespace rest_api_objects

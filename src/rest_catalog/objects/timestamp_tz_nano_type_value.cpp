@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/timestamp_tz_nano_type_value.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,11 @@ TimestampTzNanoTypeValue TimestampTzNanoTypeValue::Copy() const {
 	return res;
 }
 
+string TimestampTzNanoTypeValue::Validate() const {
+	string error;
+	return "";
+}
+
 string TimestampTzNanoTypeValue::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_str(obj)) {
@@ -39,7 +46,7 @@ string TimestampTzNanoTypeValue::TryFromJSON(yyjson_val *obj) {
 		    "TimestampTzNanoTypeValue property 'value' is not of type 'string', found '%s' instead",
 		    yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *TimestampTzNanoTypeValue::ToJSON(yyjson_mut_doc *doc) const {

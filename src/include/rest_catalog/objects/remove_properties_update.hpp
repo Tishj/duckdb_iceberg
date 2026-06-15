@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RemovePropertiesUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RemovePropertiesUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	vector<string> removals;
+};
+
+class RemovePropertiesUpdateBuilder {
+public:
+	RemovePropertiesUpdateBuilder();
+	RemovePropertiesUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	RemovePropertiesUpdateBuilder &SetRemovals(vector<string> value);
+	string TryBuild(RemovePropertiesUpdate &result);
+	RemovePropertiesUpdate Build();
+
+private:
+	RemovePropertiesUpdate result_;
+	bool has_removals_ = false;
 };
 
 } // namespace rest_api_objects

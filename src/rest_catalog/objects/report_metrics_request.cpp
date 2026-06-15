@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/report_metrics_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ReportMetricsRequest::ReportMetricsRequest() {
+}
+
+ReportMetricsRequestBuilder::ReportMetricsRequestBuilder() {
+}
+
+ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetScanReport(ScanReport value) {
+	result_.scan_report = std::move(value);
+	return *this;
+}
+
+ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetCommitReport(CommitReport value) {
+	result_.commit_report = std::move(value);
+	return *this;
+}
+
+ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetReportType(string value) {
+	result_.report_type = std::move(value);
+	has_report_type_ = true;
+	return *this;
+}
+
+string ReportMetricsRequestBuilder::TryBuild(ReportMetricsRequest &result) {
+	if (!has_report_type_) {
+		return "ReportMetricsRequest required property 'report-type' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ReportMetricsRequest ReportMetricsRequestBuilder::Build() {
+	ReportMetricsRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
@@ -36,6 +78,29 @@ ReportMetricsRequest ReportMetricsRequest::Copy() const {
 	}
 	res.report_type = report_type;
 	return res;
+}
+
+string ReportMetricsRequest::Validate() const {
+	string error;
+	int matched_any_of_variants = 0;
+	if (scan_report.has_value()) {
+		matched_any_of_variants++;
+		error = scan_report->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (commit_report.has_value()) {
+		matched_any_of_variants++;
+		error = commit_report->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_any_of_variants == 0) {
+		return "ReportMetricsRequest must have at least one anyOf variant set";
+	}
+	return "";
 }
 
 string ReportMetricsRequest::TryFromJSON(yyjson_val *obj) {
@@ -67,7 +132,7 @@ string ReportMetricsRequest::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(report_type_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void ReportMetricsRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RemoveSnapshotsUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RemoveSnapshotsUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	vector<int64_t> snapshot_ids;
+};
+
+class RemoveSnapshotsUpdateBuilder {
+public:
+	RemoveSnapshotsUpdateBuilder();
+	RemoveSnapshotsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	RemoveSnapshotsUpdateBuilder &SetSnapshotIds(vector<int64_t> value);
+	string TryBuild(RemoveSnapshotsUpdate &result);
+	RemoveSnapshotsUpdate Build();
+
+private:
+	RemoveSnapshotsUpdate result_;
+	bool has_snapshot_ids_ = false;
 };
 
 } // namespace rest_api_objects

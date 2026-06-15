@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static NullOrder FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	NullOrder Copy() const;

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/partition_field.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,59 @@ namespace duckdb {
 namespace rest_api_objects {
 
 PartitionField::PartitionField() {
+}
+
+PartitionFieldBuilder::PartitionFieldBuilder() {
+}
+
+PartitionFieldBuilder &PartitionFieldBuilder::SetSourceId(int32_t value) {
+	result_.source_id = std::move(value);
+	has_source_id_ = true;
+	return *this;
+}
+
+PartitionFieldBuilder &PartitionFieldBuilder::SetTransform(Transform value) {
+	result_.transform = std::move(value);
+	has_transform_ = true;
+	return *this;
+}
+
+PartitionFieldBuilder &PartitionFieldBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+PartitionFieldBuilder &PartitionFieldBuilder::SetFieldId(int32_t value) {
+	result_.field_id = std::move(value);
+	return *this;
+}
+
+string PartitionFieldBuilder::TryBuild(PartitionField &result) {
+	if (!has_source_id_) {
+		return "PartitionField required property 'source-id' is missing";
+	}
+	if (!has_transform_) {
+		return "PartitionField required property 'transform' is missing";
+	}
+	if (!has_name_) {
+		return "PartitionField required property 'name' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+PartitionField PartitionFieldBuilder::Build() {
+	PartitionField result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 PartitionField PartitionField::FromJSON(yyjson_val *obj) {
@@ -34,6 +89,15 @@ PartitionField PartitionField::Copy() const {
 		(*res.field_id) = (*field_id);
 	}
 	return res;
+}
+
+string PartitionField::Validate() const {
+	string error;
+	error = transform.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string PartitionField::TryFromJSON(yyjson_val *obj) {
@@ -82,7 +146,7 @@ string PartitionField::TryFromJSON(yyjson_val *obj) {
 		}
 		field_id = std::move(field_id_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void PartitionField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

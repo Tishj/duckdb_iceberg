@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/load_view_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,50 @@ namespace duckdb {
 namespace rest_api_objects {
 
 LoadViewResult::LoadViewResult() {
+}
+
+LoadViewResultBuilder::LoadViewResultBuilder() {
+}
+
+LoadViewResultBuilder &LoadViewResultBuilder::SetMetadataLocation(string value) {
+	result_.metadata_location = std::move(value);
+	has_metadata_location_ = true;
+	return *this;
+}
+
+LoadViewResultBuilder &LoadViewResultBuilder::SetMetadata(ViewMetadata value) {
+	result_.metadata = std::move(value);
+	has_metadata_ = true;
+	return *this;
+}
+
+LoadViewResultBuilder &LoadViewResultBuilder::SetConfig(case_insensitive_map_t<string> value) {
+	result_.config = std::move(value);
+	return *this;
+}
+
+string LoadViewResultBuilder::TryBuild(LoadViewResult &result) {
+	if (!has_metadata_location_) {
+		return "LoadViewResult required property 'metadata-location' is missing";
+	}
+	if (!has_metadata_) {
+		return "LoadViewResult required property 'metadata' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+LoadViewResult LoadViewResultBuilder::Build() {
+	LoadViewResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 LoadViewResult LoadViewResult::FromJSON(yyjson_val *obj) {
@@ -35,6 +81,15 @@ LoadViewResult LoadViewResult::Copy() const {
 		}
 	}
 	return res;
+}
+
+string LoadViewResult::Validate() const {
+	string error;
+	error = metadata.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string LoadViewResult::TryFromJSON(yyjson_val *obj) {
@@ -83,7 +138,7 @@ string LoadViewResult::TryFromJSON(yyjson_val *obj) {
 		}
 		config = std::move(config_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void LoadViewResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

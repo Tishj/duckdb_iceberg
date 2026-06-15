@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/scan_report.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,95 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ScanReport::ScanReport() {
+}
+
+ScanReportBuilder::ScanReportBuilder() {
+}
+
+ScanReportBuilder &ScanReportBuilder::SetTableName(string value) {
+	result_.table_name = std::move(value);
+	has_table_name_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetFilter(unique_ptr<Expression> value) {
+	result_.filter = std::move(value);
+	has_filter_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetSchemaId(int32_t value) {
+	result_.schema_id = std::move(value);
+	has_schema_id_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetProjectedFieldIds(vector<int32_t> value) {
+	result_.projected_field_ids = std::move(value);
+	has_projected_field_ids_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetProjectedFieldNames(vector<string> value) {
+	result_.projected_field_names = std::move(value);
+	has_projected_field_names_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetMetrics(Metrics value) {
+	result_.metrics = std::move(value);
+	has_metrics_ = true;
+	return *this;
+}
+
+ScanReportBuilder &ScanReportBuilder::SetMetadata(case_insensitive_map_t<string> value) {
+	result_.metadata = std::move(value);
+	return *this;
+}
+
+string ScanReportBuilder::TryBuild(ScanReport &result) {
+	if (!has_table_name_) {
+		return "ScanReport required property 'table-name' is missing";
+	}
+	if (!has_snapshot_id_) {
+		return "ScanReport required property 'snapshot-id' is missing";
+	}
+	if (!has_filter_) {
+		return "ScanReport required property 'filter' is missing";
+	}
+	if (!has_schema_id_) {
+		return "ScanReport required property 'schema-id' is missing";
+	}
+	if (!has_projected_field_ids_) {
+		return "ScanReport required property 'projected-field-ids' is missing";
+	}
+	if (!has_projected_field_names_) {
+		return "ScanReport required property 'projected-field-names' is missing";
+	}
+	if (!has_metrics_) {
+		return "ScanReport required property 'metrics' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ScanReport ScanReportBuilder::Build() {
+	ScanReport result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ScanReport ScanReport::FromJSON(yyjson_val *obj) {
@@ -46,6 +137,19 @@ ScanReport ScanReport::Copy() const {
 		}
 	}
 	return res;
+}
+
+string ScanReport::Validate() const {
+	string error;
+	error = filter->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = metrics.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string ScanReport::TryFromJSON(yyjson_val *obj) {
@@ -172,7 +276,7 @@ string ScanReport::TryFromJSON(yyjson_val *obj) {
 		}
 		metadata = std::move(metadata_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ScanReport::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

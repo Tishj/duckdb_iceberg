@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static LiteralExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	LiteralExpression Copy() const;
@@ -38,6 +39,22 @@ public:
 	ExpressionType type;
 	Term term;
 	PrimitiveTypeValue value;
+};
+
+class LiteralExpressionBuilder {
+public:
+	LiteralExpressionBuilder();
+	LiteralExpressionBuilder &SetType(ExpressionType value);
+	LiteralExpressionBuilder &SetTerm(Term value);
+	LiteralExpressionBuilder &SetValue(PrimitiveTypeValue value);
+	string TryBuild(LiteralExpression &result);
+	LiteralExpression Build();
+
+private:
+	LiteralExpression result_;
+	bool has_type_ = false;
+	bool has_term_ = false;
+	bool has_value_ = false;
 };
 
 } // namespace rest_api_objects

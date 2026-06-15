@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static Term FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Term Copy() const;
@@ -36,6 +37,18 @@ public:
 public:
 	optional<Reference> reference;
 	optional<TransformTerm> transform_term;
+};
+
+class TermBuilder {
+public:
+	TermBuilder();
+	TermBuilder &SetReference(Reference value);
+	TermBuilder &SetTransformTerm(TransformTerm value);
+	string TryBuild(Term &result);
+	Term Build();
+
+private:
+	Term result_;
 };
 
 } // namespace rest_api_objects

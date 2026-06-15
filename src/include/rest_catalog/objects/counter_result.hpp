@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static CounterResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CounterResult Copy() const;
@@ -35,6 +36,20 @@ public:
 public:
 	string unit;
 	int64_t value;
+};
+
+class CounterResultBuilder {
+public:
+	CounterResultBuilder();
+	CounterResultBuilder &SetUnit(string value);
+	CounterResultBuilder &SetValue(int64_t value);
+	string TryBuild(CounterResult &result);
+	CounterResult Build();
+
+private:
+	CounterResult result_;
+	bool has_unit_ = false;
+	bool has_value_ = false;
 };
 
 } // namespace rest_api_objects

@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static TrueExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TrueExpression Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	ExpressionType type;
+};
+
+class TrueExpressionBuilder {
+public:
+	TrueExpressionBuilder();
+	TrueExpressionBuilder &SetType(ExpressionType value);
+	string TryBuild(TrueExpression &result);
+	TrueExpression Build();
+
+private:
+	TrueExpression result_;
+	bool has_type_ = false;
 };
 
 } // namespace rest_api_objects

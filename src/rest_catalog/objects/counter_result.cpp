@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/counter_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CounterResult::CounterResult() {
+}
+
+CounterResultBuilder::CounterResultBuilder() {
+}
+
+CounterResultBuilder &CounterResultBuilder::SetUnit(string value) {
+	result_.unit = std::move(value);
+	has_unit_ = true;
+	return *this;
+}
+
+CounterResultBuilder &CounterResultBuilder::SetValue(int64_t value) {
+	result_.value = std::move(value);
+	has_value_ = true;
+	return *this;
+}
+
+string CounterResultBuilder::TryBuild(CounterResult &result) {
+	if (!has_unit_) {
+		return "CounterResult required property 'unit' is missing";
+	}
+	if (!has_value_) {
+		return "CounterResult required property 'value' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CounterResult CounterResultBuilder::Build() {
+	CounterResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CounterResult CounterResult::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,11 @@ CounterResult CounterResult::Copy() const {
 	res.unit = unit;
 	res.value = value;
 	return res;
+}
+
+string CounterResult::Validate() const {
+	string error;
+	return "";
 }
 
 string CounterResult::TryFromJSON(yyjson_val *obj) {
@@ -57,7 +103,7 @@ string CounterResult::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(value_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void CounterResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

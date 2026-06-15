@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/remove_statistics_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RemoveStatisticsUpdate::RemoveStatisticsUpdate() {
+}
+
+RemoveStatisticsUpdateBuilder::RemoveStatisticsUpdateBuilder() {
+}
+
+RemoveStatisticsUpdateBuilder &RemoveStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+RemoveStatisticsUpdateBuilder &RemoveStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+string RemoveStatisticsUpdateBuilder::TryBuild(RemoveStatisticsUpdate &result) {
+	if (!has_snapshot_id_) {
+		return "RemoveStatisticsUpdate required property 'snapshot-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RemoveStatisticsUpdate RemoveStatisticsUpdateBuilder::Build() {
+	RemoveStatisticsUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ RemoveStatisticsUpdate RemoveStatisticsUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.snapshot_id = snapshot_id;
 	return res;
+}
+
+string RemoveStatisticsUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
@@ -51,7 +97,7 @@ string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(snapshot_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RemoveStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

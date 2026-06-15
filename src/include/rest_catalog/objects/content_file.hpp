@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static ContentFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ContentFile Copy() const;
@@ -46,6 +47,33 @@ public:
 	optional<BinaryTypeValue> key_metadata;
 	optional<vector<int64_t>> split_offsets;
 	optional<int32_t> sort_order_id;
+};
+
+class ContentFileBuilder {
+public:
+	ContentFileBuilder();
+	ContentFileBuilder &SetSpecId(int32_t value);
+	ContentFileBuilder &SetPartition(vector<PrimitiveTypeValue> value);
+	ContentFileBuilder &SetContent(string value);
+	ContentFileBuilder &SetFilePath(string value);
+	ContentFileBuilder &SetFileFormat(FileFormat value);
+	ContentFileBuilder &SetFileSizeInBytes(int64_t value);
+	ContentFileBuilder &SetRecordCount(int64_t value);
+	ContentFileBuilder &SetKeyMetadata(BinaryTypeValue value);
+	ContentFileBuilder &SetSplitOffsets(vector<int64_t> value);
+	ContentFileBuilder &SetSortOrderId(int32_t value);
+	string TryBuild(ContentFile &result);
+	ContentFile Build();
+
+private:
+	ContentFile result_;
+	bool has_spec_id_ = false;
+	bool has_partition_ = false;
+	bool has_content_ = false;
+	bool has_file_path_ = false;
+	bool has_file_format_ = false;
+	bool has_file_size_in_bytes_ = false;
+	bool has_record_count_ = false;
 };
 
 } // namespace rest_api_objects

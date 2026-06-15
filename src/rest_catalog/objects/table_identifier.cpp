@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/table_identifier.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TableIdentifier::TableIdentifier() {
+}
+
+TableIdentifierBuilder::TableIdentifierBuilder() {
+}
+
+TableIdentifierBuilder &TableIdentifierBuilder::SetNamespace(Namespace value) {
+	result_._namespace = std::move(value);
+	has__namespace_ = true;
+	return *this;
+}
+
+TableIdentifierBuilder &TableIdentifierBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+string TableIdentifierBuilder::TryBuild(TableIdentifier &result) {
+	if (!has__namespace_) {
+		return "TableIdentifier required property 'namespace' is missing";
+	}
+	if (!has_name_) {
+		return "TableIdentifier required property 'name' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TableIdentifier TableIdentifierBuilder::Build() {
+	TableIdentifier result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,15 @@ TableIdentifier TableIdentifier::Copy() const {
 	res._namespace = _namespace.Copy();
 	res.name = name;
 	return res;
+}
+
+string TableIdentifier::Validate() const {
+	string error;
+	error = _namespace.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string TableIdentifier::TryFromJSON(yyjson_val *obj) {
@@ -55,7 +105,7 @@ string TableIdentifier::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(name_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void TableIdentifier::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

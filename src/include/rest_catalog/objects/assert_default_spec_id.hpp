@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertDefaultSpecId FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertDefaultSpecId Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	TableRequirementType type;
 	int32_t default_spec_id;
+};
+
+class AssertDefaultSpecIdBuilder {
+public:
+	AssertDefaultSpecIdBuilder();
+	AssertDefaultSpecIdBuilder &SetType(TableRequirementType value);
+	AssertDefaultSpecIdBuilder &SetDefaultSpecId(int32_t value);
+	string TryBuild(AssertDefaultSpecId &result);
+	AssertDefaultSpecId Build();
+
+private:
+	AssertDefaultSpecId result_;
+	bool has_type_ = false;
+	bool has_default_spec_id_ = false;
 };
 
 } // namespace rest_api_objects

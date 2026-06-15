@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static ViewVersion FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ViewVersion Copy() const;
@@ -42,6 +43,29 @@ public:
 	vector<ViewRepresentation> representations;
 	Namespace default_namespace;
 	optional<string> default_catalog;
+};
+
+class ViewVersionBuilder {
+public:
+	ViewVersionBuilder();
+	ViewVersionBuilder &SetVersionId(int32_t value);
+	ViewVersionBuilder &SetTimestampMs(int64_t value);
+	ViewVersionBuilder &SetSchemaId(int32_t value);
+	ViewVersionBuilder &SetSummary(case_insensitive_map_t<string> value);
+	ViewVersionBuilder &SetRepresentations(vector<ViewRepresentation> value);
+	ViewVersionBuilder &SetDefaultNamespace(Namespace value);
+	ViewVersionBuilder &SetDefaultCatalog(string value);
+	string TryBuild(ViewVersion &result);
+	ViewVersion Build();
+
+private:
+	ViewVersion result_;
+	bool has_version_id_ = false;
+	bool has_timestamp_ms_ = false;
+	bool has_schema_id_ = false;
+	bool has_summary_ = false;
+	bool has_representations_ = false;
+	bool has_default_namespace_ = false;
 };
 
 } // namespace rest_api_objects

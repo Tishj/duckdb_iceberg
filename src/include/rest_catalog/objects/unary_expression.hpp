@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static UnaryExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	UnaryExpression Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	ExpressionType type;
 	Term term;
+};
+
+class UnaryExpressionBuilder {
+public:
+	UnaryExpressionBuilder();
+	UnaryExpressionBuilder &SetType(ExpressionType value);
+	UnaryExpressionBuilder &SetTerm(Term value);
+	string TryBuild(UnaryExpression &result);
+	UnaryExpression Build();
+
+private:
+	UnaryExpression result_;
+	bool has_type_ = false;
+	bool has_term_ = false;
 };
 
 } // namespace rest_api_objects

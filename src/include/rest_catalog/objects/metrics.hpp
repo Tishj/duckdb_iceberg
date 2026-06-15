@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static Metrics FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Metrics Copy() const;
@@ -35,6 +36,17 @@ public:
 
 public:
 	case_insensitive_map_t<MetricResult> additional_properties;
+};
+
+class MetricsBuilder {
+public:
+	MetricsBuilder();
+	MetricsBuilder &SetAdditionalProperties(case_insensitive_map_t<MetricResult> value);
+	string TryBuild(Metrics &result);
+	Metrics Build();
+
+private:
+	Metrics result_;
 };
 
 } // namespace rest_api_objects

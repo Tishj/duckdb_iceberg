@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertLastAssignedPartitionId FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertLastAssignedPartitionId Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	TableRequirementType type;
 	int32_t last_assigned_partition_id;
+};
+
+class AssertLastAssignedPartitionIdBuilder {
+public:
+	AssertLastAssignedPartitionIdBuilder();
+	AssertLastAssignedPartitionIdBuilder &SetType(TableRequirementType value);
+	AssertLastAssignedPartitionIdBuilder &SetLastAssignedPartitionId(int32_t value);
+	string TryBuild(AssertLastAssignedPartitionId &result);
+	AssertLastAssignedPartitionId Build();
+
+private:
+	AssertLastAssignedPartitionId result_;
+	bool has_type_ = false;
+	bool has_last_assigned_partition_id_ = false;
 };
 
 } // namespace rest_api_objects

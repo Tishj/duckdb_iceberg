@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/content_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,105 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ContentFile::ContentFile() {
+}
+
+ContentFileBuilder::ContentFileBuilder() {
+}
+
+ContentFileBuilder &ContentFileBuilder::SetSpecId(int32_t value) {
+	result_.spec_id = std::move(value);
+	has_spec_id_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetPartition(vector<PrimitiveTypeValue> value) {
+	result_.partition = std::move(value);
+	has_partition_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetContent(string value) {
+	result_.content = std::move(value);
+	has_content_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetFilePath(string value) {
+	result_.file_path = std::move(value);
+	has_file_path_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetFileFormat(FileFormat value) {
+	result_.file_format = std::move(value);
+	has_file_format_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetFileSizeInBytes(int64_t value) {
+	result_.file_size_in_bytes = std::move(value);
+	has_file_size_in_bytes_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetRecordCount(int64_t value) {
+	result_.record_count = std::move(value);
+	has_record_count_ = true;
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetKeyMetadata(BinaryTypeValue value) {
+	result_.key_metadata = std::move(value);
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetSplitOffsets(vector<int64_t> value) {
+	result_.split_offsets = std::move(value);
+	return *this;
+}
+
+ContentFileBuilder &ContentFileBuilder::SetSortOrderId(int32_t value) {
+	result_.sort_order_id = std::move(value);
+	return *this;
+}
+
+string ContentFileBuilder::TryBuild(ContentFile &result) {
+	if (!has_spec_id_) {
+		return "ContentFile required property 'spec-id' is missing";
+	}
+	if (!has_partition_) {
+		return "ContentFile required property 'partition' is missing";
+	}
+	if (!has_content_) {
+		return "ContentFile required property 'content' is missing";
+	}
+	if (!has_file_path_) {
+		return "ContentFile required property 'file-path' is missing";
+	}
+	if (!has_file_format_) {
+		return "ContentFile required property 'file-format' is missing";
+	}
+	if (!has_file_size_in_bytes_) {
+		return "ContentFile required property 'file-size-in-bytes' is missing";
+	}
+	if (!has_record_count_) {
+		return "ContentFile required property 'record-count' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ContentFile ContentFileBuilder::Build() {
+	ContentFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ContentFile ContentFile::FromJSON(yyjson_val *obj) {
@@ -52,6 +153,27 @@ ContentFile ContentFile::Copy() const {
 		(*res.sort_order_id) = (*sort_order_id);
 	}
 	return res;
+}
+
+string ContentFile::Validate() const {
+	string error;
+	for (const auto &item : partition) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	error = file_format.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (key_metadata.has_value()) {
+		error = (*key_metadata).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string ContentFile::TryFromJSON(yyjson_val *obj) {
@@ -192,7 +314,7 @@ string ContentFile::TryFromJSON(yyjson_val *obj) {
 		}
 		sort_order_id = std::move(sort_order_id_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void ContentFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/true_expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 TrueExpression::TrueExpression() {
+}
+
+TrueExpressionBuilder::TrueExpressionBuilder() {
+}
+
+TrueExpressionBuilder &TrueExpressionBuilder::SetType(ExpressionType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+string TrueExpressionBuilder::TryBuild(TrueExpression &result) {
+	if (!has_type_) {
+		return "TrueExpression required property 'type' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+TrueExpression TrueExpressionBuilder::Build() {
+	TrueExpression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,18 @@ TrueExpression TrueExpression::Copy() const {
 	return res;
 }
 
+string TrueExpression::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "true") {
+		return "TrueExpression property 'type' must be true";
+	}
+	return "";
+}
+
 string TrueExpression::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto type_val = yyjson_obj_get(obj, "type");
@@ -41,7 +85,7 @@ string TrueExpression::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void TrueExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

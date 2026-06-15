@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_current_schema_id.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertCurrentSchemaId::AssertCurrentSchemaId() {
+}
+
+AssertCurrentSchemaIdBuilder::AssertCurrentSchemaIdBuilder() {
+}
+
+AssertCurrentSchemaIdBuilder &AssertCurrentSchemaIdBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertCurrentSchemaIdBuilder &AssertCurrentSchemaIdBuilder::SetCurrentSchemaId(int32_t value) {
+	result_.current_schema_id = std::move(value);
+	has_current_schema_id_ = true;
+	return *this;
+}
+
+string AssertCurrentSchemaIdBuilder::TryBuild(AssertCurrentSchemaId &result) {
+	if (!has_type_) {
+		return "AssertCurrentSchemaId required property 'type' is missing";
+	}
+	if (!has_current_schema_id_) {
+		return "AssertCurrentSchemaId required property 'current-schema-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertCurrentSchemaId AssertCurrentSchemaIdBuilder::Build() {
+	AssertCurrentSchemaId result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AssertCurrentSchemaId AssertCurrentSchemaId::Copy() const {
 	res.type = type.Copy();
 	res.current_schema_id = current_schema_id;
 	return res;
+}
+
+string AssertCurrentSchemaId::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-current-schema-id") {
+		return "AssertCurrentSchemaId property 'type' must be assert-current-schema-id";
+	}
+	return "";
 }
 
 string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +107,7 @@ string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(current_schema_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertCurrentSchemaId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/commit_table_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CommitTableResponse::CommitTableResponse() {
+}
+
+CommitTableResponseBuilder::CommitTableResponseBuilder() {
+}
+
+CommitTableResponseBuilder &CommitTableResponseBuilder::SetMetadataLocation(string value) {
+	result_.metadata_location = std::move(value);
+	has_metadata_location_ = true;
+	return *this;
+}
+
+CommitTableResponseBuilder &CommitTableResponseBuilder::SetMetadata(TableMetadata value) {
+	result_.metadata = std::move(value);
+	has_metadata_ = true;
+	return *this;
+}
+
+string CommitTableResponseBuilder::TryBuild(CommitTableResponse &result) {
+	if (!has_metadata_location_) {
+		return "CommitTableResponse required property 'metadata-location' is missing";
+	}
+	if (!has_metadata_) {
+		return "CommitTableResponse required property 'metadata' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CommitTableResponse CommitTableResponseBuilder::Build() {
+	CommitTableResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,15 @@ CommitTableResponse CommitTableResponse::Copy() const {
 	res.metadata_location = metadata_location;
 	res.metadata = metadata.Copy();
 	return res;
+}
+
+string CommitTableResponse::Validate() const {
+	string error;
+	error = metadata.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string CommitTableResponse::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +104,7 @@ string CommitTableResponse::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void CommitTableResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

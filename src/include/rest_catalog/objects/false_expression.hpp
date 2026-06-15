@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static FalseExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FalseExpression Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	ExpressionType type;
+};
+
+class FalseExpressionBuilder {
+public:
+	FalseExpressionBuilder();
+	FalseExpressionBuilder &SetType(ExpressionType value);
+	string TryBuild(FalseExpression &result);
+	FalseExpression Build();
+
+private:
+	FalseExpression result_;
+	bool has_type_ = false;
 };
 
 } // namespace rest_api_objects

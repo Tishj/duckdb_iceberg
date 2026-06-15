@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/load_table_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,51 @@ namespace duckdb {
 namespace rest_api_objects {
 
 LoadTableResult::LoadTableResult() {
+}
+
+LoadTableResultBuilder::LoadTableResultBuilder() {
+}
+
+LoadTableResultBuilder &LoadTableResultBuilder::SetMetadata(TableMetadata value) {
+	result_.metadata = std::move(value);
+	has_metadata_ = true;
+	return *this;
+}
+
+LoadTableResultBuilder &LoadTableResultBuilder::SetMetadataLocation(string value) {
+	result_.metadata_location = std::move(value);
+	return *this;
+}
+
+LoadTableResultBuilder &LoadTableResultBuilder::SetConfig(case_insensitive_map_t<string> value) {
+	result_.config = std::move(value);
+	return *this;
+}
+
+LoadTableResultBuilder &LoadTableResultBuilder::SetStorageCredentials(vector<StorageCredential> value) {
+	result_.storage_credentials = std::move(value);
+	return *this;
+}
+
+string LoadTableResultBuilder::TryBuild(LoadTableResult &result) {
+	if (!has_metadata_) {
+		return "LoadTableResult required property 'metadata' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+LoadTableResult LoadTableResultBuilder::Build() {
+	LoadTableResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 LoadTableResult LoadTableResult::FromJSON(yyjson_val *obj) {
@@ -45,6 +92,23 @@ LoadTableResult LoadTableResult::Copy() const {
 		}
 	}
 	return res;
+}
+
+string LoadTableResult::Validate() const {
+	string error;
+	error = metadata.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (storage_credentials.has_value()) {
+		for (const auto &item : (*storage_credentials)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string LoadTableResult::TryFromJSON(yyjson_val *obj) {
@@ -118,7 +182,7 @@ string LoadTableResult::TryFromJSON(yyjson_val *obj) {
 		}
 		storage_credentials = std::move(storage_credentials_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void LoadTableResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

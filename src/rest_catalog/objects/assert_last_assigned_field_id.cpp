@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_last_assigned_field_id.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertLastAssignedFieldId::AssertLastAssignedFieldId() {
+}
+
+AssertLastAssignedFieldIdBuilder::AssertLastAssignedFieldIdBuilder() {
+}
+
+AssertLastAssignedFieldIdBuilder &AssertLastAssignedFieldIdBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+AssertLastAssignedFieldIdBuilder &AssertLastAssignedFieldIdBuilder::SetLastAssignedFieldId(int32_t value) {
+	result_.last_assigned_field_id = std::move(value);
+	has_last_assigned_field_id_ = true;
+	return *this;
+}
+
+string AssertLastAssignedFieldIdBuilder::TryBuild(AssertLastAssignedFieldId &result) {
+	if (!has_type_) {
+		return "AssertLastAssignedFieldId required property 'type' is missing";
+	}
+	if (!has_last_assigned_field_id_) {
+		return "AssertLastAssignedFieldId required property 'last-assigned-field-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertLastAssignedFieldId AssertLastAssignedFieldIdBuilder::Build() {
+	AssertLastAssignedFieldId result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertLastAssignedFieldId AssertLastAssignedFieldId::FromJSON(yyjson_val *obj) {
@@ -29,6 +70,18 @@ AssertLastAssignedFieldId AssertLastAssignedFieldId::Copy() const {
 	res.type = type.Copy();
 	res.last_assigned_field_id = last_assigned_field_id;
 	return res;
+}
+
+string AssertLastAssignedFieldId::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-last-assigned-field-id") {
+		return "AssertLastAssignedFieldId property 'type' must be assert-last-assigned-field-id";
+	}
+	return "";
 }
 
 string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +107,7 @@ string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(last_assigned_field_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertLastAssignedFieldId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

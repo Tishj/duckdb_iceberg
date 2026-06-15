@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertRefSnapshotId FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertRefSnapshotId Copy() const;
@@ -37,6 +38,21 @@ public:
 	TableRequirementType type;
 	string ref;
 	optional<int64_t> snapshot_id;
+};
+
+class AssertRefSnapshotIdBuilder {
+public:
+	AssertRefSnapshotIdBuilder();
+	AssertRefSnapshotIdBuilder &SetType(TableRequirementType value);
+	AssertRefSnapshotIdBuilder &SetRef(string value);
+	AssertRefSnapshotIdBuilder &SetSnapshotId(int64_t value);
+	string TryBuild(AssertRefSnapshotId &result);
+	AssertRefSnapshotId Build();
+
+private:
+	AssertRefSnapshotId result_;
+	bool has_type_ = false;
+	bool has_ref_ = false;
 };
 
 } // namespace rest_api_objects

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_default_spec_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetDefaultSpecUpdate::SetDefaultSpecUpdate() {
+}
+
+SetDefaultSpecUpdateBuilder::SetDefaultSpecUpdateBuilder() {
+}
+
+SetDefaultSpecUpdateBuilder &SetDefaultSpecUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetDefaultSpecUpdateBuilder &SetDefaultSpecUpdateBuilder::SetSpecId(int32_t value) {
+	result_.spec_id = std::move(value);
+	has_spec_id_ = true;
+	return *this;
+}
+
+string SetDefaultSpecUpdateBuilder::TryBuild(SetDefaultSpecUpdate &result) {
+	if (!has_spec_id_) {
+		return "SetDefaultSpecUpdate required property 'spec-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetDefaultSpecUpdate SetDefaultSpecUpdateBuilder::Build() {
+	SetDefaultSpecUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ SetDefaultSpecUpdate SetDefaultSpecUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.spec_id = spec_id;
 	return res;
+}
+
+string SetDefaultSpecUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(spec_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetDefaultSpecUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

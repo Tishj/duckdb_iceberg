@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static GetNamespaceResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	GetNamespaceResponse Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	Namespace _namespace;
 	optional<case_insensitive_map_t<string>> properties;
+};
+
+class GetNamespaceResponseBuilder {
+public:
+	GetNamespaceResponseBuilder();
+	GetNamespaceResponseBuilder &SetNamespace(Namespace value);
+	GetNamespaceResponseBuilder &SetProperties(case_insensitive_map_t<string> value);
+	string TryBuild(GetNamespaceResponse &result);
+	GetNamespaceResponse Build();
+
+private:
+	GetNamespaceResponse result_;
+	bool has__namespace_ = false;
 };
 
 } // namespace rest_api_objects

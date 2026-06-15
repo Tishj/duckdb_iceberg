@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AsyncPlanningResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AsyncPlanningResult Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	PlanStatus status;
 	string plan_id;
+};
+
+class AsyncPlanningResultBuilder {
+public:
+	AsyncPlanningResultBuilder();
+	AsyncPlanningResultBuilder &SetStatus(PlanStatus value);
+	AsyncPlanningResultBuilder &SetPlanId(string value);
+	string TryBuild(AsyncPlanningResult &result);
+	AsyncPlanningResult Build();
+
+private:
+	AsyncPlanningResult result_;
+	bool has_status_ = false;
+	bool has_plan_id_ = false;
 };
 
 } // namespace rest_api_objects

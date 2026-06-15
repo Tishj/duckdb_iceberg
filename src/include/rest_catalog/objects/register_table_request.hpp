@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static RegisterTableRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RegisterTableRequest Copy() const;
@@ -36,6 +37,21 @@ public:
 	string name;
 	string metadata_location;
 	optional<bool> overwrite;
+};
+
+class RegisterTableRequestBuilder {
+public:
+	RegisterTableRequestBuilder();
+	RegisterTableRequestBuilder &SetName(string value);
+	RegisterTableRequestBuilder &SetMetadataLocation(string value);
+	RegisterTableRequestBuilder &SetOverwrite(bool value);
+	string TryBuild(RegisterTableRequest &result);
+	RegisterTableRequest Build();
+
+private:
+	RegisterTableRequest result_;
+	bool has_name_ = false;
+	bool has_metadata_location_ = false;
 };
 
 } // namespace rest_api_objects

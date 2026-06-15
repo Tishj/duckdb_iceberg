@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static ScanTasks FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ScanTasks Copy() const;
@@ -39,6 +40,19 @@ public:
 	optional<vector<DeleteFile>> delete_files;
 	optional<vector<FileScanTask>> file_scan_tasks;
 	optional<vector<PlanTask>> plan_tasks;
+};
+
+class ScanTasksBuilder {
+public:
+	ScanTasksBuilder();
+	ScanTasksBuilder &SetDeleteFiles(vector<DeleteFile> value);
+	ScanTasksBuilder &SetFileScanTasks(vector<FileScanTask> value);
+	ScanTasksBuilder &SetPlanTasks(vector<PlanTask> value);
+	string TryBuild(ScanTasks &result);
+	ScanTasks Build();
+
+private:
+	ScanTasks result_;
 };
 
 } // namespace rest_api_objects

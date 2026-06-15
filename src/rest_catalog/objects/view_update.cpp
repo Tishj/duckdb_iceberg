@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/view_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,67 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ViewUpdate::ViewUpdate() {
+}
+
+ViewUpdateBuilder::ViewUpdateBuilder() {
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetAssignUuidupdate(AssignUUIDUpdate value) {
+	result_.assign_uuidupdate = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value) {
+	result_.upgrade_format_version_update = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetAddSchemaUpdate(AddSchemaUpdate value) {
+	result_.add_schema_update = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetSetLocationUpdate(SetLocationUpdate value) {
+	result_.set_location_update = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetSetPropertiesUpdate(SetPropertiesUpdate value) {
+	result_.set_properties_update = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetRemovePropertiesUpdate(RemovePropertiesUpdate value) {
+	result_.remove_properties_update = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetAddViewVersionUpdate(AddViewVersionUpdate value) {
+	result_.add_view_version_update = std::move(value);
+	return *this;
+}
+
+ViewUpdateBuilder &ViewUpdateBuilder::SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate value) {
+	result_.set_current_view_version_update = std::move(value);
+	return *this;
+}
+
+string ViewUpdateBuilder::TryBuild(ViewUpdate &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ViewUpdate ViewUpdateBuilder::Build() {
+	ViewUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ViewUpdate ViewUpdate::FromJSON(yyjson_val *obj) {
@@ -59,6 +122,71 @@ ViewUpdate ViewUpdate::Copy() const {
 		(*res.set_current_view_version_update) = (*set_current_view_version_update).Copy();
 	}
 	return res;
+}
+
+string ViewUpdate::Validate() const {
+	string error;
+	int matched_any_of_variants = 0;
+	if (assign_uuidupdate.has_value()) {
+		matched_any_of_variants++;
+		error = assign_uuidupdate->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (upgrade_format_version_update.has_value()) {
+		matched_any_of_variants++;
+		error = upgrade_format_version_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_schema_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_schema_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_location_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_location_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_properties_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_properties_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (remove_properties_update.has_value()) {
+		matched_any_of_variants++;
+		error = remove_properties_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (add_view_version_update.has_value()) {
+		matched_any_of_variants++;
+		error = add_view_version_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (set_current_view_version_update.has_value()) {
+		matched_any_of_variants++;
+		error = set_current_view_version_update->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_any_of_variants == 0) {
+		return "ViewUpdate must have at least one anyOf variant set";
+	}
+	return "";
 }
 
 string ViewUpdate::TryFromJSON(yyjson_val *obj) {
@@ -117,7 +245,7 @@ string ViewUpdate::TryFromJSON(yyjson_val *obj) {
 	    !(set_properties_update.has_value()) && !(upgrade_format_version_update.has_value())) {
 		return "ViewUpdate failed to parse, none of the anyOf candidates matched";
 	}
-	return "";
+	return Validate();
 }
 
 void ViewUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

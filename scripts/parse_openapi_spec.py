@@ -1,6 +1,6 @@
 import yaml
 import os
-from typing import Dict, List, Set, Optional, cast
+from typing import Any, Dict, List, Set, Optional, cast
 from enum import Enum, auto
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -23,6 +23,17 @@ class Property:
         self.one_of: List[Property] = []
         self.nullable: Optional[bool] = None
         self.default = None
+        self.enum: Optional[List[Any]] = None
+        self.const: Optional[Any] = None
+        self.min_length: Optional[int] = None
+        self.max_length: Optional[int] = None
+        self.pattern: Optional[str] = None
+        self.minimum: Optional[float] = None
+        self.maximum: Optional[float] = None
+        self.exclusive_minimum: Optional[float] = None
+        self.exclusive_maximum: Optional[float] = None
+        self.min_items: Optional[int] = None
+        self.max_items: Optional[int] = None
 
     def is_string(self):
         if self.type != Property.Type.PRIMITIVE:
@@ -48,10 +59,6 @@ class PrimitiveProperty(Property):
         super().__init__(Property.Type.PRIMITIVE)
         self.primitive_type: Optional[str] = None
         self.format = None
-        # TODO: if 'enum' is present, we should verify that the value of the property is one of the accepted values
-        self.enum: Optional[List[str]] = None
-        # TODO: same for this, this property *has* to have this value
-        self.const: Optional[str] = None
 
 
 class ObjectProperty(Property):
@@ -60,6 +67,7 @@ class ObjectProperty(Property):
         self.required = []
         self.properties: Dict[str, Property] = {}
         self.additional_properties: Optional[Property] = None
+        self.additional_properties_allowed = True
         # TODO: do we need this? the schema validation shouldn't need it
         self.discriminator = None
 
@@ -121,7 +129,9 @@ class ResponseObjectsGenerator:
         assert result.type == Property.Type.OBJECT
         object_result = cast(ObjectProperty, result)
 
-        if additional_properties:
+        if additional_properties is False:
+            object_result.additional_properties_allowed = False
+        elif additional_properties:
             object_result.additional_properties = self.parse_property(additional_properties)
 
         object_result.required = required
@@ -138,6 +148,21 @@ class ResponseObjectsGenerator:
         primitive_result.format = format
         primitive_result.primitive_type = primitive_type
 
+    def apply_common_constraints(self, spec: dict, result: Property) -> None:
+        result.nullable = spec.get('nullable', None)
+        result.default = spec.get('default', None)
+        result.enum = spec.get('enum')
+        result.const = spec.get('const')
+        result.min_length = spec.get('minLength')
+        result.max_length = spec.get('maxLength')
+        result.pattern = spec.get('pattern')
+        result.minimum = spec.get('minimum')
+        result.maximum = spec.get('maximum')
+        result.exclusive_minimum = spec.get('exclusiveMinimum')
+        result.exclusive_maximum = spec.get('exclusiveMaximum')
+        result.min_items = spec.get('minItems')
+        result.max_items = spec.get('maxItems')
+
     def parse_array_property(self, spec: dict, result: Property) -> None:
         item_type = spec['items']
         assert result.type == Property.Type.ARRAY
@@ -152,16 +177,15 @@ class ResponseObjectsGenerator:
                 assert parts[-2] == 'schemas'
                 reference = parts[-1]
                 self.parse_schema(reference)
-                return SchemaReferenceProperty(reference)
+                result = SchemaReferenceProperty(reference)
+                self.apply_common_constraints(spec, result)
+                return result
         elif ref:
             print(f"Schema {reference} spec contains '$ref' ???")
             exit(1)
 
         # default to 'object' (see 'AssertViewUUID')
         property_type = spec.get('type', 'object')
-        nullable = spec.get('nullable', None)
-        default = spec.get('default', None)
-
         one_of = spec.get('oneOf')
         all_of = spec.get('allOf')
         any_of = spec.get('anyOf')
@@ -182,8 +206,7 @@ class ResponseObjectsGenerator:
             print(f"Property has unrecognized type: '{property_type}'!")
             exit(1)
 
-        result.nullable = nullable
-        result.default = default
+        self.apply_common_constraints(spec, result)
 
         if one_of:
             if property_type != 'object':

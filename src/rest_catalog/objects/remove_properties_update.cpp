@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/remove_properties_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RemovePropertiesUpdate::RemovePropertiesUpdate() {
+}
+
+RemovePropertiesUpdateBuilder::RemovePropertiesUpdateBuilder() {
+}
+
+RemovePropertiesUpdateBuilder &RemovePropertiesUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+RemovePropertiesUpdateBuilder &RemovePropertiesUpdateBuilder::SetRemovals(vector<string> value) {
+	result_.removals = std::move(value);
+	has_removals_ = true;
+	return *this;
+}
+
+string RemovePropertiesUpdateBuilder::TryBuild(RemovePropertiesUpdate &result) {
+	if (!has_removals_) {
+		return "RemovePropertiesUpdate required property 'removals' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RemovePropertiesUpdate RemovePropertiesUpdateBuilder::Build() {
+	RemovePropertiesUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RemovePropertiesUpdate RemovePropertiesUpdate::FromJSON(yyjson_val *obj) {
@@ -32,6 +69,15 @@ RemovePropertiesUpdate RemovePropertiesUpdate::Copy() const {
 		res.removals.emplace_back(item);
 	}
 	return res;
+}
+
+string RemovePropertiesUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj) {
@@ -64,7 +110,7 @@ string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(removals_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RemovePropertiesUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

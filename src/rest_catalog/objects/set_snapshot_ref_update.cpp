@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_snapshot_ref_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetSnapshotRefUpdate::SetSnapshotRefUpdate() {
+}
+
+SetSnapshotRefUpdateBuilder::SetSnapshotRefUpdateBuilder() {
+}
+
+SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetSnapshotReference(SnapshotReference value) {
+	result_.snapshot_reference = std::move(value);
+	return *this;
+}
+
+SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetRefName(string value) {
+	result_.ref_name = std::move(value);
+	has_ref_name_ = true;
+	return *this;
+}
+
+string SetSnapshotRefUpdateBuilder::TryBuild(SetSnapshotRefUpdate &result) {
+	if (!has_ref_name_) {
+		return "SetSnapshotRefUpdate required property 'ref-name' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetSnapshotRefUpdate SetSnapshotRefUpdateBuilder::Build() {
+	SetSnapshotRefUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
@@ -30,6 +72,19 @@ SetSnapshotRefUpdate SetSnapshotRefUpdate::Copy() const {
 	res.snapshot_reference = snapshot_reference.Copy();
 	res.ref_name = ref_name;
 	return res;
+}
+
+string SetSnapshotRefUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = snapshot_reference.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj) {
@@ -54,7 +109,7 @@ string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(ref_name_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetSnapshotRefUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

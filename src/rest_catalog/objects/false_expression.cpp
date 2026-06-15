@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/false_expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 FalseExpression::FalseExpression() {
+}
+
+FalseExpressionBuilder::FalseExpressionBuilder() {
+}
+
+FalseExpressionBuilder &FalseExpressionBuilder::SetType(ExpressionType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+string FalseExpressionBuilder::TryBuild(FalseExpression &result) {
+	if (!has_type_) {
+		return "FalseExpression required property 'type' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FalseExpression FalseExpressionBuilder::Build() {
+	FalseExpression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,18 @@ FalseExpression FalseExpression::Copy() const {
 	return res;
 }
 
+string FalseExpression::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "false") {
+		return "FalseExpression property 'type' must be false";
+	}
+	return "";
+}
+
 string FalseExpression::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto type_val = yyjson_obj_get(obj, "type");
@@ -41,7 +85,7 @@ string FalseExpression::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void FalseExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

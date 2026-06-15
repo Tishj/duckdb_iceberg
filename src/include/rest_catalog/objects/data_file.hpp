@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static DataFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	DataFile Copy() const;
@@ -44,6 +45,24 @@ public:
 	optional<CountMap> nan_value_counts;
 	optional<ValueMap> lower_bounds;
 	optional<ValueMap> upper_bounds;
+};
+
+class DataFileBuilder {
+public:
+	DataFileBuilder();
+	DataFileBuilder &SetContentFile(ContentFile value);
+	DataFileBuilder &SetFirstRowId(int64_t value);
+	DataFileBuilder &SetColumnSizes(CountMap value);
+	DataFileBuilder &SetValueCounts(CountMap value);
+	DataFileBuilder &SetNullValueCounts(CountMap value);
+	DataFileBuilder &SetNanValueCounts(CountMap value);
+	DataFileBuilder &SetLowerBounds(ValueMap value);
+	DataFileBuilder &SetUpperBounds(ValueMap value);
+	string TryBuild(DataFile &result);
+	DataFile Build();
+
+private:
+	DataFile result_;
 };
 
 } // namespace rest_api_objects

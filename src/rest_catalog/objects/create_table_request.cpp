@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/create_table_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,70 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CreateTableRequest::CreateTableRequest() {
+}
+
+CreateTableRequestBuilder::CreateTableRequestBuilder() {
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetSchema(Schema value) {
+	result_.schema = std::move(value);
+	has_schema_ = true;
+	return *this;
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetLocation(string value) {
+	result_.location = std::move(value);
+	return *this;
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetPartitionSpec(PartitionSpec value) {
+	result_.partition_spec = std::move(value);
+	return *this;
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetWriteOrder(SortOrder value) {
+	result_.write_order = std::move(value);
+	return *this;
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetStageCreate(bool value) {
+	result_.stage_create = std::move(value);
+	return *this;
+}
+
+CreateTableRequestBuilder &CreateTableRequestBuilder::SetProperties(case_insensitive_map_t<string> value) {
+	result_.properties = std::move(value);
+	return *this;
+}
+
+string CreateTableRequestBuilder::TryBuild(CreateTableRequest &result) {
+	if (!has_name_) {
+		return "CreateTableRequest required property 'name' is missing";
+	}
+	if (!has_schema_) {
+		return "CreateTableRequest required property 'schema' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CreateTableRequest CreateTableRequestBuilder::Build() {
+	CreateTableRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
@@ -51,6 +117,27 @@ CreateTableRequest CreateTableRequest::Copy() const {
 		}
 	}
 	return res;
+}
+
+string CreateTableRequest::Validate() const {
+	string error;
+	error = schema.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (partition_spec.has_value()) {
+		error = (*partition_spec).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (write_order.has_value()) {
+		error = (*write_order).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string CreateTableRequest::TryFromJSON(yyjson_val *obj) {
@@ -140,7 +227,7 @@ string CreateTableRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		properties = std::move(properties_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CreateTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

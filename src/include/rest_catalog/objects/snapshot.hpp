@@ -31,6 +31,7 @@ public:
 		// Deserialization
 		static Object2 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object2 Copy() const;
@@ -44,10 +45,24 @@ public:
 		case_insensitive_map_t<string> additional_properties;
 	};
 
+	class Object2Builder {
+	public:
+		Object2Builder();
+		Object2Builder &SetOperation(string value);
+		Object2Builder &SetAdditionalProperties(case_insensitive_map_t<string> value);
+		string TryBuild(Object2 &result);
+		Object2 Build();
+
+	private:
+		Object2 result_;
+		bool has_operation_ = false;
+	};
+
 public:
 	// Deserialization
 	static Snapshot FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	Snapshot Copy() const;
@@ -66,6 +81,29 @@ public:
 	optional<int64_t> first_row_id;
 	optional<int64_t> added_rows;
 	optional<int32_t> schema_id;
+};
+
+class SnapshotBuilder {
+public:
+	SnapshotBuilder();
+	SnapshotBuilder &SetSnapshotId(int64_t value);
+	SnapshotBuilder &SetTimestampMs(int64_t value);
+	SnapshotBuilder &SetManifestList(string value);
+	SnapshotBuilder &SetSummary(Snapshot::Object2 value);
+	SnapshotBuilder &SetParentSnapshotId(int64_t value);
+	SnapshotBuilder &SetSequenceNumber(int64_t value);
+	SnapshotBuilder &SetFirstRowId(int64_t value);
+	SnapshotBuilder &SetAddedRows(int64_t value);
+	SnapshotBuilder &SetSchemaId(int32_t value);
+	string TryBuild(Snapshot &result);
+	Snapshot Build();
+
+private:
+	Snapshot result_;
+	bool has_snapshot_id_ = false;
+	bool has_timestamp_ms_ = false;
+	bool has_manifest_list_ = false;
+	bool has_summary_ = false;
 };
 
 } // namespace rest_api_objects

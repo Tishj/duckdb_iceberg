@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static PartitionField FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PartitionField Copy() const;
@@ -38,6 +39,23 @@ public:
 	Transform transform;
 	string name;
 	optional<int32_t> field_id;
+};
+
+class PartitionFieldBuilder {
+public:
+	PartitionFieldBuilder();
+	PartitionFieldBuilder &SetSourceId(int32_t value);
+	PartitionFieldBuilder &SetTransform(Transform value);
+	PartitionFieldBuilder &SetName(string value);
+	PartitionFieldBuilder &SetFieldId(int32_t value);
+	string TryBuild(PartitionField &result);
+	PartitionField Build();
+
+private:
+	PartitionField result_;
+	bool has_source_id_ = false;
+	bool has_transform_ = false;
+	bool has_name_ = false;
 };
 
 } // namespace rest_api_objects

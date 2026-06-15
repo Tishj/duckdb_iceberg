@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/page_token.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -30,6 +32,11 @@ PageToken PageToken::Copy() const {
 	return res;
 }
 
+string PageToken::Validate() const {
+	string error;
+	return "";
+}
+
 string PageToken::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_null(obj)) {
@@ -40,7 +47,7 @@ string PageToken::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("PageToken property 'value' is not of type 'string', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *PageToken::ToJSON(yyjson_mut_doc *doc) const {

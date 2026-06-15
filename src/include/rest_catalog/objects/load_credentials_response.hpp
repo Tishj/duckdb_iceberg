@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static LoadCredentialsResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	LoadCredentialsResponse Copy() const;
@@ -35,6 +36,18 @@ public:
 
 public:
 	vector<StorageCredential> storage_credentials;
+};
+
+class LoadCredentialsResponseBuilder {
+public:
+	LoadCredentialsResponseBuilder();
+	LoadCredentialsResponseBuilder &SetStorageCredentials(vector<StorageCredential> value);
+	string TryBuild(LoadCredentialsResponse &result);
+	LoadCredentialsResponse Build();
+
+private:
+	LoadCredentialsResponse result_;
+	bool has_storage_credentials_ = false;
 };
 
 } // namespace rest_api_objects

@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static ListNamespacesResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ListNamespacesResponse Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<PageToken> next_page_token;
 	optional<vector<Namespace>> namespaces;
+};
+
+class ListNamespacesResponseBuilder {
+public:
+	ListNamespacesResponseBuilder();
+	ListNamespacesResponseBuilder &SetNextPageToken(PageToken value);
+	ListNamespacesResponseBuilder &SetNamespaces(vector<Namespace> value);
+	string TryBuild(ListNamespacesResponse &result);
+	ListNamespacesResponse Build();
+
+private:
+	ListNamespacesResponse result_;
 };
 
 } // namespace rest_api_objects

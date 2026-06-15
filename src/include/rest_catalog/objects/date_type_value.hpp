@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static DateTypeValue FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	DateTypeValue Copy() const;

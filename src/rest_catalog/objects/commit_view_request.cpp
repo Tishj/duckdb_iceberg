@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/commit_view_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,46 @@ namespace duckdb {
 namespace rest_api_objects {
 
 CommitViewRequest::CommitViewRequest() {
+}
+
+CommitViewRequestBuilder::CommitViewRequestBuilder() {
+}
+
+CommitViewRequestBuilder &CommitViewRequestBuilder::SetUpdates(vector<ViewUpdate> value) {
+	result_.updates = std::move(value);
+	has_updates_ = true;
+	return *this;
+}
+
+CommitViewRequestBuilder &CommitViewRequestBuilder::SetIdentifier(TableIdentifier value) {
+	result_.identifier = std::move(value);
+	return *this;
+}
+
+CommitViewRequestBuilder &CommitViewRequestBuilder::SetRequirements(vector<ViewRequirement> value) {
+	result_.requirements = std::move(value);
+	return *this;
+}
+
+string CommitViewRequestBuilder::TryBuild(CommitViewRequest &result) {
+	if (!has_updates_) {
+		return "CommitViewRequest required property 'updates' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CommitViewRequest CommitViewRequestBuilder::Build() {
+	CommitViewRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
@@ -42,6 +84,31 @@ CommitViewRequest CommitViewRequest::Copy() const {
 		}
 	}
 	return res;
+}
+
+string CommitViewRequest::Validate() const {
+	string error;
+	for (const auto &item : updates) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (identifier.has_value()) {
+		error = (*identifier).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (requirements.has_value()) {
+		for (const auto &item : (*requirements)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string CommitViewRequest::TryFromJSON(yyjson_val *obj) {
@@ -96,7 +163,7 @@ string CommitViewRequest::TryFromJSON(yyjson_val *obj) {
 		}
 		requirements = std::move(requirements_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CommitViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

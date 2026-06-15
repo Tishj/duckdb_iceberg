@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static SetExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetExpression Copy() const;
@@ -39,6 +40,22 @@ public:
 	ExpressionType type;
 	Term term;
 	vector<PrimitiveTypeValue> values;
+};
+
+class SetExpressionBuilder {
+public:
+	SetExpressionBuilder();
+	SetExpressionBuilder &SetType(ExpressionType value);
+	SetExpressionBuilder &SetTerm(Term value);
+	SetExpressionBuilder &SetValues(vector<PrimitiveTypeValue> value);
+	string TryBuild(SetExpression &result);
+	SetExpression Build();
+
+private:
+	SetExpression result_;
+	bool has_type_ = false;
+	bool has_term_ = false;
+	bool has_values_ = false;
 };
 
 } // namespace rest_api_objects

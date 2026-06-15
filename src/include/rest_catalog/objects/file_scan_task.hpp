@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static FileScanTask FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FileScanTask Copy() const;
@@ -39,6 +40,20 @@ public:
 	DataFile data_file;
 	optional<vector<int32_t>> delete_file_references;
 	unique_ptr<Expression> residual_filter;
+};
+
+class FileScanTaskBuilder {
+public:
+	FileScanTaskBuilder();
+	FileScanTaskBuilder &SetDataFile(DataFile value);
+	FileScanTaskBuilder &SetDeleteFileReferences(vector<int32_t> value);
+	FileScanTaskBuilder &SetResidualFilter(unique_ptr<Expression> value);
+	string TryBuild(FileScanTask &result);
+	FileScanTask Build();
+
+private:
+	FileScanTask result_;
+	bool has_data_file_ = false;
 };
 
 } // namespace rest_api_objects

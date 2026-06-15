@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static CreateViewRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	CreateViewRequest Copy() const;
@@ -40,6 +41,25 @@ public:
 	ViewVersion view_version;
 	case_insensitive_map_t<string> properties;
 	optional<string> location;
+};
+
+class CreateViewRequestBuilder {
+public:
+	CreateViewRequestBuilder();
+	CreateViewRequestBuilder &SetName(string value);
+	CreateViewRequestBuilder &SetSchema(Schema value);
+	CreateViewRequestBuilder &SetViewVersion(ViewVersion value);
+	CreateViewRequestBuilder &SetProperties(case_insensitive_map_t<string> value);
+	CreateViewRequestBuilder &SetLocation(string value);
+	string TryBuild(CreateViewRequest &result);
+	CreateViewRequest Build();
+
+private:
+	CreateViewRequest result_;
+	bool has_name_ = false;
+	bool has_schema_ = false;
+	bool has_view_version_ = false;
+	bool has_properties_ = false;
 };
 
 } // namespace rest_api_objects

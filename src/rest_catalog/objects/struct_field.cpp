@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/struct_field.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,78 @@ namespace duckdb {
 namespace rest_api_objects {
 
 StructField::StructField() {
+}
+
+StructFieldBuilder::StructFieldBuilder() {
+}
+
+StructFieldBuilder &StructFieldBuilder::SetId(int32_t value) {
+	result_.id = std::move(value);
+	has_id_ = true;
+	return *this;
+}
+
+StructFieldBuilder &StructFieldBuilder::SetName(string value) {
+	result_.name = std::move(value);
+	has_name_ = true;
+	return *this;
+}
+
+StructFieldBuilder &StructFieldBuilder::SetType(unique_ptr<Type> value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+StructFieldBuilder &StructFieldBuilder::SetRequired(bool value) {
+	result_.required = std::move(value);
+	has_required_ = true;
+	return *this;
+}
+
+StructFieldBuilder &StructFieldBuilder::SetDoc(string value) {
+	result_._doc = std::move(value);
+	return *this;
+}
+
+StructFieldBuilder &StructFieldBuilder::SetInitialDefault(PrimitiveTypeValue value) {
+	result_.initial_default = std::move(value);
+	return *this;
+}
+
+StructFieldBuilder &StructFieldBuilder::SetWriteDefault(PrimitiveTypeValue value) {
+	result_.write_default = std::move(value);
+	return *this;
+}
+
+string StructFieldBuilder::TryBuild(StructField &result) {
+	if (!has_id_) {
+		return "StructField required property 'id' is missing";
+	}
+	if (!has_name_) {
+		return "StructField required property 'name' is missing";
+	}
+	if (!has_type_) {
+		return "StructField required property 'type' is missing";
+	}
+	if (!has_required_) {
+		return "StructField required property 'required' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+StructField StructFieldBuilder::Build() {
+	StructField result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 StructField StructField::FromJSON(yyjson_val *obj) {
@@ -43,6 +117,27 @@ StructField StructField::Copy() const {
 		(*res.write_default) = (*write_default).Copy();
 	}
 	return res;
+}
+
+string StructField::Validate() const {
+	string error;
+	error = type->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (initial_default.has_value()) {
+		error = (*initial_default).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (write_default.has_value()) {
+		error = (*write_default).Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string StructField::TryFromJSON(yyjson_val *obj) {
@@ -119,7 +214,7 @@ string StructField::TryFromJSON(yyjson_val *obj) {
 		}
 		write_default = std::move(write_default_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void StructField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

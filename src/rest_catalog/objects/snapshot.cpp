@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/snapshot.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -15,6 +17,41 @@ namespace rest_api_objects {
 Snapshot::Snapshot() {
 }
 Snapshot::Object2::Object2() {
+}
+
+Snapshot::Object2Builder::Object2Builder() {
+}
+
+Snapshot::Object2Builder &Snapshot::Object2Builder::SetOperation(string value) {
+	result_.operation = std::move(value);
+	has_operation_ = true;
+	return *this;
+}
+
+Snapshot::Object2Builder &Snapshot::Object2Builder::SetAdditionalProperties(case_insensitive_map_t<string> value) {
+	result_.additional_properties = std::move(value);
+	return *this;
+}
+
+string Snapshot::Object2Builder::TryBuild(Snapshot::Object2 &result) {
+	if (!has_operation_) {
+		return "Object2 required property 'operation' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Snapshot::Object2 Snapshot::Object2Builder::Build() {
+	Snapshot::Object2 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Snapshot::Object2 Snapshot::Object2::FromJSON(yyjson_val *obj) {
@@ -33,6 +70,14 @@ Snapshot::Object2 Snapshot::Object2::Copy() const {
 		res.additional_properties.emplace(entry.first, entry.second);
 	}
 	return res;
+}
+
+string Snapshot::Object2::Validate() const {
+	string error;
+	if (operation != "append" && operation != "replace" && operation != "overwrite" && operation != "delete") {
+		return "Object2 property 'operation' must be one of [append, replace, overwrite, delete]";
+	}
+	return "";
 }
 
 string Snapshot::Object2::TryFromJSON(yyjson_val *obj) {
@@ -65,7 +110,7 @@ string Snapshot::Object2::TryFromJSON(yyjson_val *obj) {
 		}
 		additional_properties.emplace(key_str, std::move(tmp));
 	}
-	return "";
+	return Validate();
 }
 
 void Snapshot::Object2::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -89,6 +134,88 @@ yyjson_mut_val *Snapshot::Object2::ToJSON(yyjson_mut_doc *doc) const {
 	yyjson_mut_val *obj = yyjson_mut_obj(doc);
 	PopulateJSON(doc, obj);
 	return obj;
+}
+
+SnapshotBuilder::SnapshotBuilder() {
+}
+
+SnapshotBuilder &SnapshotBuilder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetTimestampMs(int64_t value) {
+	result_.timestamp_ms = std::move(value);
+	has_timestamp_ms_ = true;
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetManifestList(string value) {
+	result_.manifest_list = std::move(value);
+	has_manifest_list_ = true;
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetSummary(Snapshot::Object2 value) {
+	result_.summary = std::move(value);
+	has_summary_ = true;
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetParentSnapshotId(int64_t value) {
+	result_.parent_snapshot_id = std::move(value);
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetSequenceNumber(int64_t value) {
+	result_.sequence_number = std::move(value);
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetFirstRowId(int64_t value) {
+	result_.first_row_id = std::move(value);
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetAddedRows(int64_t value) {
+	result_.added_rows = std::move(value);
+	return *this;
+}
+
+SnapshotBuilder &SnapshotBuilder::SetSchemaId(int32_t value) {
+	result_.schema_id = std::move(value);
+	return *this;
+}
+
+string SnapshotBuilder::TryBuild(Snapshot &result) {
+	if (!has_snapshot_id_) {
+		return "Snapshot required property 'snapshot-id' is missing";
+	}
+	if (!has_timestamp_ms_) {
+		return "Snapshot required property 'timestamp-ms' is missing";
+	}
+	if (!has_manifest_list_) {
+		return "Snapshot required property 'manifest-list' is missing";
+	}
+	if (!has_summary_) {
+		return "Snapshot required property 'summary' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+Snapshot SnapshotBuilder::Build() {
+	Snapshot result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 Snapshot Snapshot::FromJSON(yyjson_val *obj) {
@@ -127,6 +254,15 @@ Snapshot Snapshot::Copy() const {
 		(*res.schema_id) = (*schema_id);
 	}
 	return res;
+}
+
+string Snapshot::Validate() const {
+	string error;
+	error = summary.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string Snapshot::TryFromJSON(yyjson_val *obj) {
@@ -243,7 +379,7 @@ string Snapshot::TryFromJSON(yyjson_val *obj) {
 		}
 		schema_id = std::move(schema_id_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void Snapshot::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

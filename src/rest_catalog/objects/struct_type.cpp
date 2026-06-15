@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/struct_type.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 StructType::StructType() {
+}
+
+StructTypeBuilder::StructTypeBuilder() {
+}
+
+StructTypeBuilder &StructTypeBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+StructTypeBuilder &StructTypeBuilder::SetFields(vector<unique_ptr<StructField>> value) {
+	result_.fields = std::move(value);
+	has_fields_ = true;
+	return *this;
+}
+
+string StructTypeBuilder::TryBuild(StructType &result) {
+	if (!has_type_) {
+		return "StructType required property 'type' is missing";
+	}
+	if (!has_fields_) {
+		return "StructType required property 'fields' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+StructType StructTypeBuilder::Build() {
+	StructType result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 StructType StructType::FromJSON(yyjson_val *obj) {
@@ -32,6 +73,20 @@ StructType StructType::Copy() const {
 		res.fields.emplace_back(item ? make_uniq<StructField>(item->Copy()) : nullptr);
 	}
 	return res;
+}
+
+string StructType::Validate() const {
+	string error;
+	if (type != "struct") {
+		return "StructType property 'type' must be struct";
+	}
+	for (const auto &item : fields) {
+		error = item->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string StructType::TryFromJSON(yyjson_val *obj) {
@@ -68,7 +123,7 @@ string StructType::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(fields_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void StructType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

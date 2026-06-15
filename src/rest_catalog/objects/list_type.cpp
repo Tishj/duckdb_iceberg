@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/list_type.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,63 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ListType::ListType() {
+}
+
+ListTypeBuilder::ListTypeBuilder() {
+}
+
+ListTypeBuilder &ListTypeBuilder::SetType(string value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+ListTypeBuilder &ListTypeBuilder::SetElementId(int32_t value) {
+	result_.element_id = std::move(value);
+	has_element_id_ = true;
+	return *this;
+}
+
+ListTypeBuilder &ListTypeBuilder::SetElement(unique_ptr<Type> value) {
+	result_.element = std::move(value);
+	has_element_ = true;
+	return *this;
+}
+
+ListTypeBuilder &ListTypeBuilder::SetElementRequired(bool value) {
+	result_.element_required = std::move(value);
+	has_element_required_ = true;
+	return *this;
+}
+
+string ListTypeBuilder::TryBuild(ListType &result) {
+	if (!has_type_) {
+		return "ListType required property 'type' is missing";
+	}
+	if (!has_element_id_) {
+		return "ListType required property 'element-id' is missing";
+	}
+	if (!has_element_) {
+		return "ListType required property 'element' is missing";
+	}
+	if (!has_element_required_) {
+		return "ListType required property 'element-required' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ListType ListTypeBuilder::Build() {
+	ListType result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ListType ListType::FromJSON(yyjson_val *obj) {
@@ -31,6 +90,18 @@ ListType ListType::Copy() const {
 	res.element = element ? make_uniq<Type>(element->Copy()) : nullptr;
 	res.element_required = element_required;
 	return res;
+}
+
+string ListType::Validate() const {
+	string error;
+	if (type != "list") {
+		return "ListType property 'type' must be list";
+	}
+	error = element->Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string ListType::TryFromJSON(yyjson_val *obj) {
@@ -79,7 +150,7 @@ string ListType::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(element_required_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void ListType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

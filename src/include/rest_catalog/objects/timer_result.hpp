@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static TimerResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TimerResult Copy() const;
@@ -36,6 +37,22 @@ public:
 	string time_unit;
 	int64_t count;
 	int64_t total_duration;
+};
+
+class TimerResultBuilder {
+public:
+	TimerResultBuilder();
+	TimerResultBuilder &SetTimeUnit(string value);
+	TimerResultBuilder &SetCount(int64_t value);
+	TimerResultBuilder &SetTotalDuration(int64_t value);
+	string TryBuild(TimerResult &result);
+	TimerResult Build();
+
+private:
+	TimerResult result_;
+	bool has_time_unit_ = false;
+	bool has_count_ = false;
+	bool has_total_duration_ = false;
 };
 
 } // namespace rest_api_objects

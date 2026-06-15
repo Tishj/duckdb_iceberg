@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_default_sort_order_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate() {
+}
+
+SetDefaultSortOrderUpdateBuilder::SetDefaultSortOrderUpdateBuilder() {
+}
+
+SetDefaultSortOrderUpdateBuilder &SetDefaultSortOrderUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetDefaultSortOrderUpdateBuilder &SetDefaultSortOrderUpdateBuilder::SetSortOrderId(int32_t value) {
+	result_.sort_order_id = std::move(value);
+	has_sort_order_id_ = true;
+	return *this;
+}
+
+string SetDefaultSortOrderUpdateBuilder::TryBuild(SetDefaultSortOrderUpdate &result) {
+	if (!has_sort_order_id_) {
+		return "SetDefaultSortOrderUpdate required property 'sort-order-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetDefaultSortOrderUpdate SetDefaultSortOrderUpdateBuilder::Build() {
+	SetDefaultSortOrderUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.sort_order_id = sort_order_id;
 	return res;
+}
+
+string SetDefaultSortOrderUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(sort_order_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetDefaultSortOrderUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

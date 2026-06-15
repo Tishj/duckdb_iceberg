@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/delete_file.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,37 @@ namespace duckdb {
 namespace rest_api_objects {
 
 DeleteFile::DeleteFile() {
+}
+
+DeleteFileBuilder::DeleteFileBuilder() {
+}
+
+DeleteFileBuilder &DeleteFileBuilder::SetPositionDeleteFile(PositionDeleteFile value) {
+	result_.position_delete_file = std::move(value);
+	return *this;
+}
+
+DeleteFileBuilder &DeleteFileBuilder::SetEqualityDeleteFile(EqualityDeleteFile value) {
+	result_.equality_delete_file = std::move(value);
+	return *this;
+}
+
+string DeleteFileBuilder::TryBuild(DeleteFile &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+DeleteFile DeleteFileBuilder::Build() {
+	DeleteFile result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
@@ -37,6 +70,29 @@ DeleteFile DeleteFile::Copy() const {
 	return res;
 }
 
+string DeleteFile::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (position_delete_file.has_value()) {
+		matched_one_of_variants++;
+		error = position_delete_file->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (equality_delete_file.has_value()) {
+		matched_one_of_variants++;
+		error = equality_delete_file->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "DeleteFile must have exactly one oneOf variant set";
+	}
+	return "";
+}
+
 string DeleteFile::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
@@ -56,7 +112,7 @@ string DeleteFile::TryFromJSON(yyjson_val *obj) {
 		}
 		return "DeleteFile failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void DeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

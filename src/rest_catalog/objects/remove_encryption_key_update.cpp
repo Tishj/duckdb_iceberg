@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/remove_encryption_key_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RemoveEncryptionKeyUpdate::RemoveEncryptionKeyUpdate() {
+}
+
+RemoveEncryptionKeyUpdateBuilder::RemoveEncryptionKeyUpdateBuilder() {
+}
+
+RemoveEncryptionKeyUpdateBuilder &RemoveEncryptionKeyUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+RemoveEncryptionKeyUpdateBuilder &RemoveEncryptionKeyUpdateBuilder::SetKeyId(string value) {
+	result_.key_id = std::move(value);
+	has_key_id_ = true;
+	return *this;
+}
+
+string RemoveEncryptionKeyUpdateBuilder::TryBuild(RemoveEncryptionKeyUpdate &result) {
+	if (!has_key_id_) {
+		return "RemoveEncryptionKeyUpdate required property 'key-id' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdateBuilder::Build() {
+	RemoveEncryptionKeyUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
@@ -29,6 +66,15 @@ RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::Copy() const {
 	res.base_update = base_update.Copy();
 	res.key_id = key_id;
 	return res;
+}
+
+string RemoveEncryptionKeyUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj) {
@@ -49,7 +95,7 @@ string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(key_id_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RemoveEncryptionKeyUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

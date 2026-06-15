@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static AddSnapshotUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AddSnapshotUpdate Copy() const;
@@ -37,6 +38,19 @@ public:
 public:
 	BaseUpdate base_update;
 	Snapshot snapshot;
+};
+
+class AddSnapshotUpdateBuilder {
+public:
+	AddSnapshotUpdateBuilder();
+	AddSnapshotUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	AddSnapshotUpdateBuilder &SetSnapshot(Snapshot value);
+	string TryBuild(AddSnapshotUpdate &result);
+	AddSnapshotUpdate Build();
+
+private:
+	AddSnapshotUpdate result_;
+	bool has_snapshot_ = false;
 };
 
 } // namespace rest_api_objects

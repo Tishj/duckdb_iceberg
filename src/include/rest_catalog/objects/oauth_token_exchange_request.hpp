@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static OAuthTokenExchangeRequest FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	OAuthTokenExchangeRequest Copy() const;
@@ -41,6 +42,26 @@ public:
 	optional<TokenType> requested_token_type;
 	optional<string> actor_token;
 	optional<TokenType> actor_token_type;
+};
+
+class OAuthTokenExchangeRequestBuilder {
+public:
+	OAuthTokenExchangeRequestBuilder();
+	OAuthTokenExchangeRequestBuilder &SetGrantType(string value);
+	OAuthTokenExchangeRequestBuilder &SetSubjectToken(string value);
+	OAuthTokenExchangeRequestBuilder &SetSubjectTokenType(TokenType value);
+	OAuthTokenExchangeRequestBuilder &SetScope(string value);
+	OAuthTokenExchangeRequestBuilder &SetRequestedTokenType(TokenType value);
+	OAuthTokenExchangeRequestBuilder &SetActorToken(string value);
+	OAuthTokenExchangeRequestBuilder &SetActorTokenType(TokenType value);
+	string TryBuild(OAuthTokenExchangeRequest &result);
+	OAuthTokenExchangeRequest Build();
+
+private:
+	OAuthTokenExchangeRequest result_;
+	bool has_grant_type_ = false;
+	bool has_subject_token_ = false;
+	bool has_subject_token_type_ = false;
 };
 
 } // namespace rest_api_objects

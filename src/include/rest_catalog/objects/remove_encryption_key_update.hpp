@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static RemoveEncryptionKeyUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	RemoveEncryptionKeyUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	string key_id;
+};
+
+class RemoveEncryptionKeyUpdateBuilder {
+public:
+	RemoveEncryptionKeyUpdateBuilder();
+	RemoveEncryptionKeyUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	RemoveEncryptionKeyUpdateBuilder &SetKeyId(string value);
+	string TryBuild(RemoveEncryptionKeyUpdate &result);
+	RemoveEncryptionKeyUpdate Build();
+
+private:
+	RemoveEncryptionKeyUpdate result_;
+	bool has_key_id_ = false;
 };
 
 } // namespace rest_api_objects

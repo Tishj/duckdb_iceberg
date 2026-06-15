@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/update_namespace_properties_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,50 @@ namespace duckdb {
 namespace rest_api_objects {
 
 UpdateNamespacePropertiesResponse::UpdateNamespacePropertiesResponse() {
+}
+
+UpdateNamespacePropertiesResponseBuilder::UpdateNamespacePropertiesResponseBuilder() {
+}
+
+UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetUpdated(vector<string> value) {
+	result_.updated = std::move(value);
+	has_updated_ = true;
+	return *this;
+}
+
+UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetRemoved(vector<string> value) {
+	result_.removed = std::move(value);
+	has_removed_ = true;
+	return *this;
+}
+
+UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetMissing(vector<string> value) {
+	result_.missing = std::move(value);
+	return *this;
+}
+
+string UpdateNamespacePropertiesResponseBuilder::TryBuild(UpdateNamespacePropertiesResponse &result) {
+	if (!has_updated_) {
+		return "UpdateNamespacePropertiesResponse required property 'updated' is missing";
+	}
+	if (!has_removed_) {
+		return "UpdateNamespacePropertiesResponse required property 'removed' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponseBuilder::Build() {
+	UpdateNamespacePropertiesResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yyjson_val *obj) {
@@ -42,6 +88,11 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() cons
 		}
 	}
 	return res;
+}
+
+string UpdateNamespacePropertiesResponse::Validate() const {
+	string error;
+	return "";
 }
 
 string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
@@ -122,7 +173,7 @@ string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
 			missing = std::move(missing_tmp);
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void UpdateNamespacePropertiesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/remove_partition_specs_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 RemovePartitionSpecsUpdate::RemovePartitionSpecsUpdate() {
+}
+
+RemovePartitionSpecsUpdateBuilder::RemovePartitionSpecsUpdateBuilder() {
+}
+
+RemovePartitionSpecsUpdateBuilder &RemovePartitionSpecsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+RemovePartitionSpecsUpdateBuilder &RemovePartitionSpecsUpdateBuilder::SetSpecIds(vector<int32_t> value) {
+	result_.spec_ids = std::move(value);
+	has_spec_ids_ = true;
+	return *this;
+}
+
+string RemovePartitionSpecsUpdateBuilder::TryBuild(RemovePartitionSpecsUpdate &result) {
+	if (!has_spec_ids_) {
+		return "RemovePartitionSpecsUpdate required property 'spec-ids' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+RemovePartitionSpecsUpdate RemovePartitionSpecsUpdateBuilder::Build() {
+	RemovePartitionSpecsUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj) {
@@ -32,6 +69,15 @@ RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::Copy() const {
 		res.spec_ids.emplace_back(item);
 	}
 	return res;
+}
+
+string RemovePartitionSpecsUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj) {
@@ -64,7 +110,7 @@ string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(spec_ids_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void RemovePartitionSpecsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

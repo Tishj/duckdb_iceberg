@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static ScanReport FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ScanReport Copy() const;
@@ -44,6 +45,31 @@ public:
 	vector<string> projected_field_names;
 	Metrics metrics;
 	optional<case_insensitive_map_t<string>> metadata;
+};
+
+class ScanReportBuilder {
+public:
+	ScanReportBuilder();
+	ScanReportBuilder &SetTableName(string value);
+	ScanReportBuilder &SetSnapshotId(int64_t value);
+	ScanReportBuilder &SetFilter(unique_ptr<Expression> value);
+	ScanReportBuilder &SetSchemaId(int32_t value);
+	ScanReportBuilder &SetProjectedFieldIds(vector<int32_t> value);
+	ScanReportBuilder &SetProjectedFieldNames(vector<string> value);
+	ScanReportBuilder &SetMetrics(Metrics value);
+	ScanReportBuilder &SetMetadata(case_insensitive_map_t<string> value);
+	string TryBuild(ScanReport &result);
+	ScanReport Build();
+
+private:
+	ScanReport result_;
+	bool has_table_name_ = false;
+	bool has_snapshot_id_ = false;
+	bool has_filter_ = false;
+	bool has_schema_id_ = false;
+	bool has_projected_field_ids_ = false;
+	bool has_projected_field_names_ = false;
+	bool has_metrics_ = false;
 };
 
 } // namespace rest_api_objects

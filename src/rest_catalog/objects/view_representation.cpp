@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/view_representation.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,32 @@ namespace duckdb {
 namespace rest_api_objects {
 
 ViewRepresentation::ViewRepresentation() {
+}
+
+ViewRepresentationBuilder::ViewRepresentationBuilder() {
+}
+
+ViewRepresentationBuilder &ViewRepresentationBuilder::SetSqlviewRepresentation(SQLViewRepresentation value) {
+	result_.sqlview_representation = std::move(value);
+	return *this;
+}
+
+string ViewRepresentationBuilder::TryBuild(ViewRepresentation &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+ViewRepresentation ViewRepresentationBuilder::Build() {
+	ViewRepresentation result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
@@ -33,6 +61,22 @@ ViewRepresentation ViewRepresentation::Copy() const {
 	return res;
 }
 
+string ViewRepresentation::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (sqlview_representation.has_value()) {
+		matched_one_of_variants++;
+		error = sqlview_representation->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "ViewRepresentation must have exactly one oneOf variant set";
+	}
+	return "";
+}
+
 string ViewRepresentation::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
@@ -45,7 +89,7 @@ string ViewRepresentation::TryFromJSON(yyjson_val *obj) {
 		}
 		return "ViewRepresentation failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void ViewRepresentation::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

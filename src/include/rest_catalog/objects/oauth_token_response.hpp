@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static OAuthTokenResponse FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	OAuthTokenResponse Copy() const;
@@ -40,6 +41,24 @@ public:
 	optional<TokenType> issued_token_type;
 	optional<string> refresh_token;
 	optional<string> scope;
+};
+
+class OAuthTokenResponseBuilder {
+public:
+	OAuthTokenResponseBuilder();
+	OAuthTokenResponseBuilder &SetAccessToken(string value);
+	OAuthTokenResponseBuilder &SetTokenType(string value);
+	OAuthTokenResponseBuilder &SetExpiresIn(int32_t value);
+	OAuthTokenResponseBuilder &SetIssuedTokenType(TokenType value);
+	OAuthTokenResponseBuilder &SetRefreshToken(string value);
+	OAuthTokenResponseBuilder &SetScope(string value);
+	string TryBuild(OAuthTokenResponse &result);
+	OAuthTokenResponse Build();
+
+private:
+	OAuthTokenResponse result_;
+	bool has_access_token_ = false;
+	bool has_token_type_ = false;
 };
 
 } // namespace rest_api_objects

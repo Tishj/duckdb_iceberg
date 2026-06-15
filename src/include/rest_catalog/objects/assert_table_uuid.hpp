@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static AssertTableUUID FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AssertTableUUID Copy() const;
@@ -36,6 +37,20 @@ public:
 public:
 	TableRequirementType type;
 	string uuid;
+};
+
+class AssertTableUUIDBuilder {
+public:
+	AssertTableUUIDBuilder();
+	AssertTableUUIDBuilder &SetType(TableRequirementType value);
+	AssertTableUUIDBuilder &SetUuid(string value);
+	string TryBuild(AssertTableUUID &result);
+	AssertTableUUID Build();
+
+private:
+	AssertTableUUID result_;
+	bool has_type_ = false;
+	bool has_uuid_ = false;
 };
 
 } // namespace rest_api_objects

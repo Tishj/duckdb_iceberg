@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static SetPropertiesUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetPropertiesUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	case_insensitive_map_t<string> updates;
+};
+
+class SetPropertiesUpdateBuilder {
+public:
+	SetPropertiesUpdateBuilder();
+	SetPropertiesUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetPropertiesUpdateBuilder &SetUpdates(case_insensitive_map_t<string> value);
+	string TryBuild(SetPropertiesUpdate &result);
+	SetPropertiesUpdate Build();
+
+private:
+	SetPropertiesUpdate result_;
+	bool has_updates_ = false;
 };
 
 } // namespace rest_api_objects

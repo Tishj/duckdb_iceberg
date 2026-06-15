@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/storage_credential.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 StorageCredential::StorageCredential() {
+}
+
+StorageCredentialBuilder::StorageCredentialBuilder() {
+}
+
+StorageCredentialBuilder &StorageCredentialBuilder::SetPrefix(string value) {
+	result_.prefix = std::move(value);
+	has_prefix_ = true;
+	return *this;
+}
+
+StorageCredentialBuilder &StorageCredentialBuilder::SetConfig(case_insensitive_map_t<string> value) {
+	result_.config = std::move(value);
+	has_config_ = true;
+	return *this;
+}
+
+string StorageCredentialBuilder::TryBuild(StorageCredential &result) {
+	if (!has_prefix_) {
+		return "StorageCredential required property 'prefix' is missing";
+	}
+	if (!has_config_) {
+		return "StorageCredential required property 'config' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+StorageCredential StorageCredentialBuilder::Build() {
+	StorageCredential result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 StorageCredential StorageCredential::FromJSON(yyjson_val *obj) {
@@ -31,6 +72,11 @@ StorageCredential StorageCredential::Copy() const {
 		res.config.emplace(entry.first, entry.second);
 	}
 	return res;
+}
+
+string StorageCredential::Validate() const {
+	string error;
+	return "";
 }
 
 string StorageCredential::TryFromJSON(yyjson_val *obj) {
@@ -69,7 +115,7 @@ string StorageCredential::TryFromJSON(yyjson_val *obj) {
 			return "StorageCredential property 'config' is not of type 'object'";
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void StorageCredential::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

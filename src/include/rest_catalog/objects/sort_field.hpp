@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static SortField FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SortField Copy() const;
@@ -40,6 +41,24 @@ public:
 	Transform transform;
 	SortDirection direction;
 	NullOrder null_order;
+};
+
+class SortFieldBuilder {
+public:
+	SortFieldBuilder();
+	SortFieldBuilder &SetSourceId(int32_t value);
+	SortFieldBuilder &SetTransform(Transform value);
+	SortFieldBuilder &SetDirection(SortDirection value);
+	SortFieldBuilder &SetNullOrder(NullOrder value);
+	string TryBuild(SortField &result);
+	SortField Build();
+
+private:
+	SortField result_;
+	bool has_source_id_ = false;
+	bool has_transform_ = false;
+	bool has_direction_ = false;
+	bool has_null_order_ = false;
 };
 
 } // namespace rest_api_objects

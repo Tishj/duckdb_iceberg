@@ -45,6 +45,7 @@ public:
 	// Deserialization
 	static TableUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TableUpdate Copy() const;
@@ -75,6 +76,37 @@ public:
 	optional<RemoveSchemasUpdate> remove_schemas_update;
 	optional<AddEncryptionKeyUpdate> add_encryption_key_update;
 	optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update;
+};
+
+class TableUpdateBuilder {
+public:
+	TableUpdateBuilder();
+	TableUpdateBuilder &SetAssignUuidupdate(AssignUUIDUpdate value);
+	TableUpdateBuilder &SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value);
+	TableUpdateBuilder &SetAddSchemaUpdate(AddSchemaUpdate value);
+	TableUpdateBuilder &SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate value);
+	TableUpdateBuilder &SetAddPartitionSpecUpdate(AddPartitionSpecUpdate value);
+	TableUpdateBuilder &SetSetDefaultSpecUpdate(SetDefaultSpecUpdate value);
+	TableUpdateBuilder &SetAddSortOrderUpdate(AddSortOrderUpdate value);
+	TableUpdateBuilder &SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate value);
+	TableUpdateBuilder &SetAddSnapshotUpdate(AddSnapshotUpdate value);
+	TableUpdateBuilder &SetSetSnapshotRefUpdate(SetSnapshotRefUpdate value);
+	TableUpdateBuilder &SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate value);
+	TableUpdateBuilder &SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate value);
+	TableUpdateBuilder &SetSetLocationUpdate(SetLocationUpdate value);
+	TableUpdateBuilder &SetSetPropertiesUpdate(SetPropertiesUpdate value);
+	TableUpdateBuilder &SetRemovePropertiesUpdate(RemovePropertiesUpdate value);
+	TableUpdateBuilder &SetSetStatisticsUpdate(SetStatisticsUpdate value);
+	TableUpdateBuilder &SetRemoveStatisticsUpdate(RemoveStatisticsUpdate value);
+	TableUpdateBuilder &SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate value);
+	TableUpdateBuilder &SetRemoveSchemasUpdate(RemoveSchemasUpdate value);
+	TableUpdateBuilder &SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate value);
+	TableUpdateBuilder &SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate value);
+	string TryBuild(TableUpdate &result);
+	TableUpdate Build();
+
+private:
+	TableUpdate result_;
 };
 
 } // namespace rest_api_objects

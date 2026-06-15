@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static UpgradeFormatVersionUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	UpgradeFormatVersionUpdate Copy() const;
@@ -36,6 +37,19 @@ public:
 public:
 	BaseUpdate base_update;
 	int32_t format_version;
+};
+
+class UpgradeFormatVersionUpdateBuilder {
+public:
+	UpgradeFormatVersionUpdateBuilder();
+	UpgradeFormatVersionUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	UpgradeFormatVersionUpdateBuilder &SetFormatVersion(int32_t value);
+	string TryBuild(UpgradeFormatVersionUpdate &result);
+	UpgradeFormatVersionUpdate Build();
+
+private:
+	UpgradeFormatVersionUpdate result_;
+	bool has_format_version_ = false;
 };
 
 } // namespace rest_api_objects

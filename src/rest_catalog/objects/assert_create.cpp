@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/assert_create.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AssertCreate::AssertCreate() {
+}
+
+AssertCreateBuilder::AssertCreateBuilder() {
+}
+
+AssertCreateBuilder &AssertCreateBuilder::SetType(TableRequirementType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+string AssertCreateBuilder::TryBuild(AssertCreate &result) {
+	if (!has_type_) {
+		return "AssertCreate required property 'type' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AssertCreate AssertCreateBuilder::Build() {
+	AssertCreate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,18 @@ AssertCreate AssertCreate::Copy() const {
 	return res;
 }
 
+string AssertCreate::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "assert-create") {
+		return "AssertCreate property 'type' must be assert-create";
+	}
+	return "";
+}
+
 string AssertCreate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto type_val = yyjson_obj_get(obj, "type");
@@ -41,7 +85,7 @@ string AssertCreate::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AssertCreate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

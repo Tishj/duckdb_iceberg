@@ -25,6 +25,7 @@ public:
 	// Deserialization
 	static SnapshotReferences FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SnapshotReferences Copy() const;
@@ -35,6 +36,17 @@ public:
 
 public:
 	case_insensitive_map_t<SnapshotReference> additional_properties;
+};
+
+class SnapshotReferencesBuilder {
+public:
+	SnapshotReferencesBuilder();
+	SnapshotReferencesBuilder &SetAdditionalProperties(case_insensitive_map_t<SnapshotReference> value);
+	string TryBuild(SnapshotReferences &result);
+	SnapshotReferences Build();
+
+private:
+	SnapshotReferences result_;
 };
 
 } // namespace rest_api_objects

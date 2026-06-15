@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/load_credentials_response.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 LoadCredentialsResponse::LoadCredentialsResponse() {
+}
+
+LoadCredentialsResponseBuilder::LoadCredentialsResponseBuilder() {
+}
+
+LoadCredentialsResponseBuilder &LoadCredentialsResponseBuilder::SetStorageCredentials(vector<StorageCredential> value) {
+	result_.storage_credentials = std::move(value);
+	has_storage_credentials_ = true;
+	return *this;
+}
+
+string LoadCredentialsResponseBuilder::TryBuild(LoadCredentialsResponse &result) {
+	if (!has_storage_credentials_) {
+		return "LoadCredentialsResponse required property 'storage-credentials' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+LoadCredentialsResponse LoadCredentialsResponseBuilder::Build() {
+	LoadCredentialsResponse result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
@@ -31,6 +63,17 @@ LoadCredentialsResponse LoadCredentialsResponse::Copy() const {
 		res.storage_credentials.emplace_back(item.Copy());
 	}
 	return res;
+}
+
+string LoadCredentialsResponse::Validate() const {
+	string error;
+	for (const auto &item : storage_credentials) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj) {
@@ -56,7 +99,7 @@ string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj) {
 			    yyjson_get_type_desc(storage_credentials_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void LoadCredentialsResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

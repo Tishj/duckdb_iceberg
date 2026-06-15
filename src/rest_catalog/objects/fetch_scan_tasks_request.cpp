@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/fetch_scan_tasks_request.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,36 @@ namespace duckdb {
 namespace rest_api_objects {
 
 FetchScanTasksRequest::FetchScanTasksRequest() {
+}
+
+FetchScanTasksRequestBuilder::FetchScanTasksRequestBuilder() {
+}
+
+FetchScanTasksRequestBuilder &FetchScanTasksRequestBuilder::SetPlanTask(PlanTask value) {
+	result_.plan_task = std::move(value);
+	has_plan_task_ = true;
+	return *this;
+}
+
+string FetchScanTasksRequestBuilder::TryBuild(FetchScanTasksRequest &result) {
+	if (!has_plan_task_) {
+		return "FetchScanTasksRequest required property 'plan-task' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FetchScanTasksRequest FetchScanTasksRequestBuilder::Build() {
+	FetchScanTasksRequest result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 FetchScanTasksRequest FetchScanTasksRequest::FromJSON(yyjson_val *obj) {
@@ -30,6 +62,15 @@ FetchScanTasksRequest FetchScanTasksRequest::Copy() const {
 	return res;
 }
 
+string FetchScanTasksRequest::Validate() const {
+	string error;
+	error = plan_task.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj) {
 	string error;
 	auto plan_task_val = yyjson_obj_get(obj, "plan-task");
@@ -41,7 +82,7 @@ string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void FetchScanTasksRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_properties_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetPropertiesUpdate::SetPropertiesUpdate() {
+}
+
+SetPropertiesUpdateBuilder::SetPropertiesUpdateBuilder() {
+}
+
+SetPropertiesUpdateBuilder &SetPropertiesUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+SetPropertiesUpdateBuilder &SetPropertiesUpdateBuilder::SetUpdates(case_insensitive_map_t<string> value) {
+	result_.updates = std::move(value);
+	has_updates_ = true;
+	return *this;
+}
+
+string SetPropertiesUpdateBuilder::TryBuild(SetPropertiesUpdate &result) {
+	if (!has_updates_) {
+		return "SetPropertiesUpdate required property 'updates' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetPropertiesUpdate SetPropertiesUpdateBuilder::Build() {
+	SetPropertiesUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetPropertiesUpdate SetPropertiesUpdate::FromJSON(yyjson_val *obj) {
@@ -31,6 +68,15 @@ SetPropertiesUpdate SetPropertiesUpdate::Copy() const {
 		res.updates.emplace(entry.first, entry.second);
 	}
 	return res;
+}
+
+string SetPropertiesUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj) {
@@ -62,7 +108,7 @@ string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj) {
 			return "SetPropertiesUpdate property 'updates' is not of type 'object'";
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetPropertiesUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static TransformTerm FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	TransformTerm Copy() const;
@@ -38,6 +39,22 @@ public:
 	string type;
 	Transform transform;
 	Reference term;
+};
+
+class TransformTermBuilder {
+public:
+	TransformTermBuilder();
+	TransformTermBuilder &SetType(string value);
+	TransformTermBuilder &SetTransform(Transform value);
+	TransformTermBuilder &SetTerm(Reference value);
+	string TryBuild(TransformTerm &result);
+	TransformTerm Build();
+
+private:
+	TransformTerm result_;
+	bool has_type_ = false;
+	bool has_transform_ = false;
+	bool has_term_ = false;
 };
 
 } // namespace rest_api_objects

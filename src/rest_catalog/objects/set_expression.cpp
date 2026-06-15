@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/set_expression.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,54 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SetExpression::SetExpression() {
+}
+
+SetExpressionBuilder::SetExpressionBuilder() {
+}
+
+SetExpressionBuilder &SetExpressionBuilder::SetType(ExpressionType value) {
+	result_.type = std::move(value);
+	has_type_ = true;
+	return *this;
+}
+
+SetExpressionBuilder &SetExpressionBuilder::SetTerm(Term value) {
+	result_.term = std::move(value);
+	has_term_ = true;
+	return *this;
+}
+
+SetExpressionBuilder &SetExpressionBuilder::SetValues(vector<PrimitiveTypeValue> value) {
+	result_.values = std::move(value);
+	has_values_ = true;
+	return *this;
+}
+
+string SetExpressionBuilder::TryBuild(SetExpression &result) {
+	if (!has_type_) {
+		return "SetExpression required property 'type' is missing";
+	}
+	if (!has_term_) {
+		return "SetExpression required property 'term' is missing";
+	}
+	if (!has_values_) {
+		return "SetExpression required property 'values' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SetExpression SetExpressionBuilder::Build() {
+	SetExpression result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SetExpression SetExpression::FromJSON(yyjson_val *obj) {
@@ -33,6 +83,28 @@ SetExpression SetExpression::Copy() const {
 		res.values.emplace_back(item.Copy());
 	}
 	return res;
+}
+
+string SetExpression::Validate() const {
+	string error;
+	error = type.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (type.value != "in" && type.value != "not-in") {
+		return "SetExpression property 'type' must be one of [in, not-in]";
+	}
+	error = term.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	for (const auto &item : values) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string SetExpression::TryFromJSON(yyjson_val *obj) {
@@ -75,7 +147,7 @@ string SetExpression::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(values_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SetExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

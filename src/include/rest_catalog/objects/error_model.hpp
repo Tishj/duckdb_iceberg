@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static ErrorModel FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ErrorModel Copy() const;
@@ -37,6 +38,23 @@ public:
 	string type;
 	int32_t code;
 	optional<vector<string>> stack;
+};
+
+class ErrorModelBuilder {
+public:
+	ErrorModelBuilder();
+	ErrorModelBuilder &SetMessage(string value);
+	ErrorModelBuilder &SetType(string value);
+	ErrorModelBuilder &SetCode(int32_t value);
+	ErrorModelBuilder &SetStack(vector<string> value);
+	string TryBuild(ErrorModel &result);
+	ErrorModel Build();
+
+private:
+	ErrorModel result_;
+	bool has_message_ = false;
+	bool has_type_ = false;
+	bool has_code_ = false;
 };
 
 } // namespace rest_api_objects

@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/completed_planning_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -15,6 +17,42 @@ namespace rest_api_objects {
 CompletedPlanningResult::CompletedPlanningResult() {
 }
 CompletedPlanningResult::Object5::Object5() {
+}
+
+CompletedPlanningResult::Object5Builder::Object5Builder() {
+}
+
+CompletedPlanningResult::Object5Builder &CompletedPlanningResult::Object5Builder::SetStatus(PlanStatus value) {
+	result_.status = std::move(value);
+	has_status_ = true;
+	return *this;
+}
+
+CompletedPlanningResult::Object5Builder &
+CompletedPlanningResult::Object5Builder::SetStorageCredentials(vector<StorageCredential> value) {
+	result_.storage_credentials = std::move(value);
+	return *this;
+}
+
+string CompletedPlanningResult::Object5Builder::TryBuild(CompletedPlanningResult::Object5 &result) {
+	if (!has_status_) {
+		return "Object5 required property 'status' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CompletedPlanningResult::Object5 CompletedPlanningResult::Object5Builder::Build() {
+	CompletedPlanningResult::Object5 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjson_val *obj) {
@@ -37,6 +75,26 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const 
 		}
 	}
 	return res;
+}
+
+string CompletedPlanningResult::Object5::Validate() const {
+	string error;
+	error = status.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	if (status.value != "completed") {
+		return "Object5 property 'status' must be completed";
+	}
+	if (storage_credentials.has_value()) {
+		for (const auto &item : (*storage_credentials)) {
+			error = item.Validate();
+			if (!error.empty()) {
+				return error;
+			}
+		}
+	}
+	return "";
 }
 
 string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj) {
@@ -71,7 +129,7 @@ string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj) {
 		}
 		storage_credentials = std::move(storage_credentials_tmp);
 	}
-	return "";
+	return Validate();
 }
 
 void CompletedPlanningResult::Object5::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -101,6 +159,37 @@ yyjson_mut_val *CompletedPlanningResult::Object5::ToJSON(yyjson_mut_doc *doc) co
 	return obj;
 }
 
+CompletedPlanningResultBuilder::CompletedPlanningResultBuilder() {
+}
+
+CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetScanTasks(ScanTasks value) {
+	result_.scan_tasks = std::move(value);
+	return *this;
+}
+
+CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetObject5(CompletedPlanningResult::Object5 value) {
+	result_.object_5 = std::move(value);
+	return *this;
+}
+
+string CompletedPlanningResultBuilder::TryBuild(CompletedPlanningResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+CompletedPlanningResult CompletedPlanningResultBuilder::Build() {
+	CompletedPlanningResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
+}
+
 CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
 	CompletedPlanningResult res;
 	auto error = res.TryFromJSON(obj);
@@ -117,6 +206,19 @@ CompletedPlanningResult CompletedPlanningResult::Copy() const {
 	return res;
 }
 
+string CompletedPlanningResult::Validate() const {
+	string error;
+	error = scan_tasks.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = object_5.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string CompletedPlanningResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = scan_tasks.TryFromJSON(obj);
@@ -127,7 +229,7 @@ string CompletedPlanningResult::TryFromJSON(yyjson_val *obj) {
 	if (!error.empty()) {
 		return error;
 	}
-	return "";
+	return Validate();
 }
 
 void CompletedPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

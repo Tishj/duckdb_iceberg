@@ -24,6 +24,7 @@ public:
 	// Deserialization
 	static PartitionStatisticsFile FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	PartitionStatisticsFile Copy() const;
@@ -36,6 +37,22 @@ public:
 	int64_t snapshot_id;
 	string statistics_path;
 	int64_t file_size_in_bytes;
+};
+
+class PartitionStatisticsFileBuilder {
+public:
+	PartitionStatisticsFileBuilder();
+	PartitionStatisticsFileBuilder &SetSnapshotId(int64_t value);
+	PartitionStatisticsFileBuilder &SetStatisticsPath(string value);
+	PartitionStatisticsFileBuilder &SetFileSizeInBytes(int64_t value);
+	string TryBuild(PartitionStatisticsFile &result);
+	PartitionStatisticsFile Build();
+
+private:
+	PartitionStatisticsFile result_;
+	bool has_snapshot_id_ = false;
+	bool has_statistics_path_ = false;
+	bool has_file_size_in_bytes_ = false;
 };
 
 } // namespace rest_api_objects

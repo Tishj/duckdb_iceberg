@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static SetSnapshotRefUpdate FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	SetSnapshotRefUpdate Copy() const;
@@ -38,6 +39,20 @@ public:
 	BaseUpdate base_update;
 	SnapshotReference snapshot_reference;
 	string ref_name;
+};
+
+class SetSnapshotRefUpdateBuilder {
+public:
+	SetSnapshotRefUpdateBuilder();
+	SetSnapshotRefUpdateBuilder &SetBaseUpdate(BaseUpdate value);
+	SetSnapshotRefUpdateBuilder &SetSnapshotReference(SnapshotReference value);
+	SetSnapshotRefUpdateBuilder &SetRefName(string value);
+	string TryBuild(SetSnapshotRefUpdate &result);
+	SetSnapshotRefUpdate Build();
+
+private:
+	SetSnapshotRefUpdate result_;
+	bool has_ref_name_ = false;
 };
 
 } // namespace rest_api_objects

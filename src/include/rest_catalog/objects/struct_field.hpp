@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static StructField FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	StructField Copy() const;
@@ -43,6 +44,27 @@ public:
 	optional<string> _doc;
 	optional<PrimitiveTypeValue> initial_default;
 	optional<PrimitiveTypeValue> write_default;
+};
+
+class StructFieldBuilder {
+public:
+	StructFieldBuilder();
+	StructFieldBuilder &SetId(int32_t value);
+	StructFieldBuilder &SetName(string value);
+	StructFieldBuilder &SetType(unique_ptr<Type> value);
+	StructFieldBuilder &SetRequired(bool value);
+	StructFieldBuilder &SetDoc(string value);
+	StructFieldBuilder &SetInitialDefault(PrimitiveTypeValue value);
+	StructFieldBuilder &SetWriteDefault(PrimitiveTypeValue value);
+	string TryBuild(StructField &result);
+	StructField Build();
+
+private:
+	StructField result_;
+	bool has_id_ = false;
+	bool has_name_ = false;
+	bool has_type_ = false;
+	bool has_required_ = false;
 };
 
 } // namespace rest_api_objects

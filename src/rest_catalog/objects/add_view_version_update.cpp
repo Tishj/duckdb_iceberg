@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/add_view_version_update.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,41 @@ namespace duckdb {
 namespace rest_api_objects {
 
 AddViewVersionUpdate::AddViewVersionUpdate() {
+}
+
+AddViewVersionUpdateBuilder::AddViewVersionUpdateBuilder() {
+}
+
+AddViewVersionUpdateBuilder &AddViewVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
+	result_.base_update = std::move(value);
+	return *this;
+}
+
+AddViewVersionUpdateBuilder &AddViewVersionUpdateBuilder::SetViewVersion(ViewVersion value) {
+	result_.view_version = std::move(value);
+	has_view_version_ = true;
+	return *this;
+}
+
+string AddViewVersionUpdateBuilder::TryBuild(AddViewVersionUpdate &result) {
+	if (!has_view_version_) {
+		return "AddViewVersionUpdate required property 'view-version' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+AddViewVersionUpdate AddViewVersionUpdateBuilder::Build() {
+	AddViewVersionUpdate result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
@@ -31,6 +68,19 @@ AddViewVersionUpdate AddViewVersionUpdate::Copy() const {
 	return res;
 }
 
+string AddViewVersionUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	error = view_version.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
+}
+
 string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
 	error = base_update.TryFromJSON(obj);
@@ -46,7 +96,7 @@ string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj) {
 			return error;
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void AddViewVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

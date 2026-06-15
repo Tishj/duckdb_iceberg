@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/snapshot_log.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -17,6 +19,45 @@ SnapshotLog::SnapshotLog() {
 SnapshotLog::Object3::Object3() {
 }
 
+SnapshotLog::Object3Builder::Object3Builder() {
+}
+
+SnapshotLog::Object3Builder &SnapshotLog::Object3Builder::SetSnapshotId(int64_t value) {
+	result_.snapshot_id = std::move(value);
+	has_snapshot_id_ = true;
+	return *this;
+}
+
+SnapshotLog::Object3Builder &SnapshotLog::Object3Builder::SetTimestampMs(int64_t value) {
+	result_.timestamp_ms = std::move(value);
+	has_timestamp_ms_ = true;
+	return *this;
+}
+
+string SnapshotLog::Object3Builder::TryBuild(SnapshotLog::Object3 &result) {
+	if (!has_snapshot_id_) {
+		return "Object3 required property 'snapshot-id' is missing";
+	}
+	if (!has_timestamp_ms_) {
+		return "Object3 required property 'timestamp-ms' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SnapshotLog::Object3 SnapshotLog::Object3Builder::Build() {
+	SnapshotLog::Object3 result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
+}
+
 SnapshotLog::Object3 SnapshotLog::Object3::FromJSON(yyjson_val *obj) {
 	Object3 res;
 	auto error = res.TryFromJSON(obj);
@@ -31,6 +72,11 @@ SnapshotLog::Object3 SnapshotLog::Object3::Copy() const {
 	res.snapshot_id = snapshot_id;
 	res.timestamp_ms = timestamp_ms;
 	return res;
+}
+
+string SnapshotLog::Object3::Validate() const {
+	string error;
+	return "";
 }
 
 string SnapshotLog::Object3::TryFromJSON(yyjson_val *obj) {
@@ -61,7 +107,7 @@ string SnapshotLog::Object3::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(timestamp_ms_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SnapshotLog::Object3::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -100,6 +146,17 @@ SnapshotLog SnapshotLog::Copy() const {
 	return res;
 }
 
+string SnapshotLog::Validate() const {
+	string error;
+	for (const auto &item : value) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
+}
+
 string SnapshotLog::TryFromJSON(yyjson_val *obj) {
 	string error;
 	if (yyjson_is_arr(obj)) {
@@ -117,7 +174,7 @@ string SnapshotLog::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("SnapshotLog property 'value' is not of type 'array', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return "";
+	return Validate();
 }
 
 yyjson_mut_val *SnapshotLog::ToJSON(yyjson_mut_doc *doc) const {

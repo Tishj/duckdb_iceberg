@@ -33,6 +33,7 @@ public:
 		// Deserialization
 		static Object7 FromJSON(yyjson_val *obj);
 		string TryFromJSON(yyjson_val *obj);
+		string Validate() const;
 
 		// Copy
 		Object7 Copy() const;
@@ -45,10 +46,23 @@ public:
 		PlanStatus status;
 	};
 
+	class Object7Builder {
+	public:
+		Object7Builder();
+		Object7Builder &SetStatus(PlanStatus value);
+		string TryBuild(Object7 &result);
+		Object7 Build();
+
+	private:
+		Object7 result_;
+		bool has_status_ = false;
+	};
+
 public:
 	// Deserialization
 	static FailedPlanningResult FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	FailedPlanningResult Copy() const;
@@ -60,6 +74,18 @@ public:
 public:
 	IcebergErrorResponse iceberg_error_response;
 	Object7 object_7;
+};
+
+class FailedPlanningResultBuilder {
+public:
+	FailedPlanningResultBuilder();
+	FailedPlanningResultBuilder &SetIcebergErrorResponse(IcebergErrorResponse value);
+	FailedPlanningResultBuilder &SetObject7(FailedPlanningResult::Object7 value);
+	string TryBuild(FailedPlanningResult &result);
+	FailedPlanningResult Build();
+
+private:
+	FailedPlanningResult result_;
 };
 
 } // namespace rest_api_objects

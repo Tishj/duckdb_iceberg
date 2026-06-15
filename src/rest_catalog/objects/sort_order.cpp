@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/sort_order.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,45 @@ namespace duckdb {
 namespace rest_api_objects {
 
 SortOrder::SortOrder() {
+}
+
+SortOrderBuilder::SortOrderBuilder() {
+}
+
+SortOrderBuilder &SortOrderBuilder::SetOrderId(int32_t value) {
+	result_.order_id = std::move(value);
+	has_order_id_ = true;
+	return *this;
+}
+
+SortOrderBuilder &SortOrderBuilder::SetFields(vector<SortField> value) {
+	result_.fields = std::move(value);
+	has_fields_ = true;
+	return *this;
+}
+
+string SortOrderBuilder::TryBuild(SortOrder &result) {
+	if (!has_order_id_) {
+		return "SortOrder required property 'order-id' is missing";
+	}
+	if (!has_fields_) {
+		return "SortOrder required property 'fields' is missing";
+	}
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+SortOrder SortOrderBuilder::Build() {
+	SortOrder result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 SortOrder SortOrder::FromJSON(yyjson_val *obj) {
@@ -32,6 +73,17 @@ SortOrder SortOrder::Copy() const {
 		res.fields.emplace_back(item.Copy());
 	}
 	return res;
+}
+
+string SortOrder::Validate() const {
+	string error;
+	for (const auto &item : fields) {
+		error = item.Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	return "";
 }
 
 string SortOrder::TryFromJSON(yyjson_val *obj) {
@@ -67,7 +119,7 @@ string SortOrder::TryFromJSON(yyjson_val *obj) {
 			                          yyjson_get_type_desc(fields_val));
 		}
 	}
-	return "";
+	return Validate();
 }
 
 void SortOrder::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

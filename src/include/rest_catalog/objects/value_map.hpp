@@ -26,6 +26,7 @@ public:
 	// Deserialization
 	static ValueMap FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	ValueMap Copy() const;
@@ -37,6 +38,18 @@ public:
 public:
 	optional<vector<IntegerTypeValue>> keys;
 	optional<vector<PrimitiveTypeValue>> values;
+};
+
+class ValueMapBuilder {
+public:
+	ValueMapBuilder();
+	ValueMapBuilder &SetKeys(vector<IntegerTypeValue> value);
+	ValueMapBuilder &SetValues(vector<PrimitiveTypeValue> value);
+	string TryBuild(ValueMap &result);
+	ValueMap Build();
+
+private:
+	ValueMap result_;
 };
 
 } // namespace rest_api_objects

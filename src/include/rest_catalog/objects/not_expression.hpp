@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static NotExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	NotExpression Copy() const;
@@ -38,6 +39,20 @@ public:
 public:
 	ExpressionType type;
 	unique_ptr<Expression> child;
+};
+
+class NotExpressionBuilder {
+public:
+	NotExpressionBuilder();
+	NotExpressionBuilder &SetType(ExpressionType value);
+	NotExpressionBuilder &SetChild(unique_ptr<Expression> value);
+	string TryBuild(NotExpression &result);
+	NotExpression Build();
+
+private:
+	NotExpression result_;
+	bool has_type_ = false;
+	bool has_child_ = false;
 };
 
 } // namespace rest_api_objects

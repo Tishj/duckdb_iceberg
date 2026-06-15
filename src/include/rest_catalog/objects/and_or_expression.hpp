@@ -27,6 +27,7 @@ public:
 	// Deserialization
 	static AndOrExpression FromJSON(yyjson_val *obj);
 	string TryFromJSON(yyjson_val *obj);
+	string Validate() const;
 
 	// Copy
 	AndOrExpression Copy() const;
@@ -39,6 +40,22 @@ public:
 	ExpressionType type;
 	unique_ptr<Expression> left;
 	unique_ptr<Expression> right;
+};
+
+class AndOrExpressionBuilder {
+public:
+	AndOrExpressionBuilder();
+	AndOrExpressionBuilder &SetType(ExpressionType value);
+	AndOrExpressionBuilder &SetLeft(unique_ptr<Expression> value);
+	AndOrExpressionBuilder &SetRight(unique_ptr<Expression> value);
+	string TryBuild(AndOrExpression &result);
+	AndOrExpression Build();
+
+private:
+	AndOrExpression result_;
+	bool has_type_ = false;
+	bool has_left_ = false;
+	bool has_right_ = false;
 };
 
 } // namespace rest_api_objects

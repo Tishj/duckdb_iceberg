@@ -1,6 +1,8 @@
 
 #include "rest_catalog/objects/fetch_planning_result.hpp"
 
+#include <regex>
+
 #include "yyjson.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
@@ -13,6 +15,42 @@ namespace duckdb {
 namespace rest_api_objects {
 
 FetchPlanningResult::FetchPlanningResult() {
+}
+
+FetchPlanningResultBuilder::FetchPlanningResultBuilder() {
+}
+
+FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetCompletedPlanningResult(CompletedPlanningResult value) {
+	result_.completed_planning_result = std::move(value);
+	return *this;
+}
+
+FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetFailedPlanningResult(FailedPlanningResult value) {
+	result_.failed_planning_result = std::move(value);
+	return *this;
+}
+
+FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetEmptyPlanningResult(EmptyPlanningResult value) {
+	result_.empty_planning_result = std::move(value);
+	return *this;
+}
+
+string FetchPlanningResultBuilder::TryBuild(FetchPlanningResult &result) {
+	auto error = result_.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	result = std::move(result_);
+	return "";
+}
+
+FetchPlanningResult FetchPlanningResultBuilder::Build() {
+	FetchPlanningResult result;
+	auto error = TryBuild(result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return result;
 }
 
 FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
@@ -41,6 +79,36 @@ FetchPlanningResult FetchPlanningResult::Copy() const {
 	return res;
 }
 
+string FetchPlanningResult::Validate() const {
+	string error;
+	int matched_one_of_variants = 0;
+	if (completed_planning_result.has_value()) {
+		matched_one_of_variants++;
+		error = completed_planning_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (failed_planning_result.has_value()) {
+		matched_one_of_variants++;
+		error = failed_planning_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (empty_planning_result.has_value()) {
+		matched_one_of_variants++;
+		error = empty_planning_result->Validate();
+		if (!error.empty()) {
+			return error;
+		}
+	}
+	if (matched_one_of_variants != 1) {
+		return "FetchPlanningResult must have exactly one oneOf variant set";
+	}
+	return "";
+}
+
 string FetchPlanningResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
@@ -67,7 +135,7 @@ string FetchPlanningResult::TryFromJSON(yyjson_val *obj) {
 		}
 		return "FetchPlanningResult failed to parse, none of the oneOf candidates matched";
 	} while (false);
-	return "";
+	return Validate();
 }
 
 void FetchPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
