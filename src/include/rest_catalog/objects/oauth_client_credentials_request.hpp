@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class OAuthClientCredentialsRequestBuilder;
+
 class OAuthClientCredentialsRequest {
 public:
-	OAuthClientCredentialsRequest();
 	OAuthClientCredentialsRequest(const OAuthClientCredentialsRequest &) = delete;
 	OAuthClientCredentialsRequest &operator=(const OAuthClientCredentialsRequest &) = delete;
 	OAuthClientCredentialsRequest(OAuthClientCredentialsRequest &&) = default;
 	OAuthClientCredentialsRequest &operator=(OAuthClientCredentialsRequest &&) = default;
+
+private:
+	friend class OAuthClientCredentialsRequestBuilder;
+	friend class GeneratedObjectAccess;
+	OAuthClientCredentialsRequest();
 
 public:
 	// Deserialization

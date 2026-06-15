@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TableMetadata::TableMetadata() {
+TableMetadata::TableMetadata()
+    : properties(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()),
+      refs(GeneratedObjectAccess::Create<optional<SnapshotReferences>>()) {
 }
 
 TableMetadataBuilder::TableMetadataBuilder() {
@@ -187,7 +189,7 @@ TableMetadata TableMetadata::Copy() const {
 		(*res.next_row_id) = (*next_row_id);
 	}
 	if (properties.has_value()) {
-		res.properties.emplace();
+		res.properties = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*properties)) {
 			(*res.properties).emplace(entry.first, entry.second);
 		}
@@ -248,7 +250,7 @@ TableMetadata TableMetadata::Copy() const {
 		}
 	}
 	if (refs.has_value()) {
-		res.refs.emplace();
+		res.refs = GeneratedObjectAccess::Create<SnapshotReferences>();
 		(*res.refs) = (*refs).Copy();
 	}
 	if (current_snapshot_id.has_value()) {
@@ -464,7 +466,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(schemas_val, idx, max, val) {
-				Schema tmp;
+				auto tmp = GeneratedObjectAccess::Create<Schema>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -508,7 +510,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(partition_specs_val, idx, max, val) {
-				PartitionSpec tmp;
+				auto tmp = GeneratedObjectAccess::Create<PartitionSpec>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -553,7 +555,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(sort_orders_val, idx, max, val) {
-				SortOrder tmp;
+				auto tmp = GeneratedObjectAccess::Create<SortOrder>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -586,7 +588,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(encryption_keys_val, idx, max, val) {
-				EncryptedKey tmp;
+				auto tmp = GeneratedObjectAccess::Create<EncryptedKey>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -607,7 +609,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(snapshots_val, idx, max, val) {
-				Snapshot tmp;
+				auto tmp = GeneratedObjectAccess::Create<Snapshot>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -623,7 +625,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 	}
 	auto refs_val = yyjson_obj_get(obj, "refs");
 	if (refs_val) {
-		SnapshotReferences refs_tmp;
+		auto refs_tmp = GeneratedObjectAccess::Create<SnapshotReferences>();
 		error = refs_tmp.TryFromJSON(refs_val);
 		if (!error.empty()) {
 			return error;
@@ -687,7 +689,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(statistics_val, idx, max, val) {
-				StatisticsFile tmp;
+				auto tmp = GeneratedObjectAccess::Create<StatisticsFile>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -708,7 +710,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(partition_statistics_val, idx, max, val) {
-				PartitionStatisticsFile tmp;
+				auto tmp = GeneratedObjectAccess::Create<PartitionStatisticsFile>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

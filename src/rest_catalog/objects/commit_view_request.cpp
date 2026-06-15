@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CommitViewRequest::CommitViewRequest() {
+CommitViewRequest::CommitViewRequest() : identifier(GeneratedObjectAccess::Create<optional<TableIdentifier>>()) {
 }
 
 CommitViewRequestBuilder::CommitViewRequestBuilder() {
@@ -73,7 +73,7 @@ CommitViewRequest CommitViewRequest::Copy() const {
 		res.updates.emplace_back(item.Copy());
 	}
 	if (identifier.has_value()) {
-		res.identifier.emplace();
+		res.identifier = GeneratedObjectAccess::Create<TableIdentifier>();
 		(*res.identifier) = (*identifier).Copy();
 	}
 	if (requirements.has_value()) {
@@ -121,7 +121,7 @@ string CommitViewRequest::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(updates_val, idx, max, val) {
-				ViewUpdate tmp;
+				auto tmp = GeneratedObjectAccess::Create<ViewUpdate>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -135,7 +135,7 @@ string CommitViewRequest::TryFromJSON(yyjson_val *obj) {
 	}
 	auto identifier_val = yyjson_obj_get(obj, "identifier");
 	if (identifier_val) {
-		TableIdentifier identifier_tmp;
+		auto identifier_tmp = GeneratedObjectAccess::Create<TableIdentifier>();
 		error = identifier_tmp.TryFromJSON(identifier_val);
 		if (!error.empty()) {
 			return error;
@@ -149,7 +149,7 @@ string CommitViewRequest::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(requirements_val, idx, max, val) {
-				ViewRequirement tmp;
+				auto tmp = GeneratedObjectAccess::Create<ViewRequirement>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

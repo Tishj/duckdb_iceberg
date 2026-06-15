@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/struct_type.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,20 +14,34 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SchemaBuilder;
+
 class Schema {
 public:
-	Schema();
 	Schema(const Schema &) = delete;
 	Schema &operator=(const Schema &) = delete;
 	Schema(Schema &&) = default;
 	Schema &operator=(Schema &&) = default;
+
+private:
+	friend class SchemaBuilder;
+	friend class GeneratedObjectAccess;
+	Schema();
+
+public:
+	class Object1Builder;
+
 	class Object1 {
 	public:
-		Object1();
 		Object1(const Object1 &) = delete;
 		Object1 &operator=(const Object1 &) = delete;
 		Object1(Object1 &&) = default;
 		Object1 &operator=(Object1 &&) = default;
+
+	private:
+		friend class Object1Builder;
+		friend class GeneratedObjectAccess;
+		Object1();
 
 	public:
 		// Deserialization

@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
@@ -14,11 +15,11 @@ namespace rest_api_objects {
 
 class TimeTypeValue {
 public:
-	TimeTypeValue();
 	TimeTypeValue(const TimeTypeValue &) = delete;
 	TimeTypeValue &operator=(const TimeTypeValue &) = delete;
 	TimeTypeValue(TimeTypeValue &&) = default;
 	TimeTypeValue &operator=(TimeTypeValue &&) = default;
+	TimeTypeValue();
 
 public:
 	// Deserialization

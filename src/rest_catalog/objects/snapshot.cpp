@@ -14,9 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Snapshot::Snapshot() {
+Snapshot::Snapshot() : summary(GeneratedObjectAccess::Create<Object2>()) {
 }
-Snapshot::Object2::Object2() {
+Snapshot::Object2::Object2() : additional_properties(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
 }
 
 Snapshot::Object2Builder::Object2Builder() {

@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FailedPlanningResult::FailedPlanningResult() {
+FailedPlanningResult::FailedPlanningResult()
+    : iceberg_error_response(GeneratedObjectAccess::Create<IcebergErrorResponse>()),
+      object_7(GeneratedObjectAccess::Create<Object7>()) {
 }
 FailedPlanningResult::Object7::Object7() {
 }

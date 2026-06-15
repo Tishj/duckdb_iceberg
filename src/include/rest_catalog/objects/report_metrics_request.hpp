@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/commit_report.hpp"
 #include "rest_catalog/objects/scan_report.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class ReportMetricsRequestBuilder;
+
 class ReportMetricsRequest {
 public:
-	ReportMetricsRequest();
 	ReportMetricsRequest(const ReportMetricsRequest &) = delete;
 	ReportMetricsRequest &operator=(const ReportMetricsRequest &) = delete;
 	ReportMetricsRequest(ReportMetricsRequest &&) = default;
 	ReportMetricsRequest &operator=(ReportMetricsRequest &&) = default;
+
+private:
+	friend class ReportMetricsRequestBuilder;
+	friend class GeneratedObjectAccess;
+	ReportMetricsRequest();
 
 public:
 	// Deserialization

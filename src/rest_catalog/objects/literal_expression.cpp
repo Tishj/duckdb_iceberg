@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LiteralExpression::LiteralExpression() {
+LiteralExpression::LiteralExpression()
+    : term(GeneratedObjectAccess::Create<Term>()), value(GeneratedObjectAccess::Create<PrimitiveTypeValue>()) {
 }
 
 LiteralExpressionBuilder::LiteralExpressionBuilder() {

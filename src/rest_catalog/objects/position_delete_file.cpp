@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PositionDeleteFile::PositionDeleteFile() {
+PositionDeleteFile::PositionDeleteFile() : content_file(GeneratedObjectAccess::Create<ContentFile>()) {
 }
 
 PositionDeleteFileBuilder::PositionDeleteFileBuilder() {

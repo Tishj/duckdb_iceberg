@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-BlobMetadata::BlobMetadata() {
+BlobMetadata::BlobMetadata() : properties(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 BlobMetadataBuilder::BlobMetadataBuilder() {
@@ -98,7 +98,7 @@ BlobMetadata BlobMetadata::Copy() const {
 		res.fields.emplace_back(item);
 	}
 	if (properties.has_value()) {
-		res.properties.emplace();
+		res.properties = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*properties)) {
 			(*res.properties).emplace(entry.first, entry.second);
 		}

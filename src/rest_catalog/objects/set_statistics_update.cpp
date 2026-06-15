@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetStatisticsUpdate::SetStatisticsUpdate() {
+SetStatisticsUpdate::SetStatisticsUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
+      statistics(GeneratedObjectAccess::Create<StatisticsFile>()) {
 }
 
 SetStatisticsUpdateBuilder::SetStatisticsUpdateBuilder() {

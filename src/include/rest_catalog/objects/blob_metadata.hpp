@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class BlobMetadataBuilder;
+
 class BlobMetadata {
 public:
-	BlobMetadata();
 	BlobMetadata(const BlobMetadata &) = delete;
 	BlobMetadata &operator=(const BlobMetadata &) = delete;
 	BlobMetadata(BlobMetadata &&) = default;
 	BlobMetadata &operator=(BlobMetadata &&) = default;
+
+private:
+	friend class BlobMetadataBuilder;
+	friend class GeneratedObjectAccess;
+	BlobMetadata();
 
 public:
 	// Deserialization

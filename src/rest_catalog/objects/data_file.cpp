@@ -14,7 +14,14 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DataFile::DataFile() {
+DataFile::DataFile()
+    : content_file(GeneratedObjectAccess::Create<ContentFile>()),
+      column_sizes(GeneratedObjectAccess::Create<optional<CountMap>>()),
+      value_counts(GeneratedObjectAccess::Create<optional<CountMap>>()),
+      null_value_counts(GeneratedObjectAccess::Create<optional<CountMap>>()),
+      nan_value_counts(GeneratedObjectAccess::Create<optional<CountMap>>()),
+      lower_bounds(GeneratedObjectAccess::Create<optional<ValueMap>>()),
+      upper_bounds(GeneratedObjectAccess::Create<optional<ValueMap>>()) {
 }
 
 DataFileBuilder::DataFileBuilder() {
@@ -95,27 +102,27 @@ DataFile DataFile::Copy() const {
 		(*res.first_row_id) = (*first_row_id);
 	}
 	if (column_sizes.has_value()) {
-		res.column_sizes.emplace();
+		res.column_sizes = GeneratedObjectAccess::Create<CountMap>();
 		(*res.column_sizes) = (*column_sizes).Copy();
 	}
 	if (value_counts.has_value()) {
-		res.value_counts.emplace();
+		res.value_counts = GeneratedObjectAccess::Create<CountMap>();
 		(*res.value_counts) = (*value_counts).Copy();
 	}
 	if (null_value_counts.has_value()) {
-		res.null_value_counts.emplace();
+		res.null_value_counts = GeneratedObjectAccess::Create<CountMap>();
 		(*res.null_value_counts) = (*null_value_counts).Copy();
 	}
 	if (nan_value_counts.has_value()) {
-		res.nan_value_counts.emplace();
+		res.nan_value_counts = GeneratedObjectAccess::Create<CountMap>();
 		(*res.nan_value_counts) = (*nan_value_counts).Copy();
 	}
 	if (lower_bounds.has_value()) {
-		res.lower_bounds.emplace();
+		res.lower_bounds = GeneratedObjectAccess::Create<ValueMap>();
 		(*res.lower_bounds) = (*lower_bounds).Copy();
 	}
 	if (upper_bounds.has_value()) {
-		res.upper_bounds.emplace();
+		res.upper_bounds = GeneratedObjectAccess::Create<ValueMap>();
 		(*res.upper_bounds) = (*upper_bounds).Copy();
 	}
 	return res;
@@ -188,7 +195,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 	}
 	auto column_sizes_val = yyjson_obj_get(obj, "column-sizes");
 	if (column_sizes_val) {
-		CountMap column_sizes_tmp;
+		auto column_sizes_tmp = GeneratedObjectAccess::Create<CountMap>();
 		error = column_sizes_tmp.TryFromJSON(column_sizes_val);
 		if (!error.empty()) {
 			return error;
@@ -197,7 +204,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 	}
 	auto value_counts_val = yyjson_obj_get(obj, "value-counts");
 	if (value_counts_val) {
-		CountMap value_counts_tmp;
+		auto value_counts_tmp = GeneratedObjectAccess::Create<CountMap>();
 		error = value_counts_tmp.TryFromJSON(value_counts_val);
 		if (!error.empty()) {
 			return error;
@@ -206,7 +213,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 	}
 	auto null_value_counts_val = yyjson_obj_get(obj, "null-value-counts");
 	if (null_value_counts_val) {
-		CountMap null_value_counts_tmp;
+		auto null_value_counts_tmp = GeneratedObjectAccess::Create<CountMap>();
 		error = null_value_counts_tmp.TryFromJSON(null_value_counts_val);
 		if (!error.empty()) {
 			return error;
@@ -215,7 +222,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 	}
 	auto nan_value_counts_val = yyjson_obj_get(obj, "nan-value-counts");
 	if (nan_value_counts_val) {
-		CountMap nan_value_counts_tmp;
+		auto nan_value_counts_tmp = GeneratedObjectAccess::Create<CountMap>();
 		error = nan_value_counts_tmp.TryFromJSON(nan_value_counts_val);
 		if (!error.empty()) {
 			return error;
@@ -224,7 +231,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 	}
 	auto lower_bounds_val = yyjson_obj_get(obj, "lower-bounds");
 	if (lower_bounds_val) {
-		ValueMap lower_bounds_tmp;
+		auto lower_bounds_tmp = GeneratedObjectAccess::Create<ValueMap>();
 		error = lower_bounds_tmp.TryFromJSON(lower_bounds_val);
 		if (!error.empty()) {
 			return error;
@@ -233,7 +240,7 @@ string DataFile::TryFromJSON(yyjson_val *obj) {
 	}
 	auto upper_bounds_val = yyjson_obj_get(obj, "upper-bounds");
 	if (upper_bounds_val) {
-		ValueMap upper_bounds_tmp;
+		auto upper_bounds_tmp = GeneratedObjectAccess::Create<ValueMap>();
 		error = upper_bounds_tmp.TryFromJSON(upper_bounds_val);
 		if (!error.empty()) {
 			return error;

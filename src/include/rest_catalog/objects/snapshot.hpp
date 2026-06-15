@@ -6,26 +6,41 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class SnapshotBuilder;
+
 class Snapshot {
 public:
-	Snapshot();
 	Snapshot(const Snapshot &) = delete;
 	Snapshot &operator=(const Snapshot &) = delete;
 	Snapshot(Snapshot &&) = default;
 	Snapshot &operator=(Snapshot &&) = default;
+
+private:
+	friend class SnapshotBuilder;
+	friend class GeneratedObjectAccess;
+	Snapshot();
+
+public:
+	class Object2Builder;
+
 	class Object2 {
 	public:
-		Object2();
 		Object2(const Object2 &) = delete;
 		Object2 &operator=(const Object2 &) = delete;
 		Object2(Object2 &&) = default;
 		Object2 &operator=(Object2 &&) = default;
+
+	private:
+		friend class Object2Builder;
+		friend class GeneratedObjectAccess;
+		Object2();
 
 	public:
 		// Deserialization

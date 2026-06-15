@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-OAuthTokenRequest::OAuthTokenRequest() {
+OAuthTokenRequest::OAuthTokenRequest()
+    : oauth_client_credentials_request(GeneratedObjectAccess::Create<optional<OAuthClientCredentialsRequest>>()),
+      oauth_token_exchange_request(GeneratedObjectAccess::Create<optional<OAuthTokenExchangeRequest>>()) {
 }
 
 OAuthTokenRequestBuilder::OAuthTokenRequestBuilder() {
@@ -61,11 +63,11 @@ OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
 OAuthTokenRequest OAuthTokenRequest::Copy() const {
 	OAuthTokenRequest res;
 	if (oauth_client_credentials_request.has_value()) {
-		res.oauth_client_credentials_request.emplace();
+		res.oauth_client_credentials_request = GeneratedObjectAccess::Create<OAuthClientCredentialsRequest>();
 		(*res.oauth_client_credentials_request) = (*oauth_client_credentials_request).Copy();
 	}
 	if (oauth_token_exchange_request.has_value()) {
-		res.oauth_token_exchange_request.emplace();
+		res.oauth_token_exchange_request = GeneratedObjectAccess::Create<OAuthTokenExchangeRequest>();
 		(*res.oauth_token_exchange_request) = (*oauth_token_exchange_request).Copy();
 	}
 	return res;
@@ -96,13 +98,13 @@ string OAuthTokenRequest::Validate() const {
 
 string OAuthTokenRequest::TryFromJSON(yyjson_val *obj) {
 	string error;
-	oauth_client_credentials_request.emplace();
+	oauth_client_credentials_request = GeneratedObjectAccess::Create<OAuthClientCredentialsRequest>();
 	error = oauth_client_credentials_request->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		oauth_client_credentials_request = nullopt;
 	}
-	oauth_token_exchange_request.emplace();
+	oauth_token_exchange_request = GeneratedObjectAccess::Create<OAuthTokenExchangeRequest>();
 	error = oauth_token_exchange_request->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {

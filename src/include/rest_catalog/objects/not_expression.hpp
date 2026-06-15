@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/expression_type.hpp"
 
 using namespace duckdb_yyjson;
@@ -15,13 +16,19 @@ namespace rest_api_objects {
 
 class Expression;
 
+class NotExpressionBuilder;
+
 class NotExpression {
 public:
-	NotExpression();
 	NotExpression(const NotExpression &) = delete;
 	NotExpression &operator=(const NotExpression &) = delete;
 	NotExpression(NotExpression &&) = default;
 	NotExpression &operator=(NotExpression &&) = default;
+
+private:
+	friend class NotExpressionBuilder;
+	friend class GeneratedObjectAccess;
+	NotExpression();
 
 public:
 	// Deserialization

@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LoadViewResult::LoadViewResult() {
+LoadViewResult::LoadViewResult()
+    : metadata(GeneratedObjectAccess::Create<ViewMetadata>()),
+      config(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 LoadViewResultBuilder::LoadViewResultBuilder() {
@@ -75,7 +77,7 @@ LoadViewResult LoadViewResult::Copy() const {
 	res.metadata_location = metadata_location;
 	res.metadata = metadata.Copy();
 	if (config.has_value()) {
-		res.config.emplace();
+		res.config = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*config)) {
 			(*res.config).emplace(entry.first, entry.second);
 		}

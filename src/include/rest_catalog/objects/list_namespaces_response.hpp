@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/namespace.hpp"
 #include "rest_catalog/objects/page_token.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class ListNamespacesResponseBuilder;
+
 class ListNamespacesResponse {
 public:
-	ListNamespacesResponse();
 	ListNamespacesResponse(const ListNamespacesResponse &) = delete;
 	ListNamespacesResponse &operator=(const ListNamespacesResponse &) = delete;
 	ListNamespacesResponse(ListNamespacesResponse &&) = default;
 	ListNamespacesResponse &operator=(ListNamespacesResponse &&) = default;
+
+private:
+	friend class ListNamespacesResponseBuilder;
+	friend class GeneratedObjectAccess;
+	ListNamespacesResponse();
 
 public:
 	// Deserialization

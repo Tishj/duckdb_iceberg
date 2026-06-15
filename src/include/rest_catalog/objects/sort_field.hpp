@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/null_order.hpp"
 #include "rest_catalog/objects/sort_direction.hpp"
 #include "rest_catalog/objects/transform.hpp"
@@ -15,13 +16,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SortFieldBuilder;
+
 class SortField {
 public:
-	SortField();
 	SortField(const SortField &) = delete;
 	SortField &operator=(const SortField &) = delete;
 	SortField(SortField &&) = default;
 	SortField &operator=(SortField &&) = default;
+
+private:
+	friend class SortFieldBuilder;
+	friend class GeneratedObjectAccess;
+	SortField();
 
 public:
 	// Deserialization

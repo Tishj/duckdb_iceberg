@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/table_requirement_type.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class AssertTableUUIDBuilder;
+
 class AssertTableUUID {
 public:
-	AssertTableUUID();
 	AssertTableUUID(const AssertTableUUID &) = delete;
 	AssertTableUUID &operator=(const AssertTableUUID &) = delete;
 	AssertTableUUID(AssertTableUUID &&) = default;
 	AssertTableUUID &operator=(AssertTableUUID &&) = default;
+
+private:
+	friend class AssertTableUUIDBuilder;
+	friend class GeneratedObjectAccess;
+	AssertTableUUID();
 
 public:
 	// Deserialization

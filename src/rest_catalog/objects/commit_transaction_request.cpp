@@ -86,7 +86,7 @@ string CommitTransactionRequest::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(table_changes_val, idx, max, val) {
-				CommitTableRequest tmp;
+				auto tmp = GeneratedObjectAccess::Create<CommitTableRequest>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-MetricResult::MetricResult() {
+MetricResult::MetricResult()
+    : counter_result(GeneratedObjectAccess::Create<optional<CounterResult>>()),
+      timer_result(GeneratedObjectAccess::Create<optional<TimerResult>>()) {
 }
 
 MetricResultBuilder::MetricResultBuilder() {
@@ -60,11 +62,11 @@ MetricResult MetricResult::FromJSON(yyjson_val *obj) {
 MetricResult MetricResult::Copy() const {
 	MetricResult res;
 	if (counter_result.has_value()) {
-		res.counter_result.emplace();
+		res.counter_result = GeneratedObjectAccess::Create<CounterResult>();
 		(*res.counter_result) = (*counter_result).Copy();
 	}
 	if (timer_result.has_value()) {
-		res.timer_result.emplace();
+		res.timer_result = GeneratedObjectAccess::Create<TimerResult>();
 		(*res.timer_result) = (*timer_result).Copy();
 	}
 	return res;
@@ -95,13 +97,13 @@ string MetricResult::Validate() const {
 
 string MetricResult::TryFromJSON(yyjson_val *obj) {
 	string error;
-	counter_result.emplace();
+	counter_result = GeneratedObjectAccess::Create<CounterResult>();
 	error = counter_result->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		counter_result = nullopt;
 	}
-	timer_result.emplace();
+	timer_result = GeneratedObjectAccess::Create<TimerResult>();
 	error = timer_result->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {

@@ -86,7 +86,7 @@ string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				StorageCredential tmp;
+				auto tmp = GeneratedObjectAccess::Create<StorageCredential>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

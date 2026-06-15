@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PlanTableScanRequest::PlanTableScanRequest() {
+PlanTableScanRequest::PlanTableScanRequest() : filter(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
 }
 
 PlanTableScanRequestBuilder::PlanTableScanRequestBuilder() {
@@ -204,7 +204,7 @@ string PlanTableScanRequest::TryFromJSON(yyjson_val *obj) {
 	}
 	auto filter_val = yyjson_obj_get(obj, "filter");
 	if (filter_val) {
-		filter = make_uniq<Expression>();
+		filter = GeneratedObjectAccess::CreateUnique<Expression>();
 		error = filter->TryFromJSON(filter_val);
 		if (!error.empty()) {
 			return error;

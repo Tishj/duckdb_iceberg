@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/base_update.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SetDefaultSortOrderUpdateBuilder;
+
 class SetDefaultSortOrderUpdate {
 public:
-	SetDefaultSortOrderUpdate();
 	SetDefaultSortOrderUpdate(const SetDefaultSortOrderUpdate &) = delete;
 	SetDefaultSortOrderUpdate &operator=(const SetDefaultSortOrderUpdate &) = delete;
 	SetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate &&) = default;
 	SetDefaultSortOrderUpdate &operator=(SetDefaultSortOrderUpdate &&) = default;
+
+private:
+	friend class SetDefaultSortOrderUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	SetDefaultSortOrderUpdate();
 
 public:
 	// Deserialization

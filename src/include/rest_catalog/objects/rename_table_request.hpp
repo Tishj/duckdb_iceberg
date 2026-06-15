@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/table_identifier.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class RenameTableRequestBuilder;
+
 class RenameTableRequest {
 public:
-	RenameTableRequest();
 	RenameTableRequest(const RenameTableRequest &) = delete;
 	RenameTableRequest &operator=(const RenameTableRequest &) = delete;
 	RenameTableRequest(RenameTableRequest &&) = default;
 	RenameTableRequest &operator=(RenameTableRequest &&) = default;
+
+private:
+	friend class RenameTableRequestBuilder;
+	friend class GeneratedObjectAccess;
+	RenameTableRequest();
 
 public:
 	// Deserialization

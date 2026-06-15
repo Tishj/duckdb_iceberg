@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/add_encryption_key_update.hpp"
 #include "rest_catalog/objects/add_partition_spec_update.hpp"
 #include "rest_catalog/objects/add_schema_update.hpp"
@@ -33,13 +34,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class TableUpdateBuilder;
+
 class TableUpdate {
 public:
-	TableUpdate();
 	TableUpdate(const TableUpdate &) = delete;
 	TableUpdate &operator=(const TableUpdate &) = delete;
 	TableUpdate(TableUpdate &&) = default;
 	TableUpdate &operator=(TableUpdate &&) = default;
+
+private:
+	friend class TableUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	TableUpdate();
 
 public:
 	// Deserialization

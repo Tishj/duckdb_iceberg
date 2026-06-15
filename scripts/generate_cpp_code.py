@@ -88,6 +88,7 @@ HEADER_FORMAT = """
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 {ADDITIONAL_HEADERS}
 
 using namespace duckdb_yyjson;
@@ -496,7 +497,7 @@ class CPPClass:
         res = []
         for item in self.all_of:
             if item.dereference_style == '->':
-                res.append(f'{item.name} = make_uniq<{item.class_name}>();')
+                res.append(f'{item.name} = {self.create_unique_value_expression(item.class_name)};')
             res.extend(
                 [
                     f'error = {item.name}{item.dereference_style}TryFromJSON(obj);' 'if (!error.empty()) {',
@@ -514,9 +515,12 @@ class CPPClass:
         for item in self.one_of:
             is_recursive = item.class_name in self.parse_info.recursive_schemas
             if is_recursive:
-                res.append(f'{item.name} = make_uniq<{item.class_name}>();')
+                res.append(f'{item.name} = {self.create_unique_value_expression(item.class_name)};')
             else:
-                res.append(f'{item.name}.emplace();')
+                if self.type_uses_private_constructor(item.class_name):
+                    res.append(f'{item.name} = {self.create_default_value_expression(item.class_name)};')
+                else:
+                    res.append(f'{item.name}.emplace();')
             res.extend(
                 [
                     f'error = {item.name}->TryFromJSON(obj);',
@@ -547,9 +551,12 @@ class CPPClass:
         for item in self.any_of:
             is_recursive = item.class_name in self.parse_info.recursive_schemas
             if is_recursive:
-                res.append(f'{item.name} = make_uniq<{item.class_name}>();')
+                res.append(f'{item.name} = {self.create_unique_value_expression(item.class_name)};')
             else:
-                res.append(f'{item.name}.emplace();')
+                if self.type_uses_private_constructor(item.class_name):
+                    res.append(f'{item.name} = {self.create_default_value_expression(item.class_name)};')
+                else:
+                    res.append(f'{item.name}.emplace();')
             res.extend(
                 [
                     f'error = {item.name}->TryFromJSON(obj);',
@@ -681,7 +688,7 @@ class CPPClass:
         if self.uses_optional_wrapper(schema):
             tmp_name = f'{target}_tmp'
             variable_type = self.generate_variable_type(schema)
-            res = [f'{variable_type} {tmp_name};']
+            res = [self.default_initialized_declaration(variable_type, tmp_name)]
             res.extend(self.generate_assignment(schema, tmp_name, source, True, handle_nullable=False))
             res.append(f'{target} = std::move({tmp_name});')
             return res
@@ -721,7 +728,10 @@ class CPPClass:
             target = f'res.{member.variable_name}'
             source = member.variable_name
             if member.uses_optional_wrapper:
-                lines = [f'{target}.emplace();']
+                if self.schema_uses_private_constructor(member.schema):
+                    lines = [f'{target} = {self.create_default_value_expression(self.generate_variable_type(member.schema))};']
+                else:
+                    lines = [f'{target}.emplace();']
                 lines.extend(
                     self.write_copy_assignment_lines(
                         self.value_access_expression(target, True),
@@ -1020,6 +1030,39 @@ class CPPClass:
         lines.append('};')
         return lines
 
+    def schema_uses_private_constructor(self, schema: Optional[Property]) -> bool:
+        if schema is None:
+            return False
+        if schema.type == Property.Type.SCHEMA_REFERENCE:
+            schema_property = cast(SchemaReferenceProperty, schema)
+            return self.schema_uses_private_constructor(self.parse_info.parsed_schemas[schema_property.ref])
+        return schema.type == Property.Type.OBJECT
+
+    def type_uses_private_constructor(self, type_name: str) -> bool:
+        if type_name not in self.parse_info.parsed_schemas:
+            return False
+        return self.schema_uses_private_constructor(self.parse_info.parsed_schemas[type_name])
+
+    def create_default_value_expression(self, type_name: str) -> str:
+        return f'GeneratedObjectAccess::Create<{type_name}>()'
+
+    def create_unique_value_expression(self, type_name: str) -> str:
+        return f'GeneratedObjectAccess::CreateUnique<{type_name}>()'
+
+    def default_initialized_declaration(self, type_name: str, variable_name: str) -> str:
+        if self.type_uses_private_constructor(type_name):
+            return f'auto {variable_name} = {self.create_default_value_expression(type_name)};'
+        return f'{type_name} {variable_name};'
+
+    def constructor_member_initializers(self) -> List[str]:
+        initializers = []
+        for member in self.members:
+            if self.schema_uses_private_constructor(member.schema):
+                initializers.append(
+                    f'{member.variable_name}({self.create_default_value_expression(member.variable_type)})'
+                )
+        return initializers
+
     def write_builder_source(self, base: str, qualified_name: str) -> List[str]:
         if not self.is_object_schema():
             return []
@@ -1085,8 +1128,11 @@ class CPPClass:
         base = '::'.join(base_class) + '::' if base_class else ''
         qualified_name = f'{base}{self.name}'
         supports_population = self.supports_json_object_population()
-
-        res.append(f'{qualified_name}::{self.name}() {{}}')
+        member_initializers = self.constructor_member_initializers()
+        constructor_signature = f'{qualified_name}::{self.name}()'
+        if member_initializers:
+            constructor_signature += f' : {", ".join(member_initializers)}'
+        res.append(f'{constructor_signature} {{}}')
         res.extend(self.write_nested_classes_source(base_class))
         res.extend(self.write_builder_source(base, qualified_name))
 
@@ -1142,17 +1188,37 @@ class CPPClass:
     def write_header(self) -> List[str]:
         res = []
         supports_population = self.supports_json_object_population() and self.name not in SERIALIZATION_EXCLUDED
+        if self.is_object_schema():
+            res.extend(
+                [
+                    f'class {self.builder_class_name()};',
+                    '',
+                ]
+            )
         res.extend(
             [
                 f'class {self.name} {{',
                 'public:',
-                f'\t{self.name}();',
                 f'\t{self.name}(const {self.name}&) = delete;',
                 f'\t{self.name}& operator=(const {self.name}&) = delete;',
                 f'\t{self.name}({self.name}&&) = default;',
                 f'\t{self.name} &operator=({self.name}&&) = default;',
             ]
         )
+        if self.is_object_schema():
+            res.extend(
+                [
+                    'private:',
+                    f'\tfriend class {self.builder_class_name()};',
+                    '\tfriend class GeneratedObjectAccess;',
+                    f'\t{self.name}();',
+                    '',
+                ]
+            )
+        else:
+            res.append(f'\t{self.name}();')
+        if self.nested_classes:
+            res.append('public:')
         res.extend(self.write_nested_classes_header())
         res.extend(
             [
@@ -1247,17 +1313,17 @@ class CPPClass:
 
         assignment = 'std::move(tmp)'
         if item_type.type != Property.Type.SCHEMA_REFERENCE:
-            body.append(f'{self.generate_variable_type(item_type)} tmp;')
+            body.append(self.default_initialized_declaration(self.generate_variable_type(item_type), 'tmp'))
             body.extend(self.generate_item_parse(item_type, 'val', 'tmp', True))
         else:
             schema_property = cast(SchemaReferenceProperty, item_type)
             self.referenced_schemas.add(schema_property.ref)
             item_definition = ''
             if schema_property.ref in self.parse_info.recursive_schemas:
-                body.extend([f'\tauto tmp_p = make_uniq<{schema_property.ref}>();', '\tauto &tmp = *tmp_p;'])
+                body.extend([f'\tauto tmp_p = {self.create_unique_value_expression(schema_property.ref)};', '\tauto &tmp = *tmp_p;'])
                 assignment = 'std::move(tmp_p)'
             else:
-                body.append(f'\t{schema_property.ref} tmp;')
+                body.append(f'\t{self.default_initialized_declaration(schema_property.ref, "tmp")}')
             body.extend(['\terror = tmp.TryFromJSON(val);', '\tif (!error.empty()) {', '\t\treturn error;', '\t}'])
         body.append(f'\t{destination_name}.emplace_back({assignment});')
         body.append('}')
@@ -1389,7 +1455,7 @@ class CPPClass:
             )
             # FIXME: check for null in returned char*?
             res.append('\t\tauto key_str = yyjson_get_str(key);')
-            res.append(f'\t\t{self.generate_variable_type(additional_properties)} tmp;')
+            res.append(f'\t\t{self.default_initialized_declaration(self.generate_variable_type(additional_properties), "tmp")}')
 
             if additional_properties.type != Property.Type.SCHEMA_REFERENCE:
                 item_definition = [
@@ -1402,7 +1468,7 @@ class CPPClass:
                 if schema_property.ref in self.parse_info.recursive_schemas:
                     print(f"Encountered recursive schema '{schema_property.ref}' in 'generate_additional_properties'")
                     exit(1)
-                res.append(f'\t\t{schema_property.ref} tmp;')
+                res.append(f'\t\t{self.default_initialized_declaration(schema_property.ref, "tmp")}')
                 res.extend(
                     [
                         '\t\terror = tmp.TryFromJSON(val);',
@@ -1435,7 +1501,7 @@ class CPPClass:
             result = []
             dereference_style = '.'
             if schema_property.ref in self.parse_info.recursive_schemas:
-                result.append(f'{target} = make_uniq<{schema_property.ref}>();')
+                result.append(f'{target} = {self.create_unique_value_expression(schema_property.ref)};')
                 dereference_style = '->'
             result.extend(
                 [
@@ -1510,7 +1576,7 @@ class CPPClass:
 
         body = []
         if additional_properties.type != Property.Type.SCHEMA_REFERENCE:
-            body.append(f'\t{self.generate_variable_type(additional_properties)} tmp;')
+            body.append(f'\t{self.default_initialized_declaration(self.generate_variable_type(additional_properties), "tmp")}')
             body.extend(self.generate_item_parse(additional_properties, 'val', 'tmp', True))
         else:
             schema_property = cast(SchemaReferenceProperty, additional_properties)
@@ -1518,7 +1584,7 @@ class CPPClass:
             if schema_property.ref in self.parse_info.recursive_schemas:
                 print(f"Encountered recursive schema '{schema_property.ref}' in 'generate_additional_properties'")
                 exit(1)
-            body.append(f'\t{schema_property.ref} tmp;')
+            body.append(f'\t{self.default_initialized_declaration(schema_property.ref, "tmp")}')
             body.extend(
                 [
                     'error = tmp.TryFromJSON(val);',

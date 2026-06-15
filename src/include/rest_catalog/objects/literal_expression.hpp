@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/expression_type.hpp"
 #include "rest_catalog/objects/primitive_type_value.hpp"
 #include "rest_catalog/objects/term.hpp"
@@ -15,13 +16,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class LiteralExpressionBuilder;
+
 class LiteralExpression {
 public:
-	LiteralExpression();
 	LiteralExpression(const LiteralExpression &) = delete;
 	LiteralExpression &operator=(const LiteralExpression &) = delete;
 	LiteralExpression(LiteralExpression &&) = default;
 	LiteralExpression &operator=(LiteralExpression &&) = default;
+
+private:
+	friend class LiteralExpressionBuilder;
+	friend class GeneratedObjectAccess;
+	LiteralExpression();
 
 public:
 	// Deserialization

@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/delete_file.hpp"
 #include "rest_catalog/objects/file_scan_task.hpp"
 #include "rest_catalog/objects/plan_task.hpp"
@@ -15,13 +16,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class ScanTasksBuilder;
+
 class ScanTasks {
 public:
-	ScanTasks();
 	ScanTasks(const ScanTasks &) = delete;
 	ScanTasks &operator=(const ScanTasks &) = delete;
 	ScanTasks(ScanTasks &&) = default;
 	ScanTasks &operator=(ScanTasks &&) = default;
+
+private:
+	friend class ScanTasksBuilder;
+	friend class GeneratedObjectAccess;
+	ScanTasks();
 
 public:
 	// Deserialization

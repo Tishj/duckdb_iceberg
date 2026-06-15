@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/plan_task.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class FetchScanTasksRequestBuilder;
+
 class FetchScanTasksRequest {
 public:
-	FetchScanTasksRequest();
 	FetchScanTasksRequest(const FetchScanTasksRequest &) = delete;
 	FetchScanTasksRequest &operator=(const FetchScanTasksRequest &) = delete;
 	FetchScanTasksRequest(FetchScanTasksRequest &&) = default;
 	FetchScanTasksRequest &operator=(FetchScanTasksRequest &&) = default;
+
+private:
+	friend class FetchScanTasksRequestBuilder;
+	friend class GeneratedObjectAccess;
+	FetchScanTasksRequest();
 
 public:
 	// Deserialization

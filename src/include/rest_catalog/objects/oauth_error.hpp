@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class OAuthErrorBuilder;
+
 class OAuthError {
 public:
-	OAuthError();
 	OAuthError(const OAuthError &) = delete;
 	OAuthError &operator=(const OAuthError &) = delete;
 	OAuthError(OAuthError &&) = default;
 	OAuthError &operator=(OAuthError &&) = default;
+
+private:
+	friend class OAuthErrorBuilder;
+	friend class GeneratedObjectAccess;
+	OAuthError();
 
 public:
 	// Deserialization

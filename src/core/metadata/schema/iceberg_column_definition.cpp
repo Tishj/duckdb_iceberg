@@ -157,11 +157,12 @@ CreateStructField(const string &name, int32_t field_id, bool required, const res
                   const optional<string> &doc = std::nullopt,
                   const optional<rest_api_objects::PrimitiveTypeValue> &initial_default = std::nullopt,
                   const optional<rest_api_objects::PrimitiveTypeValue> &write_default = std::nullopt) {
-	rest_api_objects::StructField result;
-	result.id = field_id;
-	result.name = name;
-	result.type = make_uniq<rest_api_objects::Type>(iceberg_type.Copy());
-	result.required = required;
+	auto result = rest_api_objects::StructFieldBuilder()
+	                  .SetId(field_id)
+	                  .SetName(name)
+	                  .SetType(make_uniq<rest_api_objects::Type>(iceberg_type.Copy()))
+	                  .SetRequired(required)
+	                  .Build();
 	result._doc = doc;
 	if (initial_default) {
 		result.initial_default = initial_default->Copy();

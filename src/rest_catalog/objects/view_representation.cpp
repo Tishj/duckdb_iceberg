@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewRepresentation::ViewRepresentation() {
+ViewRepresentation::ViewRepresentation()
+    : sqlview_representation(GeneratedObjectAccess::Create<optional<SQLViewRepresentation>>()) {
 }
 
 ViewRepresentationBuilder::ViewRepresentationBuilder() {
@@ -55,7 +56,7 @@ ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
 ViewRepresentation ViewRepresentation::Copy() const {
 	ViewRepresentation res;
 	if (sqlview_representation.has_value()) {
-		res.sqlview_representation.emplace();
+		res.sqlview_representation = GeneratedObjectAccess::Create<SQLViewRepresentation>();
 		(*res.sqlview_representation) = (*sqlview_representation).Copy();
 	}
 	return res;
@@ -80,7 +81,7 @@ string ViewRepresentation::Validate() const {
 string ViewRepresentation::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		sqlview_representation.emplace();
+		sqlview_representation = GeneratedObjectAccess::Create<SQLViewRepresentation>();
 		error = sqlview_representation->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

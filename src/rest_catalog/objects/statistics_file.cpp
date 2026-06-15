@@ -180,7 +180,7 @@ string StatisticsFile::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(blob_metadata_val, idx, max, val) {
-				BlobMetadata tmp;
+				auto tmp = GeneratedObjectAccess::Create<BlobMetadata>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

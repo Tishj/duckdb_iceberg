@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/metrics.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class CommitReportBuilder;
+
 class CommitReport {
 public:
-	CommitReport();
 	CommitReport(const CommitReport &) = delete;
 	CommitReport &operator=(const CommitReport &) = delete;
 	CommitReport(CommitReport &&) = default;
 	CommitReport &operator=(CommitReport &&) = default;
+
+private:
+	friend class CommitReportBuilder;
+	friend class GeneratedObjectAccess;
+	CommitReport();
 
 public:
 	// Deserialization

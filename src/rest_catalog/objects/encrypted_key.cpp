@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-EncryptedKey::EncryptedKey() {
+EncryptedKey::EncryptedKey() : properties(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 EncryptedKeyBuilder::EncryptedKeyBuilder() {
@@ -84,7 +84,7 @@ EncryptedKey EncryptedKey::Copy() const {
 		(*res.encrypted_by_id) = (*encrypted_by_id);
 	}
 	if (properties.has_value()) {
-		res.properties.emplace();
+		res.properties = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*properties)) {
 			(*res.properties).emplace(entry.first, entry.second);
 		}

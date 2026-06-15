@@ -14,7 +14,10 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-StructField::StructField() {
+StructField::StructField()
+    : type(GeneratedObjectAccess::Create<unique_ptr<Type>>()),
+      initial_default(GeneratedObjectAccess::Create<optional<PrimitiveTypeValue>>()),
+      write_default(GeneratedObjectAccess::Create<optional<PrimitiveTypeValue>>()) {
 }
 
 StructFieldBuilder::StructFieldBuilder() {
@@ -109,11 +112,11 @@ StructField StructField::Copy() const {
 		(*res._doc) = (*_doc);
 	}
 	if (initial_default.has_value()) {
-		res.initial_default.emplace();
+		res.initial_default = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
 		(*res.initial_default) = (*initial_default).Copy();
 	}
 	if (write_default.has_value()) {
-		res.write_default.emplace();
+		res.write_default = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
 		(*res.write_default) = (*write_default).Copy();
 	}
 	return res;
@@ -168,7 +171,7 @@ string StructField::TryFromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		return "StructField required property 'type' is missing";
 	} else {
-		type = make_uniq<Type>();
+		type = GeneratedObjectAccess::CreateUnique<Type>();
 		error = type->TryFromJSON(type_val);
 		if (!error.empty()) {
 			return error;
@@ -198,7 +201,7 @@ string StructField::TryFromJSON(yyjson_val *obj) {
 	}
 	auto initial_default_val = yyjson_obj_get(obj, "initial-default");
 	if (initial_default_val) {
-		PrimitiveTypeValue initial_default_tmp;
+		auto initial_default_tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
 		error = initial_default_tmp.TryFromJSON(initial_default_val);
 		if (!error.empty()) {
 			return error;
@@ -207,7 +210,7 @@ string StructField::TryFromJSON(yyjson_val *obj) {
 	}
 	auto write_default_val = yyjson_obj_get(obj, "write-default");
 	if (write_default_val) {
-		PrimitiveTypeValue write_default_tmp;
+		auto write_default_tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
 		error = write_default_tmp.TryFromJSON(write_default_val);
 		if (!error.empty()) {
 			return error;

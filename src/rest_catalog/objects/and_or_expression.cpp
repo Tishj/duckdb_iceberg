@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AndOrExpression::AndOrExpression() {
+AndOrExpression::AndOrExpression()
+    : left(GeneratedObjectAccess::Create<unique_ptr<Expression>>()),
+      right(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
 }
 
 AndOrExpressionBuilder::AndOrExpressionBuilder() {
@@ -117,7 +119,7 @@ string AndOrExpression::TryFromJSON(yyjson_val *obj) {
 	if (!left_val) {
 		return "AndOrExpression required property 'left' is missing";
 	} else {
-		left = make_uniq<Expression>();
+		left = GeneratedObjectAccess::CreateUnique<Expression>();
 		error = left->TryFromJSON(left_val);
 		if (!error.empty()) {
 			return error;
@@ -127,7 +129,7 @@ string AndOrExpression::TryFromJSON(yyjson_val *obj) {
 	if (!right_val) {
 		return "AndOrExpression required property 'right' is missing";
 	} else {
-		right = make_uniq<Expression>();
+		right = GeneratedObjectAccess::CreateUnique<Expression>();
 		error = right->TryFromJSON(right_val);
 		if (!error.empty()) {
 			return error;

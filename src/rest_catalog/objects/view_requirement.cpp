@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewRequirement::ViewRequirement() {
+ViewRequirement::ViewRequirement() : assert_view_uuid(GeneratedObjectAccess::Create<optional<AssertViewUUID>>()) {
 }
 
 ViewRequirementBuilder::ViewRequirementBuilder() {
@@ -55,7 +55,7 @@ ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
 ViewRequirement ViewRequirement::Copy() const {
 	ViewRequirement res;
 	if (assert_view_uuid.has_value()) {
-		res.assert_view_uuid.emplace();
+		res.assert_view_uuid = GeneratedObjectAccess::Create<AssertViewUUID>();
 		(*res.assert_view_uuid) = (*assert_view_uuid).Copy();
 	}
 	return res;
@@ -80,7 +80,7 @@ string ViewRequirement::Validate() const {
 string ViewRequirement::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		assert_view_uuid.emplace();
+		assert_view_uuid = GeneratedObjectAccess::Create<AssertViewUUID>();
 		error = assert_view_uuid->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

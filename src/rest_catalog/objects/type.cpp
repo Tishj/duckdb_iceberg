@@ -14,7 +14,10 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Type::Type() {
+Type::Type()
+    : struct_type(GeneratedObjectAccess::Create<optional<StructType>>()),
+      list_type(GeneratedObjectAccess::Create<optional<ListType>>()),
+      map_type(GeneratedObjectAccess::Create<optional<MapType>>()) {
 }
 
 TypeBuilder::TypeBuilder() {
@@ -74,15 +77,15 @@ Type Type::Copy() const {
 		(*res.primitive_type) = (*primitive_type).Copy();
 	}
 	if (struct_type.has_value()) {
-		res.struct_type.emplace();
+		res.struct_type = GeneratedObjectAccess::Create<StructType>();
 		(*res.struct_type) = (*struct_type).Copy();
 	}
 	if (list_type.has_value()) {
-		res.list_type.emplace();
+		res.list_type = GeneratedObjectAccess::Create<ListType>();
 		(*res.list_type) = (*list_type).Copy();
 	}
 	if (map_type.has_value()) {
-		res.map_type.emplace();
+		res.map_type = GeneratedObjectAccess::Create<MapType>();
 		(*res.map_type) = (*map_type).Copy();
 	}
 	return res;
@@ -135,21 +138,21 @@ string Type::TryFromJSON(yyjson_val *obj) {
 		} else {
 			primitive_type = nullopt;
 		}
-		struct_type.emplace();
+		struct_type = GeneratedObjectAccess::Create<StructType>();
 		error = struct_type->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			struct_type = nullopt;
 		}
-		list_type.emplace();
+		list_type = GeneratedObjectAccess::Create<ListType>();
 		error = list_type->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			list_type = nullopt;
 		}
-		map_type.emplace();
+		map_type = GeneratedObjectAccess::Create<MapType>();
 		error = map_type->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewMetadata::ViewMetadata() {
+ViewMetadata::ViewMetadata() : properties(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 ViewMetadataBuilder::ViewMetadataBuilder() {
@@ -134,7 +134,7 @@ ViewMetadata ViewMetadata::Copy() const {
 		res.schemas.emplace_back(item.Copy());
 	}
 	if (properties.has_value()) {
-		res.properties.emplace();
+		res.properties = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*properties)) {
 			(*res.properties).emplace(entry.first, entry.second);
 		}
@@ -227,7 +227,7 @@ string ViewMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(versions_val, idx, max, val) {
-				ViewVersion tmp;
+				auto tmp = GeneratedObjectAccess::Create<ViewVersion>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -247,7 +247,7 @@ string ViewMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(version_log_val, idx, max, val) {
-				ViewHistoryEntry tmp;
+				auto tmp = GeneratedObjectAccess::Create<ViewHistoryEntry>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -267,7 +267,7 @@ string ViewMetadata::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(schemas_val, idx, max, val) {
-				Schema tmp;
+				auto tmp = GeneratedObjectAccess::Create<Schema>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

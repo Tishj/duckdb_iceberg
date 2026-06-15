@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/token_type.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class OAuthTokenExchangeRequestBuilder;
+
 class OAuthTokenExchangeRequest {
 public:
-	OAuthTokenExchangeRequest();
 	OAuthTokenExchangeRequest(const OAuthTokenExchangeRequest &) = delete;
 	OAuthTokenExchangeRequest &operator=(const OAuthTokenExchangeRequest &) = delete;
 	OAuthTokenExchangeRequest(OAuthTokenExchangeRequest &&) = default;
 	OAuthTokenExchangeRequest &operator=(OAuthTokenExchangeRequest &&) = default;
+
+private:
+	friend class OAuthTokenExchangeRequestBuilder;
+	friend class GeneratedObjectAccess;
+	OAuthTokenExchangeRequest();
 
 public:
 	// Deserialization

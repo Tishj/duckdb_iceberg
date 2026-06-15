@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/plan_status.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class AsyncPlanningResultBuilder;
+
 class AsyncPlanningResult {
 public:
-	AsyncPlanningResult();
 	AsyncPlanningResult(const AsyncPlanningResult &) = delete;
 	AsyncPlanningResult &operator=(const AsyncPlanningResult &) = delete;
 	AsyncPlanningResult(AsyncPlanningResult &&) = default;
 	AsyncPlanningResult &operator=(AsyncPlanningResult &&) = default;
+
+private:
+	friend class AsyncPlanningResultBuilder;
+	friend class GeneratedObjectAccess;
+	AsyncPlanningResult();
 
 public:
 	// Deserialization

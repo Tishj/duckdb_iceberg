@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemovePropertiesUpdate::RemovePropertiesUpdate() {
+RemovePropertiesUpdate::RemovePropertiesUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
 }
 
 RemovePropertiesUpdateBuilder::RemovePropertiesUpdateBuilder() {

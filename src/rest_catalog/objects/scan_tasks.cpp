@@ -126,7 +126,7 @@ string ScanTasks::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(delete_files_val, idx, max, val) {
-				DeleteFile tmp;
+				auto tmp = GeneratedObjectAccess::Create<DeleteFile>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;
@@ -147,7 +147,7 @@ string ScanTasks::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(file_scan_tasks_val, idx, max, val) {
-				FileScanTask tmp;
+				auto tmp = GeneratedObjectAccess::Create<FileScanTask>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

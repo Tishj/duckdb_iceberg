@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-UnaryExpression::UnaryExpression() {
+UnaryExpression::UnaryExpression() : term(GeneratedObjectAccess::Create<Term>()) {
 }
 
 UnaryExpressionBuilder::UnaryExpressionBuilder() {

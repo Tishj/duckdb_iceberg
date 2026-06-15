@@ -14,7 +14,8 @@ struct IcebergTransactionDeleteUpdate;
 struct IcebergTransactionRenameUpdate;
 
 struct TableTransactionInfo {
-	TableTransactionInfo() {};
+	TableTransactionInfo()
+	    : request(rest_api_objects::CommitTransactionRequestBuilder().SetTableChanges({}).Build()) {};
 
 	rest_api_objects::CommitTransactionRequest request;
 	case_insensitive_map_t<idx_t> table_requests;

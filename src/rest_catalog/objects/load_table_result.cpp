@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LoadTableResult::LoadTableResult() {
+LoadTableResult::LoadTableResult()
+    : metadata(GeneratedObjectAccess::Create<TableMetadata>()),
+      config(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 LoadTableResultBuilder::LoadTableResultBuilder() {
@@ -79,7 +81,7 @@ LoadTableResult LoadTableResult::Copy() const {
 		(*res.metadata_location) = (*metadata_location);
 	}
 	if (config.has_value()) {
-		res.config.emplace();
+		res.config = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*config)) {
 			(*res.config).emplace(entry.first, entry.second);
 		}
@@ -168,7 +170,7 @@ string LoadTableResult::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				StorageCredential tmp;
+				auto tmp = GeneratedObjectAccess::Create<StorageCredential>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

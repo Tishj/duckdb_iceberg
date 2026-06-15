@@ -95,7 +95,7 @@ string PartitionSpec::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(fields_val, idx, max, val) {
-				PartitionField tmp;
+				auto tmp = GeneratedObjectAccess::Create<PartitionField>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

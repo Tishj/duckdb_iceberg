@@ -14,7 +14,15 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TableRequirement::TableRequirement() {
+TableRequirement::TableRequirement()
+    : assert_create(GeneratedObjectAccess::Create<optional<AssertCreate>>()),
+      assert_table_uuid(GeneratedObjectAccess::Create<optional<AssertTableUUID>>()),
+      assert_ref_snapshot_id(GeneratedObjectAccess::Create<optional<AssertRefSnapshotId>>()),
+      assert_last_assigned_field_id(GeneratedObjectAccess::Create<optional<AssertLastAssignedFieldId>>()),
+      assert_current_schema_id(GeneratedObjectAccess::Create<optional<AssertCurrentSchemaId>>()),
+      assert_last_assigned_partition_id(GeneratedObjectAccess::Create<optional<AssertLastAssignedPartitionId>>()),
+      assert_default_spec_id(GeneratedObjectAccess::Create<optional<AssertDefaultSpecId>>()),
+      assert_default_sort_order_id(GeneratedObjectAccess::Create<optional<AssertDefaultSortOrderId>>()) {
 }
 
 TableRequirementBuilder::TableRequirementBuilder() {
@@ -91,35 +99,35 @@ TableRequirement TableRequirement::FromJSON(yyjson_val *obj) {
 TableRequirement TableRequirement::Copy() const {
 	TableRequirement res;
 	if (assert_create.has_value()) {
-		res.assert_create.emplace();
+		res.assert_create = GeneratedObjectAccess::Create<AssertCreate>();
 		(*res.assert_create) = (*assert_create).Copy();
 	}
 	if (assert_table_uuid.has_value()) {
-		res.assert_table_uuid.emplace();
+		res.assert_table_uuid = GeneratedObjectAccess::Create<AssertTableUUID>();
 		(*res.assert_table_uuid) = (*assert_table_uuid).Copy();
 	}
 	if (assert_ref_snapshot_id.has_value()) {
-		res.assert_ref_snapshot_id.emplace();
+		res.assert_ref_snapshot_id = GeneratedObjectAccess::Create<AssertRefSnapshotId>();
 		(*res.assert_ref_snapshot_id) = (*assert_ref_snapshot_id).Copy();
 	}
 	if (assert_last_assigned_field_id.has_value()) {
-		res.assert_last_assigned_field_id.emplace();
+		res.assert_last_assigned_field_id = GeneratedObjectAccess::Create<AssertLastAssignedFieldId>();
 		(*res.assert_last_assigned_field_id) = (*assert_last_assigned_field_id).Copy();
 	}
 	if (assert_current_schema_id.has_value()) {
-		res.assert_current_schema_id.emplace();
+		res.assert_current_schema_id = GeneratedObjectAccess::Create<AssertCurrentSchemaId>();
 		(*res.assert_current_schema_id) = (*assert_current_schema_id).Copy();
 	}
 	if (assert_last_assigned_partition_id.has_value()) {
-		res.assert_last_assigned_partition_id.emplace();
+		res.assert_last_assigned_partition_id = GeneratedObjectAccess::Create<AssertLastAssignedPartitionId>();
 		(*res.assert_last_assigned_partition_id) = (*assert_last_assigned_partition_id).Copy();
 	}
 	if (assert_default_spec_id.has_value()) {
-		res.assert_default_spec_id.emplace();
+		res.assert_default_spec_id = GeneratedObjectAccess::Create<AssertDefaultSpecId>();
 		(*res.assert_default_spec_id) = (*assert_default_spec_id).Copy();
 	}
 	if (assert_default_sort_order_id.has_value()) {
-		res.assert_default_sort_order_id.emplace();
+		res.assert_default_sort_order_id = GeneratedObjectAccess::Create<AssertDefaultSortOrderId>();
 		(*res.assert_default_sort_order_id) = (*assert_default_sort_order_id).Copy();
 	}
 	return res;
@@ -193,56 +201,56 @@ string TableRequirement::Validate() const {
 string TableRequirement::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		assert_create.emplace();
+		assert_create = GeneratedObjectAccess::Create<AssertCreate>();
 		error = assert_create->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_create = nullopt;
 		}
-		assert_table_uuid.emplace();
+		assert_table_uuid = GeneratedObjectAccess::Create<AssertTableUUID>();
 		error = assert_table_uuid->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_table_uuid = nullopt;
 		}
-		assert_ref_snapshot_id.emplace();
+		assert_ref_snapshot_id = GeneratedObjectAccess::Create<AssertRefSnapshotId>();
 		error = assert_ref_snapshot_id->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_ref_snapshot_id = nullopt;
 		}
-		assert_last_assigned_field_id.emplace();
+		assert_last_assigned_field_id = GeneratedObjectAccess::Create<AssertLastAssignedFieldId>();
 		error = assert_last_assigned_field_id->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_last_assigned_field_id = nullopt;
 		}
-		assert_current_schema_id.emplace();
+		assert_current_schema_id = GeneratedObjectAccess::Create<AssertCurrentSchemaId>();
 		error = assert_current_schema_id->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_current_schema_id = nullopt;
 		}
-		assert_last_assigned_partition_id.emplace();
+		assert_last_assigned_partition_id = GeneratedObjectAccess::Create<AssertLastAssignedPartitionId>();
 		error = assert_last_assigned_partition_id->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_last_assigned_partition_id = nullopt;
 		}
-		assert_default_spec_id.emplace();
+		assert_default_spec_id = GeneratedObjectAccess::Create<AssertDefaultSpecId>();
 		error = assert_default_spec_id->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			assert_default_spec_id = nullopt;
 		}
-		assert_default_sort_order_id.emplace();
+		assert_default_sort_order_id = GeneratedObjectAccess::Create<AssertDefaultSortOrderId>();
 		error = assert_default_sort_order_id->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

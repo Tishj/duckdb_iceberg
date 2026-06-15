@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest() {
+UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest()
+    : updates(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 UpdateNamespacePropertiesRequestBuilder::UpdateNamespacePropertiesRequestBuilder() {
@@ -68,7 +69,7 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const 
 		}
 	}
 	if (updates.has_value()) {
-		res.updates.emplace();
+		res.updates = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*updates)) {
 			(*res.updates).emplace(entry.first, entry.second);
 		}

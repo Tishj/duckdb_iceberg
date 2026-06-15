@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
@@ -14,11 +15,11 @@ namespace rest_api_objects {
 
 class Namespace {
 public:
-	Namespace();
 	Namespace(const Namespace &) = delete;
 	Namespace &operator=(const Namespace &) = delete;
 	Namespace(Namespace &&) = default;
 	Namespace &operator=(Namespace &&) = default;
+	Namespace();
 
 public:
 	// Deserialization

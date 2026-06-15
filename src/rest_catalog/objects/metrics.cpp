@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Metrics::Metrics() {
+Metrics::Metrics() : additional_properties(GeneratedObjectAccess::Create<case_insensitive_map_t<MetricResult>>()) {
 }
 
 MetricsBuilder::MetricsBuilder() {
@@ -77,7 +77,7 @@ string Metrics::TryFromJSON(yyjson_val *obj) {
 	yyjson_val *key, *val;
 	yyjson_obj_foreach(obj, idx, max, key, val) {
 		auto key_str = yyjson_get_str(key);
-		MetricResult tmp;
+		auto tmp = GeneratedObjectAccess::Create<MetricResult>();
 		error = tmp.TryFromJSON(val);
 		if (!error.empty()) {
 			return error;

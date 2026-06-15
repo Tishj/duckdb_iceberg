@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-StorageCredential::StorageCredential() {
+StorageCredential::StorageCredential() : config(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
 }
 
 StorageCredentialBuilder::StorageCredentialBuilder() {

@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class RegisterViewRequestBuilder;
+
 class RegisterViewRequest {
 public:
-	RegisterViewRequest();
 	RegisterViewRequest(const RegisterViewRequest &) = delete;
 	RegisterViewRequest &operator=(const RegisterViewRequest &) = delete;
 	RegisterViewRequest(RegisterViewRequest &&) = default;
 	RegisterViewRequest &operator=(RegisterViewRequest &&) = default;
+
+private:
+	friend class RegisterViewRequestBuilder;
+	friend class GeneratedObjectAccess;
+	RegisterViewRequest();
 
 public:
 	// Deserialization

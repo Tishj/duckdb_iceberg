@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate() {
+SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
 }
 
 SetDefaultSortOrderUpdateBuilder::SetDefaultSortOrderUpdateBuilder() {

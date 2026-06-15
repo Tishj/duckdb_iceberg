@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Term::Term() {
+Term::Term() : transform_term(GeneratedObjectAccess::Create<optional<TransformTerm>>()) {
 }
 
 TermBuilder::TermBuilder() {
@@ -64,7 +64,7 @@ Term Term::Copy() const {
 		(*res.reference) = (*reference).Copy();
 	}
 	if (transform_term.has_value()) {
-		res.transform_term.emplace();
+		res.transform_term = GeneratedObjectAccess::Create<TransformTerm>();
 		(*res.transform_term) = (*transform_term).Copy();
 	}
 	return res;
@@ -103,7 +103,7 @@ string Term::TryFromJSON(yyjson_val *obj) {
 		} else {
 			reference = nullopt;
 		}
-		transform_term.emplace();
+		transform_term = GeneratedObjectAccess::Create<TransformTerm>();
 		error = transform_term->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

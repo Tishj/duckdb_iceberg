@@ -127,17 +127,17 @@ static IcebergSnapshotMetrics MetricsFromSummary(const case_insensitive_map_t<st
 }
 
 rest_api_objects::Snapshot IcebergSnapshot::ToRESTObject(const IcebergTableMetadata &table_metadata) const {
-	rest_api_objects::Snapshot res;
-
-	res.snapshot_id = snapshot_id;
-	res.timestamp_ms = timestamp_ms.value;
-	res.manifest_list = manifest_list;
-
-	res.summary.operation = OperationTypeToString(operation);
+	auto summary = rest_api_objects::Snapshot::Object2Builder().SetOperation(OperationTypeToString(operation)).Build();
 	auto &metrics_map = metrics.metrics;
 	for (auto &entry : metrics_map) {
-		res.summary.additional_properties[MetricsTypeToString(entry.first)] = std::to_string(entry.second);
+		summary.additional_properties[MetricsTypeToString(entry.first)] = std::to_string(entry.second);
 	}
+	auto res = rest_api_objects::SnapshotBuilder()
+	               .SetSnapshotId(snapshot_id)
+	               .SetTimestampMs(timestamp_ms.value)
+	               .SetManifestList(manifest_list)
+	               .SetSummary(std::move(summary))
+	               .Build();
 
 	if (has_parent_snapshot) {
 		res.parent_snapshot_id = parent_snapshot_id;

@@ -5,7 +5,8 @@
 namespace duckdb {
 
 IcebergCommitState::IcebergCommitState(const IcebergTableInformation &table_info, ClientContext &context)
-    : table_info(table_info), context(context) {
+    : table_info(table_info), context(context),
+      table_change(rest_api_objects::CommitTableRequestBuilder().SetRequirements({}).SetUpdates({}).Build()) {
 	next_sequence_number = table_info.table_metadata.last_sequence_number + 1;
 	if (table_info.table_metadata.has_next_row_id) {
 		next_row_id = table_info.table_metadata.next_row_id;

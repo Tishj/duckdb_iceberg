@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate() {
+RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
 }
 
 RemovePartitionStatisticsUpdateBuilder::RemovePartitionStatisticsUpdateBuilder() {

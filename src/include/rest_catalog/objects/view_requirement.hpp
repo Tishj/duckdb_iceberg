@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/assert_view_uuid.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class ViewRequirementBuilder;
+
 class ViewRequirement {
 public:
-	ViewRequirement();
 	ViewRequirement(const ViewRequirement &) = delete;
 	ViewRequirement &operator=(const ViewRequirement &) = delete;
 	ViewRequirement(ViewRequirement &&) = default;
 	ViewRequirement &operator=(ViewRequirement &&) = default;
+
+private:
+	friend class ViewRequirementBuilder;
+	friend class GeneratedObjectAccess;
+	ViewRequirement();
 
 public:
 	// Deserialization

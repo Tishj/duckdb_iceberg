@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-MapType::MapType() {
+MapType::MapType()
+    : key(GeneratedObjectAccess::Create<unique_ptr<Type>>()), value(GeneratedObjectAccess::Create<unique_ptr<Type>>()) {
 }
 
 MapTypeBuilder::MapTypeBuilder() {
@@ -156,7 +157,7 @@ string MapType::TryFromJSON(yyjson_val *obj) {
 	if (!key_val) {
 		return "MapType required property 'key' is missing";
 	} else {
-		key = make_uniq<Type>();
+		key = GeneratedObjectAccess::CreateUnique<Type>();
 		error = key->TryFromJSON(key_val);
 		if (!error.empty()) {
 			return error;
@@ -177,7 +178,7 @@ string MapType::TryFromJSON(yyjson_val *obj) {
 	if (!value_val) {
 		return "MapType required property 'value' is missing";
 	} else {
-		value = make_uniq<Type>();
+		value = GeneratedObjectAccess::CreateUnique<Type>();
 		error = value->TryFromJSON(value_val);
 		if (!error.empty()) {
 			return error;

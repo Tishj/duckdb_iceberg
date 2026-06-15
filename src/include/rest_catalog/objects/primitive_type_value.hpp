@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/binary_type_value.hpp"
 #include "rest_catalog/objects/boolean_type_value.hpp"
 #include "rest_catalog/objects/date_type_value.hpp"
@@ -28,13 +29,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class PrimitiveTypeValueBuilder;
+
 class PrimitiveTypeValue {
 public:
-	PrimitiveTypeValue();
 	PrimitiveTypeValue(const PrimitiveTypeValue &) = delete;
 	PrimitiveTypeValue &operator=(const PrimitiveTypeValue &) = delete;
 	PrimitiveTypeValue(PrimitiveTypeValue &&) = default;
 	PrimitiveTypeValue &operator=(PrimitiveTypeValue &&) = default;
+
+private:
+	friend class PrimitiveTypeValueBuilder;
+	friend class GeneratedObjectAccess;
+	PrimitiveTypeValue();
 
 public:
 	// Deserialization

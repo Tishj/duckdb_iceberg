@@ -126,7 +126,7 @@ string ValueMap::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(values_val, idx, max, val) {
-				PrimitiveTypeValue tmp;
+				auto tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/field_name.hpp"
 
 using namespace duckdb_yyjson;
@@ -15,13 +16,19 @@ namespace rest_api_objects {
 
 class Expression;
 
+class PlanTableScanRequestBuilder;
+
 class PlanTableScanRequest {
 public:
-	PlanTableScanRequest();
 	PlanTableScanRequest(const PlanTableScanRequest &) = delete;
 	PlanTableScanRequest &operator=(const PlanTableScanRequest &) = delete;
 	PlanTableScanRequest(PlanTableScanRequest &&) = default;
 	PlanTableScanRequest &operator=(PlanTableScanRequest &&) = default;
+
+private:
+	friend class PlanTableScanRequestBuilder;
+	friend class GeneratedObjectAccess;
+	PlanTableScanRequest();
 
 public:
 	// Deserialization

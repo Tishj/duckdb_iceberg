@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class StorageCredentialBuilder;
+
 class StorageCredential {
 public:
-	StorageCredential();
 	StorageCredential(const StorageCredential &) = delete;
 	StorageCredential &operator=(const StorageCredential &) = delete;
 	StorageCredential(StorageCredential &&) = default;
 	StorageCredential &operator=(StorageCredential &&) = default;
+
+private:
+	friend class StorageCredentialBuilder;
+	friend class GeneratedObjectAccess;
+	StorageCredential();
 
 public:
 	// Deserialization

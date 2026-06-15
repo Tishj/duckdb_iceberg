@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class PartitionStatisticsFileBuilder;
+
 class PartitionStatisticsFile {
 public:
-	PartitionStatisticsFile();
 	PartitionStatisticsFile(const PartitionStatisticsFile &) = delete;
 	PartitionStatisticsFile &operator=(const PartitionStatisticsFile &) = delete;
 	PartitionStatisticsFile(PartitionStatisticsFile &&) = default;
 	PartitionStatisticsFile &operator=(PartitionStatisticsFile &&) = default;
+
+private:
+	friend class PartitionStatisticsFileBuilder;
+	friend class GeneratedObjectAccess;
+	PartitionStatisticsFile();
 
 public:
 	// Deserialization

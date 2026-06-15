@@ -14,7 +14,11 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CreateTableRequest::CreateTableRequest() {
+CreateTableRequest::CreateTableRequest()
+    : schema(GeneratedObjectAccess::Create<Schema>()),
+      partition_spec(GeneratedObjectAccess::Create<optional<PartitionSpec>>()),
+      write_order(GeneratedObjectAccess::Create<optional<SortOrder>>()),
+      properties(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 CreateTableRequestBuilder::CreateTableRequestBuilder() {
@@ -99,11 +103,11 @@ CreateTableRequest CreateTableRequest::Copy() const {
 		(*res.location) = (*location);
 	}
 	if (partition_spec.has_value()) {
-		res.partition_spec.emplace();
+		res.partition_spec = GeneratedObjectAccess::Create<PartitionSpec>();
 		(*res.partition_spec) = (*partition_spec).Copy();
 	}
 	if (write_order.has_value()) {
-		res.write_order.emplace();
+		res.write_order = GeneratedObjectAccess::Create<SortOrder>();
 		(*res.write_order) = (*write_order).Copy();
 	}
 	if (stage_create.has_value()) {
@@ -111,7 +115,7 @@ CreateTableRequest CreateTableRequest::Copy() const {
 		(*res.stage_create) = (*stage_create);
 	}
 	if (properties.has_value()) {
-		res.properties.emplace();
+		res.properties = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*properties)) {
 			(*res.properties).emplace(entry.first, entry.second);
 		}
@@ -176,7 +180,7 @@ string CreateTableRequest::TryFromJSON(yyjson_val *obj) {
 	}
 	auto partition_spec_val = yyjson_obj_get(obj, "partition-spec");
 	if (partition_spec_val) {
-		PartitionSpec partition_spec_tmp;
+		auto partition_spec_tmp = GeneratedObjectAccess::Create<PartitionSpec>();
 		error = partition_spec_tmp.TryFromJSON(partition_spec_val);
 		if (!error.empty()) {
 			return error;
@@ -185,7 +189,7 @@ string CreateTableRequest::TryFromJSON(yyjson_val *obj) {
 	}
 	auto write_order_val = yyjson_obj_get(obj, "write-order");
 	if (write_order_val) {
-		SortOrder write_order_tmp;
+		auto write_order_tmp = GeneratedObjectAccess::Create<SortOrder>();
 		error = write_order_tmp.TryFromJSON(write_order_val);
 		if (!error.empty()) {
 			return error;

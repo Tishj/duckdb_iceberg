@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddViewVersionUpdate::AddViewVersionUpdate() {
+AddViewVersionUpdate::AddViewVersionUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
+      view_version(GeneratedObjectAccess::Create<ViewVersion>()) {
 }
 
 AddViewVersionUpdateBuilder::AddViewVersionUpdateBuilder() {

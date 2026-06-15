@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate() {
+SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
+      partition_statistics(GeneratedObjectAccess::Create<PartitionStatisticsFile>()) {
 }
 
 SetPartitionStatisticsUpdateBuilder::SetPartitionStatisticsUpdateBuilder() {

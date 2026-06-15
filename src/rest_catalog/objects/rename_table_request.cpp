@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RenameTableRequest::RenameTableRequest() {
+RenameTableRequest::RenameTableRequest()
+    : source(GeneratedObjectAccess::Create<TableIdentifier>()),
+      destination(GeneratedObjectAccess::Create<TableIdentifier>()) {
 }
 
 RenameTableRequestBuilder::RenameTableRequestBuilder() {

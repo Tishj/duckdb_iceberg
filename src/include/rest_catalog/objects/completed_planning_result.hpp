@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/plan_status.hpp"
 #include "rest_catalog/objects/scan_tasks.hpp"
 #include "rest_catalog/objects/storage_credential.hpp"
@@ -15,20 +16,34 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class CompletedPlanningResultBuilder;
+
 class CompletedPlanningResult {
 public:
-	CompletedPlanningResult();
 	CompletedPlanningResult(const CompletedPlanningResult &) = delete;
 	CompletedPlanningResult &operator=(const CompletedPlanningResult &) = delete;
 	CompletedPlanningResult(CompletedPlanningResult &&) = default;
 	CompletedPlanningResult &operator=(CompletedPlanningResult &&) = default;
+
+private:
+	friend class CompletedPlanningResultBuilder;
+	friend class GeneratedObjectAccess;
+	CompletedPlanningResult();
+
+public:
+	class Object5Builder;
+
 	class Object5 {
 	public:
-		Object5();
 		Object5(const Object5 &) = delete;
 		Object5 &operator=(const Object5 &) = delete;
 		Object5(Object5 &&) = default;
 		Object5 &operator=(Object5 &&) = default;
+
+	private:
+		friend class Object5Builder;
+		friend class GeneratedObjectAccess;
+		Object5();
 
 	public:
 		// Deserialization

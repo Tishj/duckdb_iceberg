@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetExpression::SetExpression() {
+SetExpression::SetExpression() : term(GeneratedObjectAccess::Create<Term>()) {
 }
 
 SetExpressionBuilder::SetExpressionBuilder() {
@@ -135,7 +135,7 @@ string SetExpression::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(values_val, idx, max, val) {
-				PrimitiveTypeValue tmp;
+				auto tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

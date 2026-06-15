@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/content_file.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class PositionDeleteFileBuilder;
+
 class PositionDeleteFile {
 public:
-	PositionDeleteFile();
 	PositionDeleteFile(const PositionDeleteFile &) = delete;
 	PositionDeleteFile &operator=(const PositionDeleteFile &) = delete;
 	PositionDeleteFile(PositionDeleteFile &&) = default;
 	PositionDeleteFile &operator=(PositionDeleteFile &&) = default;
+
+private:
+	friend class PositionDeleteFileBuilder;
+	friend class GeneratedObjectAccess;
+	PositionDeleteFile();
 
 public:
 	// Deserialization

@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CatalogConfig::CatalogConfig() {
+CatalogConfig::CatalogConfig()
+    : defaults(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()),
+      overrides(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
 }
 
 CatalogConfigBuilder::CatalogConfigBuilder() {

@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class CounterResultBuilder;
+
 class CounterResult {
 public:
-	CounterResult();
 	CounterResult(const CounterResult &) = delete;
 	CounterResult &operator=(const CounterResult &) = delete;
 	CounterResult(CounterResult &&) = default;
 	CounterResult &operator=(CounterResult &&) = default;
+
+private:
+	friend class CounterResultBuilder;
+	friend class GeneratedObjectAccess;
+	CounterResult();
 
 public:
 	// Deserialization

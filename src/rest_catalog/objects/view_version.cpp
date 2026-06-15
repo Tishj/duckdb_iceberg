@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewVersion::ViewVersion() {
+ViewVersion::ViewVersion() : summary(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
 }
 
 ViewVersionBuilder::ViewVersionBuilder() {
@@ -209,7 +209,7 @@ string ViewVersion::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(representations_val, idx, max, val) {
-				ViewRepresentation tmp;
+				auto tmp = GeneratedObjectAccess::Create<ViewRepresentation>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

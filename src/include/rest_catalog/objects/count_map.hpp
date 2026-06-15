@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/integer_type_value.hpp"
 #include "rest_catalog/objects/long_type_value.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class CountMapBuilder;
+
 class CountMap {
 public:
-	CountMap();
 	CountMap(const CountMap &) = delete;
 	CountMap &operator=(const CountMap &) = delete;
 	CountMap(CountMap &&) = default;
 	CountMap &operator=(CountMap &&) = default;
+
+private:
+	friend class CountMapBuilder;
+	friend class GeneratedObjectAccess;
+	CountMap();
 
 public:
 	// Deserialization

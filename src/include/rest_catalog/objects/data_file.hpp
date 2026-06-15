@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/content_file.hpp"
 #include "rest_catalog/objects/count_map.hpp"
 #include "rest_catalog/objects/value_map.hpp"
@@ -15,13 +16,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class DataFileBuilder;
+
 class DataFile {
 public:
-	DataFile();
 	DataFile(const DataFile &) = delete;
 	DataFile &operator=(const DataFile &) = delete;
 	DataFile(DataFile &&) = default;
 	DataFile &operator=(DataFile &&) = default;
+
+private:
+	friend class DataFileBuilder;
+	friend class GeneratedObjectAccess;
+	DataFile();
 
 public:
 	// Deserialization

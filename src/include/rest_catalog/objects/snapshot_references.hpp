@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/snapshot_reference.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SnapshotReferencesBuilder;
+
 class SnapshotReferences {
 public:
-	SnapshotReferences();
 	SnapshotReferences(const SnapshotReferences &) = delete;
 	SnapshotReferences &operator=(const SnapshotReferences &) = delete;
 	SnapshotReferences(SnapshotReferences &&) = default;
 	SnapshotReferences &operator=(SnapshotReferences &&) = default;
+
+private:
+	friend class SnapshotReferencesBuilder;
+	friend class GeneratedObjectAccess;
+	SnapshotReferences();
 
 public:
 	// Deserialization

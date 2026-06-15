@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddEncryptionKeyUpdate::AddEncryptionKeyUpdate() {
+AddEncryptionKeyUpdate::AddEncryptionKeyUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
+      encryption_key(GeneratedObjectAccess::Create<EncryptedKey>()) {
 }
 
 AddEncryptionKeyUpdateBuilder::AddEncryptionKeyUpdateBuilder() {

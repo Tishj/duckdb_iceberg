@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DeleteFile::DeleteFile() {
+DeleteFile::DeleteFile()
+    : position_delete_file(GeneratedObjectAccess::Create<optional<PositionDeleteFile>>()),
+      equality_delete_file(GeneratedObjectAccess::Create<optional<EqualityDeleteFile>>()) {
 }
 
 DeleteFileBuilder::DeleteFileBuilder() {
@@ -60,11 +62,11 @@ DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
 DeleteFile DeleteFile::Copy() const {
 	DeleteFile res;
 	if (position_delete_file.has_value()) {
-		res.position_delete_file.emplace();
+		res.position_delete_file = GeneratedObjectAccess::Create<PositionDeleteFile>();
 		(*res.position_delete_file) = (*position_delete_file).Copy();
 	}
 	if (equality_delete_file.has_value()) {
-		res.equality_delete_file.emplace();
+		res.equality_delete_file = GeneratedObjectAccess::Create<EqualityDeleteFile>();
 		(*res.equality_delete_file) = (*equality_delete_file).Copy();
 	}
 	return res;
@@ -96,14 +98,14 @@ string DeleteFile::Validate() const {
 string DeleteFile::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		position_delete_file.emplace();
+		position_delete_file = GeneratedObjectAccess::Create<PositionDeleteFile>();
 		error = position_delete_file->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			position_delete_file = nullopt;
 		}
-		equality_delete_file.emplace();
+		equality_delete_file = GeneratedObjectAccess::Create<EqualityDeleteFile>();
 		error = equality_delete_file->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

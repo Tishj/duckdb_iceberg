@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetDefaultSpecUpdate::SetDefaultSpecUpdate() {
+SetDefaultSpecUpdate::SetDefaultSpecUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
 }
 
 SetDefaultSpecUpdateBuilder::SetDefaultSpecUpdateBuilder() {

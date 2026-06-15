@@ -110,7 +110,7 @@ string StructType::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(fields_val, idx, max, val) {
-				auto tmp_p = make_uniq<StructField>();
+				auto tmp_p = GeneratedObjectAccess::CreateUnique<StructField>();
 				auto &tmp = *tmp_p;
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {

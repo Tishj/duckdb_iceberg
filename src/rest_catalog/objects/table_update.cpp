@@ -14,7 +14,28 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TableUpdate::TableUpdate() {
+TableUpdate::TableUpdate()
+    : assign_uuidupdate(GeneratedObjectAccess::Create<optional<AssignUUIDUpdate>>()),
+      upgrade_format_version_update(GeneratedObjectAccess::Create<optional<UpgradeFormatVersionUpdate>>()),
+      add_schema_update(GeneratedObjectAccess::Create<optional<AddSchemaUpdate>>()),
+      set_current_schema_update(GeneratedObjectAccess::Create<optional<SetCurrentSchemaUpdate>>()),
+      add_partition_spec_update(GeneratedObjectAccess::Create<optional<AddPartitionSpecUpdate>>()),
+      set_default_spec_update(GeneratedObjectAccess::Create<optional<SetDefaultSpecUpdate>>()),
+      add_sort_order_update(GeneratedObjectAccess::Create<optional<AddSortOrderUpdate>>()),
+      set_default_sort_order_update(GeneratedObjectAccess::Create<optional<SetDefaultSortOrderUpdate>>()),
+      add_snapshot_update(GeneratedObjectAccess::Create<optional<AddSnapshotUpdate>>()),
+      set_snapshot_ref_update(GeneratedObjectAccess::Create<optional<SetSnapshotRefUpdate>>()),
+      remove_snapshots_update(GeneratedObjectAccess::Create<optional<RemoveSnapshotsUpdate>>()),
+      remove_snapshot_ref_update(GeneratedObjectAccess::Create<optional<RemoveSnapshotRefUpdate>>()),
+      set_location_update(GeneratedObjectAccess::Create<optional<SetLocationUpdate>>()),
+      set_properties_update(GeneratedObjectAccess::Create<optional<SetPropertiesUpdate>>()),
+      remove_properties_update(GeneratedObjectAccess::Create<optional<RemovePropertiesUpdate>>()),
+      set_statistics_update(GeneratedObjectAccess::Create<optional<SetStatisticsUpdate>>()),
+      remove_statistics_update(GeneratedObjectAccess::Create<optional<RemoveStatisticsUpdate>>()),
+      remove_partition_specs_update(GeneratedObjectAccess::Create<optional<RemovePartitionSpecsUpdate>>()),
+      remove_schemas_update(GeneratedObjectAccess::Create<optional<RemoveSchemasUpdate>>()),
+      add_encryption_key_update(GeneratedObjectAccess::Create<optional<AddEncryptionKeyUpdate>>()),
+      remove_encryption_key_update(GeneratedObjectAccess::Create<optional<RemoveEncryptionKeyUpdate>>()) {
 }
 
 TableUpdateBuilder::TableUpdateBuilder() {
@@ -155,87 +176,87 @@ TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
 TableUpdate TableUpdate::Copy() const {
 	TableUpdate res;
 	if (assign_uuidupdate.has_value()) {
-		res.assign_uuidupdate.emplace();
+		res.assign_uuidupdate = GeneratedObjectAccess::Create<AssignUUIDUpdate>();
 		(*res.assign_uuidupdate) = (*assign_uuidupdate).Copy();
 	}
 	if (upgrade_format_version_update.has_value()) {
-		res.upgrade_format_version_update.emplace();
+		res.upgrade_format_version_update = GeneratedObjectAccess::Create<UpgradeFormatVersionUpdate>();
 		(*res.upgrade_format_version_update) = (*upgrade_format_version_update).Copy();
 	}
 	if (add_schema_update.has_value()) {
-		res.add_schema_update.emplace();
+		res.add_schema_update = GeneratedObjectAccess::Create<AddSchemaUpdate>();
 		(*res.add_schema_update) = (*add_schema_update).Copy();
 	}
 	if (set_current_schema_update.has_value()) {
-		res.set_current_schema_update.emplace();
+		res.set_current_schema_update = GeneratedObjectAccess::Create<SetCurrentSchemaUpdate>();
 		(*res.set_current_schema_update) = (*set_current_schema_update).Copy();
 	}
 	if (add_partition_spec_update.has_value()) {
-		res.add_partition_spec_update.emplace();
+		res.add_partition_spec_update = GeneratedObjectAccess::Create<AddPartitionSpecUpdate>();
 		(*res.add_partition_spec_update) = (*add_partition_spec_update).Copy();
 	}
 	if (set_default_spec_update.has_value()) {
-		res.set_default_spec_update.emplace();
+		res.set_default_spec_update = GeneratedObjectAccess::Create<SetDefaultSpecUpdate>();
 		(*res.set_default_spec_update) = (*set_default_spec_update).Copy();
 	}
 	if (add_sort_order_update.has_value()) {
-		res.add_sort_order_update.emplace();
+		res.add_sort_order_update = GeneratedObjectAccess::Create<AddSortOrderUpdate>();
 		(*res.add_sort_order_update) = (*add_sort_order_update).Copy();
 	}
 	if (set_default_sort_order_update.has_value()) {
-		res.set_default_sort_order_update.emplace();
+		res.set_default_sort_order_update = GeneratedObjectAccess::Create<SetDefaultSortOrderUpdate>();
 		(*res.set_default_sort_order_update) = (*set_default_sort_order_update).Copy();
 	}
 	if (add_snapshot_update.has_value()) {
-		res.add_snapshot_update.emplace();
+		res.add_snapshot_update = GeneratedObjectAccess::Create<AddSnapshotUpdate>();
 		(*res.add_snapshot_update) = (*add_snapshot_update).Copy();
 	}
 	if (set_snapshot_ref_update.has_value()) {
-		res.set_snapshot_ref_update.emplace();
+		res.set_snapshot_ref_update = GeneratedObjectAccess::Create<SetSnapshotRefUpdate>();
 		(*res.set_snapshot_ref_update) = (*set_snapshot_ref_update).Copy();
 	}
 	if (remove_snapshots_update.has_value()) {
-		res.remove_snapshots_update.emplace();
+		res.remove_snapshots_update = GeneratedObjectAccess::Create<RemoveSnapshotsUpdate>();
 		(*res.remove_snapshots_update) = (*remove_snapshots_update).Copy();
 	}
 	if (remove_snapshot_ref_update.has_value()) {
-		res.remove_snapshot_ref_update.emplace();
+		res.remove_snapshot_ref_update = GeneratedObjectAccess::Create<RemoveSnapshotRefUpdate>();
 		(*res.remove_snapshot_ref_update) = (*remove_snapshot_ref_update).Copy();
 	}
 	if (set_location_update.has_value()) {
-		res.set_location_update.emplace();
+		res.set_location_update = GeneratedObjectAccess::Create<SetLocationUpdate>();
 		(*res.set_location_update) = (*set_location_update).Copy();
 	}
 	if (set_properties_update.has_value()) {
-		res.set_properties_update.emplace();
+		res.set_properties_update = GeneratedObjectAccess::Create<SetPropertiesUpdate>();
 		(*res.set_properties_update) = (*set_properties_update).Copy();
 	}
 	if (remove_properties_update.has_value()) {
-		res.remove_properties_update.emplace();
+		res.remove_properties_update = GeneratedObjectAccess::Create<RemovePropertiesUpdate>();
 		(*res.remove_properties_update) = (*remove_properties_update).Copy();
 	}
 	if (set_statistics_update.has_value()) {
-		res.set_statistics_update.emplace();
+		res.set_statistics_update = GeneratedObjectAccess::Create<SetStatisticsUpdate>();
 		(*res.set_statistics_update) = (*set_statistics_update).Copy();
 	}
 	if (remove_statistics_update.has_value()) {
-		res.remove_statistics_update.emplace();
+		res.remove_statistics_update = GeneratedObjectAccess::Create<RemoveStatisticsUpdate>();
 		(*res.remove_statistics_update) = (*remove_statistics_update).Copy();
 	}
 	if (remove_partition_specs_update.has_value()) {
-		res.remove_partition_specs_update.emplace();
+		res.remove_partition_specs_update = GeneratedObjectAccess::Create<RemovePartitionSpecsUpdate>();
 		(*res.remove_partition_specs_update) = (*remove_partition_specs_update).Copy();
 	}
 	if (remove_schemas_update.has_value()) {
-		res.remove_schemas_update.emplace();
+		res.remove_schemas_update = GeneratedObjectAccess::Create<RemoveSchemasUpdate>();
 		(*res.remove_schemas_update) = (*remove_schemas_update).Copy();
 	}
 	if (add_encryption_key_update.has_value()) {
-		res.add_encryption_key_update.emplace();
+		res.add_encryption_key_update = GeneratedObjectAccess::Create<AddEncryptionKeyUpdate>();
 		(*res.add_encryption_key_update) = (*add_encryption_key_update).Copy();
 	}
 	if (remove_encryption_key_update.has_value()) {
-		res.remove_encryption_key_update.emplace();
+		res.remove_encryption_key_update = GeneratedObjectAccess::Create<RemoveEncryptionKeyUpdate>();
 		(*res.remove_encryption_key_update) = (*remove_encryption_key_update).Copy();
 	}
 	return res;
@@ -399,127 +420,127 @@ string TableUpdate::Validate() const {
 
 string TableUpdate::TryFromJSON(yyjson_val *obj) {
 	string error;
-	assign_uuidupdate.emplace();
+	assign_uuidupdate = GeneratedObjectAccess::Create<AssignUUIDUpdate>();
 	error = assign_uuidupdate->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		assign_uuidupdate = nullopt;
 	}
-	upgrade_format_version_update.emplace();
+	upgrade_format_version_update = GeneratedObjectAccess::Create<UpgradeFormatVersionUpdate>();
 	error = upgrade_format_version_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		upgrade_format_version_update = nullopt;
 	}
-	add_schema_update.emplace();
+	add_schema_update = GeneratedObjectAccess::Create<AddSchemaUpdate>();
 	error = add_schema_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		add_schema_update = nullopt;
 	}
-	set_current_schema_update.emplace();
+	set_current_schema_update = GeneratedObjectAccess::Create<SetCurrentSchemaUpdate>();
 	error = set_current_schema_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_current_schema_update = nullopt;
 	}
-	add_partition_spec_update.emplace();
+	add_partition_spec_update = GeneratedObjectAccess::Create<AddPartitionSpecUpdate>();
 	error = add_partition_spec_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		add_partition_spec_update = nullopt;
 	}
-	set_default_spec_update.emplace();
+	set_default_spec_update = GeneratedObjectAccess::Create<SetDefaultSpecUpdate>();
 	error = set_default_spec_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_default_spec_update = nullopt;
 	}
-	add_sort_order_update.emplace();
+	add_sort_order_update = GeneratedObjectAccess::Create<AddSortOrderUpdate>();
 	error = add_sort_order_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		add_sort_order_update = nullopt;
 	}
-	set_default_sort_order_update.emplace();
+	set_default_sort_order_update = GeneratedObjectAccess::Create<SetDefaultSortOrderUpdate>();
 	error = set_default_sort_order_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_default_sort_order_update = nullopt;
 	}
-	add_snapshot_update.emplace();
+	add_snapshot_update = GeneratedObjectAccess::Create<AddSnapshotUpdate>();
 	error = add_snapshot_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		add_snapshot_update = nullopt;
 	}
-	set_snapshot_ref_update.emplace();
+	set_snapshot_ref_update = GeneratedObjectAccess::Create<SetSnapshotRefUpdate>();
 	error = set_snapshot_ref_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_snapshot_ref_update = nullopt;
 	}
-	remove_snapshots_update.emplace();
+	remove_snapshots_update = GeneratedObjectAccess::Create<RemoveSnapshotsUpdate>();
 	error = remove_snapshots_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		remove_snapshots_update = nullopt;
 	}
-	remove_snapshot_ref_update.emplace();
+	remove_snapshot_ref_update = GeneratedObjectAccess::Create<RemoveSnapshotRefUpdate>();
 	error = remove_snapshot_ref_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		remove_snapshot_ref_update = nullopt;
 	}
-	set_location_update.emplace();
+	set_location_update = GeneratedObjectAccess::Create<SetLocationUpdate>();
 	error = set_location_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_location_update = nullopt;
 	}
-	set_properties_update.emplace();
+	set_properties_update = GeneratedObjectAccess::Create<SetPropertiesUpdate>();
 	error = set_properties_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_properties_update = nullopt;
 	}
-	remove_properties_update.emplace();
+	remove_properties_update = GeneratedObjectAccess::Create<RemovePropertiesUpdate>();
 	error = remove_properties_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		remove_properties_update = nullopt;
 	}
-	set_statistics_update.emplace();
+	set_statistics_update = GeneratedObjectAccess::Create<SetStatisticsUpdate>();
 	error = set_statistics_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		set_statistics_update = nullopt;
 	}
-	remove_statistics_update.emplace();
+	remove_statistics_update = GeneratedObjectAccess::Create<RemoveStatisticsUpdate>();
 	error = remove_statistics_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		remove_statistics_update = nullopt;
 	}
-	remove_partition_specs_update.emplace();
+	remove_partition_specs_update = GeneratedObjectAccess::Create<RemovePartitionSpecsUpdate>();
 	error = remove_partition_specs_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		remove_partition_specs_update = nullopt;
 	}
-	remove_schemas_update.emplace();
+	remove_schemas_update = GeneratedObjectAccess::Create<RemoveSchemasUpdate>();
 	error = remove_schemas_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		remove_schemas_update = nullopt;
 	}
-	add_encryption_key_update.emplace();
+	add_encryption_key_update = GeneratedObjectAccess::Create<AddEncryptionKeyUpdate>();
 	error = add_encryption_key_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		add_encryption_key_update = nullopt;
 	}
-	remove_encryption_key_update.emplace();
+	remove_encryption_key_update = GeneratedObjectAccess::Create<RemoveEncryptionKeyUpdate>();
 	error = remove_encryption_key_update->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {

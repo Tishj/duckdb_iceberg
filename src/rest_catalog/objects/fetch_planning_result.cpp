@@ -14,7 +14,10 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FetchPlanningResult::FetchPlanningResult() {
+FetchPlanningResult::FetchPlanningResult()
+    : completed_planning_result(GeneratedObjectAccess::Create<optional<CompletedPlanningResult>>()),
+      failed_planning_result(GeneratedObjectAccess::Create<optional<FailedPlanningResult>>()),
+      empty_planning_result(GeneratedObjectAccess::Create<optional<EmptyPlanningResult>>()) {
 }
 
 FetchPlanningResultBuilder::FetchPlanningResultBuilder() {
@@ -65,15 +68,15 @@ FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
 FetchPlanningResult FetchPlanningResult::Copy() const {
 	FetchPlanningResult res;
 	if (completed_planning_result.has_value()) {
-		res.completed_planning_result.emplace();
+		res.completed_planning_result = GeneratedObjectAccess::Create<CompletedPlanningResult>();
 		(*res.completed_planning_result) = (*completed_planning_result).Copy();
 	}
 	if (failed_planning_result.has_value()) {
-		res.failed_planning_result.emplace();
+		res.failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
 		(*res.failed_planning_result) = (*failed_planning_result).Copy();
 	}
 	if (empty_planning_result.has_value()) {
-		res.empty_planning_result.emplace();
+		res.empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
 		(*res.empty_planning_result) = (*empty_planning_result).Copy();
 	}
 	return res;
@@ -112,21 +115,21 @@ string FetchPlanningResult::Validate() const {
 string FetchPlanningResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		completed_planning_result.emplace();
+		completed_planning_result = GeneratedObjectAccess::Create<CompletedPlanningResult>();
 		error = completed_planning_result->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			completed_planning_result = nullopt;
 		}
-		failed_planning_result.emplace();
+		failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
 		error = failed_planning_result->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			failed_planning_result = nullopt;
 		}
-		empty_planning_result.emplace();
+		empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
 		error = empty_planning_result->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

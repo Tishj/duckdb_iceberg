@@ -14,7 +14,14 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Expression::Expression() {
+Expression::Expression()
+    : true_expression(GeneratedObjectAccess::Create<optional<TrueExpression>>()),
+      false_expression(GeneratedObjectAccess::Create<optional<FalseExpression>>()),
+      and_or_expression(GeneratedObjectAccess::Create<optional<AndOrExpression>>()),
+      not_expression(GeneratedObjectAccess::Create<optional<NotExpression>>()),
+      set_expression(GeneratedObjectAccess::Create<optional<SetExpression>>()),
+      literal_expression(GeneratedObjectAccess::Create<optional<LiteralExpression>>()),
+      unary_expression(GeneratedObjectAccess::Create<optional<UnaryExpression>>()) {
 }
 
 ExpressionBuilder::ExpressionBuilder() {
@@ -85,31 +92,31 @@ Expression Expression::FromJSON(yyjson_val *obj) {
 Expression Expression::Copy() const {
 	Expression res;
 	if (true_expression.has_value()) {
-		res.true_expression.emplace();
+		res.true_expression = GeneratedObjectAccess::Create<TrueExpression>();
 		(*res.true_expression) = (*true_expression).Copy();
 	}
 	if (false_expression.has_value()) {
-		res.false_expression.emplace();
+		res.false_expression = GeneratedObjectAccess::Create<FalseExpression>();
 		(*res.false_expression) = (*false_expression).Copy();
 	}
 	if (and_or_expression.has_value()) {
-		res.and_or_expression.emplace();
+		res.and_or_expression = GeneratedObjectAccess::Create<AndOrExpression>();
 		(*res.and_or_expression) = (*and_or_expression).Copy();
 	}
 	if (not_expression.has_value()) {
-		res.not_expression.emplace();
+		res.not_expression = GeneratedObjectAccess::Create<NotExpression>();
 		(*res.not_expression) = (*not_expression).Copy();
 	}
 	if (set_expression.has_value()) {
-		res.set_expression.emplace();
+		res.set_expression = GeneratedObjectAccess::Create<SetExpression>();
 		(*res.set_expression) = (*set_expression).Copy();
 	}
 	if (literal_expression.has_value()) {
-		res.literal_expression.emplace();
+		res.literal_expression = GeneratedObjectAccess::Create<LiteralExpression>();
 		(*res.literal_expression) = (*literal_expression).Copy();
 	}
 	if (unary_expression.has_value()) {
-		res.unary_expression.emplace();
+		res.unary_expression = GeneratedObjectAccess::Create<UnaryExpression>();
 		(*res.unary_expression) = (*unary_expression).Copy();
 	}
 	return res;
@@ -176,49 +183,49 @@ string Expression::Validate() const {
 string Expression::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		true_expression.emplace();
+		true_expression = GeneratedObjectAccess::Create<TrueExpression>();
 		error = true_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			true_expression = nullopt;
 		}
-		false_expression.emplace();
+		false_expression = GeneratedObjectAccess::Create<FalseExpression>();
 		error = false_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			false_expression = nullopt;
 		}
-		and_or_expression.emplace();
+		and_or_expression = GeneratedObjectAccess::Create<AndOrExpression>();
 		error = and_or_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			and_or_expression = nullopt;
 		}
-		not_expression.emplace();
+		not_expression = GeneratedObjectAccess::Create<NotExpression>();
 		error = not_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			not_expression = nullopt;
 		}
-		set_expression.emplace();
+		set_expression = GeneratedObjectAccess::Create<SetExpression>();
 		error = set_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			set_expression = nullopt;
 		}
-		literal_expression.emplace();
+		literal_expression = GeneratedObjectAccess::Create<LiteralExpression>();
 		error = literal_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			literal_expression = nullopt;
 		}
-		unary_expression.emplace();
+		unary_expression = GeneratedObjectAccess::Create<UnaryExpression>();
 		error = unary_expression->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

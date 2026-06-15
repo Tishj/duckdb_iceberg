@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CreateViewRequest::CreateViewRequest() {
+CreateViewRequest::CreateViewRequest()
+    : schema(GeneratedObjectAccess::Create<Schema>()), view_version(GeneratedObjectAccess::Create<ViewVersion>()),
+      properties(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
 }
 
 CreateViewRequestBuilder::CreateViewRequestBuilder() {

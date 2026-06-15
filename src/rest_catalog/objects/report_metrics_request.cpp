@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ReportMetricsRequest::ReportMetricsRequest() {
+ReportMetricsRequest::ReportMetricsRequest()
+    : scan_report(GeneratedObjectAccess::Create<optional<ScanReport>>()),
+      commit_report(GeneratedObjectAccess::Create<optional<CommitReport>>()) {
 }
 
 ReportMetricsRequestBuilder::ReportMetricsRequestBuilder() {
@@ -69,11 +71,11 @@ ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
 ReportMetricsRequest ReportMetricsRequest::Copy() const {
 	ReportMetricsRequest res;
 	if (scan_report.has_value()) {
-		res.scan_report.emplace();
+		res.scan_report = GeneratedObjectAccess::Create<ScanReport>();
 		(*res.scan_report) = (*scan_report).Copy();
 	}
 	if (commit_report.has_value()) {
-		res.commit_report.emplace();
+		res.commit_report = GeneratedObjectAccess::Create<CommitReport>();
 		(*res.commit_report) = (*commit_report).Copy();
 	}
 	res.report_type = report_type;
@@ -105,13 +107,13 @@ string ReportMetricsRequest::Validate() const {
 
 string ReportMetricsRequest::TryFromJSON(yyjson_val *obj) {
 	string error;
-	scan_report.emplace();
+	scan_report = GeneratedObjectAccess::Create<ScanReport>();
 	error = scan_report->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {
 		scan_report = nullopt;
 	}
-	commit_report.emplace();
+	commit_report = GeneratedObjectAccess::Create<CommitReport>();
 	error = commit_report->TryFromJSON(obj);
 	if (error.empty()) {
 	} else {

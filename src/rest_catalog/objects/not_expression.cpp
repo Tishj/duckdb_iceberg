@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-NotExpression::NotExpression() {
+NotExpression::NotExpression() : child(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
 }
 
 NotExpressionBuilder::NotExpressionBuilder() {
@@ -103,7 +103,7 @@ string NotExpression::TryFromJSON(yyjson_val *obj) {
 	if (!child_val) {
 		return "NotExpression required property 'child' is missing";
 	} else {
-		child = make_uniq<Expression>();
+		child = GeneratedObjectAccess::CreateUnique<Expression>();
 		error = child->TryFromJSON(child_val);
 		if (!error.empty()) {
 			return error;

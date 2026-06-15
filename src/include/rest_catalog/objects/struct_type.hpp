@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
@@ -14,13 +15,19 @@ namespace rest_api_objects {
 
 class StructField;
 
+class StructTypeBuilder;
+
 class StructType {
 public:
-	StructType();
 	StructType(const StructType &) = delete;
 	StructType &operator=(const StructType &) = delete;
 	StructType(StructType &&) = default;
 	StructType &operator=(StructType &&) = default;
+
+private:
+	friend class StructTypeBuilder;
+	friend class GeneratedObjectAccess;
+	StructType();
 
 public:
 	// Deserialization

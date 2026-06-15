@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/base_update.hpp"
 #include "rest_catalog/objects/snapshot_reference.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SetSnapshotRefUpdateBuilder;
+
 class SetSnapshotRefUpdate {
 public:
-	SetSnapshotRefUpdate();
 	SetSnapshotRefUpdate(const SetSnapshotRefUpdate &) = delete;
 	SetSnapshotRefUpdate &operator=(const SetSnapshotRefUpdate &) = delete;
 	SetSnapshotRefUpdate(SetSnapshotRefUpdate &&) = default;
 	SetSnapshotRefUpdate &operator=(SetSnapshotRefUpdate &&) = default;
+
+private:
+	friend class SetSnapshotRefUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	SetSnapshotRefUpdate();
 
 public:
 	// Deserialization

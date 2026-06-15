@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/partition_field.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class PartitionSpecBuilder;
+
 class PartitionSpec {
 public:
-	PartitionSpec();
 	PartitionSpec(const PartitionSpec &) = delete;
 	PartitionSpec &operator=(const PartitionSpec &) = delete;
 	PartitionSpec(PartitionSpec &&) = default;
 	PartitionSpec &operator=(PartitionSpec &&) = default;
+
+private:
+	friend class PartitionSpecBuilder;
+	friend class GeneratedObjectAccess;
+	PartitionSpec();
 
 public:
 	// Deserialization

@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class AssertViewUUIDBuilder;
+
 class AssertViewUUID {
 public:
-	AssertViewUUID();
 	AssertViewUUID(const AssertViewUUID &) = delete;
 	AssertViewUUID &operator=(const AssertViewUUID &) = delete;
 	AssertViewUUID(AssertViewUUID &&) = default;
 	AssertViewUUID &operator=(AssertViewUUID &&) = default;
+
+private:
+	friend class AssertViewUUIDBuilder;
+	friend class GeneratedObjectAccess;
+	AssertViewUUID();
 
 public:
 	// Deserialization

@@ -110,7 +110,7 @@ string ListTablesResponse::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(identifiers_val, idx, max, val) {
-				TableIdentifier tmp;
+				auto tmp = GeneratedObjectAccess::Create<TableIdentifier>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

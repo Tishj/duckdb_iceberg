@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FileScanTask::FileScanTask() {
+FileScanTask::FileScanTask()
+    : data_file(GeneratedObjectAccess::Create<DataFile>()),
+      residual_filter(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
 }
 
 FileScanTaskBuilder::FileScanTaskBuilder() {
@@ -134,7 +136,7 @@ string FileScanTask::TryFromJSON(yyjson_val *obj) {
 	}
 	auto residual_filter_val = yyjson_obj_get(obj, "residual-filter");
 	if (residual_filter_val) {
-		residual_filter = make_uniq<Expression>();
+		residual_filter = GeneratedObjectAccess::CreateUnique<Expression>();
 		error = residual_filter->TryFromJSON(residual_filter_val);
 		if (!error.empty()) {
 			return error;

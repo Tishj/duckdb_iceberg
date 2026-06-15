@@ -6,19 +6,26 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
 namespace duckdb {
 namespace rest_api_objects {
 
+class UpdateNamespacePropertiesRequestBuilder;
+
 class UpdateNamespacePropertiesRequest {
 public:
-	UpdateNamespacePropertiesRequest();
 	UpdateNamespacePropertiesRequest(const UpdateNamespacePropertiesRequest &) = delete;
 	UpdateNamespacePropertiesRequest &operator=(const UpdateNamespacePropertiesRequest &) = delete;
 	UpdateNamespacePropertiesRequest(UpdateNamespacePropertiesRequest &&) = default;
 	UpdateNamespacePropertiesRequest &operator=(UpdateNamespacePropertiesRequest &&) = default;
+
+private:
+	friend class UpdateNamespacePropertiesRequestBuilder;
+	friend class GeneratedObjectAccess;
+	UpdateNamespacePropertiesRequest();
 
 public:
 	// Deserialization

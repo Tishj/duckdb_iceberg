@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/table_identifier.hpp"
 #include "rest_catalog/objects/view_requirement.hpp"
 #include "rest_catalog/objects/view_update.hpp"
@@ -15,13 +16,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class CommitViewRequestBuilder;
+
 class CommitViewRequest {
 public:
-	CommitViewRequest();
 	CommitViewRequest(const CommitViewRequest &) = delete;
 	CommitViewRequest &operator=(const CommitViewRequest &) = delete;
 	CommitViewRequest(CommitViewRequest &&) = default;
 	CommitViewRequest &operator=(CommitViewRequest &&) = default;
+
+private:
+	friend class CommitViewRequestBuilder;
+	friend class GeneratedObjectAccess;
+	CommitViewRequest();
 
 public:
 	// Deserialization

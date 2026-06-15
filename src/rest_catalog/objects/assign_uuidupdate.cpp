@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssignUUIDUpdate::AssignUUIDUpdate() {
+AssignUUIDUpdate::AssignUUIDUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
 }
 
 AssignUUIDUpdateBuilder::AssignUUIDUpdateBuilder() {

@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/base_update.hpp"
 #include "rest_catalog/objects/partition_statistics_file.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SetPartitionStatisticsUpdateBuilder;
+
 class SetPartitionStatisticsUpdate {
 public:
-	SetPartitionStatisticsUpdate();
 	SetPartitionStatisticsUpdate(const SetPartitionStatisticsUpdate &) = delete;
 	SetPartitionStatisticsUpdate &operator=(const SetPartitionStatisticsUpdate &) = delete;
 	SetPartitionStatisticsUpdate(SetPartitionStatisticsUpdate &&) = default;
 	SetPartitionStatisticsUpdate &operator=(SetPartitionStatisticsUpdate &&) = default;
+
+private:
+	friend class SetPartitionStatisticsUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	SetPartitionStatisticsUpdate();
 
 public:
 	// Deserialization

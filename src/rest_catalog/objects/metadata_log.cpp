@@ -161,7 +161,7 @@ string MetadataLog::TryFromJSON(yyjson_val *obj) {
 		size_t idx, max;
 		yyjson_val *val;
 		yyjson_arr_foreach(obj, idx, max, val) {
-			Object4 tmp;
+			auto tmp = GeneratedObjectAccess::Create<Object4>();
 			error = tmp.TryFromJSON(val);
 			if (!error.empty()) {
 				return error;

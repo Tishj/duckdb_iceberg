@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetSnapshotRefUpdate::SetSnapshotRefUpdate() {
+SetSnapshotRefUpdate::SetSnapshotRefUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
+      snapshot_reference(GeneratedObjectAccess::Create<SnapshotReference>()) {
 }
 
 SetSnapshotRefUpdateBuilder::SetSnapshotRefUpdateBuilder() {

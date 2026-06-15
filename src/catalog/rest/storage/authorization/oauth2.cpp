@@ -632,33 +632,31 @@ void OAuth2Authorization::RefreshAccessTokenUnlocked(ClientContext &context, std
 		throw HTTPException("Cannot refresh access token: no refresh_token and no client credentials available");
 	}
 
-	rest_api_objects::OAuthTokenResponse token_response;
-
-	if (!refresh_token.empty()) {
-		// RFC 6749 Section 6: Use refresh_token grant
-		// Try refresh_token first, fall back to client_credentials if it fails
-		try {
-			token_response =
-			    FetchOAuth2TokenResponse(context, "refresh_token", uri, client_id, client_secret, scope, refresh_token);
-		} catch (std::exception &ex) {
-			// Refresh token grant failed (e.g., token revoked, invalid_grant error)
-			// Fall back to client_credentials if available
-			if (!client_id.empty() && !client_secret.empty() && !uri.empty()) {
-				// Clear the stale refresh_token to avoid repeated failures
-				refresh_token.clear();
-				string effective_grant_type = grant_type.empty() ? "client_credentials" : grant_type;
-				token_response =
-				    FetchOAuth2TokenResponse(context, effective_grant_type, uri, client_id, client_secret, scope);
-			} else {
+	auto token_response = [&]() -> rest_api_objects::OAuthTokenResponse {
+		if (!refresh_token.empty()) {
+			// RFC 6749 Section 6: Use refresh_token grant
+			// Try refresh_token first, fall back to client_credentials if it fails
+			try {
+				return FetchOAuth2TokenResponse(context, "refresh_token", uri, client_id, client_secret, scope,
+				                                refresh_token);
+			} catch (std::exception &ex) {
+				// Refresh token grant failed (e.g., token revoked, invalid_grant error)
+				// Fall back to client_credentials if available
+				if (!client_id.empty() && !client_secret.empty() && !uri.empty()) {
+					// Clear the stale refresh_token to avoid repeated failures
+					refresh_token.clear();
+					string effective_grant_type = grant_type.empty() ? "client_credentials" : grant_type;
+					return FetchOAuth2TokenResponse(context, effective_grant_type, uri, client_id, client_secret,
+					                                scope);
+				}
 				// No fallback available, re-throw the original error
 				throw;
 			}
 		}
-	} else {
 		// No refresh_token: Re-acquire token using client_credentials grant
 		string effective_grant_type = grant_type.empty() ? "client_credentials" : grant_type;
-		token_response = FetchOAuth2TokenResponse(context, effective_grant_type, uri, client_id, client_secret, scope);
-	}
+		return FetchOAuth2TokenResponse(context, effective_grant_type, uri, client_id, client_secret, scope);
+	}();
 
 	// Update our token state with the new token (UpdateTokenState assumes lock is held)
 	UpdateTokenState(token_response.access_token, token_response.expires_in.value_or(0),

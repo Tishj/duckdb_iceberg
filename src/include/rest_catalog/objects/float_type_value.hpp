@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
@@ -14,11 +15,11 @@ namespace rest_api_objects {
 
 class FloatTypeValue {
 public:
-	FloatTypeValue();
 	FloatTypeValue(const FloatTypeValue &) = delete;
 	FloatTypeValue &operator=(const FloatTypeValue &) = delete;
 	FloatTypeValue(FloatTypeValue &&) = default;
 	FloatTypeValue &operator=(FloatTypeValue &&) = default;
+	FloatTypeValue();
 
 public:
 	// Deserialization

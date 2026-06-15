@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/commit_table_request.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class CommitTransactionRequestBuilder;
+
 class CommitTransactionRequest {
 public:
-	CommitTransactionRequest();
 	CommitTransactionRequest(const CommitTransactionRequest &) = delete;
 	CommitTransactionRequest &operator=(const CommitTransactionRequest &) = delete;
 	CommitTransactionRequest(CommitTransactionRequest &&) = default;
 	CommitTransactionRequest &operator=(CommitTransactionRequest &&) = default;
+
+private:
+	friend class CommitTransactionRequestBuilder;
+	friend class GeneratedObjectAccess;
+	CommitTransactionRequest();
 
 public:
 	// Deserialization

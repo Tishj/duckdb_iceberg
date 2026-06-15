@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CompletedPlanningResult::CompletedPlanningResult() {
+CompletedPlanningResult::CompletedPlanningResult()
+    : scan_tasks(GeneratedObjectAccess::Create<ScanTasks>()), object_5(GeneratedObjectAccess::Create<Object5>()) {
 }
 CompletedPlanningResult::Object5::Object5() {
 }
@@ -115,7 +116,7 @@ string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj) {
 			size_t idx, max;
 			yyjson_val *val;
 			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				StorageCredential tmp;
+				auto tmp = GeneratedObjectAccess::Create<StorageCredential>();
 				error = tmp.TryFromJSON(val);
 				if (!error.empty()) {
 					return error;

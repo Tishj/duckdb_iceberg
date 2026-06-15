@@ -14,7 +14,11 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PlanTableScanResult::PlanTableScanResult() {
+PlanTableScanResult::PlanTableScanResult()
+    : completed_planning_with_idresult(GeneratedObjectAccess::Create<optional<CompletedPlanningWithIDResult>>()),
+      failed_planning_result(GeneratedObjectAccess::Create<optional<FailedPlanningResult>>()),
+      async_planning_result(GeneratedObjectAccess::Create<optional<AsyncPlanningResult>>()),
+      empty_planning_result(GeneratedObjectAccess::Create<optional<EmptyPlanningResult>>()) {
 }
 
 PlanTableScanResultBuilder::PlanTableScanResultBuilder() {
@@ -71,19 +75,19 @@ PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
 PlanTableScanResult PlanTableScanResult::Copy() const {
 	PlanTableScanResult res;
 	if (completed_planning_with_idresult.has_value()) {
-		res.completed_planning_with_idresult.emplace();
+		res.completed_planning_with_idresult = GeneratedObjectAccess::Create<CompletedPlanningWithIDResult>();
 		(*res.completed_planning_with_idresult) = (*completed_planning_with_idresult).Copy();
 	}
 	if (failed_planning_result.has_value()) {
-		res.failed_planning_result.emplace();
+		res.failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
 		(*res.failed_planning_result) = (*failed_planning_result).Copy();
 	}
 	if (async_planning_result.has_value()) {
-		res.async_planning_result.emplace();
+		res.async_planning_result = GeneratedObjectAccess::Create<AsyncPlanningResult>();
 		(*res.async_planning_result) = (*async_planning_result).Copy();
 	}
 	if (empty_planning_result.has_value()) {
-		res.empty_planning_result.emplace();
+		res.empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
 		(*res.empty_planning_result) = (*empty_planning_result).Copy();
 	}
 	return res;
@@ -129,28 +133,28 @@ string PlanTableScanResult::Validate() const {
 string PlanTableScanResult::TryFromJSON(yyjson_val *obj) {
 	string error;
 	do {
-		completed_planning_with_idresult.emplace();
+		completed_planning_with_idresult = GeneratedObjectAccess::Create<CompletedPlanningWithIDResult>();
 		error = completed_planning_with_idresult->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			completed_planning_with_idresult = nullopt;
 		}
-		failed_planning_result.emplace();
+		failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
 		error = failed_planning_result->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			failed_planning_result = nullopt;
 		}
-		async_planning_result.emplace();
+		async_planning_result = GeneratedObjectAccess::Create<AsyncPlanningResult>();
 		error = async_planning_result->TryFromJSON(obj);
 		if (error.empty()) {
 			break;
 		} else {
 			async_planning_result = nullopt;
 		}
-		empty_planning_result.emplace();
+		empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
 		error = empty_planning_result->TryFromJSON(obj);
 		if (error.empty()) {
 			break;

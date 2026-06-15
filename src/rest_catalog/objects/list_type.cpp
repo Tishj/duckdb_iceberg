@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ListType::ListType() {
+ListType::ListType() : element(GeneratedObjectAccess::Create<unique_ptr<Type>>()) {
 }
 
 ListTypeBuilder::ListTypeBuilder() {
@@ -132,7 +132,7 @@ string ListType::TryFromJSON(yyjson_val *obj) {
 	if (!element_val) {
 		return "ListType required property 'element' is missing";
 	} else {
-		element = make_uniq<Type>();
+		element = GeneratedObjectAccess::CreateUnique<Type>();
 		error = element->TryFromJSON(element_val);
 		if (!error.empty()) {
 			return error;

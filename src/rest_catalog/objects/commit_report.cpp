@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CommitReport::CommitReport() {
+CommitReport::CommitReport()
+    : metrics(GeneratedObjectAccess::Create<Metrics>()),
+      metadata(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 CommitReportBuilder::CommitReportBuilder() {
@@ -105,7 +107,7 @@ CommitReport CommitReport::Copy() const {
 	res.operation = operation;
 	res.metrics = metrics.Copy();
 	if (metadata.has_value()) {
-		res.metadata.emplace();
+		res.metadata = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*metadata)) {
 			(*res.metadata).emplace(entry.first, entry.second);
 		}

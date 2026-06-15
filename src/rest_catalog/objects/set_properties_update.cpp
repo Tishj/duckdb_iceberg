@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetPropertiesUpdate::SetPropertiesUpdate() {
+SetPropertiesUpdate::SetPropertiesUpdate()
+    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
+      updates(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
 }
 
 SetPropertiesUpdateBuilder::SetPropertiesUpdateBuilder() {

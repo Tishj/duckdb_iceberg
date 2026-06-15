@@ -26,13 +26,11 @@ IcebergAddSnapshot::IcebergAddSnapshot(const IcebergTableInformation &table_info
 
 static rest_api_objects::TableUpdate CreateAddSnapshotUpdate(const IcebergTableInformation &table_info,
                                                              const IcebergSnapshot &snapshot) {
-	rest_api_objects::TableUpdate table_update;
-
-	table_update.add_snapshot_update = rest_api_objects::AddSnapshotUpdate();
-	auto &update = *table_update.add_snapshot_update;
-	update.base_update.action = "add-snapshot";
-	update.snapshot = snapshot.ToRESTObject(table_info.table_metadata);
-	return table_update;
+	auto update = rest_api_objects::AddSnapshotUpdateBuilder()
+	                  .SetBaseUpdate(rest_api_objects::BaseUpdateBuilder().SetAction("add-snapshot").Build())
+	                  .SetSnapshot(snapshot.ToRESTObject(table_info.table_metadata))
+	                  .Build();
+	return rest_api_objects::TableUpdateBuilder().SetAddSnapshotUpdate(std::move(update)).Build();
 }
 
 static IcebergManifestListEntry ScanExistingManifestFile(const IcebergManifestFile &manifest_file,

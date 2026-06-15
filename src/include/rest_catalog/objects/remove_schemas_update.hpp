@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/base_update.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class RemoveSchemasUpdateBuilder;
+
 class RemoveSchemasUpdate {
 public:
-	RemoveSchemasUpdate();
 	RemoveSchemasUpdate(const RemoveSchemasUpdate &) = delete;
 	RemoveSchemasUpdate &operator=(const RemoveSchemasUpdate &) = delete;
 	RemoveSchemasUpdate(RemoveSchemasUpdate &&) = default;
 	RemoveSchemasUpdate &operator=(RemoveSchemasUpdate &&) = default;
+
+private:
+	friend class RemoveSchemasUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	RemoveSchemasUpdate();
 
 public:
 	// Deserialization

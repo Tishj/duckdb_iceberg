@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/reference.hpp"
 #include "rest_catalog/objects/transform.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class TransformTermBuilder;
+
 class TransformTerm {
 public:
-	TransformTerm();
 	TransformTerm(const TransformTerm &) = delete;
 	TransformTerm &operator=(const TransformTerm &) = delete;
 	TransformTerm(TransformTerm &&) = default;
 	TransformTerm &operator=(TransformTerm &&) = default;
+
+private:
+	friend class TransformTermBuilder;
+	friend class GeneratedObjectAccess;
+	TransformTerm();
 
 public:
 	// Deserialization

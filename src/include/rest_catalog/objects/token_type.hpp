@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 
 using namespace duckdb_yyjson;
 
@@ -14,11 +15,11 @@ namespace rest_api_objects {
 
 class TokenType {
 public:
-	TokenType();
 	TokenType(const TokenType &) = delete;
 	TokenType &operator=(const TokenType &) = delete;
 	TokenType(TokenType &&) = default;
 	TokenType &operator=(TokenType &&) = default;
+	TokenType();
 
 public:
 	// Deserialization

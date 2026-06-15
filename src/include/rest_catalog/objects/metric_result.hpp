@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/counter_result.hpp"
 #include "rest_catalog/objects/timer_result.hpp"
 
@@ -14,13 +15,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class MetricResultBuilder;
+
 class MetricResult {
 public:
-	MetricResult();
 	MetricResult(const MetricResult &) = delete;
 	MetricResult &operator=(const MetricResult &) = delete;
 	MetricResult(MetricResult &&) = default;
 	MetricResult &operator=(MetricResult &&) = default;
+
+private:
+	friend class MetricResultBuilder;
+	friend class GeneratedObjectAccess;
+	MetricResult();
 
 public:
 	// Deserialization

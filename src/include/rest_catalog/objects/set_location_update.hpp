@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/base_update.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SetLocationUpdateBuilder;
+
 class SetLocationUpdate {
 public:
-	SetLocationUpdate();
 	SetLocationUpdate(const SetLocationUpdate &) = delete;
 	SetLocationUpdate &operator=(const SetLocationUpdate &) = delete;
 	SetLocationUpdate(SetLocationUpdate &&) = default;
 	SetLocationUpdate &operator=(SetLocationUpdate &&) = default;
+
+private:
+	friend class SetLocationUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	SetLocationUpdate();
 
 public:
 	// Deserialization

@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/sort_field.hpp"
 
 using namespace duckdb_yyjson;
@@ -13,13 +14,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class SortOrderBuilder;
+
 class SortOrder {
 public:
-	SortOrder();
 	SortOrder(const SortOrder &) = delete;
 	SortOrder &operator=(const SortOrder &) = delete;
 	SortOrder(SortOrder &&) = default;
 	SortOrder &operator=(SortOrder &&) = default;
+
+private:
+	friend class SortOrderBuilder;
+	friend class GeneratedObjectAccess;
+	SortOrder();
 
 public:
 	// Deserialization

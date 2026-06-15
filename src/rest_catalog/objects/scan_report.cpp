@@ -14,7 +14,10 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ScanReport::ScanReport() {
+ScanReport::ScanReport()
+    : filter(GeneratedObjectAccess::Create<unique_ptr<Expression>>()),
+      metrics(GeneratedObjectAccess::Create<Metrics>()),
+      metadata(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
 }
 
 ScanReportBuilder::ScanReportBuilder() {
@@ -131,7 +134,7 @@ ScanReport ScanReport::Copy() const {
 	}
 	res.metrics = metrics.Copy();
 	if (metadata.has_value()) {
-		res.metadata.emplace();
+		res.metadata = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
 		for (auto &entry : (*metadata)) {
 			(*res.metadata).emplace(entry.first, entry.second);
 		}
@@ -182,7 +185,7 @@ string ScanReport::TryFromJSON(yyjson_val *obj) {
 	if (!filter_val) {
 		return "ScanReport required property 'filter' is missing";
 	} else {
-		filter = make_uniq<Expression>();
+		filter = GeneratedObjectAccess::CreateUnique<Expression>();
 		error = filter->TryFromJSON(filter_val);
 		if (!error.empty()) {
 			return error;

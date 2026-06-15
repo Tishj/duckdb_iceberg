@@ -110,24 +110,20 @@ static string ConstructTableUpdateJSON(rest_api_objects::CommitTableRequest &tab
 }
 
 static rest_api_objects::TableRequirement CreateAssertRefSnapshotIdRequirement(const IcebergSnapshot &old_snapshot) {
-	rest_api_objects::TableRequirement req;
-	req.assert_ref_snapshot_id = rest_api_objects::AssertRefSnapshotId();
-
-	auto &res = *req.assert_ref_snapshot_id;
-	res.ref = "main";
+	rest_api_objects::TableRequirementType requirement_type;
+	requirement_type.value = "assert-ref-snapshot-id";
+	auto res =
+	    rest_api_objects::AssertRefSnapshotIdBuilder().SetType(std::move(requirement_type)).SetRef("main").Build();
 	res.snapshot_id = old_snapshot.snapshot_id;
-	res.type.value = "assert-ref-snapshot-id";
-	return req;
+	return rest_api_objects::TableRequirementBuilder().SetAssertRefSnapshotId(std::move(res)).Build();
 }
 
 static rest_api_objects::TableRequirement CreateAssertNoSnapshotRequirement() {
-	rest_api_objects::TableRequirement req;
-	req.assert_ref_snapshot_id = rest_api_objects::AssertRefSnapshotId();
-
-	auto &res = *req.assert_ref_snapshot_id;
-	res.ref = "main";
-	res.type.value = "assert-ref-snapshot-id";
-	return req;
+	rest_api_objects::TableRequirementType requirement_type;
+	requirement_type.value = "assert-ref-snapshot-id";
+	auto res =
+	    rest_api_objects::AssertRefSnapshotIdBuilder().SetType(std::move(requirement_type)).SetRef("main").Build();
+	return rest_api_objects::TableRequirementBuilder().SetAssertRefSnapshotId(std::move(res)).Build();
 }
 
 void IcebergTransaction::DropSecrets(ClientContext &context) {
@@ -138,16 +134,16 @@ void IcebergTransaction::DropSecrets(ClientContext &context) {
 }
 
 static rest_api_objects::TableUpdate CreateSetSnapshotRefUpdate(int64_t snapshot_id) {
-	rest_api_objects::TableUpdate table_update;
-
-	table_update.set_snapshot_ref_update = rest_api_objects::SetSnapshotRefUpdate();
-	auto &update = *table_update.set_snapshot_ref_update;
+	rest_api_objects::BaseUpdate base_update =
+	    rest_api_objects::BaseUpdateBuilder().SetAction("set-snapshot-ref").Build();
+	rest_api_objects::SetSnapshotRefUpdate update = rest_api_objects::SetSnapshotRefUpdateBuilder()
+	                                                    .SetBaseUpdate(std::move(base_update))
+	                                                    .SetRefName("main")
+	                                                    .Build();
 	update.base_update.action = "set-snapshot-ref";
-
-	update.ref_name = "main";
 	update.snapshot_reference.type = "branch";
 	update.snapshot_reference.snapshot_id = snapshot_id;
-	return table_update;
+	return rest_api_objects::TableUpdateBuilder().SetSetSnapshotRefUpdate(std::move(update)).Build();
 }
 
 static bool NeedsAssertSchemaId(const IcebergTransactionData &transaction_data,
@@ -175,9 +171,12 @@ TableTransactionInfo IcebergTransaction::GetTransactionRequest(IcebergTransactio
 		IcebergCommitState commit_state(table_info, context);
 		auto &table_change = commit_state.table_change;
 		auto &schema = table_info.schema.Cast<IcebergSchemaEntry>();
-		table_change.identifier = rest_api_objects::TableIdentifier();
-		table_change.identifier->_namespace.value = schema.namespace_items;
-		table_change.identifier->name = table_info.name;
+		rest_api_objects::Namespace table_namespace;
+		table_namespace.value = schema.namespace_items;
+		table_change.identifier = rest_api_objects::TableIdentifierBuilder()
+		                              .SetNamespace(std::move(table_namespace))
+		                              .SetName(table_info.name)
+		                              .Build();
 
 		auto &metadata = commit_state.table_info.table_metadata;
 		auto current_snapshot = metadata.GetLatestSnapshot();
@@ -351,11 +350,22 @@ void IcebergTransaction::DoTableRename(IcebergTransactionRenameUpdate &rename_up
 	auto &table_name = original_table.name;
 	auto new_name = rename_update.new_name;
 
-	rest_api_objects::RenameTableRequest request;
-	request.source._namespace.value = schema.namespace_items;
-	request.source.name = table_name;
-	request.destination._namespace.value = schema.namespace_items;
-	request.destination.name = new_name;
+	rest_api_objects::Namespace source_namespace;
+	source_namespace.value = schema.namespace_items;
+	auto source = rest_api_objects::TableIdentifierBuilder()
+	                  .SetNamespace(std::move(source_namespace))
+	                  .SetName(table_name)
+	                  .Build();
+	rest_api_objects::Namespace destination_namespace;
+	destination_namespace.value = schema.namespace_items;
+	auto destination = rest_api_objects::TableIdentifierBuilder()
+	                       .SetNamespace(std::move(destination_namespace))
+	                       .SetName(new_name)
+	                       .Build();
+	auto request = rest_api_objects::RenameTableRequestBuilder()
+	                   .SetSource(std::move(source))
+	                   .SetDestination(std::move(destination))
+	                   .Build();
 	auto transaction_json = RESTObjectToJSONString(request);
 	IRCAPI::CommitTableRename(context, catalog, transaction_json);
 
@@ -394,8 +404,10 @@ void IcebergTransaction::DoSchemaCreates(ClientContext &context) {
 	for (auto &schema_name : created_schemas) {
 		auto namespace_identifiers = IRCAPI::ParseSchemaName(schema_name);
 
-		rest_api_objects::CreateNamespaceRequest request;
-		request._namespace.value = namespace_identifiers;
+		rest_api_objects::Namespace request_namespace;
+		request_namespace.value = namespace_identifiers;
+		auto request =
+		    rest_api_objects::CreateNamespaceRequestBuilder().SetNamespace(std::move(request_namespace)).Build();
 		request.properties = case_insensitive_map_t<string>();
 		auto create_body = RESTObjectToJSONString(request);
 
@@ -425,7 +437,7 @@ void IcebergTransaction::DoSchemaPropertyUpdates(ClientContext &context) {
 		auto schema_property_updates = properties_update.second;
 		auto namespace_identifiers = IRCAPI::ParseSchemaName(schema_name_no_catalog);
 
-		rest_api_objects::UpdateNamespacePropertiesRequest request;
+		auto request = rest_api_objects::UpdateNamespacePropertiesRequestBuilder().Build();
 		request.removals = vector<string>();
 		request.removals->assign(schema_property_updates.removals.begin(), schema_property_updates.removals.end());
 		request.updates = schema_property_updates.updates;

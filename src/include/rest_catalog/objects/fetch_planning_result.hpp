@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/completed_planning_result.hpp"
 #include "rest_catalog/objects/empty_planning_result.hpp"
 #include "rest_catalog/objects/failed_planning_result.hpp"
@@ -15,13 +16,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class FetchPlanningResultBuilder;
+
 class FetchPlanningResult {
 public:
-	FetchPlanningResult();
 	FetchPlanningResult(const FetchPlanningResult &) = delete;
 	FetchPlanningResult &operator=(const FetchPlanningResult &) = delete;
 	FetchPlanningResult(FetchPlanningResult &&) = default;
 	FetchPlanningResult &operator=(FetchPlanningResult &&) = default;
+
+private:
+	friend class FetchPlanningResultBuilder;
+	friend class GeneratedObjectAccess;
+	FetchPlanningResult();
 
 public:
 	// Deserialization

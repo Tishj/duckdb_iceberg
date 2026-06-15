@@ -14,7 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SnapshotReferences::SnapshotReferences() {
+SnapshotReferences::SnapshotReferences()
+    : additional_properties(GeneratedObjectAccess::Create<case_insensitive_map_t<SnapshotReference>>()) {
 }
 
 SnapshotReferencesBuilder::SnapshotReferencesBuilder() {
@@ -78,7 +79,7 @@ string SnapshotReferences::TryFromJSON(yyjson_val *obj) {
 	yyjson_val *key, *val;
 	yyjson_obj_foreach(obj, idx, max, key, val) {
 		auto key_str = yyjson_get_str(key);
-		SnapshotReference tmp;
+		auto tmp = GeneratedObjectAccess::Create<SnapshotReference>();
 		error = tmp.TryFromJSON(val);
 		if (!error.empty()) {
 			return error;

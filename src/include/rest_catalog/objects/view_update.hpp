@@ -6,6 +6,7 @@
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
+#include "rest_catalog/objects/generated_object_access.hpp"
 #include "rest_catalog/objects/add_schema_update.hpp"
 #include "rest_catalog/objects/add_view_version_update.hpp"
 #include "rest_catalog/objects/assign_uuidupdate.hpp"
@@ -20,13 +21,19 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
+class ViewUpdateBuilder;
+
 class ViewUpdate {
 public:
-	ViewUpdate();
 	ViewUpdate(const ViewUpdate &) = delete;
 	ViewUpdate &operator=(const ViewUpdate &) = delete;
 	ViewUpdate(ViewUpdate &&) = default;
 	ViewUpdate &operator=(ViewUpdate &&) = default;
+
+private:
+	friend class ViewUpdateBuilder;
+	friend class GeneratedObjectAccess;
+	ViewUpdate();
 
 public:
 	// Deserialization

@@ -14,7 +14,9 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CompletedPlanningWithIDResult::CompletedPlanningWithIDResult() {
+CompletedPlanningWithIDResult::CompletedPlanningWithIDResult()
+    : completed_planning_result(GeneratedObjectAccess::Create<CompletedPlanningResult>()),
+      object_6(GeneratedObjectAccess::Create<Object6>()) {
 }
 CompletedPlanningWithIDResult::Object6::Object6() {
 }

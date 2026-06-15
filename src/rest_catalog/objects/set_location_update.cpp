@@ -14,7 +14,7 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetLocationUpdate::SetLocationUpdate() {
+SetLocationUpdate::SetLocationUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
 }
 
 SetLocationUpdateBuilder::SetLocationUpdateBuilder() {
