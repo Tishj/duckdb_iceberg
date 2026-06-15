@@ -20,17 +20,17 @@ public:
 	EncryptedKey(const EncryptedKey &) = delete;
 	EncryptedKey &operator=(const EncryptedKey &) = delete;
 	EncryptedKey(EncryptedKey &&) = default;
-	EncryptedKey &operator=(EncryptedKey &&) = default;
+	EncryptedKey &operator=(EncryptedKey &&) = delete;
 
 private:
 	friend class EncryptedKeyBuilder;
-	friend class GeneratedObjectAccess;
-	EncryptedKey();
+	EncryptedKey(string key_id_p, string encrypted_key_metadata_p, optional<string> encrypted_by_id_p,
+	             optional<case_insensitive_map_t<string>> properties_p);
 
 public:
 	// Deserialization
 	static EncryptedKey FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<EncryptedKey> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +54,14 @@ public:
 	EncryptedKeyBuilder &SetEncryptedKeyMetadata(string value);
 	EncryptedKeyBuilder &SetEncryptedById(string value);
 	EncryptedKeyBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(EncryptedKey &result);
+	string TryBuild(optional<EncryptedKey> &result);
 	EncryptedKey Build();
 
 private:
-	EncryptedKey result_;
+	optional<string> key_id_;
+	optional<string> encrypted_key_metadata_;
+	optional<string> encrypted_by_id_;
+	optional<case_insensitive_map_t<string>> properties_;
 	bool has_key_id_ = false;
 	bool has_encrypted_key_metadata_ = false;
 };

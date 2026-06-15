@@ -21,17 +21,16 @@ public:
 	RemovePartitionSpecsUpdate(const RemovePartitionSpecsUpdate &) = delete;
 	RemovePartitionSpecsUpdate &operator=(const RemovePartitionSpecsUpdate &) = delete;
 	RemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate &&) = default;
-	RemovePartitionSpecsUpdate &operator=(RemovePartitionSpecsUpdate &&) = default;
+	RemovePartitionSpecsUpdate &operator=(RemovePartitionSpecsUpdate &&) = delete;
 
 private:
 	friend class RemovePartitionSpecsUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemovePartitionSpecsUpdate();
+	RemovePartitionSpecsUpdate(BaseUpdate base_update_p, vector<int32_t> spec_ids_p);
 
 public:
 	// Deserialization
 	static RemovePartitionSpecsUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemovePartitionSpecsUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemovePartitionSpecsUpdateBuilder();
 	RemovePartitionSpecsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemovePartitionSpecsUpdateBuilder &SetSpecIds(vector<int32_t> value);
-	string TryBuild(RemovePartitionSpecsUpdate &result);
+	string TryBuild(optional<RemovePartitionSpecsUpdate> &result);
 	RemovePartitionSpecsUpdate Build();
 
 private:
-	RemovePartitionSpecsUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<vector<int32_t>> spec_ids_;
 	bool has_spec_ids_ = false;
 };
 

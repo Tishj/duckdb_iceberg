@@ -22,17 +22,17 @@ public:
 	ReportMetricsRequest(const ReportMetricsRequest &) = delete;
 	ReportMetricsRequest &operator=(const ReportMetricsRequest &) = delete;
 	ReportMetricsRequest(ReportMetricsRequest &&) = default;
-	ReportMetricsRequest &operator=(ReportMetricsRequest &&) = default;
+	ReportMetricsRequest &operator=(ReportMetricsRequest &&) = delete;
 
 private:
 	friend class ReportMetricsRequestBuilder;
-	friend class GeneratedObjectAccess;
-	ReportMetricsRequest();
+	ReportMetricsRequest(optional<ScanReport> scan_report_p, optional<CommitReport> commit_report_p,
+	                     string report_type_p);
 
 public:
 	// Deserialization
 	static ReportMetricsRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ReportMetricsRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +54,13 @@ public:
 	ReportMetricsRequestBuilder &SetScanReport(ScanReport value);
 	ReportMetricsRequestBuilder &SetCommitReport(CommitReport value);
 	ReportMetricsRequestBuilder &SetReportType(string value);
-	string TryBuild(ReportMetricsRequest &result);
+	string TryBuild(optional<ReportMetricsRequest> &result);
 	ReportMetricsRequest Build();
 
 private:
-	ReportMetricsRequest result_;
+	optional<ScanReport> scan_report_;
+	optional<CommitReport> commit_report_;
+	optional<string> report_type_;
 	bool has_report_type_ = false;
 };
 

@@ -21,17 +21,17 @@ public:
 	CommitReport(const CommitReport &) = delete;
 	CommitReport &operator=(const CommitReport &) = delete;
 	CommitReport(CommitReport &&) = default;
-	CommitReport &operator=(CommitReport &&) = default;
+	CommitReport &operator=(CommitReport &&) = delete;
 
 private:
 	friend class CommitReportBuilder;
-	friend class GeneratedObjectAccess;
-	CommitReport();
+	CommitReport(string table_name_p, int64_t snapshot_id_p, int64_t sequence_number_p, string operation_p,
+	             Metrics metrics_p, optional<case_insensitive_map_t<string>> metadata_p);
 
 public:
 	// Deserialization
 	static CommitReport FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CommitReport> &result);
 	string Validate() const;
 
 	// Copy
@@ -59,11 +59,16 @@ public:
 	CommitReportBuilder &SetOperation(string value);
 	CommitReportBuilder &SetMetrics(Metrics value);
 	CommitReportBuilder &SetMetadata(case_insensitive_map_t<string> value);
-	string TryBuild(CommitReport &result);
+	string TryBuild(optional<CommitReport> &result);
 	CommitReport Build();
 
 private:
-	CommitReport result_;
+	optional<string> table_name_;
+	optional<int64_t> snapshot_id_;
+	optional<int64_t> sequence_number_;
+	optional<string> operation_;
+	optional<Metrics> metrics_;
+	optional<case_insensitive_map_t<string>> metadata_;
 	bool has_table_name_ = false;
 	bool has_snapshot_id_ = false;
 	bool has_sequence_number_ = false;

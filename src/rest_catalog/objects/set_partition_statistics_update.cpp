@@ -14,61 +14,81 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
-      partition_statistics(GeneratedObjectAccess::Create<PartitionStatisticsFile>()) {
+SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate(BaseUpdate base_update_p,
+                                                           PartitionStatisticsFile partition_statistics_p)
+    : base_update(std::move(base_update_p)), partition_statistics(std::move(partition_statistics_p)) {
 }
 
 SetPartitionStatisticsUpdateBuilder::SetPartitionStatisticsUpdateBuilder() {
 }
 
 SetPartitionStatisticsUpdateBuilder &SetPartitionStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetPartitionStatisticsUpdateBuilder &
 SetPartitionStatisticsUpdateBuilder::SetPartitionStatistics(PartitionStatisticsFile value) {
-	result_.partition_statistics = std::move(value);
+	partition_statistics_ = std::move(value);
 	has_partition_statistics_ = true;
 	return *this;
 }
 
-string SetPartitionStatisticsUpdateBuilder::TryBuild(SetPartitionStatisticsUpdate &result) {
-	if (!has_partition_statistics_) {
-		return "SetPartitionStatisticsUpdate required property 'partition-statistics' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdateBuilder::Build() {
-	SetPartitionStatisticsUpdate result;
-	auto error = TryBuild(result);
+	if (!has_partition_statistics_) {
+		throw InvalidInputException("SetPartitionStatisticsUpdate required property 'partition-statistics' is missing");
+	}
+	auto result = SetPartitionStatisticsUpdate(std::move(*base_update_), std::move(*partition_statistics_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	SetPartitionStatisticsUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetPartitionStatisticsUpdateBuilder::TryBuild(optional<SetPartitionStatisticsUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	SetPartitionStatisticsUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto partition_statistics_val = yyjson_obj_get(obj, "partition-statistics");
+	if (!partition_statistics_val) {
+		throw InvalidInputException("SetPartitionStatisticsUpdate required property 'partition-statistics' is missing");
+	} else {
+		optional<PartitionStatisticsFile> partition_statistics;
+		partition_statistics = PartitionStatisticsFile::FromJSON(partition_statistics_val);
+		builder.SetPartitionStatistics(std::move(*partition_statistics));
+	}
+	return builder.Build();
+}
+
+string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<SetPartitionStatisticsUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::Copy() const {
-	SetPartitionStatisticsUpdate res;
-	res.base_update = base_update.Copy();
-	res.partition_statistics = partition_statistics.Copy();
-	return res;
+	SetPartitionStatisticsUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<PartitionStatisticsFile> partition_statistics_tmp;
+	partition_statistics_tmp = partition_statistics.Copy();
+	builder.SetPartitionStatistics(std::move(*partition_statistics_tmp));
+	return builder.Build();
 }
 
 string SetPartitionStatisticsUpdate::Validate() const {
@@ -82,24 +102,6 @@ string SetPartitionStatisticsUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto partition_statistics_val = yyjson_obj_get(obj, "partition-statistics");
-	if (!partition_statistics_val) {
-		return "SetPartitionStatisticsUpdate required property 'partition-statistics' is missing";
-	} else {
-		error = partition_statistics.TryFromJSON(partition_statistics_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void SetPartitionStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

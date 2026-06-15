@@ -21,17 +21,16 @@ public:
 	AssignUUIDUpdate(const AssignUUIDUpdate &) = delete;
 	AssignUUIDUpdate &operator=(const AssignUUIDUpdate &) = delete;
 	AssignUUIDUpdate(AssignUUIDUpdate &&) = default;
-	AssignUUIDUpdate &operator=(AssignUUIDUpdate &&) = default;
+	AssignUUIDUpdate &operator=(AssignUUIDUpdate &&) = delete;
 
 private:
 	friend class AssignUUIDUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	AssignUUIDUpdate();
+	AssignUUIDUpdate(BaseUpdate base_update_p, string uuid_p);
 
 public:
 	// Deserialization
 	static AssignUUIDUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssignUUIDUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssignUUIDUpdateBuilder();
 	AssignUUIDUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AssignUUIDUpdateBuilder &SetUuid(string value);
-	string TryBuild(AssignUUIDUpdate &result);
+	string TryBuild(optional<AssignUUIDUpdate> &result);
 	AssignUUIDUpdate Build();
 
 private:
-	AssignUUIDUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<string> uuid_;
 	bool has_uuid_ = false;
 };
 

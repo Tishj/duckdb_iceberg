@@ -22,17 +22,16 @@ public:
 	UnaryExpression(const UnaryExpression &) = delete;
 	UnaryExpression &operator=(const UnaryExpression &) = delete;
 	UnaryExpression(UnaryExpression &&) = default;
-	UnaryExpression &operator=(UnaryExpression &&) = default;
+	UnaryExpression &operator=(UnaryExpression &&) = delete;
 
 private:
 	friend class UnaryExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	UnaryExpression();
+	UnaryExpression(ExpressionType type_p, Term term_p);
 
 public:
 	// Deserialization
 	static UnaryExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<UnaryExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	UnaryExpressionBuilder();
 	UnaryExpressionBuilder &SetType(ExpressionType value);
 	UnaryExpressionBuilder &SetTerm(Term value);
-	string TryBuild(UnaryExpression &result);
+	string TryBuild(optional<UnaryExpression> &result);
 	UnaryExpression Build();
 
 private:
-	UnaryExpression result_;
+	optional<ExpressionType> type_;
+	optional<Term> term_;
 	bool has_type_ = false;
 	bool has_term_ = false;
 };

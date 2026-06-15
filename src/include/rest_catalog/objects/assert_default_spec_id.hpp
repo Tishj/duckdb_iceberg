@@ -21,17 +21,16 @@ public:
 	AssertDefaultSpecId(const AssertDefaultSpecId &) = delete;
 	AssertDefaultSpecId &operator=(const AssertDefaultSpecId &) = delete;
 	AssertDefaultSpecId(AssertDefaultSpecId &&) = default;
-	AssertDefaultSpecId &operator=(AssertDefaultSpecId &&) = default;
+	AssertDefaultSpecId &operator=(AssertDefaultSpecId &&) = delete;
 
 private:
 	friend class AssertDefaultSpecIdBuilder;
-	friend class GeneratedObjectAccess;
-	AssertDefaultSpecId();
+	AssertDefaultSpecId(TableRequirementType type_p, int32_t default_spec_id_p);
 
 public:
 	// Deserialization
 	static AssertDefaultSpecId FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertDefaultSpecId> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssertDefaultSpecIdBuilder();
 	AssertDefaultSpecIdBuilder &SetType(TableRequirementType value);
 	AssertDefaultSpecIdBuilder &SetDefaultSpecId(int32_t value);
-	string TryBuild(AssertDefaultSpecId &result);
+	string TryBuild(optional<AssertDefaultSpecId> &result);
 	AssertDefaultSpecId Build();
 
 private:
-	AssertDefaultSpecId result_;
+	optional<TableRequirementType> type_;
+	optional<int32_t> default_spec_id_;
 	bool has_type_ = false;
 	bool has_default_spec_id_ = false;
 };

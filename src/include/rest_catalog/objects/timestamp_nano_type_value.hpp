@@ -18,13 +18,13 @@ public:
 	TimestampNanoTypeValue(const TimestampNanoTypeValue &) = delete;
 	TimestampNanoTypeValue &operator=(const TimestampNanoTypeValue &) = delete;
 	TimestampNanoTypeValue(TimestampNanoTypeValue &&) = default;
-	TimestampNanoTypeValue &operator=(TimestampNanoTypeValue &&) = default;
-	TimestampNanoTypeValue();
+	TimestampNanoTypeValue &operator=(TimestampNanoTypeValue &&) = delete;
+	TimestampNanoTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static TimestampNanoTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TimestampNanoTypeValue> &result);
 	string Validate() const;
 
 	// Copy

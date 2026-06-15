@@ -23,17 +23,17 @@ public:
 	FileScanTask(const FileScanTask &) = delete;
 	FileScanTask &operator=(const FileScanTask &) = delete;
 	FileScanTask(FileScanTask &&) = default;
-	FileScanTask &operator=(FileScanTask &&) = default;
+	FileScanTask &operator=(FileScanTask &&) = delete;
 
 private:
 	friend class FileScanTaskBuilder;
-	friend class GeneratedObjectAccess;
-	FileScanTask();
+	FileScanTask(DataFile data_file_p, optional<vector<int32_t>> delete_file_references_p,
+	             unique_ptr<Expression> residual_filter_p);
 
 public:
 	// Deserialization
 	static FileScanTask FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FileScanTask> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +55,13 @@ public:
 	FileScanTaskBuilder &SetDataFile(DataFile value);
 	FileScanTaskBuilder &SetDeleteFileReferences(vector<int32_t> value);
 	FileScanTaskBuilder &SetResidualFilter(unique_ptr<Expression> value);
-	string TryBuild(FileScanTask &result);
+	string TryBuild(optional<FileScanTask> &result);
 	FileScanTask Build();
 
 private:
-	FileScanTask result_;
+	optional<DataFile> data_file_;
+	optional<vector<int32_t>> delete_file_references_;
+	unique_ptr<Expression> residual_filter_;
 	bool has_data_file_ = false;
 };
 

@@ -21,17 +21,16 @@ public:
 	RemovePropertiesUpdate(const RemovePropertiesUpdate &) = delete;
 	RemovePropertiesUpdate &operator=(const RemovePropertiesUpdate &) = delete;
 	RemovePropertiesUpdate(RemovePropertiesUpdate &&) = default;
-	RemovePropertiesUpdate &operator=(RemovePropertiesUpdate &&) = default;
+	RemovePropertiesUpdate &operator=(RemovePropertiesUpdate &&) = delete;
 
 private:
 	friend class RemovePropertiesUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemovePropertiesUpdate();
+	RemovePropertiesUpdate(BaseUpdate base_update_p, vector<string> removals_p);
 
 public:
 	// Deserialization
 	static RemovePropertiesUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemovePropertiesUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemovePropertiesUpdateBuilder();
 	RemovePropertiesUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemovePropertiesUpdateBuilder &SetRemovals(vector<string> value);
-	string TryBuild(RemovePropertiesUpdate &result);
+	string TryBuild(optional<RemovePropertiesUpdate> &result);
 	RemovePropertiesUpdate Build();
 
 private:
-	RemovePropertiesUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<vector<string>> removals_;
 	bool has_removals_ = false;
 };
 

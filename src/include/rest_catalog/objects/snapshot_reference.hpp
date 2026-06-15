@@ -20,17 +20,17 @@ public:
 	SnapshotReference(const SnapshotReference &) = delete;
 	SnapshotReference &operator=(const SnapshotReference &) = delete;
 	SnapshotReference(SnapshotReference &&) = default;
-	SnapshotReference &operator=(SnapshotReference &&) = default;
+	SnapshotReference &operator=(SnapshotReference &&) = delete;
 
 private:
 	friend class SnapshotReferenceBuilder;
-	friend class GeneratedObjectAccess;
-	SnapshotReference();
+	SnapshotReference(string type_p, int64_t snapshot_id_p, optional<int64_t> max_ref_age_ms_p,
+	                  optional<int64_t> max_snapshot_age_ms_p, optional<int32_t> min_snapshots_to_keep_p);
 
 public:
 	// Deserialization
 	static SnapshotReference FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SnapshotReference> &result);
 	string Validate() const;
 
 	// Copy
@@ -56,11 +56,15 @@ public:
 	SnapshotReferenceBuilder &SetMaxRefAgeMs(int64_t value);
 	SnapshotReferenceBuilder &SetMaxSnapshotAgeMs(int64_t value);
 	SnapshotReferenceBuilder &SetMinSnapshotsToKeep(int32_t value);
-	string TryBuild(SnapshotReference &result);
+	string TryBuild(optional<SnapshotReference> &result);
 	SnapshotReference Build();
 
 private:
-	SnapshotReference result_;
+	optional<string> type_;
+	optional<int64_t> snapshot_id_;
+	optional<int64_t> max_ref_age_ms_;
+	optional<int64_t> max_snapshot_age_ms_;
+	optional<int32_t> min_snapshots_to_keep_;
 	bool has_type_ = false;
 	bool has_snapshot_id_ = false;
 };

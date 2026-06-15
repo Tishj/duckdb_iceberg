@@ -21,17 +21,16 @@ public:
 	AsyncPlanningResult(const AsyncPlanningResult &) = delete;
 	AsyncPlanningResult &operator=(const AsyncPlanningResult &) = delete;
 	AsyncPlanningResult(AsyncPlanningResult &&) = default;
-	AsyncPlanningResult &operator=(AsyncPlanningResult &&) = default;
+	AsyncPlanningResult &operator=(AsyncPlanningResult &&) = delete;
 
 private:
 	friend class AsyncPlanningResultBuilder;
-	friend class GeneratedObjectAccess;
-	AsyncPlanningResult();
+	AsyncPlanningResult(PlanStatus status_p, string plan_id_p);
 
 public:
 	// Deserialization
 	static AsyncPlanningResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AsyncPlanningResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AsyncPlanningResultBuilder();
 	AsyncPlanningResultBuilder &SetStatus(PlanStatus value);
 	AsyncPlanningResultBuilder &SetPlanId(string value);
-	string TryBuild(AsyncPlanningResult &result);
+	string TryBuild(optional<AsyncPlanningResult> &result);
 	AsyncPlanningResult Build();
 
 private:
-	AsyncPlanningResult result_;
+	optional<PlanStatus> status_;
+	optional<string> plan_id_;
 	bool has_status_ = false;
 	bool has_plan_id_ = false;
 };

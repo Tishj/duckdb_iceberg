@@ -22,17 +22,16 @@ public:
 	SetStatisticsUpdate(const SetStatisticsUpdate &) = delete;
 	SetStatisticsUpdate &operator=(const SetStatisticsUpdate &) = delete;
 	SetStatisticsUpdate(SetStatisticsUpdate &&) = default;
-	SetStatisticsUpdate &operator=(SetStatisticsUpdate &&) = default;
+	SetStatisticsUpdate &operator=(SetStatisticsUpdate &&) = delete;
 
 private:
 	friend class SetStatisticsUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetStatisticsUpdate();
+	SetStatisticsUpdate(BaseUpdate base_update_p, StatisticsFile statistics_p, optional<int64_t> snapshot_id_p);
 
 public:
 	// Deserialization
 	static SetStatisticsUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetStatisticsUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +53,13 @@ public:
 	SetStatisticsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetStatisticsUpdateBuilder &SetStatistics(StatisticsFile value);
 	SetStatisticsUpdateBuilder &SetSnapshotId(int64_t value);
-	string TryBuild(SetStatisticsUpdate &result);
+	string TryBuild(optional<SetStatisticsUpdate> &result);
 	SetStatisticsUpdate Build();
 
 private:
-	SetStatisticsUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<StatisticsFile> statistics_;
+	optional<int64_t> snapshot_id_;
 	bool has_statistics_ = false;
 };
 

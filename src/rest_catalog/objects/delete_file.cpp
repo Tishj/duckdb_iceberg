@@ -14,62 +14,90 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DeleteFile::DeleteFile()
-    : position_delete_file(GeneratedObjectAccess::Create<optional<PositionDeleteFile>>()),
-      equality_delete_file(GeneratedObjectAccess::Create<optional<EqualityDeleteFile>>()) {
+DeleteFile::DeleteFile(optional<PositionDeleteFile> position_delete_file_p,
+                       optional<EqualityDeleteFile> equality_delete_file_p)
+    : position_delete_file(std::move(position_delete_file_p)), equality_delete_file(std::move(equality_delete_file_p)) {
 }
 
 DeleteFileBuilder::DeleteFileBuilder() {
 }
 
 DeleteFileBuilder &DeleteFileBuilder::SetPositionDeleteFile(PositionDeleteFile value) {
-	result_.position_delete_file = std::move(value);
+	position_delete_file_ = std::move(value);
 	return *this;
 }
 
 DeleteFileBuilder &DeleteFileBuilder::SetEqualityDeleteFile(EqualityDeleteFile value) {
-	result_.equality_delete_file = std::move(value);
+	equality_delete_file_ = std::move(value);
 	return *this;
 }
 
-string DeleteFileBuilder::TryBuild(DeleteFile &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 DeleteFile DeleteFileBuilder::Build() {
-	DeleteFile result;
-	auto error = TryBuild(result);
+	auto result = DeleteFile(std::move(position_delete_file_), std::move(equality_delete_file_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
-	DeleteFile res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string DeleteFileBuilder::TryBuild(optional<DeleteFile> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
+	DeleteFileBuilder builder;
+	do {
+		try {
+			builder.SetPositionDeleteFile(PositionDeleteFile::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetEqualityDeleteFile(EqualityDeleteFile::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("DeleteFile failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string DeleteFile::TryFromJSON(yyjson_val *obj, optional<DeleteFile> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 DeleteFile DeleteFile::Copy() const {
-	DeleteFile res;
+	DeleteFileBuilder builder;
+	optional<PositionDeleteFile> position_delete_file_tmp;
 	if (position_delete_file.has_value()) {
-		res.position_delete_file = GeneratedObjectAccess::Create<PositionDeleteFile>();
-		(*res.position_delete_file) = (*position_delete_file).Copy();
+		position_delete_file_tmp.emplace();
+		(*position_delete_file_tmp) = (*position_delete_file).Copy();
 	}
+	if (position_delete_file_tmp.has_value()) {
+		builder.SetPositionDeleteFile(std::move(*position_delete_file_tmp));
+	}
+	optional<EqualityDeleteFile> equality_delete_file_tmp;
 	if (equality_delete_file.has_value()) {
-		res.equality_delete_file = GeneratedObjectAccess::Create<EqualityDeleteFile>();
-		(*res.equality_delete_file) = (*equality_delete_file).Copy();
+		equality_delete_file_tmp.emplace();
+		(*equality_delete_file_tmp) = (*equality_delete_file).Copy();
 	}
-	return res;
+	if (equality_delete_file_tmp.has_value()) {
+		builder.SetEqualityDeleteFile(std::move(*equality_delete_file_tmp));
+	}
+	return builder.Build();
 }
 
 string DeleteFile::Validate() const {
@@ -93,28 +121,6 @@ string DeleteFile::Validate() const {
 		return "DeleteFile must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string DeleteFile::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		position_delete_file = GeneratedObjectAccess::Create<PositionDeleteFile>();
-		error = position_delete_file->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			position_delete_file = nullopt;
-		}
-		equality_delete_file = GeneratedObjectAccess::Create<EqualityDeleteFile>();
-		error = equality_delete_file->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			equality_delete_file = nullopt;
-		}
-		return "DeleteFile failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 void DeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

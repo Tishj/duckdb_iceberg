@@ -23,17 +23,18 @@ public:
 	ViewMetadata(const ViewMetadata &) = delete;
 	ViewMetadata &operator=(const ViewMetadata &) = delete;
 	ViewMetadata(ViewMetadata &&) = default;
-	ViewMetadata &operator=(ViewMetadata &&) = default;
+	ViewMetadata &operator=(ViewMetadata &&) = delete;
 
 private:
 	friend class ViewMetadataBuilder;
-	friend class GeneratedObjectAccess;
-	ViewMetadata();
+	ViewMetadata(string view_uuid_p, int32_t format_version_p, string location_p, int32_t current_version_id_p,
+	             vector<ViewVersion> versions_p, vector<ViewHistoryEntry> version_log_p, vector<Schema> schemas_p,
+	             optional<case_insensitive_map_t<string>> properties_p);
 
 public:
 	// Deserialization
 	static ViewMetadata FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ViewMetadata> &result);
 	string Validate() const;
 
 	// Copy
@@ -65,11 +66,18 @@ public:
 	ViewMetadataBuilder &SetVersionLog(vector<ViewHistoryEntry> value);
 	ViewMetadataBuilder &SetSchemas(vector<Schema> value);
 	ViewMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(ViewMetadata &result);
+	string TryBuild(optional<ViewMetadata> &result);
 	ViewMetadata Build();
 
 private:
-	ViewMetadata result_;
+	optional<string> view_uuid_;
+	optional<int32_t> format_version_;
+	optional<string> location_;
+	optional<int32_t> current_version_id_;
+	optional<vector<ViewVersion>> versions_;
+	optional<vector<ViewHistoryEntry>> version_log_;
+	optional<vector<Schema>> schemas_;
+	optional<case_insensitive_map_t<string>> properties_;
 	bool has_view_uuid_ = false;
 	bool has_format_version_ = false;
 	bool has_location_ = false;

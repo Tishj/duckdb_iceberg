@@ -30,17 +30,27 @@ public:
 	TableMetadata(const TableMetadata &) = delete;
 	TableMetadata &operator=(const TableMetadata &) = delete;
 	TableMetadata(TableMetadata &&) = default;
-	TableMetadata &operator=(TableMetadata &&) = default;
+	TableMetadata &operator=(TableMetadata &&) = delete;
 
 private:
 	friend class TableMetadataBuilder;
-	friend class GeneratedObjectAccess;
-	TableMetadata();
+	TableMetadata(int32_t format_version_p, string table_uuid_p, optional<string> location_p,
+	              optional<int64_t> last_updated_ms_p, optional<int64_t> next_row_id_p,
+	              optional<case_insensitive_map_t<string>> properties_p, optional<vector<Schema>> schemas_p,
+	              optional<int32_t> current_schema_id_p, optional<int32_t> last_column_id_p,
+	              optional<vector<PartitionSpec>> partition_specs_p, optional<int32_t> default_spec_id_p,
+	              optional<int32_t> last_partition_id_p, optional<vector<SortOrder>> sort_orders_p,
+	              optional<int32_t> default_sort_order_id_p, optional<vector<EncryptedKey>> encryption_keys_p,
+	              optional<vector<Snapshot>> snapshots_p, optional<SnapshotReferences> refs_p,
+	              optional<int64_t> current_snapshot_id_p, optional<int64_t> last_sequence_number_p,
+	              optional<SnapshotLog> snapshot_log_p, optional<MetadataLog> metadata_log_p,
+	              optional<vector<StatisticsFile>> statistics_p,
+	              optional<vector<PartitionStatisticsFile>> partition_statistics_p);
 
 public:
 	// Deserialization
 	static TableMetadata FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TableMetadata> &result);
 	string Validate() const;
 
 	// Copy
@@ -102,11 +112,33 @@ public:
 	TableMetadataBuilder &SetMetadataLog(MetadataLog value);
 	TableMetadataBuilder &SetStatistics(vector<StatisticsFile> value);
 	TableMetadataBuilder &SetPartitionStatistics(vector<PartitionStatisticsFile> value);
-	string TryBuild(TableMetadata &result);
+	string TryBuild(optional<TableMetadata> &result);
 	TableMetadata Build();
 
 private:
-	TableMetadata result_;
+	optional<int32_t> format_version_;
+	optional<string> table_uuid_;
+	optional<string> location_;
+	optional<int64_t> last_updated_ms_;
+	optional<int64_t> next_row_id_;
+	optional<case_insensitive_map_t<string>> properties_;
+	optional<vector<Schema>> schemas_;
+	optional<int32_t> current_schema_id_;
+	optional<int32_t> last_column_id_;
+	optional<vector<PartitionSpec>> partition_specs_;
+	optional<int32_t> default_spec_id_;
+	optional<int32_t> last_partition_id_;
+	optional<vector<SortOrder>> sort_orders_;
+	optional<int32_t> default_sort_order_id_;
+	optional<vector<EncryptedKey>> encryption_keys_;
+	optional<vector<Snapshot>> snapshots_;
+	optional<SnapshotReferences> refs_;
+	optional<int64_t> current_snapshot_id_;
+	optional<int64_t> last_sequence_number_;
+	optional<SnapshotLog> snapshot_log_;
+	optional<MetadataLog> metadata_log_;
+	optional<vector<StatisticsFile>> statistics_;
+	optional<vector<PartitionStatisticsFile>> partition_statistics_;
 	bool has_format_version_ = false;
 	bool has_table_uuid_ = false;
 };

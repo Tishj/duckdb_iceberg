@@ -14,89 +14,62 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Schema::Schema()
-    : struct_type(GeneratedObjectAccess::Create<StructType>()), object_1(GeneratedObjectAccess::Create<Object1>()) {
+Schema::Schema(StructType struct_type_p, Object1 object_1_p)
+    : struct_type(std::move(struct_type_p)), object_1(std::move(object_1_p)) {
 }
-Schema::Object1::Object1() {
+Schema::Object1::Object1(optional<int32_t> schema_id_p, optional<vector<int32_t>> identifier_field_ids_p)
+    : schema_id(std::move(schema_id_p)), identifier_field_ids(std::move(identifier_field_ids_p)) {
 }
 
 Schema::Object1Builder::Object1Builder() {
 }
 
 Schema::Object1Builder &Schema::Object1Builder::SetSchemaId(int32_t value) {
-	result_.schema_id = std::move(value);
+	schema_id_ = std::move(value);
 	return *this;
 }
 
 Schema::Object1Builder &Schema::Object1Builder::SetIdentifierFieldIds(vector<int32_t> value) {
-	result_.identifier_field_ids = std::move(value);
+	identifier_field_ids_ = std::move(value);
 	return *this;
 }
 
-string Schema::Object1Builder::TryBuild(Schema::Object1 &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 Schema::Object1 Schema::Object1Builder::Build() {
-	Schema::Object1 result;
-	auto error = TryBuild(result);
+	auto result = Schema::Object1(std::move(schema_id_), std::move(identifier_field_ids_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
+string Schema::Object1Builder::TryBuild(optional<Schema::Object1> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
 Schema::Object1 Schema::Object1::FromJSON(yyjson_val *obj) {
-	Object1 res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-Schema::Object1 Schema::Object1::Copy() const {
-	Object1 res;
-	if (schema_id.has_value()) {
-		res.schema_id.emplace();
-		(*res.schema_id) = (*schema_id);
-	}
-	if (identifier_field_ids.has_value()) {
-		res.identifier_field_ids.emplace();
-		(*res.identifier_field_ids).reserve((*identifier_field_ids).size());
-		for (auto &item : (*identifier_field_ids)) {
-			(*res.identifier_field_ids).emplace_back(item);
-		}
-	}
-	return res;
-}
-
-string Schema::Object1::Validate() const {
-	string error;
-	return "";
-}
-
-string Schema::Object1::TryFromJSON(yyjson_val *obj) {
-	string error;
+	Object1Builder builder;
 	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
 	if (schema_id_val) {
-		int32_t schema_id_tmp;
+		int32_t schema_id;
 		if (yyjson_is_int(schema_id_val)) {
-			schema_id_tmp = yyjson_get_int(schema_id_val);
+			schema_id = yyjson_get_int(schema_id_val);
 		} else {
-			return StringUtil::Format("Object1 property 'schema_id_tmp' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(schema_id_val));
+			throw InvalidInputException(
+			    StringUtil::Format("Object1 property 'schema_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(schema_id_val)));
 		}
-		schema_id = std::move(schema_id_tmp);
+		builder.SetSchemaId(std::move(schema_id));
 	}
 	auto identifier_field_ids_val = yyjson_obj_get(obj, "identifier-field-ids");
 	if (identifier_field_ids_val) {
-		vector<int32_t> identifier_field_ids_tmp;
+		vector<int32_t> identifier_field_ids;
 		if (yyjson_is_arr(identifier_field_ids_val)) {
 			size_t idx, max;
 			yyjson_val *val;
@@ -105,19 +78,59 @@ string Schema::Object1::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_int(val)) {
 					tmp = yyjson_get_int(val);
 				} else {
-					return StringUtil::Format("Object1 property 'tmp' is not of type 'integer', found '%s' instead",
-					                          yyjson_get_type_desc(val));
+					throw InvalidInputException(
+					    StringUtil::Format("Object1 property 'tmp' is not of type 'integer', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
 				}
-				identifier_field_ids_tmp.emplace_back(std::move(tmp));
+				identifier_field_ids.emplace_back(std::move(tmp));
 			}
 		} else {
 			return StringUtil::Format(
-			    "Object1 property 'identifier_field_ids_tmp' is not of type 'array', found '%s' instead",
+			    "Object1 property 'identifier_field_ids' is not of type 'array', found '%s' instead",
 			    yyjson_get_type_desc(identifier_field_ids_val));
 		}
-		identifier_field_ids = std::move(identifier_field_ids_tmp);
+		builder.SetIdentifierFieldIds(std::move(identifier_field_ids));
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string Schema::Object1::TryFromJSON(yyjson_val *obj, optional<Schema::Object1> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+Schema::Object1 Schema::Object1::Copy() const {
+	Object1Builder builder;
+	int32_t schema_id_tmp;
+	if (schema_id.has_value()) {
+		schema_id_tmp.emplace();
+		(*schema_id_tmp) = (*schema_id);
+	}
+	if (schema_id_tmp.has_value()) {
+		builder.SetSchemaId(std::move(schema_id_tmp));
+	}
+	vector<int32_t> identifier_field_ids_tmp;
+	if (identifier_field_ids.has_value()) {
+		identifier_field_ids_tmp.emplace();
+		(*identifier_field_ids_tmp).reserve((*identifier_field_ids).size());
+		for (auto &item : (*identifier_field_ids)) {
+			(*identifier_field_ids_tmp).emplace_back(item);
+		}
+	}
+	if (identifier_field_ids_tmp.has_value()) {
+		builder.SetIdentifierFieldIds(std::move(identifier_field_ids_tmp));
+	}
+	return builder.Build();
+}
+
+string Schema::Object1::Validate() const {
+	string error;
+	return "";
 }
 
 void Schema::Object1::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -153,47 +166,60 @@ SchemaBuilder::SchemaBuilder() {
 }
 
 SchemaBuilder &SchemaBuilder::SetStructType(StructType value) {
-	result_.struct_type = std::move(value);
+	struct_type_ = std::move(value);
 	return *this;
 }
 
 SchemaBuilder &SchemaBuilder::SetObject1(Schema::Object1 value) {
-	result_.object_1 = std::move(value);
+	object_1_ = std::move(value);
 	return *this;
 }
 
-string SchemaBuilder::TryBuild(Schema &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 Schema SchemaBuilder::Build() {
-	Schema result;
-	auto error = TryBuild(result);
+	auto result = Schema(std::move(*struct_type_), std::move(*object_1_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-Schema Schema::FromJSON(yyjson_val *obj) {
-	Schema res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SchemaBuilder::TryBuild(optional<Schema> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+Schema Schema::FromJSON(yyjson_val *obj) {
+	SchemaBuilder builder;
+	builder.SetStructType(StructType::FromJSON(obj));
+	builder.SetObject1(Object1::FromJSON(obj));
+	return builder.Build();
+}
+
+string Schema::TryFromJSON(yyjson_val *obj, optional<Schema> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 Schema Schema::Copy() const {
-	Schema res;
-	res.struct_type = struct_type.Copy();
-	res.object_1 = object_1.Copy();
-	return res;
+	SchemaBuilder builder;
+	optional<StructType> struct_type_tmp;
+	struct_type_tmp = struct_type.Copy();
+	builder.SetStructType(std::move(*struct_type_tmp));
+	optional<Object1> object_1_tmp;
+	object_1_tmp = object_1.Copy();
+	builder.SetObject1(std::move(*object_1_tmp));
+	return builder.Build();
 }
 
 string Schema::Validate() const {
@@ -207,19 +233,6 @@ string Schema::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string Schema::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = struct_type.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	error = object_1.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	return Validate();
 }
 
 void Schema::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

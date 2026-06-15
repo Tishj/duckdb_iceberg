@@ -14,95 +14,107 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RegisterViewRequest::RegisterViewRequest() {
+RegisterViewRequest::RegisterViewRequest(string name_p, string metadata_location_p)
+    : name(std::move(name_p)), metadata_location(std::move(metadata_location_p)) {
 }
 
 RegisterViewRequestBuilder::RegisterViewRequestBuilder() {
 }
 
 RegisterViewRequestBuilder &RegisterViewRequestBuilder::SetName(string value) {
-	result_.name = std::move(value);
+	name_ = std::move(value);
 	has_name_ = true;
 	return *this;
 }
 
 RegisterViewRequestBuilder &RegisterViewRequestBuilder::SetMetadataLocation(string value) {
-	result_.metadata_location = std::move(value);
+	metadata_location_ = std::move(value);
 	has_metadata_location_ = true;
 	return *this;
 }
 
-string RegisterViewRequestBuilder::TryBuild(RegisterViewRequest &result) {
+RegisterViewRequest RegisterViewRequestBuilder::Build() {
 	if (!has_name_) {
-		return "RegisterViewRequest required property 'name' is missing";
+		throw InvalidInputException("RegisterViewRequest required property 'name' is missing");
 	}
 	if (!has_metadata_location_) {
-		return "RegisterViewRequest required property 'metadata-location' is missing";
+		throw InvalidInputException("RegisterViewRequest required property 'metadata-location' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-RegisterViewRequest RegisterViewRequestBuilder::Build() {
-	RegisterViewRequest result;
-	auto error = TryBuild(result);
+	auto result = RegisterViewRequest(std::move(*name_), std::move(*metadata_location_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RegisterViewRequest RegisterViewRequest::FromJSON(yyjson_val *obj) {
-	RegisterViewRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RegisterViewRequestBuilder::TryBuild(optional<RegisterViewRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RegisterViewRequest RegisterViewRequest::FromJSON(yyjson_val *obj) {
+	RegisterViewRequestBuilder builder;
+	auto name_val = yyjson_obj_get(obj, "name");
+	if (!name_val) {
+		throw InvalidInputException("RegisterViewRequest required property 'name' is missing");
+	} else {
+		string name;
+		if (yyjson_is_str(name_val)) {
+			name = yyjson_get_str(name_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("RegisterViewRequest property 'name' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(name_val)));
+		}
+		builder.SetName(std::move(name));
+	}
+	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
+	if (!metadata_location_val) {
+		throw InvalidInputException("RegisterViewRequest required property 'metadata-location' is missing");
+	} else {
+		string metadata_location;
+		if (yyjson_is_str(metadata_location_val)) {
+			metadata_location = yyjson_get_str(metadata_location_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RegisterViewRequest property 'metadata_location' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(metadata_location_val)));
+		}
+		builder.SetMetadataLocation(std::move(metadata_location));
+	}
+	return builder.Build();
+}
+
+string RegisterViewRequest::TryFromJSON(yyjson_val *obj, optional<RegisterViewRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RegisterViewRequest RegisterViewRequest::Copy() const {
-	RegisterViewRequest res;
-	res.name = name;
-	res.metadata_location = metadata_location;
-	return res;
+	RegisterViewRequestBuilder builder;
+	string name_tmp;
+	name_tmp = name;
+	builder.SetName(std::move(name_tmp));
+	string metadata_location_tmp;
+	metadata_location_tmp = metadata_location;
+	builder.SetMetadataLocation(std::move(metadata_location_tmp));
+	return builder.Build();
 }
 
 string RegisterViewRequest::Validate() const {
 	string error;
 	return "";
-}
-
-string RegisterViewRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		return "RegisterViewRequest required property 'name' is missing";
-	} else {
-		if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			return StringUtil::Format("RegisterViewRequest property 'name' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(name_val));
-		}
-	}
-	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
-	if (!metadata_location_val) {
-		return "RegisterViewRequest required property 'metadata-location' is missing";
-	} else {
-		if (yyjson_is_str(metadata_location_val)) {
-			metadata_location = yyjson_get_str(metadata_location_val);
-		} else {
-			return StringUtil::Format(
-			    "RegisterViewRequest property 'metadata_location' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(metadata_location_val));
-		}
-	}
-	return Validate();
 }
 
 void RegisterViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

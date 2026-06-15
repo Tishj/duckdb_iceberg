@@ -18,13 +18,13 @@ public:
 	DecimalTypeValue(const DecimalTypeValue &) = delete;
 	DecimalTypeValue &operator=(const DecimalTypeValue &) = delete;
 	DecimalTypeValue(DecimalTypeValue &&) = default;
-	DecimalTypeValue &operator=(DecimalTypeValue &&) = default;
-	DecimalTypeValue();
+	DecimalTypeValue &operator=(DecimalTypeValue &&) = delete;
+	DecimalTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static DecimalTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result);
 	string Validate() const;
 
 	// Copy

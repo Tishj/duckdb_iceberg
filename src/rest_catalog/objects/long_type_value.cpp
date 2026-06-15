@@ -14,40 +14,41 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LongTypeValue::LongTypeValue() {
+LongTypeValue::LongTypeValue(int64_t value_p) : value(std::move(value_p)) {
 }
 
 LongTypeValue LongTypeValue::FromJSON(yyjson_val *obj) {
-	LongTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-LongTypeValue LongTypeValue::Copy() const {
-	LongTypeValue res;
-	res.value = value;
-	return res;
-}
-
-string LongTypeValue::Validate() const {
-	string error;
-	return "";
-}
-
-string LongTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
+	int64_t value;
 	if (yyjson_is_sint(obj)) {
 		value = yyjson_get_sint(obj);
 	} else if (yyjson_is_uint(obj)) {
 		value = yyjson_get_uint(obj);
 	} else {
-		return StringUtil::Format("LongTypeValue property 'value' is not of type 'integer', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
+		throw InvalidInputException(StringUtil::Format(
+		    "LongTypeValue property 'value' is not of type 'integer', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return Validate();
+	return LongTypeValue(std::move(value));
+}
+
+string LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+LongTypeValue LongTypeValue::Copy() const {
+	int64_t value_tmp;
+	value_tmp = value;
+	return LongTypeValue(std::move(value_tmp));
+}
+
+string LongTypeValue::Validate() const {
+	string error;
+	return "";
 }
 
 yyjson_mut_val *LongTypeValue::ToJSON(yyjson_mut_doc *doc) const {

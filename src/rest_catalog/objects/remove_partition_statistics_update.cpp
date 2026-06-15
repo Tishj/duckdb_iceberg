@@ -14,59 +14,88 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate(BaseUpdate base_update_p, int64_t snapshot_id_p)
+    : base_update(std::move(base_update_p)), snapshot_id(std::move(snapshot_id_p)) {
 }
 
 RemovePartitionStatisticsUpdateBuilder::RemovePartitionStatisticsUpdateBuilder() {
 }
 
 RemovePartitionStatisticsUpdateBuilder &RemovePartitionStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 RemovePartitionStatisticsUpdateBuilder &RemovePartitionStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	has_snapshot_id_ = true;
 	return *this;
 }
 
-string RemovePartitionStatisticsUpdateBuilder::TryBuild(RemovePartitionStatisticsUpdate &result) {
-	if (!has_snapshot_id_) {
-		return "RemovePartitionStatisticsUpdate required property 'snapshot-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdateBuilder::Build() {
-	RemovePartitionStatisticsUpdate result;
-	auto error = TryBuild(result);
+	if (!has_snapshot_id_) {
+		throw InvalidInputException("RemovePartitionStatisticsUpdate required property 'snapshot-id' is missing");
+	}
+	auto result = RemovePartitionStatisticsUpdate(std::move(*base_update_), std::move(*snapshot_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	RemovePartitionStatisticsUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RemovePartitionStatisticsUpdateBuilder::TryBuild(optional<RemovePartitionStatisticsUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	RemovePartitionStatisticsUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (!snapshot_id_val) {
+		throw InvalidInputException("RemovePartitionStatisticsUpdate required property 'snapshot-id' is missing");
+	} else {
+		int64_t snapshot_id;
+		if (yyjson_is_sint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_sint(snapshot_id_val);
+		} else if (yyjson_is_uint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_uint(snapshot_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RemovePartitionStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(snapshot_id_val)));
+		}
+		builder.SetSnapshotId(std::move(snapshot_id));
+	}
+	return builder.Build();
+}
+
+string RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj,
+                                                    optional<RemovePartitionStatisticsUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::Copy() const {
-	RemovePartitionStatisticsUpdate res;
-	res.base_update = base_update.Copy();
-	res.snapshot_id = snapshot_id;
-	return res;
+	RemovePartitionStatisticsUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int64_t snapshot_id_tmp;
+	snapshot_id_tmp = snapshot_id;
+	builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	return builder.Build();
 }
 
 string RemovePartitionStatisticsUpdate::Validate() const {
@@ -76,29 +105,6 @@ string RemovePartitionStatisticsUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		return "RemovePartitionStatisticsUpdate required property 'snapshot-id' is missing";
-	} else {
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "RemovePartitionStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val));
-		}
-	}
-	return Validate();
 }
 
 void RemovePartitionStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

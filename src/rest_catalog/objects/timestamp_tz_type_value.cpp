@@ -14,38 +14,40 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TimestampTzTypeValue::TimestampTzTypeValue() {
+TimestampTzTypeValue::TimestampTzTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
 TimestampTzTypeValue TimestampTzTypeValue::FromJSON(yyjson_val *obj) {
-	TimestampTzTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(
+		    StringUtil::Format("TimestampTzTypeValue property 'value' is not of type 'string', found '%s' instead",
+		                       yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return TimestampTzTypeValue(std::move(value));
+}
+
+string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TimestampTzTypeValue TimestampTzTypeValue::Copy() const {
-	TimestampTzTypeValue res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return TimestampTzTypeValue(std::move(value_tmp));
 }
 
 string TimestampTzTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("TimestampTzTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *TimestampTzTypeValue::ToJSON(yyjson_mut_doc *doc) const {

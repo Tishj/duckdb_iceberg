@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemoveEncryptionKeyUpdate::RemoveEncryptionKeyUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+RemoveEncryptionKeyUpdate::RemoveEncryptionKeyUpdate(BaseUpdate base_update_p, string key_id_p)
+    : base_update(std::move(base_update_p)), key_id(std::move(key_id_p)) {
 }
 
 RemoveEncryptionKeyUpdateBuilder::RemoveEncryptionKeyUpdateBuilder() {
 }
 
 RemoveEncryptionKeyUpdateBuilder &RemoveEncryptionKeyUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 RemoveEncryptionKeyUpdateBuilder &RemoveEncryptionKeyUpdateBuilder::SetKeyId(string value) {
-	result_.key_id = std::move(value);
+	key_id_ = std::move(value);
 	has_key_id_ = true;
 	return *this;
 }
 
-string RemoveEncryptionKeyUpdateBuilder::TryBuild(RemoveEncryptionKeyUpdate &result) {
-	if (!has_key_id_) {
-		return "RemoveEncryptionKeyUpdate required property 'key-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdateBuilder::Build() {
-	RemoveEncryptionKeyUpdate result;
-	auto error = TryBuild(result);
+	if (!has_key_id_) {
+		throw InvalidInputException("RemoveEncryptionKeyUpdate required property 'key-id' is missing");
+	}
+	auto result = RemoveEncryptionKeyUpdate(std::move(*base_update_), std::move(*key_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
-	RemoveEncryptionKeyUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RemoveEncryptionKeyUpdateBuilder::TryBuild(optional<RemoveEncryptionKeyUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
+	RemoveEncryptionKeyUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto key_id_val = yyjson_obj_get(obj, "key-id");
+	if (!key_id_val) {
+		throw InvalidInputException("RemoveEncryptionKeyUpdate required property 'key-id' is missing");
+	} else {
+		string key_id;
+		if (yyjson_is_str(key_id_val)) {
+			key_id = yyjson_get_str(key_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RemoveEncryptionKeyUpdate property 'key_id' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(key_id_val)));
+		}
+		builder.SetKeyId(std::move(key_id));
+	}
+	return builder.Build();
+}
+
+string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveEncryptionKeyUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::Copy() const {
-	RemoveEncryptionKeyUpdate res;
-	res.base_update = base_update.Copy();
-	res.key_id = key_id;
-	return res;
+	RemoveEncryptionKeyUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	string key_id_tmp;
+	key_id_tmp = key_id;
+	builder.SetKeyId(std::move(key_id_tmp));
+	return builder.Build();
 }
 
 string RemoveEncryptionKeyUpdate::Validate() const {
@@ -75,27 +102,6 @@ string RemoveEncryptionKeyUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto key_id_val = yyjson_obj_get(obj, "key-id");
-	if (!key_id_val) {
-		return "RemoveEncryptionKeyUpdate required property 'key-id' is missing";
-	} else {
-		if (yyjson_is_str(key_id_val)) {
-			key_id = yyjson_get_str(key_id_val);
-		} else {
-			return StringUtil::Format(
-			    "RemoveEncryptionKeyUpdate property 'key_id' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(key_id_val));
-		}
-	}
-	return Validate();
 }
 
 void RemoveEncryptionKeyUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

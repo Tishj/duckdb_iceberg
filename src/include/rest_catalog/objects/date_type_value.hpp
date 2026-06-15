@@ -18,13 +18,13 @@ public:
 	DateTypeValue(const DateTypeValue &) = delete;
 	DateTypeValue &operator=(const DateTypeValue &) = delete;
 	DateTypeValue(DateTypeValue &&) = default;
-	DateTypeValue &operator=(DateTypeValue &&) = default;
-	DateTypeValue();
+	DateTypeValue &operator=(DateTypeValue &&) = delete;
+	DateTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static DateTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &result);
 	string Validate() const;
 
 	// Copy

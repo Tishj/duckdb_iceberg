@@ -21,17 +21,18 @@ public:
 	OAuthTokenExchangeRequest(const OAuthTokenExchangeRequest &) = delete;
 	OAuthTokenExchangeRequest &operator=(const OAuthTokenExchangeRequest &) = delete;
 	OAuthTokenExchangeRequest(OAuthTokenExchangeRequest &&) = default;
-	OAuthTokenExchangeRequest &operator=(OAuthTokenExchangeRequest &&) = default;
+	OAuthTokenExchangeRequest &operator=(OAuthTokenExchangeRequest &&) = delete;
 
 private:
 	friend class OAuthTokenExchangeRequestBuilder;
-	friend class GeneratedObjectAccess;
-	OAuthTokenExchangeRequest();
+	OAuthTokenExchangeRequest(string grant_type_p, string subject_token_p, TokenType subject_token_type_p,
+	                          optional<string> scope_p, optional<TokenType> requested_token_type_p,
+	                          optional<string> actor_token_p, optional<TokenType> actor_token_type_p);
 
 public:
 	// Deserialization
 	static OAuthTokenExchangeRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<OAuthTokenExchangeRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -61,11 +62,17 @@ public:
 	OAuthTokenExchangeRequestBuilder &SetRequestedTokenType(TokenType value);
 	OAuthTokenExchangeRequestBuilder &SetActorToken(string value);
 	OAuthTokenExchangeRequestBuilder &SetActorTokenType(TokenType value);
-	string TryBuild(OAuthTokenExchangeRequest &result);
+	string TryBuild(optional<OAuthTokenExchangeRequest> &result);
 	OAuthTokenExchangeRequest Build();
 
 private:
-	OAuthTokenExchangeRequest result_;
+	optional<string> grant_type_;
+	optional<string> subject_token_;
+	optional<TokenType> subject_token_type_;
+	optional<string> scope_;
+	optional<TokenType> requested_token_type_;
+	optional<string> actor_token_;
+	optional<TokenType> actor_token_type_;
 	bool has_grant_type_ = false;
 	bool has_subject_token_ = false;
 	bool has_subject_token_type_ = false;

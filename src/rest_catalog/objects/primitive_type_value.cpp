@@ -14,186 +14,366 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PrimitiveTypeValue::PrimitiveTypeValue() {
+PrimitiveTypeValue::PrimitiveTypeValue(
+    optional<BooleanTypeValue> boolean_type_value_p, optional<IntegerTypeValue> integer_type_value_p,
+    optional<LongTypeValue> long_type_value_p, optional<FloatTypeValue> float_type_value_p,
+    optional<DoubleTypeValue> double_type_value_p, optional<DecimalTypeValue> decimal_type_value_p,
+    optional<StringTypeValue> string_type_value_p, optional<UUIDTypeValue> uuidtype_value_p,
+    optional<DateTypeValue> date_type_value_p, optional<TimeTypeValue> time_type_value_p,
+    optional<TimestampTypeValue> timestamp_type_value_p, optional<TimestampTzTypeValue> timestamp_tz_type_value_p,
+    optional<TimestampNanoTypeValue> timestamp_nano_type_value_p,
+    optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value_p, optional<FixedTypeValue> fixed_type_value_p,
+    optional<BinaryTypeValue> binary_type_value_p)
+    : boolean_type_value(std::move(boolean_type_value_p)), integer_type_value(std::move(integer_type_value_p)),
+      long_type_value(std::move(long_type_value_p)), float_type_value(std::move(float_type_value_p)),
+      double_type_value(std::move(double_type_value_p)), decimal_type_value(std::move(decimal_type_value_p)),
+      string_type_value(std::move(string_type_value_p)), uuidtype_value(std::move(uuidtype_value_p)),
+      date_type_value(std::move(date_type_value_p)), time_type_value(std::move(time_type_value_p)),
+      timestamp_type_value(std::move(timestamp_type_value_p)),
+      timestamp_tz_type_value(std::move(timestamp_tz_type_value_p)),
+      timestamp_nano_type_value(std::move(timestamp_nano_type_value_p)),
+      timestamp_tz_nano_type_value(std::move(timestamp_tz_nano_type_value_p)),
+      fixed_type_value(std::move(fixed_type_value_p)), binary_type_value(std::move(binary_type_value_p)) {
 }
 
 PrimitiveTypeValueBuilder::PrimitiveTypeValueBuilder() {
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetBooleanTypeValue(BooleanTypeValue value) {
-	result_.boolean_type_value = std::move(value);
+	boolean_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetIntegerTypeValue(IntegerTypeValue value) {
-	result_.integer_type_value = std::move(value);
+	integer_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetLongTypeValue(LongTypeValue value) {
-	result_.long_type_value = std::move(value);
+	long_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetFloatTypeValue(FloatTypeValue value) {
-	result_.float_type_value = std::move(value);
+	float_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetDoubleTypeValue(DoubleTypeValue value) {
-	result_.double_type_value = std::move(value);
+	double_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetDecimalTypeValue(DecimalTypeValue value) {
-	result_.decimal_type_value = std::move(value);
+	decimal_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetStringTypeValue(StringTypeValue value) {
-	result_.string_type_value = std::move(value);
+	string_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetUuidtypeValue(UUIDTypeValue value) {
-	result_.uuidtype_value = std::move(value);
+	uuidtype_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetDateTypeValue(DateTypeValue value) {
-	result_.date_type_value = std::move(value);
+	date_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimeTypeValue(TimeTypeValue value) {
-	result_.time_type_value = std::move(value);
+	time_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampTypeValue(TimestampTypeValue value) {
-	result_.timestamp_type_value = std::move(value);
+	timestamp_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampTzTypeValue(TimestampTzTypeValue value) {
-	result_.timestamp_tz_type_value = std::move(value);
+	timestamp_tz_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampNanoTypeValue(TimestampNanoTypeValue value) {
-	result_.timestamp_nano_type_value = std::move(value);
+	timestamp_nano_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue value) {
-	result_.timestamp_tz_nano_type_value = std::move(value);
+	timestamp_tz_nano_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetFixedTypeValue(FixedTypeValue value) {
-	result_.fixed_type_value = std::move(value);
+	fixed_type_value_ = std::move(value);
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetBinaryTypeValue(BinaryTypeValue value) {
-	result_.binary_type_value = std::move(value);
+	binary_type_value_ = std::move(value);
 	return *this;
 }
 
-string PrimitiveTypeValueBuilder::TryBuild(PrimitiveTypeValue &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 PrimitiveTypeValue PrimitiveTypeValueBuilder::Build() {
-	PrimitiveTypeValue result;
-	auto error = TryBuild(result);
+	auto result = PrimitiveTypeValue(
+	    std::move(boolean_type_value_), std::move(integer_type_value_), std::move(long_type_value_),
+	    std::move(float_type_value_), std::move(double_type_value_), std::move(decimal_type_value_),
+	    std::move(string_type_value_), std::move(uuidtype_value_), std::move(date_type_value_),
+	    std::move(time_type_value_), std::move(timestamp_type_value_), std::move(timestamp_tz_type_value_),
+	    std::move(timestamp_nano_type_value_), std::move(timestamp_tz_nano_type_value_), std::move(fixed_type_value_),
+	    std::move(binary_type_value_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-PrimitiveTypeValue PrimitiveTypeValue::FromJSON(yyjson_val *obj) {
-	PrimitiveTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string PrimitiveTypeValueBuilder::TryBuild(optional<PrimitiveTypeValue> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+PrimitiveTypeValue PrimitiveTypeValue::FromJSON(yyjson_val *obj) {
+	PrimitiveTypeValueBuilder builder;
+	int matched_any_of_variants = 0;
+	try {
+		builder.SetBooleanTypeValue(BooleanTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetIntegerTypeValue(IntegerTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetLongTypeValue(LongTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetFloatTypeValue(FloatTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetDoubleTypeValue(DoubleTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetDecimalTypeValue(DecimalTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetStringTypeValue(StringTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetUuidtypeValue(UUIDTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetDateTypeValue(DateTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetTimeTypeValue(TimeTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetTimestampTypeValue(TimestampTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetTimestampTzTypeValue(TimestampTzTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetTimestampNanoTypeValue(TimestampNanoTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetFixedTypeValue(FixedTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetBinaryTypeValue(BinaryTypeValue::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	if (matched_any_of_variants == 0) {
+		throw InvalidInputException("PrimitiveTypeValue failed to parse, none of the anyOf candidates matched");
+	}
+	return builder.Build();
+}
+
+string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, optional<PrimitiveTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 PrimitiveTypeValue PrimitiveTypeValue::Copy() const {
-	PrimitiveTypeValue res;
+	PrimitiveTypeValueBuilder builder;
+	optional<BooleanTypeValue> boolean_type_value_tmp;
 	if (boolean_type_value.has_value()) {
-		res.boolean_type_value.emplace();
-		(*res.boolean_type_value) = (*boolean_type_value).Copy();
+		boolean_type_value_tmp.emplace();
+		(*boolean_type_value_tmp) = (*boolean_type_value).Copy();
 	}
+	if (boolean_type_value_tmp.has_value()) {
+		builder.SetBooleanTypeValue(std::move(*boolean_type_value_tmp));
+	}
+	optional<IntegerTypeValue> integer_type_value_tmp;
 	if (integer_type_value.has_value()) {
-		res.integer_type_value.emplace();
-		(*res.integer_type_value) = (*integer_type_value).Copy();
+		integer_type_value_tmp.emplace();
+		(*integer_type_value_tmp) = (*integer_type_value).Copy();
 	}
+	if (integer_type_value_tmp.has_value()) {
+		builder.SetIntegerTypeValue(std::move(*integer_type_value_tmp));
+	}
+	optional<LongTypeValue> long_type_value_tmp;
 	if (long_type_value.has_value()) {
-		res.long_type_value.emplace();
-		(*res.long_type_value) = (*long_type_value).Copy();
+		long_type_value_tmp.emplace();
+		(*long_type_value_tmp) = (*long_type_value).Copy();
 	}
+	if (long_type_value_tmp.has_value()) {
+		builder.SetLongTypeValue(std::move(*long_type_value_tmp));
+	}
+	optional<FloatTypeValue> float_type_value_tmp;
 	if (float_type_value.has_value()) {
-		res.float_type_value.emplace();
-		(*res.float_type_value) = (*float_type_value).Copy();
+		float_type_value_tmp.emplace();
+		(*float_type_value_tmp) = (*float_type_value).Copy();
 	}
+	if (float_type_value_tmp.has_value()) {
+		builder.SetFloatTypeValue(std::move(*float_type_value_tmp));
+	}
+	optional<DoubleTypeValue> double_type_value_tmp;
 	if (double_type_value.has_value()) {
-		res.double_type_value.emplace();
-		(*res.double_type_value) = (*double_type_value).Copy();
+		double_type_value_tmp.emplace();
+		(*double_type_value_tmp) = (*double_type_value).Copy();
 	}
+	if (double_type_value_tmp.has_value()) {
+		builder.SetDoubleTypeValue(std::move(*double_type_value_tmp));
+	}
+	optional<DecimalTypeValue> decimal_type_value_tmp;
 	if (decimal_type_value.has_value()) {
-		res.decimal_type_value.emplace();
-		(*res.decimal_type_value) = (*decimal_type_value).Copy();
+		decimal_type_value_tmp.emplace();
+		(*decimal_type_value_tmp) = (*decimal_type_value).Copy();
 	}
+	if (decimal_type_value_tmp.has_value()) {
+		builder.SetDecimalTypeValue(std::move(*decimal_type_value_tmp));
+	}
+	optional<StringTypeValue> string_type_value_tmp;
 	if (string_type_value.has_value()) {
-		res.string_type_value.emplace();
-		(*res.string_type_value) = (*string_type_value).Copy();
+		string_type_value_tmp.emplace();
+		(*string_type_value_tmp) = (*string_type_value).Copy();
 	}
+	if (string_type_value_tmp.has_value()) {
+		builder.SetStringTypeValue(std::move(*string_type_value_tmp));
+	}
+	optional<UUIDTypeValue> uuidtype_value_tmp;
 	if (uuidtype_value.has_value()) {
-		res.uuidtype_value.emplace();
-		(*res.uuidtype_value) = (*uuidtype_value).Copy();
+		uuidtype_value_tmp.emplace();
+		(*uuidtype_value_tmp) = (*uuidtype_value).Copy();
 	}
+	if (uuidtype_value_tmp.has_value()) {
+		builder.SetUuidtypeValue(std::move(*uuidtype_value_tmp));
+	}
+	optional<DateTypeValue> date_type_value_tmp;
 	if (date_type_value.has_value()) {
-		res.date_type_value.emplace();
-		(*res.date_type_value) = (*date_type_value).Copy();
+		date_type_value_tmp.emplace();
+		(*date_type_value_tmp) = (*date_type_value).Copy();
 	}
+	if (date_type_value_tmp.has_value()) {
+		builder.SetDateTypeValue(std::move(*date_type_value_tmp));
+	}
+	optional<TimeTypeValue> time_type_value_tmp;
 	if (time_type_value.has_value()) {
-		res.time_type_value.emplace();
-		(*res.time_type_value) = (*time_type_value).Copy();
+		time_type_value_tmp.emplace();
+		(*time_type_value_tmp) = (*time_type_value).Copy();
 	}
+	if (time_type_value_tmp.has_value()) {
+		builder.SetTimeTypeValue(std::move(*time_type_value_tmp));
+	}
+	optional<TimestampTypeValue> timestamp_type_value_tmp;
 	if (timestamp_type_value.has_value()) {
-		res.timestamp_type_value.emplace();
-		(*res.timestamp_type_value) = (*timestamp_type_value).Copy();
+		timestamp_type_value_tmp.emplace();
+		(*timestamp_type_value_tmp) = (*timestamp_type_value).Copy();
 	}
+	if (timestamp_type_value_tmp.has_value()) {
+		builder.SetTimestampTypeValue(std::move(*timestamp_type_value_tmp));
+	}
+	optional<TimestampTzTypeValue> timestamp_tz_type_value_tmp;
 	if (timestamp_tz_type_value.has_value()) {
-		res.timestamp_tz_type_value.emplace();
-		(*res.timestamp_tz_type_value) = (*timestamp_tz_type_value).Copy();
+		timestamp_tz_type_value_tmp.emplace();
+		(*timestamp_tz_type_value_tmp) = (*timestamp_tz_type_value).Copy();
 	}
+	if (timestamp_tz_type_value_tmp.has_value()) {
+		builder.SetTimestampTzTypeValue(std::move(*timestamp_tz_type_value_tmp));
+	}
+	optional<TimestampNanoTypeValue> timestamp_nano_type_value_tmp;
 	if (timestamp_nano_type_value.has_value()) {
-		res.timestamp_nano_type_value.emplace();
-		(*res.timestamp_nano_type_value) = (*timestamp_nano_type_value).Copy();
+		timestamp_nano_type_value_tmp.emplace();
+		(*timestamp_nano_type_value_tmp) = (*timestamp_nano_type_value).Copy();
 	}
+	if (timestamp_nano_type_value_tmp.has_value()) {
+		builder.SetTimestampNanoTypeValue(std::move(*timestamp_nano_type_value_tmp));
+	}
+	optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value_tmp;
 	if (timestamp_tz_nano_type_value.has_value()) {
-		res.timestamp_tz_nano_type_value.emplace();
-		(*res.timestamp_tz_nano_type_value) = (*timestamp_tz_nano_type_value).Copy();
+		timestamp_tz_nano_type_value_tmp.emplace();
+		(*timestamp_tz_nano_type_value_tmp) = (*timestamp_tz_nano_type_value).Copy();
 	}
+	if (timestamp_tz_nano_type_value_tmp.has_value()) {
+		builder.SetTimestampTzNanoTypeValue(std::move(*timestamp_tz_nano_type_value_tmp));
+	}
+	optional<FixedTypeValue> fixed_type_value_tmp;
 	if (fixed_type_value.has_value()) {
-		res.fixed_type_value.emplace();
-		(*res.fixed_type_value) = (*fixed_type_value).Copy();
+		fixed_type_value_tmp.emplace();
+		(*fixed_type_value_tmp) = (*fixed_type_value).Copy();
 	}
+	if (fixed_type_value_tmp.has_value()) {
+		builder.SetFixedTypeValue(std::move(*fixed_type_value_tmp));
+	}
+	optional<BinaryTypeValue> binary_type_value_tmp;
 	if (binary_type_value.has_value()) {
-		res.binary_type_value.emplace();
-		(*res.binary_type_value) = (*binary_type_value).Copy();
+		binary_type_value_tmp.emplace();
+		(*binary_type_value_tmp) = (*binary_type_value).Copy();
 	}
-	return res;
+	if (binary_type_value_tmp.has_value()) {
+		builder.SetBinaryTypeValue(std::move(*binary_type_value_tmp));
+	}
+	return builder.Build();
 }
 
 string PrimitiveTypeValue::Validate() const {
@@ -315,116 +495,6 @@ string PrimitiveTypeValue::Validate() const {
 		return "PrimitiveTypeValue must have at least one anyOf variant set";
 	}
 	return "";
-}
-
-string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	boolean_type_value.emplace();
-	error = boolean_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		boolean_type_value = nullopt;
-	}
-	integer_type_value.emplace();
-	error = integer_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		integer_type_value = nullopt;
-	}
-	long_type_value.emplace();
-	error = long_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		long_type_value = nullopt;
-	}
-	float_type_value.emplace();
-	error = float_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		float_type_value = nullopt;
-	}
-	double_type_value.emplace();
-	error = double_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		double_type_value = nullopt;
-	}
-	decimal_type_value.emplace();
-	error = decimal_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		decimal_type_value = nullopt;
-	}
-	string_type_value.emplace();
-	error = string_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		string_type_value = nullopt;
-	}
-	uuidtype_value.emplace();
-	error = uuidtype_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		uuidtype_value = nullopt;
-	}
-	date_type_value.emplace();
-	error = date_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		date_type_value = nullopt;
-	}
-	time_type_value.emplace();
-	error = time_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		time_type_value = nullopt;
-	}
-	timestamp_type_value.emplace();
-	error = timestamp_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		timestamp_type_value = nullopt;
-	}
-	timestamp_tz_type_value.emplace();
-	error = timestamp_tz_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		timestamp_tz_type_value = nullopt;
-	}
-	timestamp_nano_type_value.emplace();
-	error = timestamp_nano_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		timestamp_nano_type_value = nullopt;
-	}
-	timestamp_tz_nano_type_value.emplace();
-	error = timestamp_tz_nano_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		timestamp_tz_nano_type_value = nullopt;
-	}
-	fixed_type_value.emplace();
-	error = fixed_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		fixed_type_value = nullopt;
-	}
-	binary_type_value.emplace();
-	error = binary_type_value->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		binary_type_value = nullopt;
-	}
-	if (!(binary_type_value.has_value()) && !(boolean_type_value.has_value()) && !(date_type_value.has_value()) &&
-	    !(decimal_type_value.has_value()) && !(double_type_value.has_value()) && !(fixed_type_value.has_value()) &&
-	    !(float_type_value.has_value()) && !(integer_type_value.has_value()) && !(long_type_value.has_value()) &&
-	    !(string_type_value.has_value()) && !(time_type_value.has_value()) &&
-	    !(timestamp_nano_type_value.has_value()) && !(timestamp_type_value.has_value()) &&
-	    !(timestamp_tz_nano_type_value.has_value()) && !(timestamp_tz_type_value.has_value()) &&
-	    !(uuidtype_value.has_value())) {
-		return "PrimitiveTypeValue failed to parse, none of the anyOf candidates matched";
-	}
-	return Validate();
 }
 
 yyjson_mut_val *PrimitiveTypeValue::ToJSON(yyjson_mut_doc *doc) const {

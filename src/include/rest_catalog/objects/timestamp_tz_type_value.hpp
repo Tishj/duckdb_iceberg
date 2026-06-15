@@ -18,13 +18,13 @@ public:
 	TimestampTzTypeValue(const TimestampTzTypeValue &) = delete;
 	TimestampTzTypeValue &operator=(const TimestampTzTypeValue &) = delete;
 	TimestampTzTypeValue(TimestampTzTypeValue &&) = default;
-	TimestampTzTypeValue &operator=(TimestampTzTypeValue &&) = default;
-	TimestampTzTypeValue();
+	TimestampTzTypeValue &operator=(TimestampTzTypeValue &&) = delete;
+	TimestampTzTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static TimestampTzTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TimestampTzTypeValue> &result);
 	string Validate() const;
 
 	// Copy

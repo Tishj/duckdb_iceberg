@@ -14,73 +14,110 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LiteralExpression::LiteralExpression()
-    : term(GeneratedObjectAccess::Create<Term>()), value(GeneratedObjectAccess::Create<PrimitiveTypeValue>()) {
+LiteralExpression::LiteralExpression(ExpressionType type_p, Term term_p, PrimitiveTypeValue value_p)
+    : type(std::move(type_p)), term(std::move(term_p)), value(std::move(value_p)) {
 }
 
 LiteralExpressionBuilder::LiteralExpressionBuilder() {
 }
 
 LiteralExpressionBuilder &LiteralExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 LiteralExpressionBuilder &LiteralExpressionBuilder::SetTerm(Term value) {
-	result_.term = std::move(value);
+	term_ = std::move(value);
 	has_term_ = true;
 	return *this;
 }
 
 LiteralExpressionBuilder &LiteralExpressionBuilder::SetValue(PrimitiveTypeValue value) {
-	result_.value = std::move(value);
+	value_ = std::move(value);
 	has_value_ = true;
 	return *this;
 }
 
-string LiteralExpressionBuilder::TryBuild(LiteralExpression &result) {
+LiteralExpression LiteralExpressionBuilder::Build() {
 	if (!has_type_) {
-		return "LiteralExpression required property 'type' is missing";
+		throw InvalidInputException("LiteralExpression required property 'type' is missing");
 	}
 	if (!has_term_) {
-		return "LiteralExpression required property 'term' is missing";
+		throw InvalidInputException("LiteralExpression required property 'term' is missing");
 	}
 	if (!has_value_) {
-		return "LiteralExpression required property 'value' is missing";
+		throw InvalidInputException("LiteralExpression required property 'value' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-LiteralExpression LiteralExpressionBuilder::Build() {
-	LiteralExpression result;
-	auto error = TryBuild(result);
+	auto result = LiteralExpression(std::move(*type_), std::move(*term_), std::move(*value_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
-	LiteralExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string LiteralExpressionBuilder::TryBuild(optional<LiteralExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
+	LiteralExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("LiteralExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto term_val = yyjson_obj_get(obj, "term");
+	if (!term_val) {
+		throw InvalidInputException("LiteralExpression required property 'term' is missing");
+	} else {
+		optional<Term> term;
+		term = Term::FromJSON(term_val);
+		builder.SetTerm(std::move(*term));
+	}
+	auto value_val = yyjson_obj_get(obj, "value");
+	if (!value_val) {
+		throw InvalidInputException("LiteralExpression required property 'value' is missing");
+	} else {
+		optional<PrimitiveTypeValue> value;
+		value = PrimitiveTypeValue::FromJSON(value_val);
+		builder.SetValue(std::move(*value));
+	}
+	return builder.Build();
+}
+
+string LiteralExpression::TryFromJSON(yyjson_val *obj, optional<LiteralExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 LiteralExpression LiteralExpression::Copy() const {
-	LiteralExpression res;
-	res.type = type.Copy();
-	res.term = term.Copy();
-	res.value = value.Copy();
-	return res;
+	LiteralExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	optional<Term> term_tmp;
+	term_tmp = term.Copy();
+	builder.SetTerm(std::move(*term_tmp));
+	optional<PrimitiveTypeValue> value_tmp;
+	value_tmp = value.Copy();
+	builder.SetValue(std::move(*value_tmp));
+	return builder.Build();
 }
 
 string LiteralExpression::Validate() const {
@@ -106,38 +143,6 @@ string LiteralExpression::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string LiteralExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "LiteralExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		return "LiteralExpression required property 'term' is missing";
-	} else {
-		error = term.TryFromJSON(term_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto value_val = yyjson_obj_get(obj, "value");
-	if (!value_val) {
-		return "LiteralExpression required property 'value' is missing";
-	} else {
-		error = value.TryFromJSON(value_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 yyjson_mut_val *LiteralExpression::ToJSON(yyjson_mut_doc *doc) const {

@@ -14,83 +14,54 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetPropertiesUpdate::SetPropertiesUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
-      updates(GeneratedObjectAccess::Create<case_insensitive_map_t<string>>()) {
+SetPropertiesUpdate::SetPropertiesUpdate(BaseUpdate base_update_p, case_insensitive_map_t<string> updates_p)
+    : base_update(std::move(base_update_p)), updates(std::move(updates_p)) {
 }
 
 SetPropertiesUpdateBuilder::SetPropertiesUpdateBuilder() {
 }
 
 SetPropertiesUpdateBuilder &SetPropertiesUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetPropertiesUpdateBuilder &SetPropertiesUpdateBuilder::SetUpdates(case_insensitive_map_t<string> value) {
-	result_.updates = std::move(value);
+	updates_ = std::move(value);
 	has_updates_ = true;
 	return *this;
 }
 
-string SetPropertiesUpdateBuilder::TryBuild(SetPropertiesUpdate &result) {
-	if (!has_updates_) {
-		return "SetPropertiesUpdate required property 'updates' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetPropertiesUpdate SetPropertiesUpdateBuilder::Build() {
-	SetPropertiesUpdate result;
-	auto error = TryBuild(result);
+	if (!has_updates_) {
+		throw InvalidInputException("SetPropertiesUpdate required property 'updates' is missing");
+	}
+	auto result = SetPropertiesUpdate(std::move(*base_update_), std::move(*updates_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
+string SetPropertiesUpdateBuilder::TryBuild(optional<SetPropertiesUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
 SetPropertiesUpdate SetPropertiesUpdate::FromJSON(yyjson_val *obj) {
-	SetPropertiesUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-SetPropertiesUpdate SetPropertiesUpdate::Copy() const {
-	SetPropertiesUpdate res;
-	res.base_update = base_update.Copy();
-	for (auto &entry : updates) {
-		res.updates.emplace(entry.first, entry.second);
-	}
-	return res;
-}
-
-string SetPropertiesUpdate::Validate() const {
-	string error;
-	error = base_update.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	return "";
-}
-
-string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
+	SetPropertiesUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 	auto updates_val = yyjson_obj_get(obj, "updates");
 	if (!updates_val) {
-		return "SetPropertiesUpdate required property 'updates' is missing";
+		throw InvalidInputException("SetPropertiesUpdate required property 'updates' is missing");
 	} else {
+		case_insensitive_map_t<string> updates;
 		if (yyjson_is_obj(updates_val)) {
 			size_t idx, max;
 			yyjson_val *key, *val;
@@ -100,17 +71,50 @@ string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_str(val)) {
 					tmp = yyjson_get_str(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "SetPropertiesUpdate property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
 				updates.emplace(key_str, std::move(tmp));
 			}
 		} else {
-			return "SetPropertiesUpdate property 'updates' is not of type 'object'";
+			throw InvalidInputException("SetPropertiesUpdate property 'updates' is not of type 'object'");
 		}
+		builder.SetUpdates(std::move(updates));
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, optional<SetPropertiesUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+SetPropertiesUpdate SetPropertiesUpdate::Copy() const {
+	SetPropertiesUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	case_insensitive_map_t<string> updates_tmp;
+	for (auto &entry : updates) {
+		updates_tmp.emplace(entry.first, entry.second);
+	}
+	builder.SetUpdates(std::move(updates_tmp));
+	return builder.Build();
+}
+
+string SetPropertiesUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 void SetPropertiesUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

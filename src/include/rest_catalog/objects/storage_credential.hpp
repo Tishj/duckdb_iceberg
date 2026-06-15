@@ -20,17 +20,16 @@ public:
 	StorageCredential(const StorageCredential &) = delete;
 	StorageCredential &operator=(const StorageCredential &) = delete;
 	StorageCredential(StorageCredential &&) = default;
-	StorageCredential &operator=(StorageCredential &&) = default;
+	StorageCredential &operator=(StorageCredential &&) = delete;
 
 private:
 	friend class StorageCredentialBuilder;
-	friend class GeneratedObjectAccess;
-	StorageCredential();
+	StorageCredential(string prefix_p, case_insensitive_map_t<string> config_p);
 
 public:
 	// Deserialization
 	static StorageCredential FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<StorageCredential> &result);
 	string Validate() const;
 
 	// Copy
@@ -50,11 +49,12 @@ public:
 	StorageCredentialBuilder();
 	StorageCredentialBuilder &SetPrefix(string value);
 	StorageCredentialBuilder &SetConfig(case_insensitive_map_t<string> value);
-	string TryBuild(StorageCredential &result);
+	string TryBuild(optional<StorageCredential> &result);
 	StorageCredential Build();
 
 private:
-	StorageCredential result_;
+	optional<string> prefix_;
+	optional<case_insensitive_map_t<string>> config_;
 	bool has_prefix_ = false;
 	bool has_config_ = false;
 };

@@ -14,11 +14,14 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PlanTableScanResult::PlanTableScanResult()
-    : completed_planning_with_idresult(GeneratedObjectAccess::Create<optional<CompletedPlanningWithIDResult>>()),
-      failed_planning_result(GeneratedObjectAccess::Create<optional<FailedPlanningResult>>()),
-      async_planning_result(GeneratedObjectAccess::Create<optional<AsyncPlanningResult>>()),
-      empty_planning_result(GeneratedObjectAccess::Create<optional<EmptyPlanningResult>>()) {
+PlanTableScanResult::PlanTableScanResult(optional<CompletedPlanningWithIDResult> completed_planning_with_idresult_p,
+                                         optional<FailedPlanningResult> failed_planning_result_p,
+                                         optional<AsyncPlanningResult> async_planning_result_p,
+                                         optional<EmptyPlanningResult> empty_planning_result_p)
+    : completed_planning_with_idresult(std::move(completed_planning_with_idresult_p)),
+      failed_planning_result(std::move(failed_planning_result_p)),
+      async_planning_result(std::move(async_planning_result_p)),
+      empty_planning_result(std::move(empty_planning_result_p)) {
 }
 
 PlanTableScanResultBuilder::PlanTableScanResultBuilder() {
@@ -26,71 +29,118 @@ PlanTableScanResultBuilder::PlanTableScanResultBuilder() {
 
 PlanTableScanResultBuilder &
 PlanTableScanResultBuilder::SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult value) {
-	result_.completed_planning_with_idresult = std::move(value);
+	completed_planning_with_idresult_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetFailedPlanningResult(FailedPlanningResult value) {
-	result_.failed_planning_result = std::move(value);
+	failed_planning_result_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetAsyncPlanningResult(AsyncPlanningResult value) {
-	result_.async_planning_result = std::move(value);
+	async_planning_result_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetEmptyPlanningResult(EmptyPlanningResult value) {
-	result_.empty_planning_result = std::move(value);
+	empty_planning_result_ = std::move(value);
 	return *this;
 }
 
-string PlanTableScanResultBuilder::TryBuild(PlanTableScanResult &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 PlanTableScanResult PlanTableScanResultBuilder::Build() {
-	PlanTableScanResult result;
-	auto error = TryBuild(result);
+	auto result = PlanTableScanResult(std::move(completed_planning_with_idresult_), std::move(failed_planning_result_),
+	                                  std::move(async_planning_result_), std::move(empty_planning_result_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
-	PlanTableScanResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string PlanTableScanResultBuilder::TryBuild(optional<PlanTableScanResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
+	PlanTableScanResultBuilder builder;
+	do {
+		try {
+			builder.SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetFailedPlanningResult(FailedPlanningResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAsyncPlanningResult(AsyncPlanningResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetEmptyPlanningResult(EmptyPlanningResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("PlanTableScanResult failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string PlanTableScanResult::TryFromJSON(yyjson_val *obj, optional<PlanTableScanResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 PlanTableScanResult PlanTableScanResult::Copy() const {
-	PlanTableScanResult res;
+	PlanTableScanResultBuilder builder;
+	optional<CompletedPlanningWithIDResult> completed_planning_with_idresult_tmp;
 	if (completed_planning_with_idresult.has_value()) {
-		res.completed_planning_with_idresult = GeneratedObjectAccess::Create<CompletedPlanningWithIDResult>();
-		(*res.completed_planning_with_idresult) = (*completed_planning_with_idresult).Copy();
+		completed_planning_with_idresult_tmp.emplace();
+		(*completed_planning_with_idresult_tmp) = (*completed_planning_with_idresult).Copy();
 	}
+	if (completed_planning_with_idresult_tmp.has_value()) {
+		builder.SetCompletedPlanningWithIdresult(std::move(*completed_planning_with_idresult_tmp));
+	}
+	optional<FailedPlanningResult> failed_planning_result_tmp;
 	if (failed_planning_result.has_value()) {
-		res.failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
-		(*res.failed_planning_result) = (*failed_planning_result).Copy();
+		failed_planning_result_tmp.emplace();
+		(*failed_planning_result_tmp) = (*failed_planning_result).Copy();
 	}
+	if (failed_planning_result_tmp.has_value()) {
+		builder.SetFailedPlanningResult(std::move(*failed_planning_result_tmp));
+	}
+	optional<AsyncPlanningResult> async_planning_result_tmp;
 	if (async_planning_result.has_value()) {
-		res.async_planning_result = GeneratedObjectAccess::Create<AsyncPlanningResult>();
-		(*res.async_planning_result) = (*async_planning_result).Copy();
+		async_planning_result_tmp.emplace();
+		(*async_planning_result_tmp) = (*async_planning_result).Copy();
 	}
+	if (async_planning_result_tmp.has_value()) {
+		builder.SetAsyncPlanningResult(std::move(*async_planning_result_tmp));
+	}
+	optional<EmptyPlanningResult> empty_planning_result_tmp;
 	if (empty_planning_result.has_value()) {
-		res.empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
-		(*res.empty_planning_result) = (*empty_planning_result).Copy();
+		empty_planning_result_tmp.emplace();
+		(*empty_planning_result_tmp) = (*empty_planning_result).Copy();
 	}
-	return res;
+	if (empty_planning_result_tmp.has_value()) {
+		builder.SetEmptyPlanningResult(std::move(*empty_planning_result_tmp));
+	}
+	return builder.Build();
 }
 
 string PlanTableScanResult::Validate() const {
@@ -128,42 +178,6 @@ string PlanTableScanResult::Validate() const {
 		return "PlanTableScanResult must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string PlanTableScanResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		completed_planning_with_idresult = GeneratedObjectAccess::Create<CompletedPlanningWithIDResult>();
-		error = completed_planning_with_idresult->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			completed_planning_with_idresult = nullopt;
-		}
-		failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
-		error = failed_planning_result->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			failed_planning_result = nullopt;
-		}
-		async_planning_result = GeneratedObjectAccess::Create<AsyncPlanningResult>();
-		error = async_planning_result->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			async_planning_result = nullopt;
-		}
-		empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
-		error = empty_planning_result->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			empty_planning_result = nullopt;
-		}
-		return "PlanTableScanResult failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 void PlanTableScanResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

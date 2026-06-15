@@ -14,64 +14,90 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RenameTableRequest::RenameTableRequest()
-    : source(GeneratedObjectAccess::Create<TableIdentifier>()),
-      destination(GeneratedObjectAccess::Create<TableIdentifier>()) {
+RenameTableRequest::RenameTableRequest(TableIdentifier source_p, TableIdentifier destination_p)
+    : source(std::move(source_p)), destination(std::move(destination_p)) {
 }
 
 RenameTableRequestBuilder::RenameTableRequestBuilder() {
 }
 
 RenameTableRequestBuilder &RenameTableRequestBuilder::SetSource(TableIdentifier value) {
-	result_.source = std::move(value);
+	source_ = std::move(value);
 	has_source_ = true;
 	return *this;
 }
 
 RenameTableRequestBuilder &RenameTableRequestBuilder::SetDestination(TableIdentifier value) {
-	result_.destination = std::move(value);
+	destination_ = std::move(value);
 	has_destination_ = true;
 	return *this;
 }
 
-string RenameTableRequestBuilder::TryBuild(RenameTableRequest &result) {
+RenameTableRequest RenameTableRequestBuilder::Build() {
 	if (!has_source_) {
-		return "RenameTableRequest required property 'source' is missing";
+		throw InvalidInputException("RenameTableRequest required property 'source' is missing");
 	}
 	if (!has_destination_) {
-		return "RenameTableRequest required property 'destination' is missing";
+		throw InvalidInputException("RenameTableRequest required property 'destination' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-RenameTableRequest RenameTableRequestBuilder::Build() {
-	RenameTableRequest result;
-	auto error = TryBuild(result);
+	auto result = RenameTableRequest(std::move(*source_), std::move(*destination_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
-	RenameTableRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RenameTableRequestBuilder::TryBuild(optional<RenameTableRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
+	RenameTableRequestBuilder builder;
+	auto source_val = yyjson_obj_get(obj, "source");
+	if (!source_val) {
+		throw InvalidInputException("RenameTableRequest required property 'source' is missing");
+	} else {
+		optional<TableIdentifier> source;
+		source = TableIdentifier::FromJSON(source_val);
+		builder.SetSource(std::move(*source));
+	}
+	auto destination_val = yyjson_obj_get(obj, "destination");
+	if (!destination_val) {
+		throw InvalidInputException("RenameTableRequest required property 'destination' is missing");
+	} else {
+		optional<TableIdentifier> destination;
+		destination = TableIdentifier::FromJSON(destination_val);
+		builder.SetDestination(std::move(*destination));
+	}
+	return builder.Build();
+}
+
+string RenameTableRequest::TryFromJSON(yyjson_val *obj, optional<RenameTableRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RenameTableRequest RenameTableRequest::Copy() const {
-	RenameTableRequest res;
-	res.source = source.Copy();
-	res.destination = destination.Copy();
-	return res;
+	RenameTableRequestBuilder builder;
+	optional<TableIdentifier> source_tmp;
+	source_tmp = source.Copy();
+	builder.SetSource(std::move(*source_tmp));
+	optional<TableIdentifier> destination_tmp;
+	destination_tmp = destination.Copy();
+	builder.SetDestination(std::move(*destination_tmp));
+	return builder.Build();
 }
 
 string RenameTableRequest::Validate() const {
@@ -85,29 +111,6 @@ string RenameTableRequest::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string RenameTableRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto source_val = yyjson_obj_get(obj, "source");
-	if (!source_val) {
-		return "RenameTableRequest required property 'source' is missing";
-	} else {
-		error = source.TryFromJSON(source_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto destination_val = yyjson_obj_get(obj, "destination");
-	if (!destination_val) {
-		return "RenameTableRequest required property 'destination' is missing";
-	} else {
-		error = destination.TryFromJSON(destination_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void RenameTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

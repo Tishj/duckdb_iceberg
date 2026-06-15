@@ -20,17 +20,16 @@ public:
 	RegisterViewRequest(const RegisterViewRequest &) = delete;
 	RegisterViewRequest &operator=(const RegisterViewRequest &) = delete;
 	RegisterViewRequest(RegisterViewRequest &&) = default;
-	RegisterViewRequest &operator=(RegisterViewRequest &&) = default;
+	RegisterViewRequest &operator=(RegisterViewRequest &&) = delete;
 
 private:
 	friend class RegisterViewRequestBuilder;
-	friend class GeneratedObjectAccess;
-	RegisterViewRequest();
+	RegisterViewRequest(string name_p, string metadata_location_p);
 
 public:
 	// Deserialization
 	static RegisterViewRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RegisterViewRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -50,11 +49,12 @@ public:
 	RegisterViewRequestBuilder();
 	RegisterViewRequestBuilder &SetName(string value);
 	RegisterViewRequestBuilder &SetMetadataLocation(string value);
-	string TryBuild(RegisterViewRequest &result);
+	string TryBuild(optional<RegisterViewRequest> &result);
 	RegisterViewRequest Build();
 
 private:
-	RegisterViewRequest result_;
+	optional<string> name_;
+	optional<string> metadata_location_;
 	bool has_name_ = false;
 	bool has_metadata_location_ = false;
 };

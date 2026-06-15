@@ -21,17 +21,16 @@ public:
 	FetchScanTasksRequest(const FetchScanTasksRequest &) = delete;
 	FetchScanTasksRequest &operator=(const FetchScanTasksRequest &) = delete;
 	FetchScanTasksRequest(FetchScanTasksRequest &&) = default;
-	FetchScanTasksRequest &operator=(FetchScanTasksRequest &&) = default;
+	FetchScanTasksRequest &operator=(FetchScanTasksRequest &&) = delete;
 
 private:
 	friend class FetchScanTasksRequestBuilder;
-	friend class GeneratedObjectAccess;
-	FetchScanTasksRequest();
+	FetchScanTasksRequest(PlanTask plan_task_p);
 
 public:
 	// Deserialization
 	static FetchScanTasksRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FetchScanTasksRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class FetchScanTasksRequestBuilder {
 public:
 	FetchScanTasksRequestBuilder();
 	FetchScanTasksRequestBuilder &SetPlanTask(PlanTask value);
-	string TryBuild(FetchScanTasksRequest &result);
+	string TryBuild(optional<FetchScanTasksRequest> &result);
 	FetchScanTasksRequest Build();
 
 private:
-	FetchScanTasksRequest result_;
+	optional<PlanTask> plan_task_;
 	bool has_plan_task_ = false;
 };
 

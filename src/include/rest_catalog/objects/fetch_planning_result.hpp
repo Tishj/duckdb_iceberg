@@ -23,17 +23,18 @@ public:
 	FetchPlanningResult(const FetchPlanningResult &) = delete;
 	FetchPlanningResult &operator=(const FetchPlanningResult &) = delete;
 	FetchPlanningResult(FetchPlanningResult &&) = default;
-	FetchPlanningResult &operator=(FetchPlanningResult &&) = default;
+	FetchPlanningResult &operator=(FetchPlanningResult &&) = delete;
 
 private:
 	friend class FetchPlanningResultBuilder;
-	friend class GeneratedObjectAccess;
-	FetchPlanningResult();
+	FetchPlanningResult(optional<CompletedPlanningResult> completed_planning_result_p,
+	                    optional<FailedPlanningResult> failed_planning_result_p,
+	                    optional<EmptyPlanningResult> empty_planning_result_p);
 
 public:
 	// Deserialization
 	static FetchPlanningResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FetchPlanningResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +56,13 @@ public:
 	FetchPlanningResultBuilder &SetCompletedPlanningResult(CompletedPlanningResult value);
 	FetchPlanningResultBuilder &SetFailedPlanningResult(FailedPlanningResult value);
 	FetchPlanningResultBuilder &SetEmptyPlanningResult(EmptyPlanningResult value);
-	string TryBuild(FetchPlanningResult &result);
+	string TryBuild(optional<FetchPlanningResult> &result);
 	FetchPlanningResult Build();
 
 private:
-	FetchPlanningResult result_;
+	optional<CompletedPlanningResult> completed_planning_result_;
+	optional<FailedPlanningResult> failed_planning_result_;
+	optional<EmptyPlanningResult> empty_planning_result_;
 };
 
 } // namespace rest_api_objects

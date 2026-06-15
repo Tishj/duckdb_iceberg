@@ -14,51 +14,71 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewRequirement::ViewRequirement() : assert_view_uuid(GeneratedObjectAccess::Create<optional<AssertViewUUID>>()) {
+ViewRequirement::ViewRequirement(optional<AssertViewUUID> assert_view_uuid_p)
+    : assert_view_uuid(std::move(assert_view_uuid_p)) {
 }
 
 ViewRequirementBuilder::ViewRequirementBuilder() {
 }
 
 ViewRequirementBuilder &ViewRequirementBuilder::SetAssertViewUuid(AssertViewUUID value) {
-	result_.assert_view_uuid = std::move(value);
+	assert_view_uuid_ = std::move(value);
 	return *this;
 }
 
-string ViewRequirementBuilder::TryBuild(ViewRequirement &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ViewRequirement ViewRequirementBuilder::Build() {
-	ViewRequirement result;
-	auto error = TryBuild(result);
+	auto result = ViewRequirement(std::move(assert_view_uuid_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
-	ViewRequirement res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ViewRequirementBuilder::TryBuild(optional<ViewRequirement> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
+	ViewRequirementBuilder builder;
+	do {
+		try {
+			builder.SetAssertViewUuid(AssertViewUUID::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("ViewRequirement failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string ViewRequirement::TryFromJSON(yyjson_val *obj, optional<ViewRequirement> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ViewRequirement ViewRequirement::Copy() const {
-	ViewRequirement res;
+	ViewRequirementBuilder builder;
+	optional<AssertViewUUID> assert_view_uuid_tmp;
 	if (assert_view_uuid.has_value()) {
-		res.assert_view_uuid = GeneratedObjectAccess::Create<AssertViewUUID>();
-		(*res.assert_view_uuid) = (*assert_view_uuid).Copy();
+		assert_view_uuid_tmp.emplace();
+		(*assert_view_uuid_tmp) = (*assert_view_uuid).Copy();
 	}
-	return res;
+	if (assert_view_uuid_tmp.has_value()) {
+		builder.SetAssertViewUuid(std::move(*assert_view_uuid_tmp));
+	}
+	return builder.Build();
 }
 
 string ViewRequirement::Validate() const {
@@ -75,21 +95,6 @@ string ViewRequirement::Validate() const {
 		return "ViewRequirement must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string ViewRequirement::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		assert_view_uuid = GeneratedObjectAccess::Create<AssertViewUUID>();
-		error = assert_view_uuid->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			assert_view_uuid = nullopt;
-		}
-		return "ViewRequirement failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 void ViewRequirement::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -22,17 +22,16 @@ public:
 	StructType(const StructType &) = delete;
 	StructType &operator=(const StructType &) = delete;
 	StructType(StructType &&) = default;
-	StructType &operator=(StructType &&) = default;
+	StructType &operator=(StructType &&) = delete;
 
 private:
 	friend class StructTypeBuilder;
-	friend class GeneratedObjectAccess;
-	StructType();
+	StructType(string type_p, vector<unique_ptr<StructField>> fields_p);
 
 public:
 	// Deserialization
 	static StructType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<StructType> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	StructTypeBuilder();
 	StructTypeBuilder &SetType(string value);
 	StructTypeBuilder &SetFields(vector<unique_ptr<StructField>> value);
-	string TryBuild(StructType &result);
+	string TryBuild(optional<StructType> &result);
 	StructType Build();
 
 private:
-	StructType result_;
+	optional<string> type_;
+	optional<vector<unique_ptr<StructField>>> fields_;
 	bool has_type_ = false;
 	bool has_fields_ = false;
 };

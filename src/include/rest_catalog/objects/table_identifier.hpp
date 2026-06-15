@@ -21,17 +21,16 @@ public:
 	TableIdentifier(const TableIdentifier &) = delete;
 	TableIdentifier &operator=(const TableIdentifier &) = delete;
 	TableIdentifier(TableIdentifier &&) = default;
-	TableIdentifier &operator=(TableIdentifier &&) = default;
+	TableIdentifier &operator=(TableIdentifier &&) = delete;
 
 private:
 	friend class TableIdentifierBuilder;
-	friend class GeneratedObjectAccess;
-	TableIdentifier();
+	TableIdentifier(Namespace _namespace_p, string name_p);
 
 public:
 	// Deserialization
 	static TableIdentifier FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TableIdentifier> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	TableIdentifierBuilder();
 	TableIdentifierBuilder &SetNamespace(Namespace value);
 	TableIdentifierBuilder &SetName(string value);
-	string TryBuild(TableIdentifier &result);
+	string TryBuild(optional<TableIdentifier> &result);
 	TableIdentifier Build();
 
 private:
-	TableIdentifier result_;
+	optional<Namespace> _namespace_;
+	optional<string> name_;
 	bool has__namespace_ = false;
 	bool has_name_ = false;
 };

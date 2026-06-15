@@ -21,17 +21,16 @@ public:
 	Metrics(const Metrics &) = delete;
 	Metrics &operator=(const Metrics &) = delete;
 	Metrics(Metrics &&) = default;
-	Metrics &operator=(Metrics &&) = default;
+	Metrics &operator=(Metrics &&) = delete;
 
 private:
 	friend class MetricsBuilder;
-	friend class GeneratedObjectAccess;
-	Metrics();
+	Metrics(case_insensitive_map_t<MetricResult> additional_properties_p);
 
 public:
 	// Deserialization
 	static Metrics FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Metrics> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class MetricsBuilder {
 public:
 	MetricsBuilder();
 	MetricsBuilder &SetAdditionalProperties(case_insensitive_map_t<MetricResult> value);
-	string TryBuild(Metrics &result);
+	string TryBuild(optional<Metrics> &result);
 	Metrics Build();
 
 private:
-	Metrics result_;
+	optional<case_insensitive_map_t<MetricResult>> additional_properties_;
 };
 
 } // namespace rest_api_objects

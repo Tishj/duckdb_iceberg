@@ -20,17 +20,16 @@ public:
 	RegisterTableRequest(const RegisterTableRequest &) = delete;
 	RegisterTableRequest &operator=(const RegisterTableRequest &) = delete;
 	RegisterTableRequest(RegisterTableRequest &&) = default;
-	RegisterTableRequest &operator=(RegisterTableRequest &&) = default;
+	RegisterTableRequest &operator=(RegisterTableRequest &&) = delete;
 
 private:
 	friend class RegisterTableRequestBuilder;
-	friend class GeneratedObjectAccess;
-	RegisterTableRequest();
+	RegisterTableRequest(string name_p, string metadata_location_p, optional<bool> overwrite_p);
 
 public:
 	// Deserialization
 	static RegisterTableRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RegisterTableRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,13 @@ public:
 	RegisterTableRequestBuilder &SetName(string value);
 	RegisterTableRequestBuilder &SetMetadataLocation(string value);
 	RegisterTableRequestBuilder &SetOverwrite(bool value);
-	string TryBuild(RegisterTableRequest &result);
+	string TryBuild(optional<RegisterTableRequest> &result);
 	RegisterTableRequest Build();
 
 private:
-	RegisterTableRequest result_;
+	optional<string> name_;
+	optional<string> metadata_location_;
+	optional<bool> overwrite_;
 	bool has_name_ = false;
 	bool has_metadata_location_ = false;
 };

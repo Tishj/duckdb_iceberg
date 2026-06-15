@@ -14,73 +14,80 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-BaseUpdate::BaseUpdate() {
+BaseUpdate::BaseUpdate(string action_p) : action(std::move(action_p)) {
 }
 
 BaseUpdateBuilder::BaseUpdateBuilder() {
 }
 
 BaseUpdateBuilder &BaseUpdateBuilder::SetAction(string value) {
-	result_.action = std::move(value);
+	action_ = std::move(value);
 	has_action_ = true;
 	return *this;
 }
 
-string BaseUpdateBuilder::TryBuild(BaseUpdate &result) {
-	if (!has_action_) {
-		return "BaseUpdate required property 'action' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 BaseUpdate BaseUpdateBuilder::Build() {
-	BaseUpdate result;
-	auto error = TryBuild(result);
+	if (!has_action_) {
+		throw InvalidInputException("BaseUpdate required property 'action' is missing");
+	}
+	auto result = BaseUpdate(std::move(*action_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
-	BaseUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string BaseUpdateBuilder::TryBuild(optional<BaseUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
+	BaseUpdateBuilder builder;
+	auto action_val = yyjson_obj_get(obj, "action");
+	if (!action_val) {
+		throw InvalidInputException("BaseUpdate required property 'action' is missing");
+	} else {
+		string action;
+		if (yyjson_is_str(action_val)) {
+			action = yyjson_get_str(action_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("BaseUpdate property 'action' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(action_val)));
+		}
+		builder.SetAction(std::move(action));
+	}
+	return builder.Build();
+}
+
+string BaseUpdate::TryFromJSON(yyjson_val *obj, optional<BaseUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 BaseUpdate BaseUpdate::Copy() const {
-	BaseUpdate res;
-	res.action = action;
-	return res;
+	BaseUpdateBuilder builder;
+	string action_tmp;
+	action_tmp = action;
+	builder.SetAction(std::move(action_tmp));
+	return builder.Build();
 }
 
 string BaseUpdate::Validate() const {
 	string error;
 	return "";
-}
-
-string BaseUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto action_val = yyjson_obj_get(obj, "action");
-	if (!action_val) {
-		return "BaseUpdate required property 'action' is missing";
-	} else {
-		if (yyjson_is_str(action_val)) {
-			action = yyjson_get_str(action_val);
-		} else {
-			return StringUtil::Format("BaseUpdate property 'action' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(action_val));
-		}
-	}
-	return Validate();
 }
 
 void BaseUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

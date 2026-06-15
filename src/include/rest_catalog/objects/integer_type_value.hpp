@@ -18,13 +18,13 @@ public:
 	IntegerTypeValue(const IntegerTypeValue &) = delete;
 	IntegerTypeValue &operator=(const IntegerTypeValue &) = delete;
 	IntegerTypeValue(IntegerTypeValue &&) = default;
-	IntegerTypeValue &operator=(IntegerTypeValue &&) = default;
-	IntegerTypeValue();
+	IntegerTypeValue &operator=(IntegerTypeValue &&) = delete;
+	IntegerTypeValue(int32_t value_p);
 
 public:
 	// Deserialization
 	static IntegerTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<IntegerTypeValue> &result);
 	string Validate() const;
 
 	// Copy

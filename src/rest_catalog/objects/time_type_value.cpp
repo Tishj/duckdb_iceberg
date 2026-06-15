@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TimeTypeValue::TimeTypeValue() {
+TimeTypeValue::TimeTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
 TimeTypeValue TimeTypeValue::FromJSON(yyjson_val *obj) {
-	TimeTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "TimeTypeValue property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return TimeTypeValue(std::move(value));
+}
+
+string TimeTypeValue::TryFromJSON(yyjson_val *obj, optional<TimeTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TimeTypeValue TimeTypeValue::Copy() const {
-	TimeTypeValue res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return TimeTypeValue(std::move(value_tmp));
 }
 
 string TimeTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string TimeTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("TimeTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *TimeTypeValue::ToJSON(yyjson_mut_doc *doc) const {

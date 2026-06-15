@@ -21,14 +21,7 @@ public:
 	Schema(const Schema &) = delete;
 	Schema &operator=(const Schema &) = delete;
 	Schema(Schema &&) = default;
-	Schema &operator=(Schema &&) = default;
-
-private:
-	friend class SchemaBuilder;
-	friend class GeneratedObjectAccess;
-	Schema();
-
-public:
+	Schema &operator=(Schema &&) = delete;
 	class Object1Builder;
 
 	class Object1 {
@@ -36,17 +29,16 @@ public:
 		Object1(const Object1 &) = delete;
 		Object1 &operator=(const Object1 &) = delete;
 		Object1(Object1 &&) = default;
-		Object1 &operator=(Object1 &&) = default;
+		Object1 &operator=(Object1 &&) = delete;
 
 	private:
 		friend class Object1Builder;
-		friend class GeneratedObjectAccess;
-		Object1();
+		Object1(optional<int32_t> schema_id_p, optional<vector<int32_t>> identifier_field_ids_p);
 
 	public:
 		// Deserialization
 		static Object1 FromJSON(yyjson_val *obj);
-		string TryFromJSON(yyjson_val *obj);
+		static string TryFromJSON(yyjson_val *obj, optional<Object1> &result);
 		string Validate() const;
 
 		// Copy
@@ -66,17 +58,22 @@ public:
 		Object1Builder();
 		Object1Builder &SetSchemaId(int32_t value);
 		Object1Builder &SetIdentifierFieldIds(vector<int32_t> value);
-		string TryBuild(Object1 &result);
+		string TryBuild(optional<Object1> &result);
 		Object1 Build();
 
 	private:
-		Object1 result_;
+		optional<int32_t> schema_id_;
+		optional<vector<int32_t>> identifier_field_ids_;
 	};
+
+private:
+	friend class SchemaBuilder;
+	Schema(StructType struct_type_p, Object1 object_1_p);
 
 public:
 	// Deserialization
 	static Schema FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Schema> &result);
 	string Validate() const;
 
 	// Copy
@@ -96,11 +93,12 @@ public:
 	SchemaBuilder();
 	SchemaBuilder &SetStructType(StructType value);
 	SchemaBuilder &SetObject1(Schema::Object1 value);
-	string TryBuild(Schema &result);
+	string TryBuild(optional<Schema> &result);
 	Schema Build();
 
 private:
-	Schema result_;
+	optional<StructType> struct_type_;
+	optional<Schema::Object1> object_1_;
 };
 
 } // namespace rest_api_objects

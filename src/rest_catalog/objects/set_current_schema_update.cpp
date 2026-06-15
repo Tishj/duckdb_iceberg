@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetCurrentSchemaUpdate::SetCurrentSchemaUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+SetCurrentSchemaUpdate::SetCurrentSchemaUpdate(BaseUpdate base_update_p, int32_t schema_id_p)
+    : base_update(std::move(base_update_p)), schema_id(std::move(schema_id_p)) {
 }
 
 SetCurrentSchemaUpdateBuilder::SetCurrentSchemaUpdateBuilder() {
 }
 
 SetCurrentSchemaUpdateBuilder &SetCurrentSchemaUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetCurrentSchemaUpdateBuilder &SetCurrentSchemaUpdateBuilder::SetSchemaId(int32_t value) {
-	result_.schema_id = std::move(value);
+	schema_id_ = std::move(value);
 	has_schema_id_ = true;
 	return *this;
 }
 
-string SetCurrentSchemaUpdateBuilder::TryBuild(SetCurrentSchemaUpdate &result) {
-	if (!has_schema_id_) {
-		return "SetCurrentSchemaUpdate required property 'schema-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetCurrentSchemaUpdate SetCurrentSchemaUpdateBuilder::Build() {
-	SetCurrentSchemaUpdate result;
-	auto error = TryBuild(result);
+	if (!has_schema_id_) {
+		throw InvalidInputException("SetCurrentSchemaUpdate required property 'schema-id' is missing");
+	}
+	auto result = SetCurrentSchemaUpdate(std::move(*base_update_), std::move(*schema_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
-	SetCurrentSchemaUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetCurrentSchemaUpdateBuilder::TryBuild(optional<SetCurrentSchemaUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
+	SetCurrentSchemaUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
+	if (!schema_id_val) {
+		throw InvalidInputException("SetCurrentSchemaUpdate required property 'schema-id' is missing");
+	} else {
+		int32_t schema_id;
+		if (yyjson_is_int(schema_id_val)) {
+			schema_id = yyjson_get_int(schema_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "SetCurrentSchemaUpdate property 'schema_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(schema_id_val)));
+		}
+		builder.SetSchemaId(std::move(schema_id));
+	}
+	return builder.Build();
+}
+
+string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, optional<SetCurrentSchemaUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetCurrentSchemaUpdate SetCurrentSchemaUpdate::Copy() const {
-	SetCurrentSchemaUpdate res;
-	res.base_update = base_update.Copy();
-	res.schema_id = schema_id;
-	return res;
+	SetCurrentSchemaUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int32_t schema_id_tmp;
+	schema_id_tmp = schema_id;
+	builder.SetSchemaId(std::move(schema_id_tmp));
+	return builder.Build();
 }
 
 string SetCurrentSchemaUpdate::Validate() const {
@@ -75,27 +102,6 @@ string SetCurrentSchemaUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
-	if (!schema_id_val) {
-		return "SetCurrentSchemaUpdate required property 'schema-id' is missing";
-	} else {
-		if (yyjson_is_int(schema_id_val)) {
-			schema_id = yyjson_get_int(schema_id_val);
-		} else {
-			return StringUtil::Format(
-			    "SetCurrentSchemaUpdate property 'schema_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(schema_id_val));
-		}
-	}
-	return Validate();
 }
 
 void SetCurrentSchemaUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

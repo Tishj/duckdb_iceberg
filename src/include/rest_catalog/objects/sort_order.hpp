@@ -21,17 +21,16 @@ public:
 	SortOrder(const SortOrder &) = delete;
 	SortOrder &operator=(const SortOrder &) = delete;
 	SortOrder(SortOrder &&) = default;
-	SortOrder &operator=(SortOrder &&) = default;
+	SortOrder &operator=(SortOrder &&) = delete;
 
 private:
 	friend class SortOrderBuilder;
-	friend class GeneratedObjectAccess;
-	SortOrder();
+	SortOrder(int32_t order_id_p, vector<SortField> fields_p);
 
 public:
 	// Deserialization
 	static SortOrder FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SortOrder> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	SortOrderBuilder();
 	SortOrderBuilder &SetOrderId(int32_t value);
 	SortOrderBuilder &SetFields(vector<SortField> value);
-	string TryBuild(SortOrder &result);
+	string TryBuild(optional<SortOrder> &result);
 	SortOrder Build();
 
 private:
-	SortOrder result_;
+	optional<int32_t> order_id_;
+	optional<vector<SortField>> fields_;
 	bool has_order_id_ = false;
 	bool has_fields_ = false;
 };

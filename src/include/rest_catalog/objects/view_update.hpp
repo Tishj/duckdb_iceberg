@@ -28,17 +28,22 @@ public:
 	ViewUpdate(const ViewUpdate &) = delete;
 	ViewUpdate &operator=(const ViewUpdate &) = delete;
 	ViewUpdate(ViewUpdate &&) = default;
-	ViewUpdate &operator=(ViewUpdate &&) = default;
+	ViewUpdate &operator=(ViewUpdate &&) = delete;
 
 private:
 	friend class ViewUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	ViewUpdate();
+	ViewUpdate(optional<AssignUUIDUpdate> assign_uuidupdate_p,
+	           optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_p,
+	           optional<AddSchemaUpdate> add_schema_update_p, optional<SetLocationUpdate> set_location_update_p,
+	           optional<SetPropertiesUpdate> set_properties_update_p,
+	           optional<RemovePropertiesUpdate> remove_properties_update_p,
+	           optional<AddViewVersionUpdate> add_view_version_update_p,
+	           optional<SetCurrentViewVersionUpdate> set_current_view_version_update_p);
 
 public:
 	// Deserialization
 	static ViewUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ViewUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -70,11 +75,18 @@ public:
 	ViewUpdateBuilder &SetRemovePropertiesUpdate(RemovePropertiesUpdate value);
 	ViewUpdateBuilder &SetAddViewVersionUpdate(AddViewVersionUpdate value);
 	ViewUpdateBuilder &SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate value);
-	string TryBuild(ViewUpdate &result);
+	string TryBuild(optional<ViewUpdate> &result);
 	ViewUpdate Build();
 
 private:
-	ViewUpdate result_;
+	optional<AssignUUIDUpdate> assign_uuidupdate_;
+	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_;
+	optional<AddSchemaUpdate> add_schema_update_;
+	optional<SetLocationUpdate> set_location_update_;
+	optional<SetPropertiesUpdate> set_properties_update_;
+	optional<RemovePropertiesUpdate> remove_properties_update_;
+	optional<AddViewVersionUpdate> add_view_version_update_;
+	optional<SetCurrentViewVersionUpdate> set_current_view_version_update_;
 };
 
 } // namespace rest_api_objects

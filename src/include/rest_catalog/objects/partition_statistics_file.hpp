@@ -20,17 +20,16 @@ public:
 	PartitionStatisticsFile(const PartitionStatisticsFile &) = delete;
 	PartitionStatisticsFile &operator=(const PartitionStatisticsFile &) = delete;
 	PartitionStatisticsFile(PartitionStatisticsFile &&) = default;
-	PartitionStatisticsFile &operator=(PartitionStatisticsFile &&) = default;
+	PartitionStatisticsFile &operator=(PartitionStatisticsFile &&) = delete;
 
 private:
 	friend class PartitionStatisticsFileBuilder;
-	friend class GeneratedObjectAccess;
-	PartitionStatisticsFile();
+	PartitionStatisticsFile(int64_t snapshot_id_p, string statistics_path_p, int64_t file_size_in_bytes_p);
 
 public:
 	// Deserialization
 	static PartitionStatisticsFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PartitionStatisticsFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,13 @@ public:
 	PartitionStatisticsFileBuilder &SetSnapshotId(int64_t value);
 	PartitionStatisticsFileBuilder &SetStatisticsPath(string value);
 	PartitionStatisticsFileBuilder &SetFileSizeInBytes(int64_t value);
-	string TryBuild(PartitionStatisticsFile &result);
+	string TryBuild(optional<PartitionStatisticsFile> &result);
 	PartitionStatisticsFile Build();
 
 private:
-	PartitionStatisticsFile result_;
+	optional<int64_t> snapshot_id_;
+	optional<string> statistics_path_;
+	optional<int64_t> file_size_in_bytes_;
 	bool has_snapshot_id_ = false;
 	bool has_statistics_path_ = false;
 	bool has_file_size_in_bytes_ = false;

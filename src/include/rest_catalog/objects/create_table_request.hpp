@@ -23,17 +23,18 @@ public:
 	CreateTableRequest(const CreateTableRequest &) = delete;
 	CreateTableRequest &operator=(const CreateTableRequest &) = delete;
 	CreateTableRequest(CreateTableRequest &&) = default;
-	CreateTableRequest &operator=(CreateTableRequest &&) = default;
+	CreateTableRequest &operator=(CreateTableRequest &&) = delete;
 
 private:
 	friend class CreateTableRequestBuilder;
-	friend class GeneratedObjectAccess;
-	CreateTableRequest();
+	CreateTableRequest(string name_p, Schema schema_p, optional<string> location_p,
+	                   optional<PartitionSpec> partition_spec_p, optional<SortOrder> write_order_p,
+	                   optional<bool> stage_create_p, optional<case_insensitive_map_t<string>> properties_p);
 
 public:
 	// Deserialization
 	static CreateTableRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CreateTableRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -63,11 +64,17 @@ public:
 	CreateTableRequestBuilder &SetWriteOrder(SortOrder value);
 	CreateTableRequestBuilder &SetStageCreate(bool value);
 	CreateTableRequestBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(CreateTableRequest &result);
+	string TryBuild(optional<CreateTableRequest> &result);
 	CreateTableRequest Build();
 
 private:
-	CreateTableRequest result_;
+	optional<string> name_;
+	optional<Schema> schema_;
+	optional<string> location_;
+	optional<PartitionSpec> partition_spec_;
+	optional<SortOrder> write_order_;
+	optional<bool> stage_create_;
+	optional<case_insensitive_map_t<string>> properties_;
 	bool has_name_ = false;
 	bool has_schema_ = false;
 };

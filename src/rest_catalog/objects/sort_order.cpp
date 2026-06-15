@@ -14,65 +14,109 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SortOrder::SortOrder() {
+SortOrder::SortOrder(int32_t order_id_p, vector<SortField> fields_p)
+    : order_id(std::move(order_id_p)), fields(std::move(fields_p)) {
 }
 
 SortOrderBuilder::SortOrderBuilder() {
 }
 
 SortOrderBuilder &SortOrderBuilder::SetOrderId(int32_t value) {
-	result_.order_id = std::move(value);
+	order_id_ = std::move(value);
 	has_order_id_ = true;
 	return *this;
 }
 
 SortOrderBuilder &SortOrderBuilder::SetFields(vector<SortField> value) {
-	result_.fields = std::move(value);
+	fields_ = std::move(value);
 	has_fields_ = true;
 	return *this;
 }
 
-string SortOrderBuilder::TryBuild(SortOrder &result) {
+SortOrder SortOrderBuilder::Build() {
 	if (!has_order_id_) {
-		return "SortOrder required property 'order-id' is missing";
+		throw InvalidInputException("SortOrder required property 'order-id' is missing");
 	}
 	if (!has_fields_) {
-		return "SortOrder required property 'fields' is missing";
+		throw InvalidInputException("SortOrder required property 'fields' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-SortOrder SortOrderBuilder::Build() {
-	SortOrder result;
-	auto error = TryBuild(result);
+	auto result = SortOrder(std::move(*order_id_), std::move(*fields_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SortOrder SortOrder::FromJSON(yyjson_val *obj) {
-	SortOrder res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SortOrderBuilder::TryBuild(optional<SortOrder> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SortOrder SortOrder::FromJSON(yyjson_val *obj) {
+	SortOrderBuilder builder;
+	auto order_id_val = yyjson_obj_get(obj, "order-id");
+	if (!order_id_val) {
+		throw InvalidInputException("SortOrder required property 'order-id' is missing");
+	} else {
+		int32_t order_id;
+		if (yyjson_is_int(order_id_val)) {
+			order_id = yyjson_get_int(order_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("SortOrder property 'order_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(order_id_val)));
+		}
+		builder.SetOrderId(std::move(order_id));
+	}
+	auto fields_val = yyjson_obj_get(obj, "fields");
+	if (!fields_val) {
+		throw InvalidInputException("SortOrder required property 'fields' is missing");
+	} else {
+		vector<SortField> fields;
+		if (yyjson_is_arr(fields_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(fields_val, idx, max, val) {
+				auto tmp = SortField::FromJSON(val);
+				fields.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("SortOrder property 'fields' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(fields_val));
+		}
+		builder.SetFields(std::move(fields));
+	}
+	return builder.Build();
+}
+
+string SortOrder::TryFromJSON(yyjson_val *obj, optional<SortOrder> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SortOrder SortOrder::Copy() const {
-	SortOrder res;
-	res.order_id = order_id;
-	res.fields.reserve(fields.size());
+	SortOrderBuilder builder;
+	int32_t order_id_tmp;
+	order_id_tmp = order_id;
+	builder.SetOrderId(std::move(order_id_tmp));
+	vector<SortField> fields_tmp;
+	fields_tmp.reserve(fields.size());
 	for (auto &item : fields) {
-		res.fields.emplace_back(item.Copy());
+		fields_tmp.emplace_back(item.Copy());
 	}
-	return res;
+	builder.SetFields(std::move(fields_tmp));
+	return builder.Build();
 }
 
 string SortOrder::Validate() const {
@@ -84,42 +128,6 @@ string SortOrder::Validate() const {
 		}
 	}
 	return "";
-}
-
-string SortOrder::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto order_id_val = yyjson_obj_get(obj, "order-id");
-	if (!order_id_val) {
-		return "SortOrder required property 'order-id' is missing";
-	} else {
-		if (yyjson_is_int(order_id_val)) {
-			order_id = yyjson_get_int(order_id_val);
-		} else {
-			return StringUtil::Format("SortOrder property 'order_id' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(order_id_val));
-		}
-	}
-	auto fields_val = yyjson_obj_get(obj, "fields");
-	if (!fields_val) {
-		return "SortOrder required property 'fields' is missing";
-	} else {
-		if (yyjson_is_arr(fields_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(fields_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<SortField>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				fields.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format("SortOrder property 'fields' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(fields_val));
-		}
-	}
-	return Validate();
 }
 
 void SortOrder::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

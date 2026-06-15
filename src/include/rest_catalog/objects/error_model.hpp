@@ -20,17 +20,16 @@ public:
 	ErrorModel(const ErrorModel &) = delete;
 	ErrorModel &operator=(const ErrorModel &) = delete;
 	ErrorModel(ErrorModel &&) = default;
-	ErrorModel &operator=(ErrorModel &&) = default;
+	ErrorModel &operator=(ErrorModel &&) = delete;
 
 private:
 	friend class ErrorModelBuilder;
-	friend class GeneratedObjectAccess;
-	ErrorModel();
+	ErrorModel(string message_p, string type_p, int32_t code_p, optional<vector<string>> stack_p);
 
 public:
 	// Deserialization
 	static ErrorModel FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ErrorModel> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +53,14 @@ public:
 	ErrorModelBuilder &SetType(string value);
 	ErrorModelBuilder &SetCode(int32_t value);
 	ErrorModelBuilder &SetStack(vector<string> value);
-	string TryBuild(ErrorModel &result);
+	string TryBuild(optional<ErrorModel> &result);
 	ErrorModel Build();
 
 private:
-	ErrorModel result_;
+	optional<string> message_;
+	optional<string> type_;
+	optional<int32_t> code_;
+	optional<vector<string>> stack_;
 	bool has_message_ = false;
 	bool has_type_ = false;
 	bool has_code_ = false;

@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ExpressionType::ExpressionType() {
+ExpressionType::ExpressionType(string value_p) : value(std::move(value_p)) {
 }
 
 ExpressionType ExpressionType::FromJSON(yyjson_val *obj) {
-	ExpressionType res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "ExpressionType property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return ExpressionType(std::move(value));
+}
+
+string ExpressionType::TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ExpressionType ExpressionType::Copy() const {
-	ExpressionType res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return ExpressionType(std::move(value_tmp));
 }
 
 string ExpressionType::Validate() const {
 	string error;
 	return "";
-}
-
-string ExpressionType::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("ExpressionType property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *ExpressionType::ToJSON(yyjson_mut_doc *doc) const {

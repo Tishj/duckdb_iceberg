@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DoubleTypeValue::DoubleTypeValue() {
+DoubleTypeValue::DoubleTypeValue(double value_p) : value(std::move(value_p)) {
 }
 
 DoubleTypeValue DoubleTypeValue::FromJSON(yyjson_val *obj) {
-	DoubleTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	double value;
+	if (yyjson_is_num(obj)) {
+		value = yyjson_get_num(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "DoubleTypeValue property 'value' is not of type 'number', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return DoubleTypeValue(std::move(value));
+}
+
+string DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 DoubleTypeValue DoubleTypeValue::Copy() const {
-	DoubleTypeValue res;
-	res.value = value;
-	return res;
+	double value_tmp;
+	value_tmp = value;
+	return DoubleTypeValue(std::move(value_tmp));
 }
 
 string DoubleTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string DoubleTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_num(obj)) {
-		value = yyjson_get_num(obj);
-	} else {
-		return StringUtil::Format("DoubleTypeValue property 'value' is not of type 'number', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *DoubleTypeValue::ToJSON(yyjson_mut_doc *doc) const {

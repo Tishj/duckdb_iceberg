@@ -18,13 +18,13 @@ public:
 	TableRequirementType(const TableRequirementType &) = delete;
 	TableRequirementType &operator=(const TableRequirementType &) = delete;
 	TableRequirementType(TableRequirementType &&) = default;
-	TableRequirementType &operator=(TableRequirementType &&) = default;
-	TableRequirementType();
+	TableRequirementType &operator=(TableRequirementType &&) = delete;
+	TableRequirementType(string value_p);
 
 public:
 	// Deserialization
 	static TableRequirementType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result);
 	string Validate() const;
 
 	// Copy

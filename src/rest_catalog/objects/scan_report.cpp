@@ -14,132 +14,297 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ScanReport::ScanReport()
-    : filter(GeneratedObjectAccess::Create<unique_ptr<Expression>>()),
-      metrics(GeneratedObjectAccess::Create<Metrics>()),
-      metadata(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
+ScanReport::ScanReport(string table_name_p, int64_t snapshot_id_p, unique_ptr<Expression> filter_p, int32_t schema_id_p,
+                       vector<int32_t> projected_field_ids_p, vector<string> projected_field_names_p, Metrics metrics_p,
+                       optional<case_insensitive_map_t<string>> metadata_p)
+    : table_name(std::move(table_name_p)), snapshot_id(std::move(snapshot_id_p)), filter(std::move(filter_p)),
+      schema_id(std::move(schema_id_p)), projected_field_ids(std::move(projected_field_ids_p)),
+      projected_field_names(std::move(projected_field_names_p)), metrics(std::move(metrics_p)),
+      metadata(std::move(metadata_p)) {
 }
 
 ScanReportBuilder::ScanReportBuilder() {
 }
 
 ScanReportBuilder &ScanReportBuilder::SetTableName(string value) {
-	result_.table_name = std::move(value);
+	table_name_ = std::move(value);
 	has_table_name_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetFilter(unique_ptr<Expression> value) {
-	result_.filter = std::move(value);
+	filter_ = std::move(value);
 	has_filter_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetSchemaId(int32_t value) {
-	result_.schema_id = std::move(value);
+	schema_id_ = std::move(value);
 	has_schema_id_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetProjectedFieldIds(vector<int32_t> value) {
-	result_.projected_field_ids = std::move(value);
+	projected_field_ids_ = std::move(value);
 	has_projected_field_ids_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetProjectedFieldNames(vector<string> value) {
-	result_.projected_field_names = std::move(value);
+	projected_field_names_ = std::move(value);
 	has_projected_field_names_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetMetrics(Metrics value) {
-	result_.metrics = std::move(value);
+	metrics_ = std::move(value);
 	has_metrics_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetMetadata(case_insensitive_map_t<string> value) {
-	result_.metadata = std::move(value);
+	metadata_ = std::move(value);
 	return *this;
 }
 
-string ScanReportBuilder::TryBuild(ScanReport &result) {
+ScanReport ScanReportBuilder::Build() {
 	if (!has_table_name_) {
-		return "ScanReport required property 'table-name' is missing";
+		throw InvalidInputException("ScanReport required property 'table-name' is missing");
 	}
 	if (!has_snapshot_id_) {
-		return "ScanReport required property 'snapshot-id' is missing";
+		throw InvalidInputException("ScanReport required property 'snapshot-id' is missing");
 	}
 	if (!has_filter_) {
-		return "ScanReport required property 'filter' is missing";
+		throw InvalidInputException("ScanReport required property 'filter' is missing");
 	}
 	if (!has_schema_id_) {
-		return "ScanReport required property 'schema-id' is missing";
+		throw InvalidInputException("ScanReport required property 'schema-id' is missing");
 	}
 	if (!has_projected_field_ids_) {
-		return "ScanReport required property 'projected-field-ids' is missing";
+		throw InvalidInputException("ScanReport required property 'projected-field-ids' is missing");
 	}
 	if (!has_projected_field_names_) {
-		return "ScanReport required property 'projected-field-names' is missing";
+		throw InvalidInputException("ScanReport required property 'projected-field-names' is missing");
 	}
 	if (!has_metrics_) {
-		return "ScanReport required property 'metrics' is missing";
+		throw InvalidInputException("ScanReport required property 'metrics' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-ScanReport ScanReportBuilder::Build() {
-	ScanReport result;
-	auto error = TryBuild(result);
+	auto result = ScanReport(std::move(*table_name_), std::move(*snapshot_id_), std::move(filter_),
+	                         std::move(*schema_id_), std::move(*projected_field_ids_),
+	                         std::move(*projected_field_names_), std::move(*metrics_), std::move(metadata_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ScanReport ScanReport::FromJSON(yyjson_val *obj) {
-	ScanReport res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ScanReportBuilder::TryBuild(optional<ScanReport> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ScanReport ScanReport::FromJSON(yyjson_val *obj) {
+	ScanReportBuilder builder;
+	auto table_name_val = yyjson_obj_get(obj, "table-name");
+	if (!table_name_val) {
+		throw InvalidInputException("ScanReport required property 'table-name' is missing");
+	} else {
+		string table_name;
+		if (yyjson_is_str(table_name_val)) {
+			table_name = yyjson_get_str(table_name_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("ScanReport property 'table_name' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(table_name_val)));
+		}
+		builder.SetTableName(std::move(table_name));
+	}
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (!snapshot_id_val) {
+		throw InvalidInputException("ScanReport required property 'snapshot-id' is missing");
+	} else {
+		int64_t snapshot_id;
+		if (yyjson_is_sint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_sint(snapshot_id_val);
+		} else if (yyjson_is_uint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_uint(snapshot_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("ScanReport property 'snapshot_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(snapshot_id_val)));
+		}
+		builder.SetSnapshotId(std::move(snapshot_id));
+	}
+	auto filter_val = yyjson_obj_get(obj, "filter");
+	if (!filter_val) {
+		throw InvalidInputException("ScanReport required property 'filter' is missing");
+	} else {
+		unique_ptr<Expression> filter;
+		filter = make_uniq<Expression>(Expression::FromJSON(filter_val));
+		builder.SetFilter(std::move(filter));
+	}
+	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
+	if (!schema_id_val) {
+		throw InvalidInputException("ScanReport required property 'schema-id' is missing");
+	} else {
+		int32_t schema_id;
+		if (yyjson_is_int(schema_id_val)) {
+			schema_id = yyjson_get_int(schema_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("ScanReport property 'schema_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(schema_id_val)));
+		}
+		builder.SetSchemaId(std::move(schema_id));
+	}
+	auto projected_field_ids_val = yyjson_obj_get(obj, "projected-field-ids");
+	if (!projected_field_ids_val) {
+		throw InvalidInputException("ScanReport required property 'projected-field-ids' is missing");
+	} else {
+		vector<int32_t> projected_field_ids;
+		if (yyjson_is_arr(projected_field_ids_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(projected_field_ids_val, idx, max, val) {
+				int32_t tmp;
+				if (yyjson_is_int(val)) {
+					tmp = yyjson_get_int(val);
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("ScanReport property 'tmp' is not of type 'integer', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
+				}
+				projected_field_ids.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "ScanReport property 'projected_field_ids' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(projected_field_ids_val));
+		}
+		builder.SetProjectedFieldIds(std::move(projected_field_ids));
+	}
+	auto projected_field_names_val = yyjson_obj_get(obj, "projected-field-names");
+	if (!projected_field_names_val) {
+		throw InvalidInputException("ScanReport required property 'projected-field-names' is missing");
+	} else {
+		vector<string> projected_field_names;
+		if (yyjson_is_arr(projected_field_names_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(projected_field_names_val, idx, max, val) {
+				string tmp;
+				if (yyjson_is_str(val)) {
+					tmp = yyjson_get_str(val);
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("ScanReport property 'tmp' is not of type 'string', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
+				}
+				projected_field_names.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "ScanReport property 'projected_field_names' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(projected_field_names_val));
+		}
+		builder.SetProjectedFieldNames(std::move(projected_field_names));
+	}
+	auto metrics_val = yyjson_obj_get(obj, "metrics");
+	if (!metrics_val) {
+		throw InvalidInputException("ScanReport required property 'metrics' is missing");
+	} else {
+		optional<Metrics> metrics;
+		metrics = Metrics::FromJSON(metrics_val);
+		builder.SetMetrics(std::move(*metrics));
+	}
+	auto metadata_val = yyjson_obj_get(obj, "metadata");
+	if (metadata_val) {
+		case_insensitive_map_t<string> metadata;
+		if (yyjson_is_obj(metadata_val)) {
+			size_t idx, max;
+			yyjson_val *key, *val;
+			yyjson_obj_foreach(metadata_val, idx, max, key, val) {
+				auto key_str = yyjson_get_str(key);
+				string tmp;
+				if (yyjson_is_str(val)) {
+					tmp = yyjson_get_str(val);
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("ScanReport property 'tmp' is not of type 'string', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
+				}
+				metadata.emplace(key_str, std::move(tmp));
+			}
+		} else {
+			throw InvalidInputException("ScanReport property 'metadata' is not of type 'object'");
+		}
+		builder.SetMetadata(std::move(metadata));
+	}
+	return builder.Build();
+}
+
+string ScanReport::TryFromJSON(yyjson_val *obj, optional<ScanReport> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ScanReport ScanReport::Copy() const {
-	ScanReport res;
-	res.table_name = table_name;
-	res.snapshot_id = snapshot_id;
-	res.filter = filter ? make_uniq<Expression>(filter->Copy()) : nullptr;
-	res.schema_id = schema_id;
-	res.projected_field_ids.reserve(projected_field_ids.size());
+	ScanReportBuilder builder;
+	string table_name_tmp;
+	table_name_tmp = table_name;
+	builder.SetTableName(std::move(table_name_tmp));
+	int64_t snapshot_id_tmp;
+	snapshot_id_tmp = snapshot_id;
+	builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	unique_ptr<Expression> filter_tmp;
+	filter_tmp = filter ? make_uniq<Expression>(filter->Copy()) : nullptr;
+	builder.SetFilter(std::move(filter_tmp));
+	int32_t schema_id_tmp;
+	schema_id_tmp = schema_id;
+	builder.SetSchemaId(std::move(schema_id_tmp));
+	vector<int32_t> projected_field_ids_tmp;
+	projected_field_ids_tmp.reserve(projected_field_ids.size());
 	for (auto &item : projected_field_ids) {
-		res.projected_field_ids.emplace_back(item);
+		projected_field_ids_tmp.emplace_back(item);
 	}
-	res.projected_field_names.reserve(projected_field_names.size());
+	builder.SetProjectedFieldIds(std::move(projected_field_ids_tmp));
+	vector<string> projected_field_names_tmp;
+	projected_field_names_tmp.reserve(projected_field_names.size());
 	for (auto &item : projected_field_names) {
-		res.projected_field_names.emplace_back(item);
+		projected_field_names_tmp.emplace_back(item);
 	}
-	res.metrics = metrics.Copy();
+	builder.SetProjectedFieldNames(std::move(projected_field_names_tmp));
+	optional<Metrics> metrics_tmp;
+	metrics_tmp = metrics.Copy();
+	builder.SetMetrics(std::move(*metrics_tmp));
+	case_insensitive_map_t<string> metadata_tmp;
 	if (metadata.has_value()) {
-		res.metadata = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
+		metadata_tmp.emplace();
 		for (auto &entry : (*metadata)) {
-			(*res.metadata).emplace(entry.first, entry.second);
+			(*metadata_tmp).emplace(entry.first, entry.second);
 		}
 	}
-	return res;
+	if (metadata_tmp.has_value()) {
+		builder.SetMetadata(std::move(metadata_tmp));
+	}
+	return builder.Build();
 }
 
 string ScanReport::Validate() const {
@@ -153,133 +318,6 @@ string ScanReport::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string ScanReport::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto table_name_val = yyjson_obj_get(obj, "table-name");
-	if (!table_name_val) {
-		return "ScanReport required property 'table-name' is missing";
-	} else {
-		if (yyjson_is_str(table_name_val)) {
-			table_name = yyjson_get_str(table_name_val);
-		} else {
-			return StringUtil::Format("ScanReport property 'table_name' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(table_name_val));
-		}
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		return "ScanReport required property 'snapshot-id' is missing";
-	} else {
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			return StringUtil::Format("ScanReport property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(snapshot_id_val));
-		}
-	}
-	auto filter_val = yyjson_obj_get(obj, "filter");
-	if (!filter_val) {
-		return "ScanReport required property 'filter' is missing";
-	} else {
-		filter = GeneratedObjectAccess::CreateUnique<Expression>();
-		error = filter->TryFromJSON(filter_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
-	if (!schema_id_val) {
-		return "ScanReport required property 'schema-id' is missing";
-	} else {
-		if (yyjson_is_int(schema_id_val)) {
-			schema_id = yyjson_get_int(schema_id_val);
-		} else {
-			return StringUtil::Format("ScanReport property 'schema_id' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(schema_id_val));
-		}
-	}
-	auto projected_field_ids_val = yyjson_obj_get(obj, "projected-field-ids");
-	if (!projected_field_ids_val) {
-		return "ScanReport required property 'projected-field-ids' is missing";
-	} else {
-		if (yyjson_is_arr(projected_field_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(projected_field_ids_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					return StringUtil::Format("ScanReport property 'tmp' is not of type 'integer', found '%s' instead",
-					                          yyjson_get_type_desc(val));
-				}
-				projected_field_ids.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "ScanReport property 'projected_field_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(projected_field_ids_val));
-		}
-	}
-	auto projected_field_names_val = yyjson_obj_get(obj, "projected-field-names");
-	if (!projected_field_names_val) {
-		return "ScanReport required property 'projected-field-names' is missing";
-	} else {
-		if (yyjson_is_arr(projected_field_names_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(projected_field_names_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					return StringUtil::Format("ScanReport property 'tmp' is not of type 'string', found '%s' instead",
-					                          yyjson_get_type_desc(val));
-				}
-				projected_field_names.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "ScanReport property 'projected_field_names' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(projected_field_names_val));
-		}
-	}
-	auto metrics_val = yyjson_obj_get(obj, "metrics");
-	if (!metrics_val) {
-		return "ScanReport required property 'metrics' is missing";
-	} else {
-		error = metrics.TryFromJSON(metrics_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto metadata_val = yyjson_obj_get(obj, "metadata");
-	if (metadata_val) {
-		case_insensitive_map_t<string> metadata_tmp;
-		if (yyjson_is_obj(metadata_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(metadata_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					return StringUtil::Format("ScanReport property 'tmp' is not of type 'string', found '%s' instead",
-					                          yyjson_get_type_desc(val));
-				}
-				metadata_tmp.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			return "ScanReport property 'metadata_tmp' is not of type 'object'";
-		}
-		metadata = std::move(metadata_tmp);
-	}
-	return Validate();
 }
 
 void ScanReport::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

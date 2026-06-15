@@ -21,17 +21,16 @@ public:
 	RemoveEncryptionKeyUpdate(const RemoveEncryptionKeyUpdate &) = delete;
 	RemoveEncryptionKeyUpdate &operator=(const RemoveEncryptionKeyUpdate &) = delete;
 	RemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate &&) = default;
-	RemoveEncryptionKeyUpdate &operator=(RemoveEncryptionKeyUpdate &&) = default;
+	RemoveEncryptionKeyUpdate &operator=(RemoveEncryptionKeyUpdate &&) = delete;
 
 private:
 	friend class RemoveEncryptionKeyUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemoveEncryptionKeyUpdate();
+	RemoveEncryptionKeyUpdate(BaseUpdate base_update_p, string key_id_p);
 
 public:
 	// Deserialization
 	static RemoveEncryptionKeyUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemoveEncryptionKeyUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemoveEncryptionKeyUpdateBuilder();
 	RemoveEncryptionKeyUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveEncryptionKeyUpdateBuilder &SetKeyId(string value);
-	string TryBuild(RemoveEncryptionKeyUpdate &result);
+	string TryBuild(optional<RemoveEncryptionKeyUpdate> &result);
 	RemoveEncryptionKeyUpdate Build();
 
 private:
-	RemoveEncryptionKeyUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<string> key_id_;
 	bool has_key_id_ = false;
 };
 

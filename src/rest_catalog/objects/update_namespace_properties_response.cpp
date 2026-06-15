@@ -14,93 +14,63 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-UpdateNamespacePropertiesResponse::UpdateNamespacePropertiesResponse() {
+UpdateNamespacePropertiesResponse::UpdateNamespacePropertiesResponse(vector<string> updated_p, vector<string> removed_p,
+                                                                     optional<vector<string>> missing_p)
+    : updated(std::move(updated_p)), removed(std::move(removed_p)), missing(std::move(missing_p)) {
 }
 
 UpdateNamespacePropertiesResponseBuilder::UpdateNamespacePropertiesResponseBuilder() {
 }
 
 UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetUpdated(vector<string> value) {
-	result_.updated = std::move(value);
+	updated_ = std::move(value);
 	has_updated_ = true;
 	return *this;
 }
 
 UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetRemoved(vector<string> value) {
-	result_.removed = std::move(value);
+	removed_ = std::move(value);
 	has_removed_ = true;
 	return *this;
 }
 
 UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetMissing(vector<string> value) {
-	result_.missing = std::move(value);
+	missing_ = std::move(value);
 	return *this;
 }
 
-string UpdateNamespacePropertiesResponseBuilder::TryBuild(UpdateNamespacePropertiesResponse &result) {
+UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponseBuilder::Build() {
 	if (!has_updated_) {
-		return "UpdateNamespacePropertiesResponse required property 'updated' is missing";
+		throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'updated' is missing");
 	}
 	if (!has_removed_) {
-		return "UpdateNamespacePropertiesResponse required property 'removed' is missing";
+		throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'removed' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponseBuilder::Build() {
-	UpdateNamespacePropertiesResponse result;
-	auto error = TryBuild(result);
+	auto result = UpdateNamespacePropertiesResponse(std::move(*updated_), std::move(*removed_), std::move(missing_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
+string UpdateNamespacePropertiesResponseBuilder::TryBuild(optional<UpdateNamespacePropertiesResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
 UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yyjson_val *obj) {
-	UpdateNamespacePropertiesResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() const {
-	UpdateNamespacePropertiesResponse res;
-	res.updated.reserve(updated.size());
-	for (auto &item : updated) {
-		res.updated.emplace_back(item);
-	}
-	res.removed.reserve(removed.size());
-	for (auto &item : removed) {
-		res.removed.emplace_back(item);
-	}
-	if (missing.has_value()) {
-		res.missing.emplace();
-		(*res.missing).reserve((*missing).size());
-		for (auto &item : (*missing)) {
-			(*res.missing).emplace_back(item);
-		}
-	}
-	return res;
-}
-
-string UpdateNamespacePropertiesResponse::Validate() const {
-	string error;
-	return "";
-}
-
-string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
+	UpdateNamespacePropertiesResponseBuilder builder;
 	auto updated_val = yyjson_obj_get(obj, "updated");
 	if (!updated_val) {
-		return "UpdateNamespacePropertiesResponse required property 'updated' is missing";
+		throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'updated' is missing");
 	} else {
+		vector<string> updated;
 		if (yyjson_is_arr(updated_val)) {
 			size_t idx, max;
 			yyjson_val *val;
@@ -109,9 +79,9 @@ string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_str(val)) {
 					tmp = yyjson_get_str(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "UpdateNamespacePropertiesResponse property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
 				updated.emplace_back(std::move(tmp));
 			}
@@ -120,11 +90,13 @@ string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
 			    "UpdateNamespacePropertiesResponse property 'updated' is not of type 'array', found '%s' instead",
 			    yyjson_get_type_desc(updated_val));
 		}
+		builder.SetUpdated(std::move(updated));
 	}
 	auto removed_val = yyjson_obj_get(obj, "removed");
 	if (!removed_val) {
-		return "UpdateNamespacePropertiesResponse required property 'removed' is missing";
+		throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'removed' is missing");
 	} else {
+		vector<string> removed;
 		if (yyjson_is_arr(removed_val)) {
 			size_t idx, max;
 			yyjson_val *val;
@@ -133,9 +105,9 @@ string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_str(val)) {
 					tmp = yyjson_get_str(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "UpdateNamespacePropertiesResponse property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
 				removed.emplace_back(std::move(tmp));
 			}
@@ -144,13 +116,14 @@ string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
 			    "UpdateNamespacePropertiesResponse property 'removed' is not of type 'array', found '%s' instead",
 			    yyjson_get_type_desc(removed_val));
 		}
+		builder.SetRemoved(std::move(removed));
 	}
 	auto missing_val = yyjson_obj_get(obj, "missing");
 	if (missing_val) {
 		if (yyjson_is_null(missing_val)) {
 			//! do nothing, property is explicitly nullable
 		} else {
-			vector<string> missing_tmp;
+			vector<string> missing;
 			if (yyjson_is_arr(missing_val)) {
 				size_t idx, max;
 				yyjson_val *val;
@@ -159,21 +132,66 @@ string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj) {
 					if (yyjson_is_str(val)) {
 						tmp = yyjson_get_str(val);
 					} else {
-						return StringUtil::Format("UpdateNamespacePropertiesResponse property 'tmp' is not of type "
-						                          "'string', found '%s' instead",
-						                          yyjson_get_type_desc(val));
+						throw InvalidInputException(
+						    StringUtil::Format("UpdateNamespacePropertiesResponse property 'tmp' is not of type "
+						                       "'string', found '%s' instead",
+						                       yyjson_get_type_desc(val)));
 					}
-					missing_tmp.emplace_back(std::move(tmp));
+					missing.emplace_back(std::move(tmp));
 				}
 			} else {
-				return StringUtil::Format("UpdateNamespacePropertiesResponse property 'missing_tmp' is not of type "
-				                          "'array', found '%s' instead",
-				                          yyjson_get_type_desc(missing_val));
+				return StringUtil::Format(
+				    "UpdateNamespacePropertiesResponse property 'missing' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(missing_val));
 			}
-			missing = std::move(missing_tmp);
+			builder.SetMissing(std::move(missing));
 		}
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj,
+                                                      optional<UpdateNamespacePropertiesResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() const {
+	UpdateNamespacePropertiesResponseBuilder builder;
+	vector<string> updated_tmp;
+	updated_tmp.reserve(updated.size());
+	for (auto &item : updated) {
+		updated_tmp.emplace_back(item);
+	}
+	builder.SetUpdated(std::move(updated_tmp));
+	vector<string> removed_tmp;
+	removed_tmp.reserve(removed.size());
+	for (auto &item : removed) {
+		removed_tmp.emplace_back(item);
+	}
+	builder.SetRemoved(std::move(removed_tmp));
+	vector<string> missing_tmp;
+	if (missing.has_value()) {
+		missing_tmp.emplace();
+		(*missing_tmp).reserve((*missing).size());
+		for (auto &item : (*missing)) {
+			(*missing_tmp).emplace_back(item);
+		}
+	}
+	if (missing_tmp.has_value()) {
+		builder.SetMissing(std::move(missing_tmp));
+	}
+	return builder.Build();
+}
+
+string UpdateNamespacePropertiesResponse::Validate() const {
+	string error;
+	return "";
 }
 
 void UpdateNamespacePropertiesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -22,17 +22,18 @@ public:
 	LoadTableResult(const LoadTableResult &) = delete;
 	LoadTableResult &operator=(const LoadTableResult &) = delete;
 	LoadTableResult(LoadTableResult &&) = default;
-	LoadTableResult &operator=(LoadTableResult &&) = default;
+	LoadTableResult &operator=(LoadTableResult &&) = delete;
 
 private:
 	friend class LoadTableResultBuilder;
-	friend class GeneratedObjectAccess;
-	LoadTableResult();
+	LoadTableResult(TableMetadata metadata_p, optional<string> metadata_location_p,
+	                optional<case_insensitive_map_t<string>> config_p,
+	                optional<vector<StorageCredential>> storage_credentials_p);
 
 public:
 	// Deserialization
 	static LoadTableResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<LoadTableResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -56,11 +57,14 @@ public:
 	LoadTableResultBuilder &SetMetadataLocation(string value);
 	LoadTableResultBuilder &SetConfig(case_insensitive_map_t<string> value);
 	LoadTableResultBuilder &SetStorageCredentials(vector<StorageCredential> value);
-	string TryBuild(LoadTableResult &result);
+	string TryBuild(optional<LoadTableResult> &result);
 	LoadTableResult Build();
 
 private:
-	LoadTableResult result_;
+	optional<TableMetadata> metadata_;
+	optional<string> metadata_location_;
+	optional<case_insensitive_map_t<string>> config_;
+	optional<vector<StorageCredential>> storage_credentials_;
 	bool has_metadata_ = false;
 };
 

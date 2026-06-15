@@ -14,68 +14,109 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CompletedPlanningResult::CompletedPlanningResult()
-    : scan_tasks(GeneratedObjectAccess::Create<ScanTasks>()), object_5(GeneratedObjectAccess::Create<Object5>()) {
+CompletedPlanningResult::CompletedPlanningResult(ScanTasks scan_tasks_p, Object5 object_5_p)
+    : scan_tasks(std::move(scan_tasks_p)), object_5(std::move(object_5_p)) {
 }
-CompletedPlanningResult::Object5::Object5() {
+CompletedPlanningResult::Object5::Object5(PlanStatus status_p,
+                                          optional<vector<StorageCredential>> storage_credentials_p)
+    : status(std::move(status_p)), storage_credentials(std::move(storage_credentials_p)) {
 }
 
 CompletedPlanningResult::Object5Builder::Object5Builder() {
 }
 
 CompletedPlanningResult::Object5Builder &CompletedPlanningResult::Object5Builder::SetStatus(PlanStatus value) {
-	result_.status = std::move(value);
+	status_ = std::move(value);
 	has_status_ = true;
 	return *this;
 }
 
 CompletedPlanningResult::Object5Builder &
 CompletedPlanningResult::Object5Builder::SetStorageCredentials(vector<StorageCredential> value) {
-	result_.storage_credentials = std::move(value);
+	storage_credentials_ = std::move(value);
 	return *this;
 }
 
-string CompletedPlanningResult::Object5Builder::TryBuild(CompletedPlanningResult::Object5 &result) {
-	if (!has_status_) {
-		return "Object5 required property 'status' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5Builder::Build() {
-	CompletedPlanningResult::Object5 result;
-	auto error = TryBuild(result);
+	if (!has_status_) {
+		throw InvalidInputException("Object5 required property 'status' is missing");
+	}
+	auto result = CompletedPlanningResult::Object5(std::move(*status_), std::move(storage_credentials_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjson_val *obj) {
-	Object5 res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CompletedPlanningResult::Object5Builder::TryBuild(optional<CompletedPlanningResult::Object5> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjson_val *obj) {
+	Object5Builder builder;
+	auto status_val = yyjson_obj_get(obj, "status");
+	if (!status_val) {
+		throw InvalidInputException("Object5 required property 'status' is missing");
+	} else {
+		optional<PlanStatus> status;
+		status = PlanStatus::FromJSON(status_val);
+		builder.SetStatus(std::move(*status));
+	}
+	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
+	if (storage_credentials_val) {
+		vector<StorageCredential> storage_credentials;
+		if (yyjson_is_arr(storage_credentials_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
+				auto tmp = StorageCredential::FromJSON(val);
+				storage_credentials.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "Object5 property 'storage_credentials' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(storage_credentials_val));
+		}
+		builder.SetStorageCredentials(std::move(storage_credentials));
+	}
+	return builder.Build();
+}
+
+string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj,
+                                                     optional<CompletedPlanningResult::Object5> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const {
-	Object5 res;
-	res.status = status.Copy();
+	Object5Builder builder;
+	optional<PlanStatus> status_tmp;
+	status_tmp = status.Copy();
+	builder.SetStatus(std::move(*status_tmp));
+	vector<StorageCredential> storage_credentials_tmp;
 	if (storage_credentials.has_value()) {
-		res.storage_credentials.emplace();
-		(*res.storage_credentials).reserve((*storage_credentials).size());
+		storage_credentials_tmp.emplace();
+		(*storage_credentials_tmp).reserve((*storage_credentials).size());
 		for (auto &item : (*storage_credentials)) {
-			(*res.storage_credentials).emplace_back(item.Copy());
+			(*storage_credentials_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (storage_credentials_tmp.has_value()) {
+		builder.SetStorageCredentials(std::move(storage_credentials_tmp));
+	}
+	return builder.Build();
 }
 
 string CompletedPlanningResult::Object5::Validate() const {
@@ -96,41 +137,6 @@ string CompletedPlanningResult::Object5::Validate() const {
 		}
 	}
 	return "";
-}
-
-string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto status_val = yyjson_obj_get(obj, "status");
-	if (!status_val) {
-		return "Object5 required property 'status' is missing";
-	} else {
-		error = status.TryFromJSON(status_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
-	if (storage_credentials_val) {
-		vector<StorageCredential> storage_credentials_tmp;
-		if (yyjson_is_arr(storage_credentials_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<StorageCredential>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				storage_credentials_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "Object5 property 'storage_credentials_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(storage_credentials_val));
-		}
-		storage_credentials = std::move(storage_credentials_tmp);
-	}
-	return Validate();
 }
 
 void CompletedPlanningResult::Object5::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -164,47 +170,60 @@ CompletedPlanningResultBuilder::CompletedPlanningResultBuilder() {
 }
 
 CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetScanTasks(ScanTasks value) {
-	result_.scan_tasks = std::move(value);
+	scan_tasks_ = std::move(value);
 	return *this;
 }
 
 CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetObject5(CompletedPlanningResult::Object5 value) {
-	result_.object_5 = std::move(value);
+	object_5_ = std::move(value);
 	return *this;
 }
 
-string CompletedPlanningResultBuilder::TryBuild(CompletedPlanningResult &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 CompletedPlanningResult CompletedPlanningResultBuilder::Build() {
-	CompletedPlanningResult result;
-	auto error = TryBuild(result);
+	auto result = CompletedPlanningResult(std::move(*scan_tasks_), std::move(*object_5_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
-	CompletedPlanningResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CompletedPlanningResultBuilder::TryBuild(optional<CompletedPlanningResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
+	CompletedPlanningResultBuilder builder;
+	builder.SetScanTasks(ScanTasks::FromJSON(obj));
+	builder.SetObject5(Object5::FromJSON(obj));
+	return builder.Build();
+}
+
+string CompletedPlanningResult::TryFromJSON(yyjson_val *obj, optional<CompletedPlanningResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 CompletedPlanningResult CompletedPlanningResult::Copy() const {
-	CompletedPlanningResult res;
-	res.scan_tasks = scan_tasks.Copy();
-	res.object_5 = object_5.Copy();
-	return res;
+	CompletedPlanningResultBuilder builder;
+	optional<ScanTasks> scan_tasks_tmp;
+	scan_tasks_tmp = scan_tasks.Copy();
+	builder.SetScanTasks(std::move(*scan_tasks_tmp));
+	optional<Object5> object_5_tmp;
+	object_5_tmp = object_5.Copy();
+	builder.SetObject5(std::move(*object_5_tmp));
+	return builder.Build();
 }
 
 string CompletedPlanningResult::Validate() const {
@@ -218,19 +237,6 @@ string CompletedPlanningResult::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string CompletedPlanningResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = scan_tasks.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	error = object_5.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	return Validate();
 }
 
 void CompletedPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

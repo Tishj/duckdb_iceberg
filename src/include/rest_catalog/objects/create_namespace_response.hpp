@@ -21,17 +21,16 @@ public:
 	CreateNamespaceResponse(const CreateNamespaceResponse &) = delete;
 	CreateNamespaceResponse &operator=(const CreateNamespaceResponse &) = delete;
 	CreateNamespaceResponse(CreateNamespaceResponse &&) = default;
-	CreateNamespaceResponse &operator=(CreateNamespaceResponse &&) = default;
+	CreateNamespaceResponse &operator=(CreateNamespaceResponse &&) = delete;
 
 private:
 	friend class CreateNamespaceResponseBuilder;
-	friend class GeneratedObjectAccess;
-	CreateNamespaceResponse();
+	CreateNamespaceResponse(Namespace _namespace_p, optional<case_insensitive_map_t<string>> properties_p);
 
 public:
 	// Deserialization
 	static CreateNamespaceResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CreateNamespaceResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	CreateNamespaceResponseBuilder();
 	CreateNamespaceResponseBuilder &SetNamespace(Namespace value);
 	CreateNamespaceResponseBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(CreateNamespaceResponse &result);
+	string TryBuild(optional<CreateNamespaceResponse> &result);
 	CreateNamespaceResponse Build();
 
 private:
-	CreateNamespaceResponse result_;
+	optional<Namespace> _namespace_;
+	optional<case_insensitive_map_t<string>> properties_;
 	bool has__namespace_ = false;
 };
 

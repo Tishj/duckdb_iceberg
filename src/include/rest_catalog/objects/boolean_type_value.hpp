@@ -18,13 +18,13 @@ public:
 	BooleanTypeValue(const BooleanTypeValue &) = delete;
 	BooleanTypeValue &operator=(const BooleanTypeValue &) = delete;
 	BooleanTypeValue(BooleanTypeValue &&) = default;
-	BooleanTypeValue &operator=(BooleanTypeValue &&) = default;
-	BooleanTypeValue();
+	BooleanTypeValue &operator=(BooleanTypeValue &&) = delete;
+	BooleanTypeValue(bool value_p);
 
 public:
 	// Deserialization
 	static BooleanTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue> &result);
 	string Validate() const;
 
 	// Copy

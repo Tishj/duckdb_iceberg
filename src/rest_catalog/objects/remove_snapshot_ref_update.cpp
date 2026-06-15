@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemoveSnapshotRefUpdate::RemoveSnapshotRefUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+RemoveSnapshotRefUpdate::RemoveSnapshotRefUpdate(BaseUpdate base_update_p, string ref_name_p)
+    : base_update(std::move(base_update_p)), ref_name(std::move(ref_name_p)) {
 }
 
 RemoveSnapshotRefUpdateBuilder::RemoveSnapshotRefUpdateBuilder() {
 }
 
 RemoveSnapshotRefUpdateBuilder &RemoveSnapshotRefUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 RemoveSnapshotRefUpdateBuilder &RemoveSnapshotRefUpdateBuilder::SetRefName(string value) {
-	result_.ref_name = std::move(value);
+	ref_name_ = std::move(value);
 	has_ref_name_ = true;
 	return *this;
 }
 
-string RemoveSnapshotRefUpdateBuilder::TryBuild(RemoveSnapshotRefUpdate &result) {
-	if (!has_ref_name_) {
-		return "RemoveSnapshotRefUpdate required property 'ref-name' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 RemoveSnapshotRefUpdate RemoveSnapshotRefUpdateBuilder::Build() {
-	RemoveSnapshotRefUpdate result;
-	auto error = TryBuild(result);
+	if (!has_ref_name_) {
+		throw InvalidInputException("RemoveSnapshotRefUpdate required property 'ref-name' is missing");
+	}
+	auto result = RemoveSnapshotRefUpdate(std::move(*base_update_), std::move(*ref_name_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
-	RemoveSnapshotRefUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RemoveSnapshotRefUpdateBuilder::TryBuild(optional<RemoveSnapshotRefUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
+	RemoveSnapshotRefUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto ref_name_val = yyjson_obj_get(obj, "ref-name");
+	if (!ref_name_val) {
+		throw InvalidInputException("RemoveSnapshotRefUpdate required property 'ref-name' is missing");
+	} else {
+		string ref_name;
+		if (yyjson_is_str(ref_name_val)) {
+			ref_name = yyjson_get_str(ref_name_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RemoveSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(ref_name_val)));
+		}
+		builder.SetRefName(std::move(ref_name));
+	}
+	return builder.Build();
+}
+
+string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotRefUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::Copy() const {
-	RemoveSnapshotRefUpdate res;
-	res.base_update = base_update.Copy();
-	res.ref_name = ref_name;
-	return res;
+	RemoveSnapshotRefUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	string ref_name_tmp;
+	ref_name_tmp = ref_name;
+	builder.SetRefName(std::move(ref_name_tmp));
+	return builder.Build();
 }
 
 string RemoveSnapshotRefUpdate::Validate() const {
@@ -75,27 +102,6 @@ string RemoveSnapshotRefUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto ref_name_val = yyjson_obj_get(obj, "ref-name");
-	if (!ref_name_val) {
-		return "RemoveSnapshotRefUpdate required property 'ref-name' is missing";
-	} else {
-		if (yyjson_is_str(ref_name_val)) {
-			ref_name = yyjson_get_str(ref_name_val);
-		} else {
-			return StringUtil::Format(
-			    "RemoveSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(ref_name_val));
-		}
-	}
-	return Validate();
 }
 
 void RemoveSnapshotRefUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

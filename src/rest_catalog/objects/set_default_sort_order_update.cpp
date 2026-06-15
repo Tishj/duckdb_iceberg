@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate(BaseUpdate base_update_p, int32_t sort_order_id_p)
+    : base_update(std::move(base_update_p)), sort_order_id(std::move(sort_order_id_p)) {
 }
 
 SetDefaultSortOrderUpdateBuilder::SetDefaultSortOrderUpdateBuilder() {
 }
 
 SetDefaultSortOrderUpdateBuilder &SetDefaultSortOrderUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetDefaultSortOrderUpdateBuilder &SetDefaultSortOrderUpdateBuilder::SetSortOrderId(int32_t value) {
-	result_.sort_order_id = std::move(value);
+	sort_order_id_ = std::move(value);
 	has_sort_order_id_ = true;
 	return *this;
 }
 
-string SetDefaultSortOrderUpdateBuilder::TryBuild(SetDefaultSortOrderUpdate &result) {
-	if (!has_sort_order_id_) {
-		return "SetDefaultSortOrderUpdate required property 'sort-order-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetDefaultSortOrderUpdate SetDefaultSortOrderUpdateBuilder::Build() {
-	SetDefaultSortOrderUpdate result;
-	auto error = TryBuild(result);
+	if (!has_sort_order_id_) {
+		throw InvalidInputException("SetDefaultSortOrderUpdate required property 'sort-order-id' is missing");
+	}
+	auto result = SetDefaultSortOrderUpdate(std::move(*base_update_), std::move(*sort_order_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::FromJSON(yyjson_val *obj) {
-	SetDefaultSortOrderUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetDefaultSortOrderUpdateBuilder::TryBuild(optional<SetDefaultSortOrderUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::FromJSON(yyjson_val *obj) {
+	SetDefaultSortOrderUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto sort_order_id_val = yyjson_obj_get(obj, "sort-order-id");
+	if (!sort_order_id_val) {
+		throw InvalidInputException("SetDefaultSortOrderUpdate required property 'sort-order-id' is missing");
+	} else {
+		int32_t sort_order_id;
+		if (yyjson_is_int(sort_order_id_val)) {
+			sort_order_id = yyjson_get_int(sort_order_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "SetDefaultSortOrderUpdate property 'sort_order_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(sort_order_id_val)));
+		}
+		builder.SetSortOrderId(std::move(sort_order_id));
+	}
+	return builder.Build();
+}
+
+string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj, optional<SetDefaultSortOrderUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::Copy() const {
-	SetDefaultSortOrderUpdate res;
-	res.base_update = base_update.Copy();
-	res.sort_order_id = sort_order_id;
-	return res;
+	SetDefaultSortOrderUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int32_t sort_order_id_tmp;
+	sort_order_id_tmp = sort_order_id;
+	builder.SetSortOrderId(std::move(sort_order_id_tmp));
+	return builder.Build();
 }
 
 string SetDefaultSortOrderUpdate::Validate() const {
@@ -75,27 +102,6 @@ string SetDefaultSortOrderUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto sort_order_id_val = yyjson_obj_get(obj, "sort-order-id");
-	if (!sort_order_id_val) {
-		return "SetDefaultSortOrderUpdate required property 'sort-order-id' is missing";
-	} else {
-		if (yyjson_is_int(sort_order_id_val)) {
-			sort_order_id = yyjson_get_int(sort_order_id_val);
-		} else {
-			return StringUtil::Format(
-			    "SetDefaultSortOrderUpdate property 'sort_order_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(sort_order_id_val));
-		}
-	}
-	return Validate();
 }
 
 void SetDefaultSortOrderUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -22,17 +22,16 @@ public:
 	MetricResult(const MetricResult &) = delete;
 	MetricResult &operator=(const MetricResult &) = delete;
 	MetricResult(MetricResult &&) = default;
-	MetricResult &operator=(MetricResult &&) = default;
+	MetricResult &operator=(MetricResult &&) = delete;
 
 private:
 	friend class MetricResultBuilder;
-	friend class GeneratedObjectAccess;
-	MetricResult();
+	MetricResult(optional<CounterResult> counter_result_p, optional<TimerResult> timer_result_p);
 
 public:
 	// Deserialization
 	static MetricResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<MetricResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	MetricResultBuilder();
 	MetricResultBuilder &SetCounterResult(CounterResult value);
 	MetricResultBuilder &SetTimerResult(TimerResult value);
-	string TryBuild(MetricResult &result);
+	string TryBuild(optional<MetricResult> &result);
 	MetricResult Build();
 
 private:
-	MetricResult result_;
+	optional<CounterResult> counter_result_;
+	optional<TimerResult> timer_result_;
 };
 
 } // namespace rest_api_objects

@@ -18,13 +18,13 @@ public:
 	UUIDTypeValue(const UUIDTypeValue &) = delete;
 	UUIDTypeValue &operator=(const UUIDTypeValue &) = delete;
 	UUIDTypeValue(UUIDTypeValue &&) = default;
-	UUIDTypeValue &operator=(UUIDTypeValue &&) = default;
-	UUIDTypeValue();
+	UUIDTypeValue &operator=(UUIDTypeValue &&) = delete;
+	UUIDTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static UUIDTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &result);
 	string Validate() const;
 
 	// Copy

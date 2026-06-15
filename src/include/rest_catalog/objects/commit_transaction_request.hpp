@@ -21,17 +21,16 @@ public:
 	CommitTransactionRequest(const CommitTransactionRequest &) = delete;
 	CommitTransactionRequest &operator=(const CommitTransactionRequest &) = delete;
 	CommitTransactionRequest(CommitTransactionRequest &&) = default;
-	CommitTransactionRequest &operator=(CommitTransactionRequest &&) = default;
+	CommitTransactionRequest &operator=(CommitTransactionRequest &&) = delete;
 
 private:
 	friend class CommitTransactionRequestBuilder;
-	friend class GeneratedObjectAccess;
-	CommitTransactionRequest();
+	CommitTransactionRequest(vector<CommitTableRequest> table_changes_p);
 
 public:
 	// Deserialization
 	static CommitTransactionRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CommitTransactionRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class CommitTransactionRequestBuilder {
 public:
 	CommitTransactionRequestBuilder();
 	CommitTransactionRequestBuilder &SetTableChanges(vector<CommitTableRequest> value);
-	string TryBuild(CommitTransactionRequest &result);
+	string TryBuild(optional<CommitTransactionRequest> &result);
 	CommitTransactionRequest Build();
 
 private:
-	CommitTransactionRequest result_;
+	optional<vector<CommitTableRequest>> table_changes_;
 	bool has_table_changes_ = false;
 };
 

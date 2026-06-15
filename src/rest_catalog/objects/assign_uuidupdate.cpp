@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssignUUIDUpdate::AssignUUIDUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+AssignUUIDUpdate::AssignUUIDUpdate(BaseUpdate base_update_p, string uuid_p)
+    : base_update(std::move(base_update_p)), uuid(std::move(uuid_p)) {
 }
 
 AssignUUIDUpdateBuilder::AssignUUIDUpdateBuilder() {
 }
 
 AssignUUIDUpdateBuilder &AssignUUIDUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 AssignUUIDUpdateBuilder &AssignUUIDUpdateBuilder::SetUuid(string value) {
-	result_.uuid = std::move(value);
+	uuid_ = std::move(value);
 	has_uuid_ = true;
 	return *this;
 }
 
-string AssignUUIDUpdateBuilder::TryBuild(AssignUUIDUpdate &result) {
-	if (!has_uuid_) {
-		return "AssignUUIDUpdate required property 'uuid' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AssignUUIDUpdate AssignUUIDUpdateBuilder::Build() {
-	AssignUUIDUpdate result;
-	auto error = TryBuild(result);
+	if (!has_uuid_) {
+		throw InvalidInputException("AssignUUIDUpdate required property 'uuid' is missing");
+	}
+	auto result = AssignUUIDUpdate(std::move(*base_update_), std::move(*uuid_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
-	AssignUUIDUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AssignUUIDUpdateBuilder::TryBuild(optional<AssignUUIDUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
+	AssignUUIDUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto uuid_val = yyjson_obj_get(obj, "uuid");
+	if (!uuid_val) {
+		throw InvalidInputException("AssignUUIDUpdate required property 'uuid' is missing");
+	} else {
+		string uuid;
+		if (yyjson_is_str(uuid_val)) {
+			uuid = yyjson_get_str(uuid_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("AssignUUIDUpdate property 'uuid' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(uuid_val)));
+		}
+		builder.SetUuid(std::move(uuid));
+	}
+	return builder.Build();
+}
+
+string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, optional<AssignUUIDUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AssignUUIDUpdate AssignUUIDUpdate::Copy() const {
-	AssignUUIDUpdate res;
-	res.base_update = base_update.Copy();
-	res.uuid = uuid;
-	return res;
+	AssignUUIDUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	string uuid_tmp;
+	uuid_tmp = uuid;
+	builder.SetUuid(std::move(uuid_tmp));
+	return builder.Build();
 }
 
 string AssignUUIDUpdate::Validate() const {
@@ -75,26 +102,6 @@ string AssignUUIDUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto uuid_val = yyjson_obj_get(obj, "uuid");
-	if (!uuid_val) {
-		return "AssignUUIDUpdate required property 'uuid' is missing";
-	} else {
-		if (yyjson_is_str(uuid_val)) {
-			uuid = yyjson_get_str(uuid_val);
-		} else {
-			return StringUtil::Format("AssignUUIDUpdate property 'uuid' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(uuid_val));
-		}
-	}
-	return Validate();
 }
 
 void AssignUUIDUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

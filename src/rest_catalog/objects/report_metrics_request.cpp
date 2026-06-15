@@ -14,72 +14,118 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ReportMetricsRequest::ReportMetricsRequest()
-    : scan_report(GeneratedObjectAccess::Create<optional<ScanReport>>()),
-      commit_report(GeneratedObjectAccess::Create<optional<CommitReport>>()) {
+ReportMetricsRequest::ReportMetricsRequest(optional<ScanReport> scan_report_p, optional<CommitReport> commit_report_p,
+                                           string report_type_p)
+    : scan_report(std::move(scan_report_p)), commit_report(std::move(commit_report_p)),
+      report_type(std::move(report_type_p)) {
 }
 
 ReportMetricsRequestBuilder::ReportMetricsRequestBuilder() {
 }
 
 ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetScanReport(ScanReport value) {
-	result_.scan_report = std::move(value);
+	scan_report_ = std::move(value);
 	return *this;
 }
 
 ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetCommitReport(CommitReport value) {
-	result_.commit_report = std::move(value);
+	commit_report_ = std::move(value);
 	return *this;
 }
 
 ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetReportType(string value) {
-	result_.report_type = std::move(value);
+	report_type_ = std::move(value);
 	has_report_type_ = true;
 	return *this;
 }
 
-string ReportMetricsRequestBuilder::TryBuild(ReportMetricsRequest &result) {
-	if (!has_report_type_) {
-		return "ReportMetricsRequest required property 'report-type' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ReportMetricsRequest ReportMetricsRequestBuilder::Build() {
-	ReportMetricsRequest result;
-	auto error = TryBuild(result);
+	if (!has_report_type_) {
+		throw InvalidInputException("ReportMetricsRequest required property 'report-type' is missing");
+	}
+	auto result = ReportMetricsRequest(std::move(scan_report_), std::move(commit_report_), std::move(*report_type_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
-	ReportMetricsRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ReportMetricsRequestBuilder::TryBuild(optional<ReportMetricsRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
+	ReportMetricsRequestBuilder builder;
+	int matched_any_of_variants = 0;
+	try {
+		builder.SetScanReport(ScanReport::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetCommitReport(CommitReport::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	if (matched_any_of_variants == 0) {
+		throw InvalidInputException("ReportMetricsRequest failed to parse, none of the anyOf candidates matched");
+	}
+	auto report_type_val = yyjson_obj_get(obj, "report-type");
+	if (!report_type_val) {
+		throw InvalidInputException("ReportMetricsRequest required property 'report-type' is missing");
+	} else {
+		string report_type;
+		if (yyjson_is_str(report_type_val)) {
+			report_type = yyjson_get_str(report_type_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "ReportMetricsRequest property 'report_type' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(report_type_val)));
+		}
+		builder.SetReportType(std::move(report_type));
+	}
+	return builder.Build();
+}
+
+string ReportMetricsRequest::TryFromJSON(yyjson_val *obj, optional<ReportMetricsRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ReportMetricsRequest ReportMetricsRequest::Copy() const {
-	ReportMetricsRequest res;
+	ReportMetricsRequestBuilder builder;
+	optional<ScanReport> scan_report_tmp;
 	if (scan_report.has_value()) {
-		res.scan_report = GeneratedObjectAccess::Create<ScanReport>();
-		(*res.scan_report) = (*scan_report).Copy();
+		scan_report_tmp.emplace();
+		(*scan_report_tmp) = (*scan_report).Copy();
 	}
+	if (scan_report_tmp.has_value()) {
+		builder.SetScanReport(std::move(*scan_report_tmp));
+	}
+	optional<CommitReport> commit_report_tmp;
 	if (commit_report.has_value()) {
-		res.commit_report = GeneratedObjectAccess::Create<CommitReport>();
-		(*res.commit_report) = (*commit_report).Copy();
+		commit_report_tmp.emplace();
+		(*commit_report_tmp) = (*commit_report).Copy();
 	}
-	res.report_type = report_type;
-	return res;
+	if (commit_report_tmp.has_value()) {
+		builder.SetCommitReport(std::move(*commit_report_tmp));
+	}
+	string report_type_tmp;
+	report_type_tmp = report_type;
+	builder.SetReportType(std::move(report_type_tmp));
+	return builder.Build();
 }
 
 string ReportMetricsRequest::Validate() const {
@@ -103,38 +149,6 @@ string ReportMetricsRequest::Validate() const {
 		return "ReportMetricsRequest must have at least one anyOf variant set";
 	}
 	return "";
-}
-
-string ReportMetricsRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	scan_report = GeneratedObjectAccess::Create<ScanReport>();
-	error = scan_report->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		scan_report = nullopt;
-	}
-	commit_report = GeneratedObjectAccess::Create<CommitReport>();
-	error = commit_report->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		commit_report = nullopt;
-	}
-	if (!(commit_report.has_value()) && !(scan_report.has_value())) {
-		return "ReportMetricsRequest failed to parse, none of the anyOf candidates matched";
-	}
-	auto report_type_val = yyjson_obj_get(obj, "report-type");
-	if (!report_type_val) {
-		return "ReportMetricsRequest required property 'report-type' is missing";
-	} else {
-		if (yyjson_is_str(report_type_val)) {
-			report_type = yyjson_get_str(report_type_val);
-		} else {
-			return StringUtil::Format(
-			    "ReportMetricsRequest property 'report_type' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(report_type_val));
-		}
-	}
-	return Validate();
 }
 
 void ReportMetricsRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -110,19 +110,19 @@ static string ConstructTableUpdateJSON(rest_api_objects::CommitTableRequest &tab
 }
 
 static rest_api_objects::TableRequirement CreateAssertRefSnapshotIdRequirement(const IcebergSnapshot &old_snapshot) {
-	rest_api_objects::TableRequirementType requirement_type;
-	requirement_type.value = "assert-ref-snapshot-id";
-	auto res =
-	    rest_api_objects::AssertRefSnapshotIdBuilder().SetType(std::move(requirement_type)).SetRef("main").Build();
+	auto res = rest_api_objects::AssertRefSnapshotIdBuilder()
+	               .SetType(rest_api_objects::TableRequirementType("assert-ref-snapshot-id"))
+	               .SetRef("main")
+	               .Build();
 	res.snapshot_id = old_snapshot.snapshot_id;
 	return rest_api_objects::TableRequirementBuilder().SetAssertRefSnapshotId(std::move(res)).Build();
 }
 
 static rest_api_objects::TableRequirement CreateAssertNoSnapshotRequirement() {
-	rest_api_objects::TableRequirementType requirement_type;
-	requirement_type.value = "assert-ref-snapshot-id";
-	auto res =
-	    rest_api_objects::AssertRefSnapshotIdBuilder().SetType(std::move(requirement_type)).SetRef("main").Build();
+	auto res = rest_api_objects::AssertRefSnapshotIdBuilder()
+	               .SetType(rest_api_objects::TableRequirementType("assert-ref-snapshot-id"))
+	               .SetRef("main")
+	               .Build();
 	return rest_api_objects::TableRequirementBuilder().SetAssertRefSnapshotId(std::move(res)).Build();
 }
 
@@ -158,7 +158,6 @@ static bool NeedsAssertSchemaId(const IcebergTransactionData &transaction_data,
 TableTransactionInfo IcebergTransaction::GetTransactionRequest(IcebergTransactionAlterUpdate &alter_update,
                                                                ClientContext &context) {
 	TableTransactionInfo info;
-	auto &transaction = info.request;
 	for (auto &updated_table : alter_update.updated_tables) {
 		if (alter_update.committed_tables.count(updated_table.first)) {
 			//! Table is already committed
@@ -169,14 +168,12 @@ TableTransactionInfo IcebergTransaction::GetTransactionRequest(IcebergTransactio
 			continue;
 		}
 		IcebergCommitState commit_state(table_info, context);
-		auto &table_change = commit_state.table_change;
+		rest_api_objects::CommitTableRequestBuilder request_builder;
 		auto &schema = table_info.schema.Cast<IcebergSchemaEntry>();
-		rest_api_objects::Namespace table_namespace;
-		table_namespace.value = schema.namespace_items;
-		table_change.identifier = rest_api_objects::TableIdentifierBuilder()
-		                              .SetNamespace(std::move(table_namespace))
-		                              .SetName(table_info.name)
-		                              .Build();
+		request_builder.SetIdentifier(rest_api_objects::TableIdentifierBuilder()
+		                                  .SetNamespace(rest_api_objects::Namespace(schema.namespace_items))
+		                                  .SetName(table_info.name)
+		                                  .Build());
 
 		auto &metadata = commit_state.table_info.table_metadata;
 		auto current_snapshot = metadata.GetLatestSnapshot();
@@ -209,7 +206,7 @@ TableTransactionInfo IcebergTransaction::GetTransactionRequest(IcebergTransactio
 			auto &snapshot = *commit_state.latest_snapshot;
 			auto snapshot_id = snapshot.snapshot_id;
 			auto set_snapshot_ref_update = CreateSetSnapshotRefUpdate(snapshot_id);
-			commit_state.table_change.updates.push_back(std::move(set_snapshot_ref_update));
+			commit_state.updates.push_back(std::move(set_snapshot_ref_update));
 		}
 
 		if (!info.has_assert_create && commit_state.table_info.HasTransactionUpdates()) {
@@ -221,11 +218,11 @@ TableTransactionInfo IcebergTransaction::GetTransactionRequest(IcebergTransactio
 		if (current_snapshot && !transaction_data.alters.empty()) {
 			//! If any changes were made to the state of the table, we should assert that our parent snapshot has
 			//! not changed. We don't want to change the table location if someone has added a snapshot
-			commit_state.table_change.requirements.push_back(CreateAssertRefSnapshotIdRequirement(*current_snapshot));
+			commit_state.requirements.push_back(CreateAssertRefSnapshotIdRequirement(*current_snapshot));
 		} else if (!current_snapshot && !transaction_data.alters.empty() && !info.has_assert_create) {
 			//! If the table had no snapshots, is not created in this transaction, and has some kind of update
 			//! we should ensure no snapshots have been added in the meantime
-			commit_state.table_change.requirements.push_back(CreateAssertNoSnapshotRequirement());
+			commit_state.requirements.push_back(CreateAssertNoSnapshotRequirement());
 		}
 
 		if (transaction_data.set_schema_id) {
@@ -233,10 +230,12 @@ TableTransactionInfo IcebergTransaction::GetTransactionRequest(IcebergTransactio
 			update.CreateUpdate(db, context, commit_state);
 		}
 
-		info.table_requests.emplace(updated_table.first, transaction.table_changes.size());
-		transaction.table_changes.push_back(std::move(table_change));
+		info.table_requests.emplace(updated_table.first, info.table_changes.size());
+		request_builder.SetRequirements(std::move(commit_state.requirements));
+		request_builder.SetUpdates(std::move(commit_state.updates));
+		info.table_changes.push_back(request_builder.Build());
 	}
-	return info;
+	return std::move(info);
 }
 
 void IcebergTransaction::Commit() {
@@ -297,7 +296,9 @@ void IcebergTransaction::DoTableUpdates(IcebergTransactionAlterUpdate &alter_upd
 		return;
 	}
 	auto transaction_info = GetTransactionRequest(alter_update, context);
-	auto &transaction = transaction_info.request;
+	auto transaction = rest_api_objects::CommitTransactionRequestBuilder()
+	                       .SetTableChanges(std::move(transaction_info.table_changes))
+	                       .Build();
 
 	// if there are no new tables, we can post to the transactions/commit endpoint
 	// otherwise we fall back to posting a commit for each table.
@@ -350,16 +351,12 @@ void IcebergTransaction::DoTableRename(IcebergTransactionRenameUpdate &rename_up
 	auto &table_name = original_table.name;
 	auto new_name = rename_update.new_name;
 
-	rest_api_objects::Namespace source_namespace;
-	source_namespace.value = schema.namespace_items;
 	auto source = rest_api_objects::TableIdentifierBuilder()
-	                  .SetNamespace(std::move(source_namespace))
+	                  .SetNamespace(rest_api_objects::Namespace(schema.namespace_items))
 	                  .SetName(table_name)
 	                  .Build();
-	rest_api_objects::Namespace destination_namespace;
-	destination_namespace.value = schema.namespace_items;
 	auto destination = rest_api_objects::TableIdentifierBuilder()
-	                       .SetNamespace(std::move(destination_namespace))
+	                       .SetNamespace(rest_api_objects::Namespace(schema.namespace_items))
 	                       .SetName(new_name)
 	                       .Build();
 	auto request = rest_api_objects::RenameTableRequestBuilder()
@@ -404,10 +401,9 @@ void IcebergTransaction::DoSchemaCreates(ClientContext &context) {
 	for (auto &schema_name : created_schemas) {
 		auto namespace_identifiers = IRCAPI::ParseSchemaName(schema_name);
 
-		rest_api_objects::Namespace request_namespace;
-		request_namespace.value = namespace_identifiers;
-		auto request =
-		    rest_api_objects::CreateNamespaceRequestBuilder().SetNamespace(std::move(request_namespace)).Build();
+		auto request = rest_api_objects::CreateNamespaceRequestBuilder()
+		                   .SetNamespace(rest_api_objects::Namespace(namespace_identifiers))
+		                   .Build();
 		request.properties = case_insensitive_map_t<string>();
 		auto create_body = RESTObjectToJSONString(request);
 

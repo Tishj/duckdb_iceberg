@@ -14,62 +14,98 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TableIdentifier::TableIdentifier() {
+TableIdentifier::TableIdentifier(Namespace _namespace_p, string name_p)
+    : _namespace(std::move(_namespace_p)), name(std::move(name_p)) {
 }
 
 TableIdentifierBuilder::TableIdentifierBuilder() {
 }
 
 TableIdentifierBuilder &TableIdentifierBuilder::SetNamespace(Namespace value) {
-	result_._namespace = std::move(value);
+	_namespace_ = std::move(value);
 	has__namespace_ = true;
 	return *this;
 }
 
 TableIdentifierBuilder &TableIdentifierBuilder::SetName(string value) {
-	result_.name = std::move(value);
+	name_ = std::move(value);
 	has_name_ = true;
 	return *this;
 }
 
-string TableIdentifierBuilder::TryBuild(TableIdentifier &result) {
+TableIdentifier TableIdentifierBuilder::Build() {
 	if (!has__namespace_) {
-		return "TableIdentifier required property 'namespace' is missing";
+		throw InvalidInputException("TableIdentifier required property 'namespace' is missing");
 	}
 	if (!has_name_) {
-		return "TableIdentifier required property 'name' is missing";
+		throw InvalidInputException("TableIdentifier required property 'name' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-TableIdentifier TableIdentifierBuilder::Build() {
-	TableIdentifier result;
-	auto error = TryBuild(result);
+	auto result = TableIdentifier(std::move(*_namespace_), std::move(*name_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
-	TableIdentifier res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string TableIdentifierBuilder::TryBuild(optional<TableIdentifier> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
+	TableIdentifierBuilder builder;
+	auto _namespace_val = yyjson_obj_get(obj, "namespace");
+	if (!_namespace_val) {
+		throw InvalidInputException("TableIdentifier required property 'namespace' is missing");
+	} else {
+		optional<Namespace> _namespace;
+		_namespace = Namespace::FromJSON(_namespace_val);
+		builder.SetNamespace(std::move(*_namespace));
+	}
+	auto name_val = yyjson_obj_get(obj, "name");
+	if (!name_val) {
+		throw InvalidInputException("TableIdentifier required property 'name' is missing");
+	} else {
+		string name;
+		if (yyjson_is_null(name_val)) {
+			throw InvalidInputException("TableIdentifier property 'name' is not nullable, but is 'null'");
+		} else if (yyjson_is_str(name_val)) {
+			name = yyjson_get_str(name_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("TableIdentifier property 'name' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(name_val)));
+		}
+		builder.SetName(std::move(name));
+	}
+	return builder.Build();
+}
+
+string TableIdentifier::TryFromJSON(yyjson_val *obj, optional<TableIdentifier> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TableIdentifier TableIdentifier::Copy() const {
-	TableIdentifier res;
-	res._namespace = _namespace.Copy();
-	res.name = name;
-	return res;
+	TableIdentifierBuilder builder;
+	optional<Namespace> _namespace_tmp;
+	_namespace_tmp = _namespace.Copy();
+	builder.SetNamespace(std::move(*_namespace_tmp));
+	string name_tmp;
+	name_tmp = name;
+	builder.SetName(std::move(name_tmp));
+	return builder.Build();
 }
 
 string TableIdentifier::Validate() const {
@@ -79,33 +115,6 @@ string TableIdentifier::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string TableIdentifier::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto _namespace_val = yyjson_obj_get(obj, "namespace");
-	if (!_namespace_val) {
-		return "TableIdentifier required property 'namespace' is missing";
-	} else {
-		error = _namespace.TryFromJSON(_namespace_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		return "TableIdentifier required property 'name' is missing";
-	} else {
-		if (yyjson_is_null(name_val)) {
-			return "TableIdentifier property 'name' is not nullable, but is 'null'";
-		} else if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			return StringUtil::Format("TableIdentifier property 'name' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(name_val));
-		}
-	}
-	return Validate();
 }
 
 void TableIdentifier::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -21,17 +21,16 @@ public:
 	AssertCreate(const AssertCreate &) = delete;
 	AssertCreate &operator=(const AssertCreate &) = delete;
 	AssertCreate(AssertCreate &&) = default;
-	AssertCreate &operator=(AssertCreate &&) = default;
+	AssertCreate &operator=(AssertCreate &&) = delete;
 
 private:
 	friend class AssertCreateBuilder;
-	friend class GeneratedObjectAccess;
-	AssertCreate();
+	AssertCreate(TableRequirementType type_p);
 
 public:
 	// Deserialization
 	static AssertCreate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertCreate> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class AssertCreateBuilder {
 public:
 	AssertCreateBuilder();
 	AssertCreateBuilder &SetType(TableRequirementType value);
-	string TryBuild(AssertCreate &result);
+	string TryBuild(optional<AssertCreate> &result);
 	AssertCreate Build();
 
 private:
-	AssertCreate result_;
+	optional<TableRequirementType> type_;
 	bool has_type_ = false;
 };
 

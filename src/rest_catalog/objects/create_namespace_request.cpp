@@ -14,89 +14,60 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CreateNamespaceRequest::CreateNamespaceRequest()
-    : properties(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
+CreateNamespaceRequest::CreateNamespaceRequest(Namespace _namespace_p,
+                                               optional<case_insensitive_map_t<string>> properties_p)
+    : _namespace(std::move(_namespace_p)), properties(std::move(properties_p)) {
 }
 
 CreateNamespaceRequestBuilder::CreateNamespaceRequestBuilder() {
 }
 
 CreateNamespaceRequestBuilder &CreateNamespaceRequestBuilder::SetNamespace(Namespace value) {
-	result_._namespace = std::move(value);
+	_namespace_ = std::move(value);
 	has__namespace_ = true;
 	return *this;
 }
 
 CreateNamespaceRequestBuilder &CreateNamespaceRequestBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	result_.properties = std::move(value);
+	properties_ = std::move(value);
 	return *this;
 }
 
-string CreateNamespaceRequestBuilder::TryBuild(CreateNamespaceRequest &result) {
-	if (!has__namespace_) {
-		return "CreateNamespaceRequest required property 'namespace' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 CreateNamespaceRequest CreateNamespaceRequestBuilder::Build() {
-	CreateNamespaceRequest result;
-	auto error = TryBuild(result);
+	if (!has__namespace_) {
+		throw InvalidInputException("CreateNamespaceRequest required property 'namespace' is missing");
+	}
+	auto result = CreateNamespaceRequest(std::move(*_namespace_), std::move(properties_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
+string CreateNamespaceRequestBuilder::TryBuild(optional<CreateNamespaceRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
 CreateNamespaceRequest CreateNamespaceRequest::FromJSON(yyjson_val *obj) {
-	CreateNamespaceRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-CreateNamespaceRequest CreateNamespaceRequest::Copy() const {
-	CreateNamespaceRequest res;
-	res._namespace = _namespace.Copy();
-	if (properties.has_value()) {
-		res.properties = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
-		for (auto &entry : (*properties)) {
-			(*res.properties).emplace(entry.first, entry.second);
-		}
-	}
-	return res;
-}
-
-string CreateNamespaceRequest::Validate() const {
-	string error;
-	error = _namespace.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	return "";
-}
-
-string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
+	CreateNamespaceRequestBuilder builder;
 	auto _namespace_val = yyjson_obj_get(obj, "namespace");
 	if (!_namespace_val) {
-		return "CreateNamespaceRequest required property 'namespace' is missing";
+		throw InvalidInputException("CreateNamespaceRequest required property 'namespace' is missing");
 	} else {
-		error = _namespace.TryFromJSON(_namespace_val);
-		if (!error.empty()) {
-			return error;
-		}
+		optional<Namespace> _namespace;
+		_namespace = Namespace::FromJSON(_namespace_val);
+		builder.SetNamespace(std::move(*_namespace));
 	}
 	auto properties_val = yyjson_obj_get(obj, "properties");
 	if (properties_val) {
-		case_insensitive_map_t<string> properties_tmp;
+		case_insensitive_map_t<string> properties;
 		if (yyjson_is_obj(properties_val)) {
 			size_t idx, max;
 			yyjson_val *key, *val;
@@ -106,18 +77,55 @@ string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_str(val)) {
 					tmp = yyjson_get_str(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "CreateNamespaceRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
-				properties_tmp.emplace(key_str, std::move(tmp));
+				properties.emplace(key_str, std::move(tmp));
 			}
 		} else {
-			return "CreateNamespaceRequest property 'properties_tmp' is not of type 'object'";
+			throw InvalidInputException("CreateNamespaceRequest property 'properties' is not of type 'object'");
 		}
-		properties = std::move(properties_tmp);
+		builder.SetProperties(std::move(properties));
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj, optional<CreateNamespaceRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+CreateNamespaceRequest CreateNamespaceRequest::Copy() const {
+	CreateNamespaceRequestBuilder builder;
+	optional<Namespace> _namespace_tmp;
+	_namespace_tmp = _namespace.Copy();
+	builder.SetNamespace(std::move(*_namespace_tmp));
+	case_insensitive_map_t<string> properties_tmp;
+	if (properties.has_value()) {
+		properties_tmp.emplace();
+		for (auto &entry : (*properties)) {
+			(*properties_tmp).emplace(entry.first, entry.second);
+		}
+	}
+	if (properties_tmp.has_value()) {
+		builder.SetProperties(std::move(properties_tmp));
+	}
+	return builder.Build();
+}
+
+string CreateNamespaceRequest::Validate() const {
+	string error;
+	error = _namespace.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 void CreateNamespaceRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

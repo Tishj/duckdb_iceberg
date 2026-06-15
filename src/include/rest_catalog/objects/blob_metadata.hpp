@@ -20,17 +20,17 @@ public:
 	BlobMetadata(const BlobMetadata &) = delete;
 	BlobMetadata &operator=(const BlobMetadata &) = delete;
 	BlobMetadata(BlobMetadata &&) = default;
-	BlobMetadata &operator=(BlobMetadata &&) = default;
+	BlobMetadata &operator=(BlobMetadata &&) = delete;
 
 private:
 	friend class BlobMetadataBuilder;
-	friend class GeneratedObjectAccess;
-	BlobMetadata();
+	BlobMetadata(string type_p, int64_t snapshot_id_p, int64_t sequence_number_p, vector<int32_t> fields_p,
+	             optional<case_insensitive_map_t<string>> properties_p);
 
 public:
 	// Deserialization
 	static BlobMetadata FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<BlobMetadata> &result);
 	string Validate() const;
 
 	// Copy
@@ -56,11 +56,15 @@ public:
 	BlobMetadataBuilder &SetSequenceNumber(int64_t value);
 	BlobMetadataBuilder &SetFields(vector<int32_t> value);
 	BlobMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(BlobMetadata &result);
+	string TryBuild(optional<BlobMetadata> &result);
 	BlobMetadata Build();
 
 private:
-	BlobMetadata result_;
+	optional<string> type_;
+	optional<int64_t> snapshot_id_;
+	optional<int64_t> sequence_number_;
+	optional<vector<int32_t>> fields_;
+	optional<case_insensitive_map_t<string>> properties_;
 	bool has_type_ = false;
 	bool has_snapshot_id_ = false;
 	bool has_sequence_number_ = false;

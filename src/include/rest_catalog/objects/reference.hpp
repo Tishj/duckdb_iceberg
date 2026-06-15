@@ -18,13 +18,13 @@ public:
 	Reference(const Reference &) = delete;
 	Reference &operator=(const Reference &) = delete;
 	Reference(Reference &&) = default;
-	Reference &operator=(Reference &&) = default;
-	Reference();
+	Reference &operator=(Reference &&) = delete;
+	Reference(string value_p);
 
 public:
 	// Deserialization
 	static Reference FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Reference> &result);
 	string Validate() const;
 
 	// Copy

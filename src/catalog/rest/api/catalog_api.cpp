@@ -198,14 +198,14 @@ APIResult<unique_ptr<const rest_api_objects::LoadTableResult>> IRCAPI::GetTable(
 			throw InvalidConfigurationException(result->body);
 		}
 		ret.status_ = result->status;
-		ret.error_ = rest_api_objects::IcebergErrorResponse::FromJSON(error_obj);
-		return ret;
+		ret.error_.emplace(rest_api_objects::IcebergErrorResponse::FromJSON(error_obj));
+		return std::move(ret);
 	}
 	auto doc = ICUtils::APIResultToDoc(result->body);
 	auto *metadata_root = yyjson_doc_get_root(doc.get());
 	ret.result_ =
 	    make_uniq<const rest_api_objects::LoadTableResult>(rest_api_objects::LoadTableResult::FromJSON(metadata_root));
-	return ret;
+	return std::move(ret);
 }
 
 APIResult<unique_ptr<const rest_api_objects::GetNamespaceResponse>>
@@ -234,14 +234,14 @@ IRCAPI::GetNamespace(ClientContext &context, IcebergCatalog &catalog, const Iceb
 			throw InvalidConfigurationException(result->body);
 		}
 		ret.status_ = result->status;
-		ret.error_ = rest_api_objects::IcebergErrorResponse::FromJSON(error_obj);
-		return ret;
+		ret.error_.emplace(rest_api_objects::IcebergErrorResponse::FromJSON(error_obj));
+		return std::move(ret);
 	}
 	auto doc = ICUtils::APIResultToDoc(result->body);
 	auto *metadata_root = yyjson_doc_get_root(doc.get());
 	ret.result_ = make_uniq<const rest_api_objects::GetNamespaceResponse>(
 	    rest_api_objects::GetNamespaceResponse::FromJSON(metadata_root));
-	return ret;
+	return std::move(ret);
 }
 
 vector<rest_api_objects::TableIdentifier> IRCAPI::GetTables(ClientContext &context, IcebergCatalog &catalog,
@@ -290,8 +290,9 @@ vector<rest_api_objects::TableIdentifier> IRCAPI::GetTables(ClientContext &conte
 		}
 		auto &identifiers = *list_tables_response.identifiers;
 
-		all_identifiers.insert(all_identifiers.end(), std::make_move_iterator(identifiers.begin()),
-		                       std::make_move_iterator(identifiers.end()));
+		for (auto &identifier : identifiers) {
+			all_identifiers.push_back(std::move(identifier));
+		}
 
 		if (list_tables_response.next_page_token) {
 			page_token = list_tables_response.next_page_token->value;
@@ -553,7 +554,7 @@ rest_api_objects::LoadTableResult IRCAPI::CommitNewTable(ClientContext &context,
 		auto doc = ICUtils::APIResultToDoc(response->body);
 		auto *root = yyjson_doc_get_root(doc.get());
 		auto load_table_result = rest_api_objects::LoadTableResult::FromJSON(root);
-		return load_table_result;
+		return std::move(load_table_result);
 	} catch (const std::exception &e) {
 		throw InvalidConfigurationException("Request to '%s' returned a non-200 status code body: %s",
 		                                    url_builder.GetURLEncoded(), e.what());

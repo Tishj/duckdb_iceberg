@@ -14,118 +14,208 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DataFile::DataFile()
-    : content_file(GeneratedObjectAccess::Create<ContentFile>()),
-      column_sizes(GeneratedObjectAccess::Create<optional<CountMap>>()),
-      value_counts(GeneratedObjectAccess::Create<optional<CountMap>>()),
-      null_value_counts(GeneratedObjectAccess::Create<optional<CountMap>>()),
-      nan_value_counts(GeneratedObjectAccess::Create<optional<CountMap>>()),
-      lower_bounds(GeneratedObjectAccess::Create<optional<ValueMap>>()),
-      upper_bounds(GeneratedObjectAccess::Create<optional<ValueMap>>()) {
+DataFile::DataFile(ContentFile content_file_p, optional<int64_t> first_row_id_p, optional<CountMap> column_sizes_p,
+                   optional<CountMap> value_counts_p, optional<CountMap> null_value_counts_p,
+                   optional<CountMap> nan_value_counts_p, optional<ValueMap> lower_bounds_p,
+                   optional<ValueMap> upper_bounds_p)
+    : content_file(std::move(content_file_p)), first_row_id(std::move(first_row_id_p)),
+      column_sizes(std::move(column_sizes_p)), value_counts(std::move(value_counts_p)),
+      null_value_counts(std::move(null_value_counts_p)), nan_value_counts(std::move(nan_value_counts_p)),
+      lower_bounds(std::move(lower_bounds_p)), upper_bounds(std::move(upper_bounds_p)) {
 }
 
 DataFileBuilder::DataFileBuilder() {
 }
 
 DataFileBuilder &DataFileBuilder::SetContentFile(ContentFile value) {
-	result_.content_file = std::move(value);
+	content_file_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetFirstRowId(int64_t value) {
-	result_.first_row_id = std::move(value);
+	first_row_id_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetColumnSizes(CountMap value) {
-	result_.column_sizes = std::move(value);
+	column_sizes_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetValueCounts(CountMap value) {
-	result_.value_counts = std::move(value);
+	value_counts_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetNullValueCounts(CountMap value) {
-	result_.null_value_counts = std::move(value);
+	null_value_counts_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetNanValueCounts(CountMap value) {
-	result_.nan_value_counts = std::move(value);
+	nan_value_counts_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetLowerBounds(ValueMap value) {
-	result_.lower_bounds = std::move(value);
+	lower_bounds_ = std::move(value);
 	return *this;
 }
 
 DataFileBuilder &DataFileBuilder::SetUpperBounds(ValueMap value) {
-	result_.upper_bounds = std::move(value);
+	upper_bounds_ = std::move(value);
 	return *this;
 }
 
-string DataFileBuilder::TryBuild(DataFile &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 DataFile DataFileBuilder::Build() {
-	DataFile result;
-	auto error = TryBuild(result);
+	auto result = DataFile(std::move(*content_file_), std::move(first_row_id_), std::move(column_sizes_),
+	                       std::move(value_counts_), std::move(null_value_counts_), std::move(nan_value_counts_),
+	                       std::move(lower_bounds_), std::move(upper_bounds_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-DataFile DataFile::FromJSON(yyjson_val *obj) {
-	DataFile res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string DataFileBuilder::TryBuild(optional<DataFile> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+DataFile DataFile::FromJSON(yyjson_val *obj) {
+	DataFileBuilder builder;
+	builder.SetContentFile(ContentFile::FromJSON(obj));
+	auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
+	if (first_row_id_val) {
+		int64_t first_row_id;
+		if (yyjson_is_sint(first_row_id_val)) {
+			first_row_id = yyjson_get_sint(first_row_id_val);
+		} else if (yyjson_is_uint(first_row_id_val)) {
+			first_row_id = yyjson_get_uint(first_row_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("DataFile property 'first_row_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(first_row_id_val)));
+		}
+		builder.SetFirstRowId(std::move(first_row_id));
+	}
+	auto column_sizes_val = yyjson_obj_get(obj, "column-sizes");
+	if (column_sizes_val) {
+		optional<CountMap> column_sizes;
+		column_sizes = CountMap::FromJSON(column_sizes_val);
+		builder.SetColumnSizes(std::move(*column_sizes));
+	}
+	auto value_counts_val = yyjson_obj_get(obj, "value-counts");
+	if (value_counts_val) {
+		optional<CountMap> value_counts;
+		value_counts = CountMap::FromJSON(value_counts_val);
+		builder.SetValueCounts(std::move(*value_counts));
+	}
+	auto null_value_counts_val = yyjson_obj_get(obj, "null-value-counts");
+	if (null_value_counts_val) {
+		optional<CountMap> null_value_counts;
+		null_value_counts = CountMap::FromJSON(null_value_counts_val);
+		builder.SetNullValueCounts(std::move(*null_value_counts));
+	}
+	auto nan_value_counts_val = yyjson_obj_get(obj, "nan-value-counts");
+	if (nan_value_counts_val) {
+		optional<CountMap> nan_value_counts;
+		nan_value_counts = CountMap::FromJSON(nan_value_counts_val);
+		builder.SetNanValueCounts(std::move(*nan_value_counts));
+	}
+	auto lower_bounds_val = yyjson_obj_get(obj, "lower-bounds");
+	if (lower_bounds_val) {
+		optional<ValueMap> lower_bounds;
+		lower_bounds = ValueMap::FromJSON(lower_bounds_val);
+		builder.SetLowerBounds(std::move(*lower_bounds));
+	}
+	auto upper_bounds_val = yyjson_obj_get(obj, "upper-bounds");
+	if (upper_bounds_val) {
+		optional<ValueMap> upper_bounds;
+		upper_bounds = ValueMap::FromJSON(upper_bounds_val);
+		builder.SetUpperBounds(std::move(*upper_bounds));
+	}
+	return builder.Build();
+}
+
+string DataFile::TryFromJSON(yyjson_val *obj, optional<DataFile> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 DataFile DataFile::Copy() const {
-	DataFile res;
-	res.content_file = content_file.Copy();
+	DataFileBuilder builder;
+	optional<ContentFile> content_file_tmp;
+	content_file_tmp = content_file.Copy();
+	builder.SetContentFile(std::move(*content_file_tmp));
+	int64_t first_row_id_tmp;
 	if (first_row_id.has_value()) {
-		res.first_row_id.emplace();
-		(*res.first_row_id) = (*first_row_id);
+		first_row_id_tmp.emplace();
+		(*first_row_id_tmp) = (*first_row_id);
 	}
+	if (first_row_id_tmp.has_value()) {
+		builder.SetFirstRowId(std::move(first_row_id_tmp));
+	}
+	optional<CountMap> column_sizes_tmp;
 	if (column_sizes.has_value()) {
-		res.column_sizes = GeneratedObjectAccess::Create<CountMap>();
-		(*res.column_sizes) = (*column_sizes).Copy();
+		column_sizes_tmp.emplace();
+		(*column_sizes_tmp) = (*column_sizes).Copy();
 	}
+	if (column_sizes_tmp.has_value()) {
+		builder.SetColumnSizes(std::move(*column_sizes_tmp));
+	}
+	optional<CountMap> value_counts_tmp;
 	if (value_counts.has_value()) {
-		res.value_counts = GeneratedObjectAccess::Create<CountMap>();
-		(*res.value_counts) = (*value_counts).Copy();
+		value_counts_tmp.emplace();
+		(*value_counts_tmp) = (*value_counts).Copy();
 	}
+	if (value_counts_tmp.has_value()) {
+		builder.SetValueCounts(std::move(*value_counts_tmp));
+	}
+	optional<CountMap> null_value_counts_tmp;
 	if (null_value_counts.has_value()) {
-		res.null_value_counts = GeneratedObjectAccess::Create<CountMap>();
-		(*res.null_value_counts) = (*null_value_counts).Copy();
+		null_value_counts_tmp.emplace();
+		(*null_value_counts_tmp) = (*null_value_counts).Copy();
 	}
+	if (null_value_counts_tmp.has_value()) {
+		builder.SetNullValueCounts(std::move(*null_value_counts_tmp));
+	}
+	optional<CountMap> nan_value_counts_tmp;
 	if (nan_value_counts.has_value()) {
-		res.nan_value_counts = GeneratedObjectAccess::Create<CountMap>();
-		(*res.nan_value_counts) = (*nan_value_counts).Copy();
+		nan_value_counts_tmp.emplace();
+		(*nan_value_counts_tmp) = (*nan_value_counts).Copy();
 	}
+	if (nan_value_counts_tmp.has_value()) {
+		builder.SetNanValueCounts(std::move(*nan_value_counts_tmp));
+	}
+	optional<ValueMap> lower_bounds_tmp;
 	if (lower_bounds.has_value()) {
-		res.lower_bounds = GeneratedObjectAccess::Create<ValueMap>();
-		(*res.lower_bounds) = (*lower_bounds).Copy();
+		lower_bounds_tmp.emplace();
+		(*lower_bounds_tmp) = (*lower_bounds).Copy();
 	}
+	if (lower_bounds_tmp.has_value()) {
+		builder.SetLowerBounds(std::move(*lower_bounds_tmp));
+	}
+	optional<ValueMap> upper_bounds_tmp;
 	if (upper_bounds.has_value()) {
-		res.upper_bounds = GeneratedObjectAccess::Create<ValueMap>();
-		(*res.upper_bounds) = (*upper_bounds).Copy();
+		upper_bounds_tmp.emplace();
+		(*upper_bounds_tmp) = (*upper_bounds).Copy();
 	}
-	return res;
+	if (upper_bounds_tmp.has_value()) {
+		builder.SetUpperBounds(std::move(*upper_bounds_tmp));
+	}
+	return builder.Build();
 }
 
 string DataFile::Validate() const {
@@ -171,83 +261,6 @@ string DataFile::Validate() const {
 		}
 	}
 	return "";
-}
-
-string DataFile::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = content_file.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
-	if (first_row_id_val) {
-		int64_t first_row_id_tmp;
-		if (yyjson_is_sint(first_row_id_val)) {
-			first_row_id_tmp = yyjson_get_sint(first_row_id_val);
-		} else if (yyjson_is_uint(first_row_id_val)) {
-			first_row_id_tmp = yyjson_get_uint(first_row_id_val);
-		} else {
-			return StringUtil::Format(
-			    "DataFile property 'first_row_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(first_row_id_val));
-		}
-		first_row_id = std::move(first_row_id_tmp);
-	}
-	auto column_sizes_val = yyjson_obj_get(obj, "column-sizes");
-	if (column_sizes_val) {
-		auto column_sizes_tmp = GeneratedObjectAccess::Create<CountMap>();
-		error = column_sizes_tmp.TryFromJSON(column_sizes_val);
-		if (!error.empty()) {
-			return error;
-		}
-		column_sizes = std::move(column_sizes_tmp);
-	}
-	auto value_counts_val = yyjson_obj_get(obj, "value-counts");
-	if (value_counts_val) {
-		auto value_counts_tmp = GeneratedObjectAccess::Create<CountMap>();
-		error = value_counts_tmp.TryFromJSON(value_counts_val);
-		if (!error.empty()) {
-			return error;
-		}
-		value_counts = std::move(value_counts_tmp);
-	}
-	auto null_value_counts_val = yyjson_obj_get(obj, "null-value-counts");
-	if (null_value_counts_val) {
-		auto null_value_counts_tmp = GeneratedObjectAccess::Create<CountMap>();
-		error = null_value_counts_tmp.TryFromJSON(null_value_counts_val);
-		if (!error.empty()) {
-			return error;
-		}
-		null_value_counts = std::move(null_value_counts_tmp);
-	}
-	auto nan_value_counts_val = yyjson_obj_get(obj, "nan-value-counts");
-	if (nan_value_counts_val) {
-		auto nan_value_counts_tmp = GeneratedObjectAccess::Create<CountMap>();
-		error = nan_value_counts_tmp.TryFromJSON(nan_value_counts_val);
-		if (!error.empty()) {
-			return error;
-		}
-		nan_value_counts = std::move(nan_value_counts_tmp);
-	}
-	auto lower_bounds_val = yyjson_obj_get(obj, "lower-bounds");
-	if (lower_bounds_val) {
-		auto lower_bounds_tmp = GeneratedObjectAccess::Create<ValueMap>();
-		error = lower_bounds_tmp.TryFromJSON(lower_bounds_val);
-		if (!error.empty()) {
-			return error;
-		}
-		lower_bounds = std::move(lower_bounds_tmp);
-	}
-	auto upper_bounds_val = yyjson_obj_get(obj, "upper-bounds");
-	if (upper_bounds_val) {
-		auto upper_bounds_tmp = GeneratedObjectAccess::Create<ValueMap>();
-		error = upper_bounds_tmp.TryFromJSON(upper_bounds_val);
-		if (!error.empty()) {
-			return error;
-		}
-		upper_bounds = std::move(upper_bounds_tmp);
-	}
-	return Validate();
 }
 
 void DataFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

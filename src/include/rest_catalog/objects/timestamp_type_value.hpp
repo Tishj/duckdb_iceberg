@@ -18,13 +18,13 @@ public:
 	TimestampTypeValue(const TimestampTypeValue &) = delete;
 	TimestampTypeValue &operator=(const TimestampTypeValue &) = delete;
 	TimestampTypeValue(TimestampTypeValue &&) = default;
-	TimestampTypeValue &operator=(TimestampTypeValue &&) = default;
-	TimestampTypeValue();
+	TimestampTypeValue &operator=(TimestampTypeValue &&) = delete;
+	TimestampTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static TimestampTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TimestampTypeValue> &result);
 	string Validate() const;
 
 	// Copy

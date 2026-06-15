@@ -18,13 +18,13 @@ public:
 	BinaryTypeValue(const BinaryTypeValue &) = delete;
 	BinaryTypeValue &operator=(const BinaryTypeValue &) = delete;
 	BinaryTypeValue(BinaryTypeValue &&) = default;
-	BinaryTypeValue &operator=(BinaryTypeValue &&) = default;
-	BinaryTypeValue();
+	BinaryTypeValue &operator=(BinaryTypeValue &&) = delete;
+	BinaryTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static BinaryTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &result);
 	string Validate() const;
 
 	// Copy

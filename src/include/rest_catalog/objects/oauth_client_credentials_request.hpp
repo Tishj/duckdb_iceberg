@@ -20,17 +20,17 @@ public:
 	OAuthClientCredentialsRequest(const OAuthClientCredentialsRequest &) = delete;
 	OAuthClientCredentialsRequest &operator=(const OAuthClientCredentialsRequest &) = delete;
 	OAuthClientCredentialsRequest(OAuthClientCredentialsRequest &&) = default;
-	OAuthClientCredentialsRequest &operator=(OAuthClientCredentialsRequest &&) = default;
+	OAuthClientCredentialsRequest &operator=(OAuthClientCredentialsRequest &&) = delete;
 
 private:
 	friend class OAuthClientCredentialsRequestBuilder;
-	friend class GeneratedObjectAccess;
-	OAuthClientCredentialsRequest();
+	OAuthClientCredentialsRequest(string grant_type_p, string client_id_p, string client_secret_p,
+	                              optional<string> scope_p);
 
 public:
 	// Deserialization
 	static OAuthClientCredentialsRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<OAuthClientCredentialsRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +54,14 @@ public:
 	OAuthClientCredentialsRequestBuilder &SetClientId(string value);
 	OAuthClientCredentialsRequestBuilder &SetClientSecret(string value);
 	OAuthClientCredentialsRequestBuilder &SetScope(string value);
-	string TryBuild(OAuthClientCredentialsRequest &result);
+	string TryBuild(optional<OAuthClientCredentialsRequest> &result);
 	OAuthClientCredentialsRequest Build();
 
 private:
-	OAuthClientCredentialsRequest result_;
+	optional<string> grant_type_;
+	optional<string> client_id_;
+	optional<string> client_secret_;
+	optional<string> scope_;
 	bool has_grant_type_ = false;
 	bool has_client_id_ = false;
 	bool has_client_secret_ = false;

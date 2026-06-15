@@ -21,14 +21,7 @@ public:
 	CompletedPlanningWithIDResult(const CompletedPlanningWithIDResult &) = delete;
 	CompletedPlanningWithIDResult &operator=(const CompletedPlanningWithIDResult &) = delete;
 	CompletedPlanningWithIDResult(CompletedPlanningWithIDResult &&) = default;
-	CompletedPlanningWithIDResult &operator=(CompletedPlanningWithIDResult &&) = default;
-
-private:
-	friend class CompletedPlanningWithIDResultBuilder;
-	friend class GeneratedObjectAccess;
-	CompletedPlanningWithIDResult();
-
-public:
+	CompletedPlanningWithIDResult &operator=(CompletedPlanningWithIDResult &&) = delete;
 	class Object6Builder;
 
 	class Object6 {
@@ -36,17 +29,16 @@ public:
 		Object6(const Object6 &) = delete;
 		Object6 &operator=(const Object6 &) = delete;
 		Object6(Object6 &&) = default;
-		Object6 &operator=(Object6 &&) = default;
+		Object6 &operator=(Object6 &&) = delete;
 
 	private:
 		friend class Object6Builder;
-		friend class GeneratedObjectAccess;
-		Object6();
+		Object6(string plan_id_p);
 
 	public:
 		// Deserialization
 		static Object6 FromJSON(yyjson_val *obj);
-		string TryFromJSON(yyjson_val *obj);
+		static string TryFromJSON(yyjson_val *obj, optional<Object6> &result);
 		string Validate() const;
 
 		// Copy
@@ -64,18 +56,22 @@ public:
 	public:
 		Object6Builder();
 		Object6Builder &SetPlanId(string value);
-		string TryBuild(Object6 &result);
+		string TryBuild(optional<Object6> &result);
 		Object6 Build();
 
 	private:
-		Object6 result_;
+		optional<string> plan_id_;
 		bool has_plan_id_ = false;
 	};
+
+private:
+	friend class CompletedPlanningWithIDResultBuilder;
+	CompletedPlanningWithIDResult(CompletedPlanningResult completed_planning_result_p, Object6 object_6_p);
 
 public:
 	// Deserialization
 	static CompletedPlanningWithIDResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CompletedPlanningWithIDResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -95,11 +91,12 @@ public:
 	CompletedPlanningWithIDResultBuilder();
 	CompletedPlanningWithIDResultBuilder &SetCompletedPlanningResult(CompletedPlanningResult value);
 	CompletedPlanningWithIDResultBuilder &SetObject6(CompletedPlanningWithIDResult::Object6 value);
-	string TryBuild(CompletedPlanningWithIDResult &result);
+	string TryBuild(optional<CompletedPlanningWithIDResult> &result);
 	CompletedPlanningWithIDResult Build();
 
 private:
-	CompletedPlanningWithIDResult result_;
+	optional<CompletedPlanningResult> completed_planning_result_;
+	optional<CompletedPlanningWithIDResult::Object6> object_6_;
 };
 
 } // namespace rest_api_objects

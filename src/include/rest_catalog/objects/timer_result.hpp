@@ -20,17 +20,16 @@ public:
 	TimerResult(const TimerResult &) = delete;
 	TimerResult &operator=(const TimerResult &) = delete;
 	TimerResult(TimerResult &&) = default;
-	TimerResult &operator=(TimerResult &&) = default;
+	TimerResult &operator=(TimerResult &&) = delete;
 
 private:
 	friend class TimerResultBuilder;
-	friend class GeneratedObjectAccess;
-	TimerResult();
+	TimerResult(string time_unit_p, int64_t count_p, int64_t total_duration_p);
 
 public:
 	// Deserialization
 	static TimerResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TimerResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,13 @@ public:
 	TimerResultBuilder &SetTimeUnit(string value);
 	TimerResultBuilder &SetCount(int64_t value);
 	TimerResultBuilder &SetTotalDuration(int64_t value);
-	string TryBuild(TimerResult &result);
+	string TryBuild(optional<TimerResult> &result);
 	TimerResult Build();
 
 private:
-	TimerResult result_;
+	optional<string> time_unit_;
+	optional<int64_t> count_;
+	optional<int64_t> total_duration_;
 	bool has_time_unit_ = false;
 	bool has_count_ = false;
 	bool has_total_duration_ = false;

@@ -18,13 +18,13 @@ public:
 	PageToken(const PageToken &) = delete;
 	PageToken &operator=(const PageToken &) = delete;
 	PageToken(PageToken &&) = default;
-	PageToken &operator=(PageToken &&) = default;
-	PageToken();
+	PageToken &operator=(PageToken &&) = delete;
+	PageToken(string value_p);
 
 public:
 	// Deserialization
 	static PageToken FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PageToken> &result);
 	string Validate() const;
 
 	// Copy

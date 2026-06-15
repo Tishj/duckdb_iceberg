@@ -21,17 +21,16 @@ public:
 	SetDefaultSortOrderUpdate(const SetDefaultSortOrderUpdate &) = delete;
 	SetDefaultSortOrderUpdate &operator=(const SetDefaultSortOrderUpdate &) = delete;
 	SetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate &&) = default;
-	SetDefaultSortOrderUpdate &operator=(SetDefaultSortOrderUpdate &&) = default;
+	SetDefaultSortOrderUpdate &operator=(SetDefaultSortOrderUpdate &&) = delete;
 
 private:
 	friend class SetDefaultSortOrderUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetDefaultSortOrderUpdate();
+	SetDefaultSortOrderUpdate(BaseUpdate base_update_p, int32_t sort_order_id_p);
 
 public:
 	// Deserialization
 	static SetDefaultSortOrderUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetDefaultSortOrderUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	SetDefaultSortOrderUpdateBuilder();
 	SetDefaultSortOrderUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetDefaultSortOrderUpdateBuilder &SetSortOrderId(int32_t value);
-	string TryBuild(SetDefaultSortOrderUpdate &result);
+	string TryBuild(optional<SetDefaultSortOrderUpdate> &result);
 	SetDefaultSortOrderUpdate Build();
 
 private:
-	SetDefaultSortOrderUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<int32_t> sort_order_id_;
 	bool has_sort_order_id_ = false;
 };
 

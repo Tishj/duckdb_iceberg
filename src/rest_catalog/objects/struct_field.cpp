@@ -14,112 +14,215 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-StructField::StructField()
-    : type(GeneratedObjectAccess::Create<unique_ptr<Type>>()),
-      initial_default(GeneratedObjectAccess::Create<optional<PrimitiveTypeValue>>()),
-      write_default(GeneratedObjectAccess::Create<optional<PrimitiveTypeValue>>()) {
+StructField::StructField(int32_t id_p, string name_p, unique_ptr<Type> type_p, bool required_p, optional<string> _doc_p,
+                         optional<PrimitiveTypeValue> initial_default_p, optional<PrimitiveTypeValue> write_default_p)
+    : id(std::move(id_p)), name(std::move(name_p)), type(std::move(type_p)), required(std::move(required_p)),
+      _doc(std::move(_doc_p)), initial_default(std::move(initial_default_p)),
+      write_default(std::move(write_default_p)) {
 }
 
 StructFieldBuilder::StructFieldBuilder() {
 }
 
 StructFieldBuilder &StructFieldBuilder::SetId(int32_t value) {
-	result_.id = std::move(value);
+	id_ = std::move(value);
 	has_id_ = true;
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetName(string value) {
-	result_.name = std::move(value);
+	name_ = std::move(value);
 	has_name_ = true;
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetType(unique_ptr<Type> value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetRequired(bool value) {
-	result_.required = std::move(value);
+	required_ = std::move(value);
 	has_required_ = true;
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetDoc(string value) {
-	result_._doc = std::move(value);
+	_doc_ = std::move(value);
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetInitialDefault(PrimitiveTypeValue value) {
-	result_.initial_default = std::move(value);
+	initial_default_ = std::move(value);
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetWriteDefault(PrimitiveTypeValue value) {
-	result_.write_default = std::move(value);
+	write_default_ = std::move(value);
 	return *this;
 }
 
-string StructFieldBuilder::TryBuild(StructField &result) {
+StructField StructFieldBuilder::Build() {
 	if (!has_id_) {
-		return "StructField required property 'id' is missing";
+		throw InvalidInputException("StructField required property 'id' is missing");
 	}
 	if (!has_name_) {
-		return "StructField required property 'name' is missing";
+		throw InvalidInputException("StructField required property 'name' is missing");
 	}
 	if (!has_type_) {
-		return "StructField required property 'type' is missing";
+		throw InvalidInputException("StructField required property 'type' is missing");
 	}
 	if (!has_required_) {
-		return "StructField required property 'required' is missing";
+		throw InvalidInputException("StructField required property 'required' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-StructField StructFieldBuilder::Build() {
-	StructField result;
-	auto error = TryBuild(result);
+	auto result = StructField(std::move(*id_), std::move(*name_), std::move(type_), std::move(*required_),
+	                          std::move(_doc_), std::move(initial_default_), std::move(write_default_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-StructField StructField::FromJSON(yyjson_val *obj) {
-	StructField res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string StructFieldBuilder::TryBuild(optional<StructField> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+StructField StructField::FromJSON(yyjson_val *obj) {
+	StructFieldBuilder builder;
+	auto id_val = yyjson_obj_get(obj, "id");
+	if (!id_val) {
+		throw InvalidInputException("StructField required property 'id' is missing");
+	} else {
+		int32_t id;
+		if (yyjson_is_int(id_val)) {
+			id = yyjson_get_int(id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("StructField property 'id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(id_val)));
+		}
+		builder.SetId(std::move(id));
+	}
+	auto name_val = yyjson_obj_get(obj, "name");
+	if (!name_val) {
+		throw InvalidInputException("StructField required property 'name' is missing");
+	} else {
+		string name;
+		if (yyjson_is_str(name_val)) {
+			name = yyjson_get_str(name_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("StructField property 'name' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(name_val)));
+		}
+		builder.SetName(std::move(name));
+	}
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("StructField required property 'type' is missing");
+	} else {
+		unique_ptr<Type> type;
+		type = make_uniq<Type>(Type::FromJSON(type_val));
+		builder.SetType(std::move(type));
+	}
+	auto required_val = yyjson_obj_get(obj, "required");
+	if (!required_val) {
+		throw InvalidInputException("StructField required property 'required' is missing");
+	} else {
+		bool required;
+		if (yyjson_is_bool(required_val)) {
+			required = yyjson_get_bool(required_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("StructField property 'required' is not of type 'boolean', found '%s' instead",
+			                       yyjson_get_type_desc(required_val)));
+		}
+		builder.SetRequired(std::move(required));
+	}
+	auto _doc_val = yyjson_obj_get(obj, "doc");
+	if (_doc_val) {
+		string _doc;
+		if (yyjson_is_str(_doc_val)) {
+			_doc = yyjson_get_str(_doc_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("StructField property '_doc' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(_doc_val)));
+		}
+		builder.SetDoc(std::move(_doc));
+	}
+	auto initial_default_val = yyjson_obj_get(obj, "initial-default");
+	if (initial_default_val) {
+		optional<PrimitiveTypeValue> initial_default;
+		initial_default = PrimitiveTypeValue::FromJSON(initial_default_val);
+		builder.SetInitialDefault(std::move(*initial_default));
+	}
+	auto write_default_val = yyjson_obj_get(obj, "write-default");
+	if (write_default_val) {
+		optional<PrimitiveTypeValue> write_default;
+		write_default = PrimitiveTypeValue::FromJSON(write_default_val);
+		builder.SetWriteDefault(std::move(*write_default));
+	}
+	return builder.Build();
+}
+
+string StructField::TryFromJSON(yyjson_val *obj, optional<StructField> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 StructField StructField::Copy() const {
-	StructField res;
-	res.id = id;
-	res.name = name;
-	res.type = type ? make_uniq<Type>(type->Copy()) : nullptr;
-	res.required = required;
+	StructFieldBuilder builder;
+	int32_t id_tmp;
+	id_tmp = id;
+	builder.SetId(std::move(id_tmp));
+	string name_tmp;
+	name_tmp = name;
+	builder.SetName(std::move(name_tmp));
+	unique_ptr<Type> type_tmp;
+	type_tmp = type ? make_uniq<Type>(type->Copy()) : nullptr;
+	builder.SetType(std::move(type_tmp));
+	bool required_tmp;
+	required_tmp = required;
+	builder.SetRequired(std::move(required_tmp));
+	string _doc_tmp;
 	if (_doc.has_value()) {
-		res._doc.emplace();
-		(*res._doc) = (*_doc);
+		_doc_tmp.emplace();
+		(*_doc_tmp) = (*_doc);
 	}
+	if (_doc_tmp.has_value()) {
+		builder.SetDoc(std::move(_doc_tmp));
+	}
+	optional<PrimitiveTypeValue> initial_default_tmp;
 	if (initial_default.has_value()) {
-		res.initial_default = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
-		(*res.initial_default) = (*initial_default).Copy();
+		initial_default_tmp.emplace();
+		(*initial_default_tmp) = (*initial_default).Copy();
 	}
+	if (initial_default_tmp.has_value()) {
+		builder.SetInitialDefault(std::move(*initial_default_tmp));
+	}
+	optional<PrimitiveTypeValue> write_default_tmp;
 	if (write_default.has_value()) {
-		res.write_default = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
-		(*res.write_default) = (*write_default).Copy();
+		write_default_tmp.emplace();
+		(*write_default_tmp) = (*write_default).Copy();
 	}
-	return res;
+	if (write_default_tmp.has_value()) {
+		builder.SetWriteDefault(std::move(*write_default_tmp));
+	}
+	return builder.Build();
 }
 
 string StructField::Validate() const {
@@ -141,83 +244,6 @@ string StructField::Validate() const {
 		}
 	}
 	return "";
-}
-
-string StructField::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto id_val = yyjson_obj_get(obj, "id");
-	if (!id_val) {
-		return "StructField required property 'id' is missing";
-	} else {
-		if (yyjson_is_int(id_val)) {
-			id = yyjson_get_int(id_val);
-		} else {
-			return StringUtil::Format("StructField property 'id' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(id_val));
-		}
-	}
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		return "StructField required property 'name' is missing";
-	} else {
-		if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			return StringUtil::Format("StructField property 'name' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(name_val));
-		}
-	}
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "StructField required property 'type' is missing";
-	} else {
-		type = GeneratedObjectAccess::CreateUnique<Type>();
-		error = type->TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto required_val = yyjson_obj_get(obj, "required");
-	if (!required_val) {
-		return "StructField required property 'required' is missing";
-	} else {
-		if (yyjson_is_bool(required_val)) {
-			required = yyjson_get_bool(required_val);
-		} else {
-			return StringUtil::Format("StructField property 'required' is not of type 'boolean', found '%s' instead",
-			                          yyjson_get_type_desc(required_val));
-		}
-	}
-	auto _doc_val = yyjson_obj_get(obj, "doc");
-	if (_doc_val) {
-		string _doc_tmp;
-		if (yyjson_is_str(_doc_val)) {
-			_doc_tmp = yyjson_get_str(_doc_val);
-		} else {
-			return StringUtil::Format("StructField property '_doc_tmp' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(_doc_val));
-		}
-		_doc = std::move(_doc_tmp);
-	}
-	auto initial_default_val = yyjson_obj_get(obj, "initial-default");
-	if (initial_default_val) {
-		auto initial_default_tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
-		error = initial_default_tmp.TryFromJSON(initial_default_val);
-		if (!error.empty()) {
-			return error;
-		}
-		initial_default = std::move(initial_default_tmp);
-	}
-	auto write_default_val = yyjson_obj_get(obj, "write-default");
-	if (write_default_val) {
-		auto write_default_tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
-		error = write_default_tmp.TryFromJSON(write_default_val);
-		if (!error.empty()) {
-			return error;
-		}
-		write_default = std::move(write_default_tmp);
-	}
-	return Validate();
 }
 
 void StructField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

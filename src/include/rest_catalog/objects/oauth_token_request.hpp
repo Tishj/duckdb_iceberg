@@ -22,17 +22,17 @@ public:
 	OAuthTokenRequest(const OAuthTokenRequest &) = delete;
 	OAuthTokenRequest &operator=(const OAuthTokenRequest &) = delete;
 	OAuthTokenRequest(OAuthTokenRequest &&) = default;
-	OAuthTokenRequest &operator=(OAuthTokenRequest &&) = default;
+	OAuthTokenRequest &operator=(OAuthTokenRequest &&) = delete;
 
 private:
 	friend class OAuthTokenRequestBuilder;
-	friend class GeneratedObjectAccess;
-	OAuthTokenRequest();
+	OAuthTokenRequest(optional<OAuthClientCredentialsRequest> oauth_client_credentials_request_p,
+	                  optional<OAuthTokenExchangeRequest> oauth_token_exchange_request_p);
 
 public:
 	// Deserialization
 	static OAuthTokenRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<OAuthTokenRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +52,12 @@ public:
 	OAuthTokenRequestBuilder();
 	OAuthTokenRequestBuilder &SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest value);
 	OAuthTokenRequestBuilder &SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest value);
-	string TryBuild(OAuthTokenRequest &result);
+	string TryBuild(optional<OAuthTokenRequest> &result);
 	OAuthTokenRequest Build();
 
 private:
-	OAuthTokenRequest result_;
+	optional<OAuthClientCredentialsRequest> oauth_client_credentials_request_;
+	optional<OAuthTokenExchangeRequest> oauth_token_exchange_request_;
 };
 
 } // namespace rest_api_objects

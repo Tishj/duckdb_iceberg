@@ -18,13 +18,13 @@ public:
 	TokenType(const TokenType &) = delete;
 	TokenType &operator=(const TokenType &) = delete;
 	TokenType(TokenType &&) = default;
-	TokenType &operator=(TokenType &&) = default;
-	TokenType();
+	TokenType &operator=(TokenType &&) = delete;
+	TokenType(string value_p);
 
 public:
 	// Deserialization
 	static TokenType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TokenType> &result);
 	string Validate() const;
 
 	// Copy

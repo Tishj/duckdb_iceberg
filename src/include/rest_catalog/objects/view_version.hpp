@@ -22,17 +22,18 @@ public:
 	ViewVersion(const ViewVersion &) = delete;
 	ViewVersion &operator=(const ViewVersion &) = delete;
 	ViewVersion(ViewVersion &&) = default;
-	ViewVersion &operator=(ViewVersion &&) = default;
+	ViewVersion &operator=(ViewVersion &&) = delete;
 
 private:
 	friend class ViewVersionBuilder;
-	friend class GeneratedObjectAccess;
-	ViewVersion();
+	ViewVersion(int32_t version_id_p, int64_t timestamp_ms_p, int32_t schema_id_p,
+	            case_insensitive_map_t<string> summary_p, vector<ViewRepresentation> representations_p,
+	            Namespace default_namespace_p, optional<string> default_catalog_p);
 
 public:
 	// Deserialization
 	static ViewVersion FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ViewVersion> &result);
 	string Validate() const;
 
 	// Copy
@@ -62,11 +63,17 @@ public:
 	ViewVersionBuilder &SetRepresentations(vector<ViewRepresentation> value);
 	ViewVersionBuilder &SetDefaultNamespace(Namespace value);
 	ViewVersionBuilder &SetDefaultCatalog(string value);
-	string TryBuild(ViewVersion &result);
+	string TryBuild(optional<ViewVersion> &result);
 	ViewVersion Build();
 
 private:
-	ViewVersion result_;
+	optional<int32_t> version_id_;
+	optional<int64_t> timestamp_ms_;
+	optional<int32_t> schema_id_;
+	optional<case_insensitive_map_t<string>> summary_;
+	optional<vector<ViewRepresentation>> representations_;
+	optional<Namespace> default_namespace_;
+	optional<string> default_catalog_;
 	bool has_version_id_ = false;
 	bool has_timestamp_ms_ = false;
 	bool has_schema_id_ = false;

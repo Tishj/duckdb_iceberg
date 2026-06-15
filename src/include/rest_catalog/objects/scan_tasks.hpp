@@ -23,17 +23,17 @@ public:
 	ScanTasks(const ScanTasks &) = delete;
 	ScanTasks &operator=(const ScanTasks &) = delete;
 	ScanTasks(ScanTasks &&) = default;
-	ScanTasks &operator=(ScanTasks &&) = default;
+	ScanTasks &operator=(ScanTasks &&) = delete;
 
 private:
 	friend class ScanTasksBuilder;
-	friend class GeneratedObjectAccess;
-	ScanTasks();
+	ScanTasks(optional<vector<DeleteFile>> delete_files_p, optional<vector<FileScanTask>> file_scan_tasks_p,
+	          optional<vector<PlanTask>> plan_tasks_p);
 
 public:
 	// Deserialization
 	static ScanTasks FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ScanTasks> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +55,13 @@ public:
 	ScanTasksBuilder &SetDeleteFiles(vector<DeleteFile> value);
 	ScanTasksBuilder &SetFileScanTasks(vector<FileScanTask> value);
 	ScanTasksBuilder &SetPlanTasks(vector<PlanTask> value);
-	string TryBuild(ScanTasks &result);
+	string TryBuild(optional<ScanTasks> &result);
 	ScanTasks Build();
 
 private:
-	ScanTasks result_;
+	optional<vector<DeleteFile>> delete_files_;
+	optional<vector<FileScanTask>> file_scan_tasks_;
+	optional<vector<PlanTask>> plan_tasks_;
 };
 
 } // namespace rest_api_objects

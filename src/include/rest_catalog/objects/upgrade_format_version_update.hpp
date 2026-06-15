@@ -21,17 +21,16 @@ public:
 	UpgradeFormatVersionUpdate(const UpgradeFormatVersionUpdate &) = delete;
 	UpgradeFormatVersionUpdate &operator=(const UpgradeFormatVersionUpdate &) = delete;
 	UpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate &&) = default;
-	UpgradeFormatVersionUpdate &operator=(UpgradeFormatVersionUpdate &&) = default;
+	UpgradeFormatVersionUpdate &operator=(UpgradeFormatVersionUpdate &&) = delete;
 
 private:
 	friend class UpgradeFormatVersionUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	UpgradeFormatVersionUpdate();
+	UpgradeFormatVersionUpdate(BaseUpdate base_update_p, int32_t format_version_p);
 
 public:
 	// Deserialization
 	static UpgradeFormatVersionUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<UpgradeFormatVersionUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	UpgradeFormatVersionUpdateBuilder();
 	UpgradeFormatVersionUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	UpgradeFormatVersionUpdateBuilder &SetFormatVersion(int32_t value);
-	string TryBuild(UpgradeFormatVersionUpdate &result);
+	string TryBuild(optional<UpgradeFormatVersionUpdate> &result);
 	UpgradeFormatVersionUpdate Build();
 
 private:
-	UpgradeFormatVersionUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<int32_t> format_version_;
 	bool has_format_version_ = false;
 };
 

@@ -18,13 +18,13 @@ public:
 	PlanStatus(const PlanStatus &) = delete;
 	PlanStatus &operator=(const PlanStatus &) = delete;
 	PlanStatus(PlanStatus &&) = default;
-	PlanStatus &operator=(PlanStatus &&) = default;
-	PlanStatus();
+	PlanStatus &operator=(PlanStatus &&) = delete;
+	PlanStatus(string value_p);
 
 public:
 	// Deserialization
 	static PlanStatus FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PlanStatus> &result);
 	string Validate() const;
 
 	// Copy

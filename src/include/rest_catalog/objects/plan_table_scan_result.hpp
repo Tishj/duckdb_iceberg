@@ -24,17 +24,19 @@ public:
 	PlanTableScanResult(const PlanTableScanResult &) = delete;
 	PlanTableScanResult &operator=(const PlanTableScanResult &) = delete;
 	PlanTableScanResult(PlanTableScanResult &&) = default;
-	PlanTableScanResult &operator=(PlanTableScanResult &&) = default;
+	PlanTableScanResult &operator=(PlanTableScanResult &&) = delete;
 
 private:
 	friend class PlanTableScanResultBuilder;
-	friend class GeneratedObjectAccess;
-	PlanTableScanResult();
+	PlanTableScanResult(optional<CompletedPlanningWithIDResult> completed_planning_with_idresult_p,
+	                    optional<FailedPlanningResult> failed_planning_result_p,
+	                    optional<AsyncPlanningResult> async_planning_result_p,
+	                    optional<EmptyPlanningResult> empty_planning_result_p);
 
 public:
 	// Deserialization
 	static PlanTableScanResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PlanTableScanResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -58,11 +60,14 @@ public:
 	PlanTableScanResultBuilder &SetFailedPlanningResult(FailedPlanningResult value);
 	PlanTableScanResultBuilder &SetAsyncPlanningResult(AsyncPlanningResult value);
 	PlanTableScanResultBuilder &SetEmptyPlanningResult(EmptyPlanningResult value);
-	string TryBuild(PlanTableScanResult &result);
+	string TryBuild(optional<PlanTableScanResult> &result);
 	PlanTableScanResult Build();
 
 private:
-	PlanTableScanResult result_;
+	optional<CompletedPlanningWithIDResult> completed_planning_with_idresult_;
+	optional<FailedPlanningResult> failed_planning_result_;
+	optional<AsyncPlanningResult> async_planning_result_;
+	optional<EmptyPlanningResult> empty_planning_result_;
 };
 
 } // namespace rest_api_objects

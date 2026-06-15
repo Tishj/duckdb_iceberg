@@ -14,52 +14,69 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TrueExpression::TrueExpression() {
+TrueExpression::TrueExpression(ExpressionType type_p) : type(std::move(type_p)) {
 }
 
 TrueExpressionBuilder::TrueExpressionBuilder() {
 }
 
 TrueExpressionBuilder &TrueExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
-string TrueExpressionBuilder::TryBuild(TrueExpression &result) {
-	if (!has_type_) {
-		return "TrueExpression required property 'type' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 TrueExpression TrueExpressionBuilder::Build() {
-	TrueExpression result;
-	auto error = TryBuild(result);
+	if (!has_type_) {
+		throw InvalidInputException("TrueExpression required property 'type' is missing");
+	}
+	auto result = TrueExpression(std::move(*type_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
-	TrueExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string TrueExpressionBuilder::TryBuild(optional<TrueExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
+	TrueExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("TrueExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	return builder.Build();
+}
+
+string TrueExpression::TryFromJSON(yyjson_val *obj, optional<TrueExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TrueExpression TrueExpression::Copy() const {
-	TrueExpression res;
-	res.type = type.Copy();
-	return res;
+	TrueExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	return builder.Build();
 }
 
 string TrueExpression::Validate() const {
@@ -72,20 +89,6 @@ string TrueExpression::Validate() const {
 		return StringUtil::Format("TrueExpression property 'type' must be true, not %s", type.value);
 	}
 	return "";
-}
-
-string TrueExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "TrueExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void TrueExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

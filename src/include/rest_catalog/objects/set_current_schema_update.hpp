@@ -21,17 +21,16 @@ public:
 	SetCurrentSchemaUpdate(const SetCurrentSchemaUpdate &) = delete;
 	SetCurrentSchemaUpdate &operator=(const SetCurrentSchemaUpdate &) = delete;
 	SetCurrentSchemaUpdate(SetCurrentSchemaUpdate &&) = default;
-	SetCurrentSchemaUpdate &operator=(SetCurrentSchemaUpdate &&) = default;
+	SetCurrentSchemaUpdate &operator=(SetCurrentSchemaUpdate &&) = delete;
 
 private:
 	friend class SetCurrentSchemaUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetCurrentSchemaUpdate();
+	SetCurrentSchemaUpdate(BaseUpdate base_update_p, int32_t schema_id_p);
 
 public:
 	// Deserialization
 	static SetCurrentSchemaUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetCurrentSchemaUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	SetCurrentSchemaUpdateBuilder();
 	SetCurrentSchemaUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetCurrentSchemaUpdateBuilder &SetSchemaId(int32_t value);
-	string TryBuild(SetCurrentSchemaUpdate &result);
+	string TryBuild(optional<SetCurrentSchemaUpdate> &result);
 	SetCurrentSchemaUpdate Build();
 
 private:
-	SetCurrentSchemaUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<int32_t> schema_id_;
 	bool has_schema_id_ = false;
 };
 

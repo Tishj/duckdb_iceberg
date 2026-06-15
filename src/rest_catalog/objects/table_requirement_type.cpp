@@ -14,22 +14,35 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TableRequirementType::TableRequirementType() {
+TableRequirementType::TableRequirementType(string value_p) : value(std::move(value_p)) {
 }
 
 TableRequirementType TableRequirementType::FromJSON(yyjson_val *obj) {
-	TableRequirementType res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(
+		    StringUtil::Format("TableRequirementType property 'value' is not of type 'string', found '%s' instead",
+		                       yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return TableRequirementType(std::move(value));
+}
+
+string TableRequirementType::TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TableRequirementType TableRequirementType::Copy() const {
-	TableRequirementType res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return TableRequirementType(std::move(value_tmp));
 }
 
 string TableRequirementType::Validate() const {
@@ -48,17 +61,6 @@ string TableRequirementType::Validate() const {
 		    value);
 	}
 	return "";
-}
-
-string TableRequirementType::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("TableRequirementType property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *TableRequirementType::ToJSON(yyjson_mut_doc *doc) const {

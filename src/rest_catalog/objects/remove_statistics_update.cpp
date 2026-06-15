@@ -14,58 +14,87 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemoveStatisticsUpdate::RemoveStatisticsUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+RemoveStatisticsUpdate::RemoveStatisticsUpdate(BaseUpdate base_update_p, int64_t snapshot_id_p)
+    : base_update(std::move(base_update_p)), snapshot_id(std::move(snapshot_id_p)) {
 }
 
 RemoveStatisticsUpdateBuilder::RemoveStatisticsUpdateBuilder() {
 }
 
 RemoveStatisticsUpdateBuilder &RemoveStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 RemoveStatisticsUpdateBuilder &RemoveStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	has_snapshot_id_ = true;
 	return *this;
 }
 
-string RemoveStatisticsUpdateBuilder::TryBuild(RemoveStatisticsUpdate &result) {
-	if (!has_snapshot_id_) {
-		return "RemoveStatisticsUpdate required property 'snapshot-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 RemoveStatisticsUpdate RemoveStatisticsUpdateBuilder::Build() {
-	RemoveStatisticsUpdate result;
-	auto error = TryBuild(result);
+	if (!has_snapshot_id_) {
+		throw InvalidInputException("RemoveStatisticsUpdate required property 'snapshot-id' is missing");
+	}
+	auto result = RemoveStatisticsUpdate(std::move(*base_update_), std::move(*snapshot_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	RemoveStatisticsUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RemoveStatisticsUpdateBuilder::TryBuild(optional<RemoveStatisticsUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	RemoveStatisticsUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (!snapshot_id_val) {
+		throw InvalidInputException("RemoveStatisticsUpdate required property 'snapshot-id' is missing");
+	} else {
+		int64_t snapshot_id;
+		if (yyjson_is_sint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_sint(snapshot_id_val);
+		} else if (yyjson_is_uint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_uint(snapshot_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RemoveStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(snapshot_id_val)));
+		}
+		builder.SetSnapshotId(std::move(snapshot_id));
+	}
+	return builder.Build();
+}
+
+string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveStatisticsUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RemoveStatisticsUpdate RemoveStatisticsUpdate::Copy() const {
-	RemoveStatisticsUpdate res;
-	res.base_update = base_update.Copy();
-	res.snapshot_id = snapshot_id;
-	return res;
+	RemoveStatisticsUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int64_t snapshot_id_tmp;
+	snapshot_id_tmp = snapshot_id;
+	builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	return builder.Build();
 }
 
 string RemoveStatisticsUpdate::Validate() const {
@@ -75,29 +104,6 @@ string RemoveStatisticsUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		return "RemoveStatisticsUpdate required property 'snapshot-id' is missing";
-	} else {
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "RemoveStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val));
-		}
-	}
-	return Validate();
 }
 
 void RemoveStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

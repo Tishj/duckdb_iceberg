@@ -18,13 +18,13 @@ public:
 	Namespace(const Namespace &) = delete;
 	Namespace &operator=(const Namespace &) = delete;
 	Namespace(Namespace &&) = default;
-	Namespace &operator=(Namespace &&) = default;
-	Namespace();
+	Namespace &operator=(Namespace &&) = delete;
+	Namespace(vector<string> value_p);
 
 public:
 	// Deserialization
 	static Namespace FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Namespace> &result);
 	string Validate() const;
 
 	// Copy

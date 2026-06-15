@@ -41,17 +41,33 @@ public:
 	TableUpdate(const TableUpdate &) = delete;
 	TableUpdate &operator=(const TableUpdate &) = delete;
 	TableUpdate(TableUpdate &&) = default;
-	TableUpdate &operator=(TableUpdate &&) = default;
+	TableUpdate &operator=(TableUpdate &&) = delete;
 
 private:
 	friend class TableUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	TableUpdate();
+	TableUpdate(
+	    optional<AssignUUIDUpdate> assign_uuidupdate_p,
+	    optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_p,
+	    optional<AddSchemaUpdate> add_schema_update_p, optional<SetCurrentSchemaUpdate> set_current_schema_update_p,
+	    optional<AddPartitionSpecUpdate> add_partition_spec_update_p,
+	    optional<SetDefaultSpecUpdate> set_default_spec_update_p, optional<AddSortOrderUpdate> add_sort_order_update_p,
+	    optional<SetDefaultSortOrderUpdate> set_default_sort_order_update_p,
+	    optional<AddSnapshotUpdate> add_snapshot_update_p, optional<SetSnapshotRefUpdate> set_snapshot_ref_update_p,
+	    optional<RemoveSnapshotsUpdate> remove_snapshots_update_p,
+	    optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update_p,
+	    optional<SetLocationUpdate> set_location_update_p, optional<SetPropertiesUpdate> set_properties_update_p,
+	    optional<RemovePropertiesUpdate> remove_properties_update_p,
+	    optional<SetStatisticsUpdate> set_statistics_update_p,
+	    optional<RemoveStatisticsUpdate> remove_statistics_update_p,
+	    optional<RemovePartitionSpecsUpdate> remove_partition_specs_update_p,
+	    optional<RemoveSchemasUpdate> remove_schemas_update_p,
+	    optional<AddEncryptionKeyUpdate> add_encryption_key_update_p,
+	    optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update_p);
 
 public:
 	// Deserialization
 	static TableUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TableUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -109,11 +125,31 @@ public:
 	TableUpdateBuilder &SetRemoveSchemasUpdate(RemoveSchemasUpdate value);
 	TableUpdateBuilder &SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate value);
 	TableUpdateBuilder &SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate value);
-	string TryBuild(TableUpdate &result);
+	string TryBuild(optional<TableUpdate> &result);
 	TableUpdate Build();
 
 private:
-	TableUpdate result_;
+	optional<AssignUUIDUpdate> assign_uuidupdate_;
+	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_;
+	optional<AddSchemaUpdate> add_schema_update_;
+	optional<SetCurrentSchemaUpdate> set_current_schema_update_;
+	optional<AddPartitionSpecUpdate> add_partition_spec_update_;
+	optional<SetDefaultSpecUpdate> set_default_spec_update_;
+	optional<AddSortOrderUpdate> add_sort_order_update_;
+	optional<SetDefaultSortOrderUpdate> set_default_sort_order_update_;
+	optional<AddSnapshotUpdate> add_snapshot_update_;
+	optional<SetSnapshotRefUpdate> set_snapshot_ref_update_;
+	optional<RemoveSnapshotsUpdate> remove_snapshots_update_;
+	optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update_;
+	optional<SetLocationUpdate> set_location_update_;
+	optional<SetPropertiesUpdate> set_properties_update_;
+	optional<RemovePropertiesUpdate> remove_properties_update_;
+	optional<SetStatisticsUpdate> set_statistics_update_;
+	optional<RemoveStatisticsUpdate> remove_statistics_update_;
+	optional<RemovePartitionSpecsUpdate> remove_partition_specs_update_;
+	optional<RemoveSchemasUpdate> remove_schemas_update_;
+	optional<AddEncryptionKeyUpdate> add_encryption_key_update_;
+	optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update_;
 };
 
 } // namespace rest_api_objects

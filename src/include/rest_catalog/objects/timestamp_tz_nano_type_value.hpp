@@ -18,13 +18,13 @@ public:
 	TimestampTzNanoTypeValue(const TimestampTzNanoTypeValue &) = delete;
 	TimestampTzNanoTypeValue &operator=(const TimestampTzNanoTypeValue &) = delete;
 	TimestampTzNanoTypeValue(TimestampTzNanoTypeValue &&) = default;
-	TimestampTzNanoTypeValue &operator=(TimestampTzNanoTypeValue &&) = default;
-	TimestampTzNanoTypeValue();
+	TimestampTzNanoTypeValue &operator=(TimestampTzNanoTypeValue &&) = delete;
+	TimestampTzNanoTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static TimestampTzNanoTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TimestampTzNanoTypeValue> &result);
 	string Validate() const;
 
 	// Copy

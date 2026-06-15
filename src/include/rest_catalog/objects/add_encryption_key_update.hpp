@@ -22,17 +22,16 @@ public:
 	AddEncryptionKeyUpdate(const AddEncryptionKeyUpdate &) = delete;
 	AddEncryptionKeyUpdate &operator=(const AddEncryptionKeyUpdate &) = delete;
 	AddEncryptionKeyUpdate(AddEncryptionKeyUpdate &&) = default;
-	AddEncryptionKeyUpdate &operator=(AddEncryptionKeyUpdate &&) = default;
+	AddEncryptionKeyUpdate &operator=(AddEncryptionKeyUpdate &&) = delete;
 
 private:
 	friend class AddEncryptionKeyUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	AddEncryptionKeyUpdate();
+	AddEncryptionKeyUpdate(BaseUpdate base_update_p, EncryptedKey encryption_key_p);
 
 public:
 	// Deserialization
 	static AddEncryptionKeyUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AddEncryptionKeyUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	AddEncryptionKeyUpdateBuilder();
 	AddEncryptionKeyUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddEncryptionKeyUpdateBuilder &SetEncryptionKey(EncryptedKey value);
-	string TryBuild(AddEncryptionKeyUpdate &result);
+	string TryBuild(optional<AddEncryptionKeyUpdate> &result);
 	AddEncryptionKeyUpdate Build();
 
 private:
-	AddEncryptionKeyUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<EncryptedKey> encryption_key_;
 	bool has_encryption_key_ = false;
 };
 

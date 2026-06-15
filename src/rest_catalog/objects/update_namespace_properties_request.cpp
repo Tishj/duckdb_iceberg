@@ -14,79 +14,49 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest()
-    : updates(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
+UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest(optional<vector<string>> removals_p,
+                                                                   optional<case_insensitive_map_t<string>> updates_p)
+    : removals(std::move(removals_p)), updates(std::move(updates_p)) {
 }
 
 UpdateNamespacePropertiesRequestBuilder::UpdateNamespacePropertiesRequestBuilder() {
 }
 
 UpdateNamespacePropertiesRequestBuilder &UpdateNamespacePropertiesRequestBuilder::SetRemovals(vector<string> value) {
-	result_.removals = std::move(value);
+	removals_ = std::move(value);
 	return *this;
 }
 
 UpdateNamespacePropertiesRequestBuilder &
 UpdateNamespacePropertiesRequestBuilder::SetUpdates(case_insensitive_map_t<string> value) {
-	result_.updates = std::move(value);
+	updates_ = std::move(value);
 	return *this;
 }
 
-string UpdateNamespacePropertiesRequestBuilder::TryBuild(UpdateNamespacePropertiesRequest &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequestBuilder::Build() {
-	UpdateNamespacePropertiesRequest result;
-	auto error = TryBuild(result);
+	auto result = UpdateNamespacePropertiesRequest(std::move(removals_), std::move(updates_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
+string UpdateNamespacePropertiesRequestBuilder::TryBuild(optional<UpdateNamespacePropertiesRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjson_val *obj) {
-	UpdateNamespacePropertiesRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const {
-	UpdateNamespacePropertiesRequest res;
-	if (removals.has_value()) {
-		res.removals.emplace();
-		(*res.removals).reserve((*removals).size());
-		for (auto &item : (*removals)) {
-			(*res.removals).emplace_back(item);
-		}
-	}
-	if (updates.has_value()) {
-		res.updates = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
-		for (auto &entry : (*updates)) {
-			(*res.updates).emplace(entry.first, entry.second);
-		}
-	}
-	return res;
-}
-
-string UpdateNamespacePropertiesRequest::Validate() const {
-	string error;
-	return "";
-}
-
-string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
+	UpdateNamespacePropertiesRequestBuilder builder;
 	auto removals_val = yyjson_obj_get(obj, "removals");
 	if (removals_val) {
-		vector<string> removals_tmp;
+		vector<string> removals;
 		if (yyjson_is_arr(removals_val)) {
 			size_t idx, max;
 			yyjson_val *val;
@@ -95,22 +65,22 @@ string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_str(val)) {
 					tmp = yyjson_get_str(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "UpdateNamespacePropertiesRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
-				removals_tmp.emplace_back(std::move(tmp));
+				removals.emplace_back(std::move(tmp));
 			}
 		} else {
 			return StringUtil::Format(
-			    "UpdateNamespacePropertiesRequest property 'removals_tmp' is not of type 'array', found '%s' instead",
+			    "UpdateNamespacePropertiesRequest property 'removals' is not of type 'array', found '%s' instead",
 			    yyjson_get_type_desc(removals_val));
 		}
-		removals = std::move(removals_tmp);
+		builder.SetRemovals(std::move(removals));
 	}
 	auto updates_val = yyjson_obj_get(obj, "updates");
 	if (updates_val) {
-		case_insensitive_map_t<string> updates_tmp;
+		case_insensitive_map_t<string> updates;
 		if (yyjson_is_obj(updates_val)) {
 			size_t idx, max;
 			yyjson_val *key, *val;
@@ -120,18 +90,60 @@ string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj) {
 				if (yyjson_is_str(val)) {
 					tmp = yyjson_get_str(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "UpdateNamespacePropertiesRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
-				updates_tmp.emplace(key_str, std::move(tmp));
+				updates.emplace(key_str, std::move(tmp));
 			}
 		} else {
-			return "UpdateNamespacePropertiesRequest property 'updates_tmp' is not of type 'object'";
+			throw InvalidInputException("UpdateNamespacePropertiesRequest property 'updates' is not of type 'object'");
 		}
-		updates = std::move(updates_tmp);
+		builder.SetUpdates(std::move(updates));
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
+                                                     optional<UpdateNamespacePropertiesRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const {
+	UpdateNamespacePropertiesRequestBuilder builder;
+	vector<string> removals_tmp;
+	if (removals.has_value()) {
+		removals_tmp.emplace();
+		(*removals_tmp).reserve((*removals).size());
+		for (auto &item : (*removals)) {
+			(*removals_tmp).emplace_back(item);
+		}
+	}
+	if (removals_tmp.has_value()) {
+		builder.SetRemovals(std::move(removals_tmp));
+	}
+	case_insensitive_map_t<string> updates_tmp;
+	if (updates.has_value()) {
+		updates_tmp.emplace();
+		for (auto &entry : (*updates)) {
+			(*updates_tmp).emplace(entry.first, entry.second);
+		}
+	}
+	if (updates_tmp.has_value()) {
+		builder.SetUpdates(std::move(updates_tmp));
+	}
+	return builder.Build();
+}
+
+string UpdateNamespacePropertiesRequest::Validate() const {
+	string error;
+	return "";
 }
 
 void UpdateNamespacePropertiesRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

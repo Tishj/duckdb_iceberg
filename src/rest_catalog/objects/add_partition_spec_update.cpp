@@ -14,59 +14,79 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddPartitionSpecUpdate::AddPartitionSpecUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()), spec(GeneratedObjectAccess::Create<PartitionSpec>()) {
+AddPartitionSpecUpdate::AddPartitionSpecUpdate(BaseUpdate base_update_p, PartitionSpec spec_p)
+    : base_update(std::move(base_update_p)), spec(std::move(spec_p)) {
 }
 
 AddPartitionSpecUpdateBuilder::AddPartitionSpecUpdateBuilder() {
 }
 
 AddPartitionSpecUpdateBuilder &AddPartitionSpecUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 AddPartitionSpecUpdateBuilder &AddPartitionSpecUpdateBuilder::SetSpec(PartitionSpec value) {
-	result_.spec = std::move(value);
+	spec_ = std::move(value);
 	has_spec_ = true;
 	return *this;
 }
 
-string AddPartitionSpecUpdateBuilder::TryBuild(AddPartitionSpecUpdate &result) {
-	if (!has_spec_) {
-		return "AddPartitionSpecUpdate required property 'spec' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AddPartitionSpecUpdate AddPartitionSpecUpdateBuilder::Build() {
-	AddPartitionSpecUpdate result;
-	auto error = TryBuild(result);
+	if (!has_spec_) {
+		throw InvalidInputException("AddPartitionSpecUpdate required property 'spec' is missing");
+	}
+	auto result = AddPartitionSpecUpdate(std::move(*base_update_), std::move(*spec_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
-	AddPartitionSpecUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AddPartitionSpecUpdateBuilder::TryBuild(optional<AddPartitionSpecUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
+	AddPartitionSpecUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto spec_val = yyjson_obj_get(obj, "spec");
+	if (!spec_val) {
+		throw InvalidInputException("AddPartitionSpecUpdate required property 'spec' is missing");
+	} else {
+		optional<PartitionSpec> spec;
+		spec = PartitionSpec::FromJSON(spec_val);
+		builder.SetSpec(std::move(*spec));
+	}
+	return builder.Build();
+}
+
+string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, optional<AddPartitionSpecUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AddPartitionSpecUpdate AddPartitionSpecUpdate::Copy() const {
-	AddPartitionSpecUpdate res;
-	res.base_update = base_update.Copy();
-	res.spec = spec.Copy();
-	return res;
+	AddPartitionSpecUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<PartitionSpec> spec_tmp;
+	spec_tmp = spec.Copy();
+	builder.SetSpec(std::move(*spec_tmp));
+	return builder.Build();
 }
 
 string AddPartitionSpecUpdate::Validate() const {
@@ -80,24 +100,6 @@ string AddPartitionSpecUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto spec_val = yyjson_obj_get(obj, "spec");
-	if (!spec_val) {
-		return "AddPartitionSpecUpdate required property 'spec' is missing";
-	} else {
-		error = spec.TryFromJSON(spec_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void AddPartitionSpecUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -14,96 +14,108 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CounterResult::CounterResult() {
+CounterResult::CounterResult(string unit_p, int64_t value_p) : unit(std::move(unit_p)), value(std::move(value_p)) {
 }
 
 CounterResultBuilder::CounterResultBuilder() {
 }
 
 CounterResultBuilder &CounterResultBuilder::SetUnit(string value) {
-	result_.unit = std::move(value);
+	unit_ = std::move(value);
 	has_unit_ = true;
 	return *this;
 }
 
 CounterResultBuilder &CounterResultBuilder::SetValue(int64_t value) {
-	result_.value = std::move(value);
+	value_ = std::move(value);
 	has_value_ = true;
 	return *this;
 }
 
-string CounterResultBuilder::TryBuild(CounterResult &result) {
+CounterResult CounterResultBuilder::Build() {
 	if (!has_unit_) {
-		return "CounterResult required property 'unit' is missing";
+		throw InvalidInputException("CounterResult required property 'unit' is missing");
 	}
 	if (!has_value_) {
-		return "CounterResult required property 'value' is missing";
+		throw InvalidInputException("CounterResult required property 'value' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-CounterResult CounterResultBuilder::Build() {
-	CounterResult result;
-	auto error = TryBuild(result);
+	auto result = CounterResult(std::move(*unit_), std::move(*value_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CounterResult CounterResult::FromJSON(yyjson_val *obj) {
-	CounterResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CounterResultBuilder::TryBuild(optional<CounterResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
 }
 
-CounterResult CounterResult::Copy() const {
-	CounterResult res;
-	res.unit = unit;
-	res.value = value;
-	return res;
-}
-
-string CounterResult::Validate() const {
-	string error;
-	return "";
-}
-
-string CounterResult::TryFromJSON(yyjson_val *obj) {
-	string error;
+CounterResult CounterResult::FromJSON(yyjson_val *obj) {
+	CounterResultBuilder builder;
 	auto unit_val = yyjson_obj_get(obj, "unit");
 	if (!unit_val) {
-		return "CounterResult required property 'unit' is missing";
+		throw InvalidInputException("CounterResult required property 'unit' is missing");
 	} else {
+		string unit;
 		if (yyjson_is_str(unit_val)) {
 			unit = yyjson_get_str(unit_val);
 		} else {
-			return StringUtil::Format("CounterResult property 'unit' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(unit_val));
+			throw InvalidInputException(
+			    StringUtil::Format("CounterResult property 'unit' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(unit_val)));
 		}
+		builder.SetUnit(std::move(unit));
 	}
 	auto value_val = yyjson_obj_get(obj, "value");
 	if (!value_val) {
-		return "CounterResult required property 'value' is missing";
+		throw InvalidInputException("CounterResult required property 'value' is missing");
 	} else {
+		int64_t value;
 		if (yyjson_is_sint(value_val)) {
 			value = yyjson_get_sint(value_val);
 		} else if (yyjson_is_uint(value_val)) {
 			value = yyjson_get_uint(value_val);
 		} else {
-			return StringUtil::Format("CounterResult property 'value' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(value_val));
+			throw InvalidInputException(
+			    StringUtil::Format("CounterResult property 'value' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(value_val)));
 		}
+		builder.SetValue(std::move(value));
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string CounterResult::TryFromJSON(yyjson_val *obj, optional<CounterResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+CounterResult CounterResult::Copy() const {
+	CounterResultBuilder builder;
+	string unit_tmp;
+	unit_tmp = unit;
+	builder.SetUnit(std::move(unit_tmp));
+	int64_t value_tmp;
+	value_tmp = value;
+	builder.SetValue(std::move(value_tmp));
+	return builder.Build();
+}
+
+string CounterResult::Validate() const {
+	string error;
+	return "";
 }
 
 void CounterResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

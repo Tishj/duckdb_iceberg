@@ -14,81 +14,149 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PartitionField::PartitionField() {
+PartitionField::PartitionField(int32_t source_id_p, Transform transform_p, string name_p, optional<int32_t> field_id_p)
+    : source_id(std::move(source_id_p)), transform(std::move(transform_p)), name(std::move(name_p)),
+      field_id(std::move(field_id_p)) {
 }
 
 PartitionFieldBuilder::PartitionFieldBuilder() {
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetSourceId(int32_t value) {
-	result_.source_id = std::move(value);
+	source_id_ = std::move(value);
 	has_source_id_ = true;
 	return *this;
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetTransform(Transform value) {
-	result_.transform = std::move(value);
+	transform_ = std::move(value);
 	has_transform_ = true;
 	return *this;
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetName(string value) {
-	result_.name = std::move(value);
+	name_ = std::move(value);
 	has_name_ = true;
 	return *this;
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetFieldId(int32_t value) {
-	result_.field_id = std::move(value);
+	field_id_ = std::move(value);
 	return *this;
 }
 
-string PartitionFieldBuilder::TryBuild(PartitionField &result) {
+PartitionField PartitionFieldBuilder::Build() {
 	if (!has_source_id_) {
-		return "PartitionField required property 'source-id' is missing";
+		throw InvalidInputException("PartitionField required property 'source-id' is missing");
 	}
 	if (!has_transform_) {
-		return "PartitionField required property 'transform' is missing";
+		throw InvalidInputException("PartitionField required property 'transform' is missing");
 	}
 	if (!has_name_) {
-		return "PartitionField required property 'name' is missing";
+		throw InvalidInputException("PartitionField required property 'name' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-PartitionField PartitionFieldBuilder::Build() {
-	PartitionField result;
-	auto error = TryBuild(result);
+	auto result =
+	    PartitionField(std::move(*source_id_), std::move(*transform_), std::move(*name_), std::move(field_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-PartitionField PartitionField::FromJSON(yyjson_val *obj) {
-	PartitionField res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string PartitionFieldBuilder::TryBuild(optional<PartitionField> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+PartitionField PartitionField::FromJSON(yyjson_val *obj) {
+	PartitionFieldBuilder builder;
+	auto source_id_val = yyjson_obj_get(obj, "source-id");
+	if (!source_id_val) {
+		throw InvalidInputException("PartitionField required property 'source-id' is missing");
+	} else {
+		int32_t source_id;
+		if (yyjson_is_int(source_id_val)) {
+			source_id = yyjson_get_int(source_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("PartitionField property 'source_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(source_id_val)));
+		}
+		builder.SetSourceId(std::move(source_id));
+	}
+	auto transform_val = yyjson_obj_get(obj, "transform");
+	if (!transform_val) {
+		throw InvalidInputException("PartitionField required property 'transform' is missing");
+	} else {
+		optional<Transform> transform;
+		transform = Transform::FromJSON(transform_val);
+		builder.SetTransform(std::move(*transform));
+	}
+	auto name_val = yyjson_obj_get(obj, "name");
+	if (!name_val) {
+		throw InvalidInputException("PartitionField required property 'name' is missing");
+	} else {
+		string name;
+		if (yyjson_is_str(name_val)) {
+			name = yyjson_get_str(name_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("PartitionField property 'name' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(name_val)));
+		}
+		builder.SetName(std::move(name));
+	}
+	auto field_id_val = yyjson_obj_get(obj, "field-id");
+	if (field_id_val) {
+		int32_t field_id;
+		if (yyjson_is_int(field_id_val)) {
+			field_id = yyjson_get_int(field_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("PartitionField property 'field_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(field_id_val)));
+		}
+		builder.SetFieldId(std::move(field_id));
+	}
+	return builder.Build();
+}
+
+string PartitionField::TryFromJSON(yyjson_val *obj, optional<PartitionField> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 PartitionField PartitionField::Copy() const {
-	PartitionField res;
-	res.source_id = source_id;
-	res.transform = transform.Copy();
-	res.name = name;
+	PartitionFieldBuilder builder;
+	int32_t source_id_tmp;
+	source_id_tmp = source_id;
+	builder.SetSourceId(std::move(source_id_tmp));
+	optional<Transform> transform_tmp;
+	transform_tmp = transform.Copy();
+	builder.SetTransform(std::move(*transform_tmp));
+	string name_tmp;
+	name_tmp = name;
+	builder.SetName(std::move(name_tmp));
+	int32_t field_id_tmp;
 	if (field_id.has_value()) {
-		res.field_id.emplace();
-		(*res.field_id) = (*field_id);
+		field_id_tmp.emplace();
+		(*field_id_tmp) = (*field_id);
 	}
-	return res;
+	if (field_id_tmp.has_value()) {
+		builder.SetFieldId(std::move(field_id_tmp));
+	}
+	return builder.Build();
 }
 
 string PartitionField::Validate() const {
@@ -98,55 +166,6 @@ string PartitionField::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string PartitionField::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto source_id_val = yyjson_obj_get(obj, "source-id");
-	if (!source_id_val) {
-		return "PartitionField required property 'source-id' is missing";
-	} else {
-		if (yyjson_is_int(source_id_val)) {
-			source_id = yyjson_get_int(source_id_val);
-		} else {
-			return StringUtil::Format(
-			    "PartitionField property 'source_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(source_id_val));
-		}
-	}
-	auto transform_val = yyjson_obj_get(obj, "transform");
-	if (!transform_val) {
-		return "PartitionField required property 'transform' is missing";
-	} else {
-		error = transform.TryFromJSON(transform_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		return "PartitionField required property 'name' is missing";
-	} else {
-		if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			return StringUtil::Format("PartitionField property 'name' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(name_val));
-		}
-	}
-	auto field_id_val = yyjson_obj_get(obj, "field-id");
-	if (field_id_val) {
-		int32_t field_id_tmp;
-		if (yyjson_is_int(field_id_val)) {
-			field_id_tmp = yyjson_get_int(field_id_val);
-		} else {
-			return StringUtil::Format(
-			    "PartitionField property 'field_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(field_id_val));
-		}
-		field_id = std::move(field_id_tmp);
-	}
-	return Validate();
 }
 
 void PartitionField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -21,17 +21,16 @@ public:
 	LoadCredentialsResponse(const LoadCredentialsResponse &) = delete;
 	LoadCredentialsResponse &operator=(const LoadCredentialsResponse &) = delete;
 	LoadCredentialsResponse(LoadCredentialsResponse &&) = default;
-	LoadCredentialsResponse &operator=(LoadCredentialsResponse &&) = default;
+	LoadCredentialsResponse &operator=(LoadCredentialsResponse &&) = delete;
 
 private:
 	friend class LoadCredentialsResponseBuilder;
-	friend class GeneratedObjectAccess;
-	LoadCredentialsResponse();
+	LoadCredentialsResponse(vector<StorageCredential> storage_credentials_p);
 
 public:
 	// Deserialization
 	static LoadCredentialsResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<LoadCredentialsResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class LoadCredentialsResponseBuilder {
 public:
 	LoadCredentialsResponseBuilder();
 	LoadCredentialsResponseBuilder &SetStorageCredentials(vector<StorageCredential> value);
-	string TryBuild(LoadCredentialsResponse &result);
+	string TryBuild(optional<LoadCredentialsResponse> &result);
 	LoadCredentialsResponse Build();
 
 private:
-	LoadCredentialsResponse result_;
+	optional<vector<StorageCredential>> storage_credentials_;
 	bool has_storage_credentials_ = false;
 };
 

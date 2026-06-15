@@ -14,48 +14,58 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FetchScanTasksResult::FetchScanTasksResult() : scan_tasks(GeneratedObjectAccess::Create<ScanTasks>()) {
+FetchScanTasksResult::FetchScanTasksResult(ScanTasks scan_tasks_p) : scan_tasks(std::move(scan_tasks_p)) {
 }
 
 FetchScanTasksResultBuilder::FetchScanTasksResultBuilder() {
 }
 
 FetchScanTasksResultBuilder &FetchScanTasksResultBuilder::SetScanTasks(ScanTasks value) {
-	result_.scan_tasks = std::move(value);
+	scan_tasks_ = std::move(value);
 	return *this;
 }
 
-string FetchScanTasksResultBuilder::TryBuild(FetchScanTasksResult &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 FetchScanTasksResult FetchScanTasksResultBuilder::Build() {
-	FetchScanTasksResult result;
-	auto error = TryBuild(result);
+	auto result = FetchScanTasksResult(std::move(*scan_tasks_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
-	FetchScanTasksResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string FetchScanTasksResultBuilder::TryBuild(optional<FetchScanTasksResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
+	FetchScanTasksResultBuilder builder;
+	builder.SetScanTasks(ScanTasks::FromJSON(obj));
+	return builder.Build();
+}
+
+string FetchScanTasksResult::TryFromJSON(yyjson_val *obj, optional<FetchScanTasksResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 FetchScanTasksResult FetchScanTasksResult::Copy() const {
-	FetchScanTasksResult res;
-	res.scan_tasks = scan_tasks.Copy();
-	return res;
+	FetchScanTasksResultBuilder builder;
+	optional<ScanTasks> scan_tasks_tmp;
+	scan_tasks_tmp = scan_tasks.Copy();
+	builder.SetScanTasks(std::move(*scan_tasks_tmp));
+	return builder.Build();
 }
 
 string FetchScanTasksResult::Validate() const {
@@ -65,15 +75,6 @@ string FetchScanTasksResult::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string FetchScanTasksResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = scan_tasks.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	return Validate();
 }
 
 void FetchScanTasksResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

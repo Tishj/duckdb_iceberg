@@ -20,17 +20,16 @@ public:
 	OAuthError(const OAuthError &) = delete;
 	OAuthError &operator=(const OAuthError &) = delete;
 	OAuthError(OAuthError &&) = default;
-	OAuthError &operator=(OAuthError &&) = default;
+	OAuthError &operator=(OAuthError &&) = delete;
 
 private:
 	friend class OAuthErrorBuilder;
-	friend class GeneratedObjectAccess;
-	OAuthError();
+	OAuthError(string _error_p, optional<string> error_description_p, optional<string> error_uri_p);
 
 public:
 	// Deserialization
 	static OAuthError FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<OAuthError> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,13 @@ public:
 	OAuthErrorBuilder &SetError(string value);
 	OAuthErrorBuilder &SetErrorDescription(string value);
 	OAuthErrorBuilder &SetErrorUri(string value);
-	string TryBuild(OAuthError &result);
+	string TryBuild(optional<OAuthError> &result);
 	OAuthError Build();
 
 private:
-	OAuthError result_;
+	optional<string> _error_;
+	optional<string> error_description_;
+	optional<string> error_uri_;
 	bool has__error_ = false;
 };
 

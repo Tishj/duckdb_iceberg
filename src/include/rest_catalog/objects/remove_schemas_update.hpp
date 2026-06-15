@@ -21,17 +21,16 @@ public:
 	RemoveSchemasUpdate(const RemoveSchemasUpdate &) = delete;
 	RemoveSchemasUpdate &operator=(const RemoveSchemasUpdate &) = delete;
 	RemoveSchemasUpdate(RemoveSchemasUpdate &&) = default;
-	RemoveSchemasUpdate &operator=(RemoveSchemasUpdate &&) = default;
+	RemoveSchemasUpdate &operator=(RemoveSchemasUpdate &&) = delete;
 
 private:
 	friend class RemoveSchemasUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemoveSchemasUpdate();
+	RemoveSchemasUpdate(BaseUpdate base_update_p, vector<int32_t> schema_ids_p);
 
 public:
 	// Deserialization
 	static RemoveSchemasUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemoveSchemasUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemoveSchemasUpdateBuilder();
 	RemoveSchemasUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveSchemasUpdateBuilder &SetSchemaIds(vector<int32_t> value);
-	string TryBuild(RemoveSchemasUpdate &result);
+	string TryBuild(optional<RemoveSchemasUpdate> &result);
 	RemoveSchemasUpdate Build();
 
 private:
-	RemoveSchemasUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<vector<int32_t>> schema_ids_;
 	bool has_schema_ids_ = false;
 };
 

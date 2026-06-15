@@ -14,52 +14,69 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FalseExpression::FalseExpression() {
+FalseExpression::FalseExpression(ExpressionType type_p) : type(std::move(type_p)) {
 }
 
 FalseExpressionBuilder::FalseExpressionBuilder() {
 }
 
 FalseExpressionBuilder &FalseExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
-string FalseExpressionBuilder::TryBuild(FalseExpression &result) {
-	if (!has_type_) {
-		return "FalseExpression required property 'type' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 FalseExpression FalseExpressionBuilder::Build() {
-	FalseExpression result;
-	auto error = TryBuild(result);
+	if (!has_type_) {
+		throw InvalidInputException("FalseExpression required property 'type' is missing");
+	}
+	auto result = FalseExpression(std::move(*type_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
-	FalseExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string FalseExpressionBuilder::TryBuild(optional<FalseExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
+	FalseExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("FalseExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	return builder.Build();
+}
+
+string FalseExpression::TryFromJSON(yyjson_val *obj, optional<FalseExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 FalseExpression FalseExpression::Copy() const {
-	FalseExpression res;
-	res.type = type.Copy();
-	return res;
+	FalseExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	return builder.Build();
 }
 
 string FalseExpression::Validate() const {
@@ -72,20 +89,6 @@ string FalseExpression::Validate() const {
 		return StringUtil::Format("FalseExpression property 'type' must be false, not %s", type.value);
 	}
 	return "";
-}
-
-string FalseExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "FalseExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void FalseExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

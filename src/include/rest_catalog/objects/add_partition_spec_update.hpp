@@ -22,17 +22,16 @@ public:
 	AddPartitionSpecUpdate(const AddPartitionSpecUpdate &) = delete;
 	AddPartitionSpecUpdate &operator=(const AddPartitionSpecUpdate &) = delete;
 	AddPartitionSpecUpdate(AddPartitionSpecUpdate &&) = default;
-	AddPartitionSpecUpdate &operator=(AddPartitionSpecUpdate &&) = default;
+	AddPartitionSpecUpdate &operator=(AddPartitionSpecUpdate &&) = delete;
 
 private:
 	friend class AddPartitionSpecUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	AddPartitionSpecUpdate();
+	AddPartitionSpecUpdate(BaseUpdate base_update_p, PartitionSpec spec_p);
 
 public:
 	// Deserialization
 	static AddPartitionSpecUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AddPartitionSpecUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	AddPartitionSpecUpdateBuilder();
 	AddPartitionSpecUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddPartitionSpecUpdateBuilder &SetSpec(PartitionSpec value);
-	string TryBuild(AddPartitionSpecUpdate &result);
+	string TryBuild(optional<AddPartitionSpecUpdate> &result);
 	AddPartitionSpecUpdate Build();
 
 private:
-	AddPartitionSpecUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<PartitionSpec> spec_;
 	bool has_spec_ = false;
 };
 

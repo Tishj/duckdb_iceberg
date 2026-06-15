@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-UpgradeFormatVersionUpdate::UpgradeFormatVersionUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+UpgradeFormatVersionUpdate::UpgradeFormatVersionUpdate(BaseUpdate base_update_p, int32_t format_version_p)
+    : base_update(std::move(base_update_p)), format_version(std::move(format_version_p)) {
 }
 
 UpgradeFormatVersionUpdateBuilder::UpgradeFormatVersionUpdateBuilder() {
 }
 
 UpgradeFormatVersionUpdateBuilder &UpgradeFormatVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 UpgradeFormatVersionUpdateBuilder &UpgradeFormatVersionUpdateBuilder::SetFormatVersion(int32_t value) {
-	result_.format_version = std::move(value);
+	format_version_ = std::move(value);
 	has_format_version_ = true;
 	return *this;
 }
 
-string UpgradeFormatVersionUpdateBuilder::TryBuild(UpgradeFormatVersionUpdate &result) {
-	if (!has_format_version_) {
-		return "UpgradeFormatVersionUpdate required property 'format-version' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 UpgradeFormatVersionUpdate UpgradeFormatVersionUpdateBuilder::Build() {
-	UpgradeFormatVersionUpdate result;
-	auto error = TryBuild(result);
+	if (!has_format_version_) {
+		throw InvalidInputException("UpgradeFormatVersionUpdate required property 'format-version' is missing");
+	}
+	auto result = UpgradeFormatVersionUpdate(std::move(*base_update_), std::move(*format_version_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::FromJSON(yyjson_val *obj) {
-	UpgradeFormatVersionUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string UpgradeFormatVersionUpdateBuilder::TryBuild(optional<UpgradeFormatVersionUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::FromJSON(yyjson_val *obj) {
+	UpgradeFormatVersionUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto format_version_val = yyjson_obj_get(obj, "format-version");
+	if (!format_version_val) {
+		throw InvalidInputException("UpgradeFormatVersionUpdate required property 'format-version' is missing");
+	} else {
+		int32_t format_version;
+		if (yyjson_is_int(format_version_val)) {
+			format_version = yyjson_get_int(format_version_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "UpgradeFormatVersionUpdate property 'format_version' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(format_version_val)));
+		}
+		builder.SetFormatVersion(std::move(format_version));
+	}
+	return builder.Build();
+}
+
+string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj, optional<UpgradeFormatVersionUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::Copy() const {
-	UpgradeFormatVersionUpdate res;
-	res.base_update = base_update.Copy();
-	res.format_version = format_version;
-	return res;
+	UpgradeFormatVersionUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int32_t format_version_tmp;
+	format_version_tmp = format_version;
+	builder.SetFormatVersion(std::move(format_version_tmp));
+	return builder.Build();
 }
 
 string UpgradeFormatVersionUpdate::Validate() const {
@@ -75,27 +102,6 @@ string UpgradeFormatVersionUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto format_version_val = yyjson_obj_get(obj, "format-version");
-	if (!format_version_val) {
-		return "UpgradeFormatVersionUpdate required property 'format-version' is missing";
-	} else {
-		if (yyjson_is_int(format_version_val)) {
-			format_version = yyjson_get_int(format_version_val);
-		} else {
-			return StringUtil::Format(
-			    "UpgradeFormatVersionUpdate property 'format_version' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(format_version_val));
-		}
-	}
-	return Validate();
 }
 
 void UpgradeFormatVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

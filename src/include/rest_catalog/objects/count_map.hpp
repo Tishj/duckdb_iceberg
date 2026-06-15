@@ -22,17 +22,16 @@ public:
 	CountMap(const CountMap &) = delete;
 	CountMap &operator=(const CountMap &) = delete;
 	CountMap(CountMap &&) = default;
-	CountMap &operator=(CountMap &&) = default;
+	CountMap &operator=(CountMap &&) = delete;
 
 private:
 	friend class CountMapBuilder;
-	friend class GeneratedObjectAccess;
-	CountMap();
+	CountMap(optional<vector<IntegerTypeValue>> keys_p, optional<vector<LongTypeValue>> values_p);
 
 public:
 	// Deserialization
 	static CountMap FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CountMap> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	CountMapBuilder();
 	CountMapBuilder &SetKeys(vector<IntegerTypeValue> value);
 	CountMapBuilder &SetValues(vector<LongTypeValue> value);
-	string TryBuild(CountMap &result);
+	string TryBuild(optional<CountMap> &result);
 	CountMap Build();
 
 private:
-	CountMap result_;
+	optional<vector<IntegerTypeValue>> keys_;
+	optional<vector<LongTypeValue>> values_;
 };
 
 } // namespace rest_api_objects

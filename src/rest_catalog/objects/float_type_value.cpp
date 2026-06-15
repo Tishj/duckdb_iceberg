@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FloatTypeValue::FloatTypeValue() {
+FloatTypeValue::FloatTypeValue(double value_p) : value(std::move(value_p)) {
 }
 
 FloatTypeValue FloatTypeValue::FromJSON(yyjson_val *obj) {
-	FloatTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	double value;
+	if (yyjson_is_num(obj)) {
+		value = yyjson_get_num(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "FloatTypeValue property 'value' is not of type 'number', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return FloatTypeValue(std::move(value));
+}
+
+string FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 FloatTypeValue FloatTypeValue::Copy() const {
-	FloatTypeValue res;
-	res.value = value;
-	return res;
+	double value_tmp;
+	value_tmp = value;
+	return FloatTypeValue(std::move(value_tmp));
 }
 
 string FloatTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string FloatTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_num(obj)) {
-		value = yyjson_get_num(obj);
-	} else {
-		return StringUtil::Format("FloatTypeValue property 'value' is not of type 'number', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *FloatTypeValue::ToJSON(yyjson_mut_doc *doc) const {

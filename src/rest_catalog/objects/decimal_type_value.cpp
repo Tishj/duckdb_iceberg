@@ -14,38 +14,40 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DecimalTypeValue::DecimalTypeValue() {
+DecimalTypeValue::DecimalTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
 DecimalTypeValue DecimalTypeValue::FromJSON(yyjson_val *obj) {
-	DecimalTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(
+		    StringUtil::Format("DecimalTypeValue property 'value' is not of type 'string', found '%s' instead",
+		                       yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return DecimalTypeValue(std::move(value));
+}
+
+string DecimalTypeValue::TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 DecimalTypeValue DecimalTypeValue::Copy() const {
-	DecimalTypeValue res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return DecimalTypeValue(std::move(value_tmp));
 }
 
 string DecimalTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string DecimalTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("DecimalTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *DecimalTypeValue::ToJSON(yyjson_mut_doc *doc) const {

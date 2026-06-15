@@ -18,13 +18,13 @@ public:
 	FieldName(const FieldName &) = delete;
 	FieldName &operator=(const FieldName &) = delete;
 	FieldName(FieldName &&) = default;
-	FieldName &operator=(FieldName &&) = default;
-	FieldName();
+	FieldName &operator=(FieldName &&) = delete;
+	FieldName(string value_p);
 
 public:
 	// Deserialization
 	static FieldName FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FieldName> &result);
 	string Validate() const;
 
 	// Copy

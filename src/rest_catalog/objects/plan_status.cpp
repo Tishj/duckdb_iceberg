@@ -14,22 +14,34 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PlanStatus::PlanStatus() {
+PlanStatus::PlanStatus(string value_p) : value(std::move(value_p)) {
 }
 
 PlanStatus PlanStatus::FromJSON(yyjson_val *obj) {
-	PlanStatus res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "PlanStatus property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return PlanStatus(std::move(value));
+}
+
+string PlanStatus::TryFromJSON(yyjson_val *obj, optional<PlanStatus> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 PlanStatus PlanStatus::Copy() const {
-	PlanStatus res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return PlanStatus(std::move(value_tmp));
 }
 
 string PlanStatus::Validate() const {
@@ -40,17 +52,6 @@ string PlanStatus::Validate() const {
 		    "PlanStatus property 'value' must be one of [completed, submitted, cancelled, failed], not %s", value);
 	}
 	return "";
-}
-
-string PlanStatus::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("PlanStatus property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *PlanStatus::ToJSON(yyjson_mut_doc *doc) const {

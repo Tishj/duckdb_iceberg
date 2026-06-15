@@ -23,17 +23,19 @@ public:
 	ContentFile(const ContentFile &) = delete;
 	ContentFile &operator=(const ContentFile &) = delete;
 	ContentFile(ContentFile &&) = default;
-	ContentFile &operator=(ContentFile &&) = default;
+	ContentFile &operator=(ContentFile &&) = delete;
 
 private:
 	friend class ContentFileBuilder;
-	friend class GeneratedObjectAccess;
-	ContentFile();
+	ContentFile(int32_t spec_id_p, vector<PrimitiveTypeValue> partition_p, string content_p, string file_path_p,
+	            FileFormat file_format_p, int64_t file_size_in_bytes_p, int64_t record_count_p,
+	            optional<BinaryTypeValue> key_metadata_p, optional<vector<int64_t>> split_offsets_p,
+	            optional<int32_t> sort_order_id_p);
 
 public:
 	// Deserialization
 	static ContentFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ContentFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -69,11 +71,20 @@ public:
 	ContentFileBuilder &SetKeyMetadata(BinaryTypeValue value);
 	ContentFileBuilder &SetSplitOffsets(vector<int64_t> value);
 	ContentFileBuilder &SetSortOrderId(int32_t value);
-	string TryBuild(ContentFile &result);
+	string TryBuild(optional<ContentFile> &result);
 	ContentFile Build();
 
 private:
-	ContentFile result_;
+	optional<int32_t> spec_id_;
+	optional<vector<PrimitiveTypeValue>> partition_;
+	optional<string> content_;
+	optional<string> file_path_;
+	optional<FileFormat> file_format_;
+	optional<int64_t> file_size_in_bytes_;
+	optional<int64_t> record_count_;
+	optional<BinaryTypeValue> key_metadata_;
+	optional<vector<int64_t>> split_offsets_;
+	optional<int32_t> sort_order_id_;
 	bool has_spec_id_ = false;
 	bool has_partition_ = false;
 	bool has_content_ = false;

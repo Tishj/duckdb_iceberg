@@ -18,13 +18,13 @@ public:
 	DoubleTypeValue(const DoubleTypeValue &) = delete;
 	DoubleTypeValue &operator=(const DoubleTypeValue &) = delete;
 	DoubleTypeValue(DoubleTypeValue &&) = default;
-	DoubleTypeValue &operator=(DoubleTypeValue &&) = default;
-	DoubleTypeValue();
+	DoubleTypeValue &operator=(DoubleTypeValue &&) = delete;
+	DoubleTypeValue(double value_p);
 
 public:
 	// Deserialization
 	static DoubleTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &result);
 	string Validate() const;
 
 	// Copy

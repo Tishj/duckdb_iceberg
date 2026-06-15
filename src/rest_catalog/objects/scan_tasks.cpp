@@ -14,78 +14,148 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ScanTasks::ScanTasks() {
+ScanTasks::ScanTasks(optional<vector<DeleteFile>> delete_files_p, optional<vector<FileScanTask>> file_scan_tasks_p,
+                     optional<vector<PlanTask>> plan_tasks_p)
+    : delete_files(std::move(delete_files_p)), file_scan_tasks(std::move(file_scan_tasks_p)),
+      plan_tasks(std::move(plan_tasks_p)) {
 }
 
 ScanTasksBuilder::ScanTasksBuilder() {
 }
 
 ScanTasksBuilder &ScanTasksBuilder::SetDeleteFiles(vector<DeleteFile> value) {
-	result_.delete_files = std::move(value);
+	delete_files_ = std::move(value);
 	return *this;
 }
 
 ScanTasksBuilder &ScanTasksBuilder::SetFileScanTasks(vector<FileScanTask> value) {
-	result_.file_scan_tasks = std::move(value);
+	file_scan_tasks_ = std::move(value);
 	return *this;
 }
 
 ScanTasksBuilder &ScanTasksBuilder::SetPlanTasks(vector<PlanTask> value) {
-	result_.plan_tasks = std::move(value);
+	plan_tasks_ = std::move(value);
 	return *this;
 }
 
-string ScanTasksBuilder::TryBuild(ScanTasks &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ScanTasks ScanTasksBuilder::Build() {
-	ScanTasks result;
-	auto error = TryBuild(result);
+	auto result = ScanTasks(std::move(delete_files_), std::move(file_scan_tasks_), std::move(plan_tasks_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
-	ScanTasks res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ScanTasksBuilder::TryBuild(optional<ScanTasks> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
+	ScanTasksBuilder builder;
+	auto delete_files_val = yyjson_obj_get(obj, "delete-files");
+	if (delete_files_val) {
+		vector<DeleteFile> delete_files;
+		if (yyjson_is_arr(delete_files_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(delete_files_val, idx, max, val) {
+				auto tmp = DeleteFile::FromJSON(val);
+				delete_files.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("ScanTasks property 'delete_files' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(delete_files_val));
+		}
+		builder.SetDeleteFiles(std::move(delete_files));
+	}
+	auto file_scan_tasks_val = yyjson_obj_get(obj, "file-scan-tasks");
+	if (file_scan_tasks_val) {
+		vector<FileScanTask> file_scan_tasks;
+		if (yyjson_is_arr(file_scan_tasks_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(file_scan_tasks_val, idx, max, val) {
+				auto tmp = FileScanTask::FromJSON(val);
+				file_scan_tasks.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("ScanTasks property 'file_scan_tasks' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(file_scan_tasks_val));
+		}
+		builder.SetFileScanTasks(std::move(file_scan_tasks));
+	}
+	auto plan_tasks_val = yyjson_obj_get(obj, "plan-tasks");
+	if (plan_tasks_val) {
+		vector<PlanTask> plan_tasks;
+		if (yyjson_is_arr(plan_tasks_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(plan_tasks_val, idx, max, val) {
+				auto tmp = PlanTask::FromJSON(val);
+				plan_tasks.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("ScanTasks property 'plan_tasks' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(plan_tasks_val));
+		}
+		builder.SetPlanTasks(std::move(plan_tasks));
+	}
+	return builder.Build();
+}
+
+string ScanTasks::TryFromJSON(yyjson_val *obj, optional<ScanTasks> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ScanTasks ScanTasks::Copy() const {
-	ScanTasks res;
+	ScanTasksBuilder builder;
+	vector<DeleteFile> delete_files_tmp;
 	if (delete_files.has_value()) {
-		res.delete_files.emplace();
-		(*res.delete_files).reserve((*delete_files).size());
+		delete_files_tmp.emplace();
+		(*delete_files_tmp).reserve((*delete_files).size());
 		for (auto &item : (*delete_files)) {
-			(*res.delete_files).emplace_back(item.Copy());
+			(*delete_files_tmp).emplace_back(item.Copy());
 		}
 	}
+	if (delete_files_tmp.has_value()) {
+		builder.SetDeleteFiles(std::move(delete_files_tmp));
+	}
+	vector<FileScanTask> file_scan_tasks_tmp;
 	if (file_scan_tasks.has_value()) {
-		res.file_scan_tasks.emplace();
-		(*res.file_scan_tasks).reserve((*file_scan_tasks).size());
+		file_scan_tasks_tmp.emplace();
+		(*file_scan_tasks_tmp).reserve((*file_scan_tasks).size());
 		for (auto &item : (*file_scan_tasks)) {
-			(*res.file_scan_tasks).emplace_back(item.Copy());
+			(*file_scan_tasks_tmp).emplace_back(item.Copy());
 		}
 	}
+	if (file_scan_tasks_tmp.has_value()) {
+		builder.SetFileScanTasks(std::move(file_scan_tasks_tmp));
+	}
+	vector<PlanTask> plan_tasks_tmp;
 	if (plan_tasks.has_value()) {
-		res.plan_tasks.emplace();
-		(*res.plan_tasks).reserve((*plan_tasks).size());
+		plan_tasks_tmp.emplace();
+		(*plan_tasks_tmp).reserve((*plan_tasks).size());
 		for (auto &item : (*plan_tasks)) {
-			(*res.plan_tasks).emplace_back(item.Copy());
+			(*plan_tasks_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (plan_tasks_tmp.has_value()) {
+		builder.SetPlanTasks(std::move(plan_tasks_tmp));
+	}
+	return builder.Build();
 }
 
 string ScanTasks::Validate() const {
@@ -115,73 +185,6 @@ string ScanTasks::Validate() const {
 		}
 	}
 	return "";
-}
-
-string ScanTasks::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto delete_files_val = yyjson_obj_get(obj, "delete-files");
-	if (delete_files_val) {
-		vector<DeleteFile> delete_files_tmp;
-		if (yyjson_is_arr(delete_files_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(delete_files_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<DeleteFile>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				delete_files_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "ScanTasks property 'delete_files_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(delete_files_val));
-		}
-		delete_files = std::move(delete_files_tmp);
-	}
-	auto file_scan_tasks_val = yyjson_obj_get(obj, "file-scan-tasks");
-	if (file_scan_tasks_val) {
-		vector<FileScanTask> file_scan_tasks_tmp;
-		if (yyjson_is_arr(file_scan_tasks_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(file_scan_tasks_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<FileScanTask>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				file_scan_tasks_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "ScanTasks property 'file_scan_tasks_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(file_scan_tasks_val));
-		}
-		file_scan_tasks = std::move(file_scan_tasks_tmp);
-	}
-	auto plan_tasks_val = yyjson_obj_get(obj, "plan-tasks");
-	if (plan_tasks_val) {
-		vector<PlanTask> plan_tasks_tmp;
-		if (yyjson_is_arr(plan_tasks_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(plan_tasks_val, idx, max, val) {
-				PlanTask tmp;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				plan_tasks_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format("ScanTasks property 'plan_tasks_tmp' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(plan_tasks_val));
-		}
-		plan_tasks = std::move(plan_tasks_tmp);
-	}
-	return Validate();
 }
 
 void ScanTasks::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

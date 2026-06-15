@@ -23,17 +23,17 @@ public:
 	StructField(const StructField &) = delete;
 	StructField &operator=(const StructField &) = delete;
 	StructField(StructField &&) = default;
-	StructField &operator=(StructField &&) = default;
+	StructField &operator=(StructField &&) = delete;
 
 private:
 	friend class StructFieldBuilder;
-	friend class GeneratedObjectAccess;
-	StructField();
+	StructField(int32_t id_p, string name_p, unique_ptr<Type> type_p, bool required_p, optional<string> _doc_p,
+	            optional<PrimitiveTypeValue> initial_default_p, optional<PrimitiveTypeValue> write_default_p);
 
 public:
 	// Deserialization
 	static StructField FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<StructField> &result);
 	string Validate() const;
 
 	// Copy
@@ -63,11 +63,17 @@ public:
 	StructFieldBuilder &SetDoc(string value);
 	StructFieldBuilder &SetInitialDefault(PrimitiveTypeValue value);
 	StructFieldBuilder &SetWriteDefault(PrimitiveTypeValue value);
-	string TryBuild(StructField &result);
+	string TryBuild(optional<StructField> &result);
 	StructField Build();
 
 private:
-	StructField result_;
+	optional<int32_t> id_;
+	optional<string> name_;
+	unique_ptr<Type> type_;
+	optional<bool> required_;
+	optional<string> _doc_;
+	optional<PrimitiveTypeValue> initial_default_;
+	optional<PrimitiveTypeValue> write_default_;
 	bool has_id_ = false;
 	bool has_name_ = false;
 	bool has_type_ = false;

@@ -14,65 +14,109 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-StructType::StructType() {
+StructType::StructType(string type_p, vector<unique_ptr<StructField>> fields_p)
+    : type(std::move(type_p)), fields(std::move(fields_p)) {
 }
 
 StructTypeBuilder::StructTypeBuilder() {
 }
 
 StructTypeBuilder &StructTypeBuilder::SetType(string value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 StructTypeBuilder &StructTypeBuilder::SetFields(vector<unique_ptr<StructField>> value) {
-	result_.fields = std::move(value);
+	fields_ = std::move(value);
 	has_fields_ = true;
 	return *this;
 }
 
-string StructTypeBuilder::TryBuild(StructType &result) {
+StructType StructTypeBuilder::Build() {
 	if (!has_type_) {
-		return "StructType required property 'type' is missing";
+		throw InvalidInputException("StructType required property 'type' is missing");
 	}
 	if (!has_fields_) {
-		return "StructType required property 'fields' is missing";
+		throw InvalidInputException("StructType required property 'fields' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-StructType StructTypeBuilder::Build() {
-	StructType result;
-	auto error = TryBuild(result);
+	auto result = StructType(std::move(*type_), std::move(*fields_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-StructType StructType::FromJSON(yyjson_val *obj) {
-	StructType res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string StructTypeBuilder::TryBuild(optional<StructType> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+StructType StructType::FromJSON(yyjson_val *obj) {
+	StructTypeBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("StructType required property 'type' is missing");
+	} else {
+		string type;
+		if (yyjson_is_str(type_val)) {
+			type = yyjson_get_str(type_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("StructType property 'type' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(type_val)));
+		}
+		builder.SetType(std::move(type));
+	}
+	auto fields_val = yyjson_obj_get(obj, "fields");
+	if (!fields_val) {
+		throw InvalidInputException("StructType required property 'fields' is missing");
+	} else {
+		vector<unique_ptr<StructField>> fields;
+		if (yyjson_is_arr(fields_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(fields_val, idx, max, val) {
+				auto tmp = make_uniq<StructField>(StructField::FromJSON(val));
+				fields.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("StructType property 'fields' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(fields_val));
+		}
+		builder.SetFields(std::move(fields));
+	}
+	return builder.Build();
+}
+
+string StructType::TryFromJSON(yyjson_val *obj, optional<StructType> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 StructType StructType::Copy() const {
-	StructType res;
-	res.type = type;
-	res.fields.reserve(fields.size());
+	StructTypeBuilder builder;
+	string type_tmp;
+	type_tmp = type;
+	builder.SetType(std::move(type_tmp));
+	vector<unique_ptr<StructField>> fields_tmp;
+	fields_tmp.reserve(fields.size());
 	for (auto &item : fields) {
-		res.fields.emplace_back(item ? make_uniq<StructField>(item->Copy()) : nullptr);
+		fields_tmp.emplace_back(item ? make_uniq<StructField>(item->Copy()) : nullptr);
 	}
-	return res;
+	builder.SetFields(std::move(fields_tmp));
+	return builder.Build();
 }
 
 string StructType::Validate() const {
@@ -87,43 +131,6 @@ string StructType::Validate() const {
 		}
 	}
 	return "";
-}
-
-string StructType::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "StructType required property 'type' is missing";
-	} else {
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			return StringUtil::Format("StructType property 'type' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(type_val));
-		}
-	}
-	auto fields_val = yyjson_obj_get(obj, "fields");
-	if (!fields_val) {
-		return "StructType required property 'fields' is missing";
-	} else {
-		if (yyjson_is_arr(fields_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(fields_val, idx, max, val) {
-				auto tmp_p = GeneratedObjectAccess::CreateUnique<StructField>();
-				auto &tmp = *tmp_p;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				fields.emplace_back(std::move(tmp_p));
-			}
-		} else {
-			return StringUtil::Format("StructType property 'fields' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(fields_val));
-		}
-	}
-	return Validate();
 }
 
 void StructType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

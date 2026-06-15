@@ -18,13 +18,13 @@ public:
 	StringTypeValue(const StringTypeValue &) = delete;
 	StringTypeValue &operator=(const StringTypeValue &) = delete;
 	StringTypeValue(StringTypeValue &&) = default;
-	StringTypeValue &operator=(StringTypeValue &&) = default;
-	StringTypeValue();
+	StringTypeValue &operator=(StringTypeValue &&) = delete;
+	StringTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static StringTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<StringTypeValue> &result);
 	string Validate() const;
 
 	// Copy

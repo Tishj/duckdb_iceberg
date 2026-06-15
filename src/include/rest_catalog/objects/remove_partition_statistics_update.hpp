@@ -21,17 +21,16 @@ public:
 	RemovePartitionStatisticsUpdate(const RemovePartitionStatisticsUpdate &) = delete;
 	RemovePartitionStatisticsUpdate &operator=(const RemovePartitionStatisticsUpdate &) = delete;
 	RemovePartitionStatisticsUpdate(RemovePartitionStatisticsUpdate &&) = default;
-	RemovePartitionStatisticsUpdate &operator=(RemovePartitionStatisticsUpdate &&) = default;
+	RemovePartitionStatisticsUpdate &operator=(RemovePartitionStatisticsUpdate &&) = delete;
 
 private:
 	friend class RemovePartitionStatisticsUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemovePartitionStatisticsUpdate();
+	RemovePartitionStatisticsUpdate(BaseUpdate base_update_p, int64_t snapshot_id_p);
 
 public:
 	// Deserialization
 	static RemovePartitionStatisticsUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemovePartitionStatisticsUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemovePartitionStatisticsUpdateBuilder();
 	RemovePartitionStatisticsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemovePartitionStatisticsUpdateBuilder &SetSnapshotId(int64_t value);
-	string TryBuild(RemovePartitionStatisticsUpdate &result);
+	string TryBuild(optional<RemovePartitionStatisticsUpdate> &result);
 	RemovePartitionStatisticsUpdate Build();
 
 private:
-	RemovePartitionStatisticsUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<int64_t> snapshot_id_;
 	bool has_snapshot_id_ = false;
 };
 

@@ -22,17 +22,17 @@ public:
 	MapType(const MapType &) = delete;
 	MapType &operator=(const MapType &) = delete;
 	MapType(MapType &&) = default;
-	MapType &operator=(MapType &&) = default;
+	MapType &operator=(MapType &&) = delete;
 
 private:
 	friend class MapTypeBuilder;
-	friend class GeneratedObjectAccess;
-	MapType();
+	MapType(string type_p, int32_t key_id_p, unique_ptr<Type> key_p, int32_t value_id_p, unique_ptr<Type> value_p,
+	        bool value_required_p);
 
 public:
 	// Deserialization
 	static MapType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<MapType> &result);
 	string Validate() const;
 
 	// Copy
@@ -60,11 +60,16 @@ public:
 	MapTypeBuilder &SetValueId(int32_t value);
 	MapTypeBuilder &SetValue(unique_ptr<Type> value);
 	MapTypeBuilder &SetValueRequired(bool value);
-	string TryBuild(MapType &result);
+	string TryBuild(optional<MapType> &result);
 	MapType Build();
 
 private:
-	MapType result_;
+	optional<string> type_;
+	optional<int32_t> key_id_;
+	unique_ptr<Type> key_;
+	optional<int32_t> value_id_;
+	unique_ptr<Type> value_;
+	optional<bool> value_required_;
 	bool has_type_ = false;
 	bool has_key_id_ = false;
 	bool has_key_ = false;

@@ -18,13 +18,13 @@ public:
 	ExpressionType(const ExpressionType &) = delete;
 	ExpressionType &operator=(const ExpressionType &) = delete;
 	ExpressionType(ExpressionType &&) = default;
-	ExpressionType &operator=(ExpressionType &&) = default;
-	ExpressionType();
+	ExpressionType &operator=(ExpressionType &&) = delete;
+	ExpressionType(string value_p);
 
 public:
 	// Deserialization
 	static ExpressionType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result);
 	string Validate() const;
 
 	// Copy

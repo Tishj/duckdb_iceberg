@@ -14,55 +14,84 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CommitTransactionRequest::CommitTransactionRequest() {
+CommitTransactionRequest::CommitTransactionRequest(vector<CommitTableRequest> table_changes_p)
+    : table_changes(std::move(table_changes_p)) {
 }
 
 CommitTransactionRequestBuilder::CommitTransactionRequestBuilder() {
 }
 
 CommitTransactionRequestBuilder &CommitTransactionRequestBuilder::SetTableChanges(vector<CommitTableRequest> value) {
-	result_.table_changes = std::move(value);
+	table_changes_ = std::move(value);
 	has_table_changes_ = true;
 	return *this;
 }
 
-string CommitTransactionRequestBuilder::TryBuild(CommitTransactionRequest &result) {
-	if (!has_table_changes_) {
-		return "CommitTransactionRequest required property 'table-changes' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 CommitTransactionRequest CommitTransactionRequestBuilder::Build() {
-	CommitTransactionRequest result;
-	auto error = TryBuild(result);
+	if (!has_table_changes_) {
+		throw InvalidInputException("CommitTransactionRequest required property 'table-changes' is missing");
+	}
+	auto result = CommitTransactionRequest(std::move(*table_changes_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
-	CommitTransactionRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CommitTransactionRequestBuilder::TryBuild(optional<CommitTransactionRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
+	CommitTransactionRequestBuilder builder;
+	auto table_changes_val = yyjson_obj_get(obj, "table-changes");
+	if (!table_changes_val) {
+		throw InvalidInputException("CommitTransactionRequest required property 'table-changes' is missing");
+	} else {
+		vector<CommitTableRequest> table_changes;
+		if (yyjson_is_arr(table_changes_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(table_changes_val, idx, max, val) {
+				auto tmp = CommitTableRequest::FromJSON(val);
+				table_changes.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "CommitTransactionRequest property 'table_changes' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(table_changes_val));
+		}
+		builder.SetTableChanges(std::move(table_changes));
+	}
+	return builder.Build();
+}
+
+string CommitTransactionRequest::TryFromJSON(yyjson_val *obj, optional<CommitTransactionRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 CommitTransactionRequest CommitTransactionRequest::Copy() const {
-	CommitTransactionRequest res;
-	res.table_changes.reserve(table_changes.size());
+	CommitTransactionRequestBuilder builder;
+	vector<CommitTableRequest> table_changes_tmp;
+	table_changes_tmp.reserve(table_changes.size());
 	for (auto &item : table_changes) {
-		res.table_changes.emplace_back(item.Copy());
+		table_changes_tmp.emplace_back(item.Copy());
 	}
-	return res;
+	builder.SetTableChanges(std::move(table_changes_tmp));
+	return builder.Build();
 }
 
 string CommitTransactionRequest::Validate() const {
@@ -74,32 +103,6 @@ string CommitTransactionRequest::Validate() const {
 		}
 	}
 	return "";
-}
-
-string CommitTransactionRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto table_changes_val = yyjson_obj_get(obj, "table-changes");
-	if (!table_changes_val) {
-		return "CommitTransactionRequest required property 'table-changes' is missing";
-	} else {
-		if (yyjson_is_arr(table_changes_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(table_changes_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<CommitTableRequest>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				table_changes.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "CommitTransactionRequest property 'table_changes' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(table_changes_val));
-		}
-	}
-	return Validate();
 }
 
 void CommitTransactionRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

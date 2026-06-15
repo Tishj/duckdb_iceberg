@@ -21,17 +21,16 @@ public:
 	IcebergErrorResponse(const IcebergErrorResponse &) = delete;
 	IcebergErrorResponse &operator=(const IcebergErrorResponse &) = delete;
 	IcebergErrorResponse(IcebergErrorResponse &&) = default;
-	IcebergErrorResponse &operator=(IcebergErrorResponse &&) = default;
+	IcebergErrorResponse &operator=(IcebergErrorResponse &&) = delete;
 
 private:
 	friend class IcebergErrorResponseBuilder;
-	friend class GeneratedObjectAccess;
-	IcebergErrorResponse();
+	IcebergErrorResponse(ErrorModel _error_p);
 
 public:
 	// Deserialization
 	static IcebergErrorResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<IcebergErrorResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class IcebergErrorResponseBuilder {
 public:
 	IcebergErrorResponseBuilder();
 	IcebergErrorResponseBuilder &SetError(ErrorModel value);
-	string TryBuild(IcebergErrorResponse &result);
+	string TryBuild(optional<IcebergErrorResponse> &result);
 	IcebergErrorResponse Build();
 
 private:
-	IcebergErrorResponse result_;
+	optional<ErrorModel> _error_;
 	bool has__error_ = false;
 };
 

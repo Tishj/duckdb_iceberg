@@ -14,38 +14,40 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-IntegerTypeValue::IntegerTypeValue() {
+IntegerTypeValue::IntegerTypeValue(int32_t value_p) : value(std::move(value_p)) {
 }
 
 IntegerTypeValue IntegerTypeValue::FromJSON(yyjson_val *obj) {
-	IntegerTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	int32_t value;
+	if (yyjson_is_int(obj)) {
+		value = yyjson_get_int(obj);
+	} else {
+		throw InvalidInputException(
+		    StringUtil::Format("IntegerTypeValue property 'value' is not of type 'integer', found '%s' instead",
+		                       yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return IntegerTypeValue(std::move(value));
+}
+
+string IntegerTypeValue::TryFromJSON(yyjson_val *obj, optional<IntegerTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 IntegerTypeValue IntegerTypeValue::Copy() const {
-	IntegerTypeValue res;
-	res.value = value;
-	return res;
+	int32_t value_tmp;
+	value_tmp = value;
+	return IntegerTypeValue(std::move(value_tmp));
 }
 
 string IntegerTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string IntegerTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_int(obj)) {
-		value = yyjson_get_int(obj);
-	} else {
-		return StringUtil::Format("IntegerTypeValue property 'value' is not of type 'integer', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *IntegerTypeValue::ToJSON(yyjson_mut_doc *doc) const {

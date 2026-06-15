@@ -21,17 +21,16 @@ public:
 	EmptyPlanningResult(const EmptyPlanningResult &) = delete;
 	EmptyPlanningResult &operator=(const EmptyPlanningResult &) = delete;
 	EmptyPlanningResult(EmptyPlanningResult &&) = default;
-	EmptyPlanningResult &operator=(EmptyPlanningResult &&) = default;
+	EmptyPlanningResult &operator=(EmptyPlanningResult &&) = delete;
 
 private:
 	friend class EmptyPlanningResultBuilder;
-	friend class GeneratedObjectAccess;
-	EmptyPlanningResult();
+	EmptyPlanningResult(PlanStatus status_p);
 
 public:
 	// Deserialization
 	static EmptyPlanningResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<EmptyPlanningResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class EmptyPlanningResultBuilder {
 public:
 	EmptyPlanningResultBuilder();
 	EmptyPlanningResultBuilder &SetStatus(PlanStatus value);
-	string TryBuild(EmptyPlanningResult &result);
+	string TryBuild(optional<EmptyPlanningResult> &result);
 	EmptyPlanningResult Build();
 
 private:
-	EmptyPlanningResult result_;
+	optional<PlanStatus> status_;
 	bool has_status_ = false;
 };
 

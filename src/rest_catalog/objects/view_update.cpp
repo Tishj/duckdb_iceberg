@@ -14,122 +14,213 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewUpdate::ViewUpdate()
-    : assign_uuidupdate(GeneratedObjectAccess::Create<optional<AssignUUIDUpdate>>()),
-      upgrade_format_version_update(GeneratedObjectAccess::Create<optional<UpgradeFormatVersionUpdate>>()),
-      add_schema_update(GeneratedObjectAccess::Create<optional<AddSchemaUpdate>>()),
-      set_location_update(GeneratedObjectAccess::Create<optional<SetLocationUpdate>>()),
-      set_properties_update(GeneratedObjectAccess::Create<optional<SetPropertiesUpdate>>()),
-      remove_properties_update(GeneratedObjectAccess::Create<optional<RemovePropertiesUpdate>>()),
-      add_view_version_update(GeneratedObjectAccess::Create<optional<AddViewVersionUpdate>>()),
-      set_current_view_version_update(GeneratedObjectAccess::Create<optional<SetCurrentViewVersionUpdate>>()) {
+ViewUpdate::ViewUpdate(optional<AssignUUIDUpdate> assign_uuidupdate_p,
+                       optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_p,
+                       optional<AddSchemaUpdate> add_schema_update_p, optional<SetLocationUpdate> set_location_update_p,
+                       optional<SetPropertiesUpdate> set_properties_update_p,
+                       optional<RemovePropertiesUpdate> remove_properties_update_p,
+                       optional<AddViewVersionUpdate> add_view_version_update_p,
+                       optional<SetCurrentViewVersionUpdate> set_current_view_version_update_p)
+    : assign_uuidupdate(std::move(assign_uuidupdate_p)),
+      upgrade_format_version_update(std::move(upgrade_format_version_update_p)),
+      add_schema_update(std::move(add_schema_update_p)), set_location_update(std::move(set_location_update_p)),
+      set_properties_update(std::move(set_properties_update_p)),
+      remove_properties_update(std::move(remove_properties_update_p)),
+      add_view_version_update(std::move(add_view_version_update_p)),
+      set_current_view_version_update(std::move(set_current_view_version_update_p)) {
 }
 
 ViewUpdateBuilder::ViewUpdateBuilder() {
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetAssignUuidupdate(AssignUUIDUpdate value) {
-	result_.assign_uuidupdate = std::move(value);
+	assign_uuidupdate_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value) {
-	result_.upgrade_format_version_update = std::move(value);
+	upgrade_format_version_update_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetAddSchemaUpdate(AddSchemaUpdate value) {
-	result_.add_schema_update = std::move(value);
+	add_schema_update_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetSetLocationUpdate(SetLocationUpdate value) {
-	result_.set_location_update = std::move(value);
+	set_location_update_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetSetPropertiesUpdate(SetPropertiesUpdate value) {
-	result_.set_properties_update = std::move(value);
+	set_properties_update_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetRemovePropertiesUpdate(RemovePropertiesUpdate value) {
-	result_.remove_properties_update = std::move(value);
+	remove_properties_update_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetAddViewVersionUpdate(AddViewVersionUpdate value) {
-	result_.add_view_version_update = std::move(value);
+	add_view_version_update_ = std::move(value);
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate value) {
-	result_.set_current_view_version_update = std::move(value);
+	set_current_view_version_update_ = std::move(value);
 	return *this;
 }
 
-string ViewUpdateBuilder::TryBuild(ViewUpdate &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ViewUpdate ViewUpdateBuilder::Build() {
-	ViewUpdate result;
-	auto error = TryBuild(result);
+	auto result = ViewUpdate(std::move(assign_uuidupdate_), std::move(upgrade_format_version_update_),
+	                         std::move(add_schema_update_), std::move(set_location_update_),
+	                         std::move(set_properties_update_), std::move(remove_properties_update_),
+	                         std::move(add_view_version_update_), std::move(set_current_view_version_update_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ViewUpdate ViewUpdate::FromJSON(yyjson_val *obj) {
-	ViewUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ViewUpdateBuilder::TryBuild(optional<ViewUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ViewUpdate ViewUpdate::FromJSON(yyjson_val *obj) {
+	ViewUpdateBuilder builder;
+	int matched_any_of_variants = 0;
+	try {
+		builder.SetAssignUuidupdate(AssignUUIDUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddSchemaUpdate(AddSchemaUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetLocationUpdate(SetLocationUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetPropertiesUpdate(SetPropertiesUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemovePropertiesUpdate(RemovePropertiesUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddViewVersionUpdate(AddViewVersionUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	if (matched_any_of_variants == 0) {
+		throw InvalidInputException("ViewUpdate failed to parse, none of the anyOf candidates matched");
+	}
+	return builder.Build();
+}
+
+string ViewUpdate::TryFromJSON(yyjson_val *obj, optional<ViewUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ViewUpdate ViewUpdate::Copy() const {
-	ViewUpdate res;
+	ViewUpdateBuilder builder;
+	optional<AssignUUIDUpdate> assign_uuidupdate_tmp;
 	if (assign_uuidupdate.has_value()) {
-		res.assign_uuidupdate = GeneratedObjectAccess::Create<AssignUUIDUpdate>();
-		(*res.assign_uuidupdate) = (*assign_uuidupdate).Copy();
+		assign_uuidupdate_tmp.emplace();
+		(*assign_uuidupdate_tmp) = (*assign_uuidupdate).Copy();
 	}
+	if (assign_uuidupdate_tmp.has_value()) {
+		builder.SetAssignUuidupdate(std::move(*assign_uuidupdate_tmp));
+	}
+	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_tmp;
 	if (upgrade_format_version_update.has_value()) {
-		res.upgrade_format_version_update = GeneratedObjectAccess::Create<UpgradeFormatVersionUpdate>();
-		(*res.upgrade_format_version_update) = (*upgrade_format_version_update).Copy();
+		upgrade_format_version_update_tmp.emplace();
+		(*upgrade_format_version_update_tmp) = (*upgrade_format_version_update).Copy();
 	}
+	if (upgrade_format_version_update_tmp.has_value()) {
+		builder.SetUpgradeFormatVersionUpdate(std::move(*upgrade_format_version_update_tmp));
+	}
+	optional<AddSchemaUpdate> add_schema_update_tmp;
 	if (add_schema_update.has_value()) {
-		res.add_schema_update = GeneratedObjectAccess::Create<AddSchemaUpdate>();
-		(*res.add_schema_update) = (*add_schema_update).Copy();
+		add_schema_update_tmp.emplace();
+		(*add_schema_update_tmp) = (*add_schema_update).Copy();
 	}
+	if (add_schema_update_tmp.has_value()) {
+		builder.SetAddSchemaUpdate(std::move(*add_schema_update_tmp));
+	}
+	optional<SetLocationUpdate> set_location_update_tmp;
 	if (set_location_update.has_value()) {
-		res.set_location_update = GeneratedObjectAccess::Create<SetLocationUpdate>();
-		(*res.set_location_update) = (*set_location_update).Copy();
+		set_location_update_tmp.emplace();
+		(*set_location_update_tmp) = (*set_location_update).Copy();
 	}
+	if (set_location_update_tmp.has_value()) {
+		builder.SetSetLocationUpdate(std::move(*set_location_update_tmp));
+	}
+	optional<SetPropertiesUpdate> set_properties_update_tmp;
 	if (set_properties_update.has_value()) {
-		res.set_properties_update = GeneratedObjectAccess::Create<SetPropertiesUpdate>();
-		(*res.set_properties_update) = (*set_properties_update).Copy();
+		set_properties_update_tmp.emplace();
+		(*set_properties_update_tmp) = (*set_properties_update).Copy();
 	}
+	if (set_properties_update_tmp.has_value()) {
+		builder.SetSetPropertiesUpdate(std::move(*set_properties_update_tmp));
+	}
+	optional<RemovePropertiesUpdate> remove_properties_update_tmp;
 	if (remove_properties_update.has_value()) {
-		res.remove_properties_update = GeneratedObjectAccess::Create<RemovePropertiesUpdate>();
-		(*res.remove_properties_update) = (*remove_properties_update).Copy();
+		remove_properties_update_tmp.emplace();
+		(*remove_properties_update_tmp) = (*remove_properties_update).Copy();
 	}
+	if (remove_properties_update_tmp.has_value()) {
+		builder.SetRemovePropertiesUpdate(std::move(*remove_properties_update_tmp));
+	}
+	optional<AddViewVersionUpdate> add_view_version_update_tmp;
 	if (add_view_version_update.has_value()) {
-		res.add_view_version_update = GeneratedObjectAccess::Create<AddViewVersionUpdate>();
-		(*res.add_view_version_update) = (*add_view_version_update).Copy();
+		add_view_version_update_tmp.emplace();
+		(*add_view_version_update_tmp) = (*add_view_version_update).Copy();
 	}
+	if (add_view_version_update_tmp.has_value()) {
+		builder.SetAddViewVersionUpdate(std::move(*add_view_version_update_tmp));
+	}
+	optional<SetCurrentViewVersionUpdate> set_current_view_version_update_tmp;
 	if (set_current_view_version_update.has_value()) {
-		res.set_current_view_version_update = GeneratedObjectAccess::Create<SetCurrentViewVersionUpdate>();
-		(*res.set_current_view_version_update) = (*set_current_view_version_update).Copy();
+		set_current_view_version_update_tmp.emplace();
+		(*set_current_view_version_update_tmp) = (*set_current_view_version_update).Copy();
 	}
-	return res;
+	if (set_current_view_version_update_tmp.has_value()) {
+		builder.SetSetCurrentViewVersionUpdate(std::move(*set_current_view_version_update_tmp));
+	}
+	return builder.Build();
 }
 
 string ViewUpdate::Validate() const {
@@ -195,65 +286,6 @@ string ViewUpdate::Validate() const {
 		return "ViewUpdate must have at least one anyOf variant set";
 	}
 	return "";
-}
-
-string ViewUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	assign_uuidupdate = GeneratedObjectAccess::Create<AssignUUIDUpdate>();
-	error = assign_uuidupdate->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		assign_uuidupdate = nullopt;
-	}
-	upgrade_format_version_update = GeneratedObjectAccess::Create<UpgradeFormatVersionUpdate>();
-	error = upgrade_format_version_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		upgrade_format_version_update = nullopt;
-	}
-	add_schema_update = GeneratedObjectAccess::Create<AddSchemaUpdate>();
-	error = add_schema_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_schema_update = nullopt;
-	}
-	set_location_update = GeneratedObjectAccess::Create<SetLocationUpdate>();
-	error = set_location_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_location_update = nullopt;
-	}
-	set_properties_update = GeneratedObjectAccess::Create<SetPropertiesUpdate>();
-	error = set_properties_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_properties_update = nullopt;
-	}
-	remove_properties_update = GeneratedObjectAccess::Create<RemovePropertiesUpdate>();
-	error = remove_properties_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_properties_update = nullopt;
-	}
-	add_view_version_update = GeneratedObjectAccess::Create<AddViewVersionUpdate>();
-	error = add_view_version_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_view_version_update = nullopt;
-	}
-	set_current_view_version_update = GeneratedObjectAccess::Create<SetCurrentViewVersionUpdate>();
-	error = set_current_view_version_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_current_view_version_update = nullopt;
-	}
-	if (!(add_schema_update.has_value()) && !(add_view_version_update.has_value()) &&
-	    !(assign_uuidupdate.has_value()) && !(remove_properties_update.has_value()) &&
-	    !(set_current_view_version_update.has_value()) && !(set_location_update.has_value()) &&
-	    !(set_properties_update.has_value()) && !(upgrade_format_version_update.has_value())) {
-		return "ViewUpdate failed to parse, none of the anyOf candidates matched";
-	}
-	return Validate();
 }
 
 void ViewUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

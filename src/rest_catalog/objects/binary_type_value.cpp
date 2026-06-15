@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-BinaryTypeValue::BinaryTypeValue() {
+BinaryTypeValue::BinaryTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
 BinaryTypeValue BinaryTypeValue::FromJSON(yyjson_val *obj) {
-	BinaryTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "BinaryTypeValue property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return BinaryTypeValue(std::move(value));
+}
+
+string BinaryTypeValue::TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 BinaryTypeValue BinaryTypeValue::Copy() const {
-	BinaryTypeValue res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return BinaryTypeValue(std::move(value_tmp));
 }
 
 string BinaryTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string BinaryTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("BinaryTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *BinaryTypeValue::ToJSON(yyjson_mut_doc *doc) const {

@@ -14,63 +14,103 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ListTablesResponse::ListTablesResponse() {
+ListTablesResponse::ListTablesResponse(optional<PageToken> next_page_token_p,
+                                       optional<vector<TableIdentifier>> identifiers_p)
+    : next_page_token(std::move(next_page_token_p)), identifiers(std::move(identifiers_p)) {
 }
 
 ListTablesResponseBuilder::ListTablesResponseBuilder() {
 }
 
 ListTablesResponseBuilder &ListTablesResponseBuilder::SetNextPageToken(PageToken value) {
-	result_.next_page_token = std::move(value);
+	next_page_token_ = std::move(value);
 	return *this;
 }
 
 ListTablesResponseBuilder &ListTablesResponseBuilder::SetIdentifiers(vector<TableIdentifier> value) {
-	result_.identifiers = std::move(value);
+	identifiers_ = std::move(value);
 	return *this;
 }
 
-string ListTablesResponseBuilder::TryBuild(ListTablesResponse &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ListTablesResponse ListTablesResponseBuilder::Build() {
-	ListTablesResponse result;
-	auto error = TryBuild(result);
+	auto result = ListTablesResponse(std::move(next_page_token_), std::move(identifiers_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
-	ListTablesResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ListTablesResponseBuilder::TryBuild(optional<ListTablesResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
+	ListTablesResponseBuilder builder;
+	auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
+	if (next_page_token_val) {
+		optional<PageToken> next_page_token;
+		next_page_token = PageToken::FromJSON(next_page_token_val);
+		builder.SetNextPageToken(std::move(*next_page_token));
+	}
+	auto identifiers_val = yyjson_obj_get(obj, "identifiers");
+	if (identifiers_val) {
+		vector<TableIdentifier> identifiers;
+		if (yyjson_is_arr(identifiers_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(identifiers_val, idx, max, val) {
+				auto tmp = TableIdentifier::FromJSON(val);
+				identifiers.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "ListTablesResponse property 'identifiers' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(identifiers_val));
+		}
+		builder.SetIdentifiers(std::move(identifiers));
+	}
+	return builder.Build();
+}
+
+string ListTablesResponse::TryFromJSON(yyjson_val *obj, optional<ListTablesResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ListTablesResponse ListTablesResponse::Copy() const {
-	ListTablesResponse res;
+	ListTablesResponseBuilder builder;
+	optional<PageToken> next_page_token_tmp;
 	if (next_page_token.has_value()) {
-		res.next_page_token.emplace();
-		(*res.next_page_token) = (*next_page_token).Copy();
+		next_page_token_tmp.emplace();
+		(*next_page_token_tmp) = (*next_page_token).Copy();
 	}
+	if (next_page_token_tmp.has_value()) {
+		builder.SetNextPageToken(std::move(*next_page_token_tmp));
+	}
+	vector<TableIdentifier> identifiers_tmp;
 	if (identifiers.has_value()) {
-		res.identifiers.emplace();
-		(*res.identifiers).reserve((*identifiers).size());
+		identifiers_tmp.emplace();
+		(*identifiers_tmp).reserve((*identifiers).size());
 		for (auto &item : (*identifiers)) {
-			(*res.identifiers).emplace_back(item.Copy());
+			(*identifiers_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (identifiers_tmp.has_value()) {
+		builder.SetIdentifiers(std::move(identifiers_tmp));
+	}
+	return builder.Build();
 }
 
 string ListTablesResponse::Validate() const {
@@ -90,41 +130,6 @@ string ListTablesResponse::Validate() const {
 		}
 	}
 	return "";
-}
-
-string ListTablesResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
-	if (next_page_token_val) {
-		PageToken next_page_token_tmp;
-		error = next_page_token_tmp.TryFromJSON(next_page_token_val);
-		if (!error.empty()) {
-			return error;
-		}
-		next_page_token = std::move(next_page_token_tmp);
-	}
-	auto identifiers_val = yyjson_obj_get(obj, "identifiers");
-	if (identifiers_val) {
-		vector<TableIdentifier> identifiers_tmp;
-		if (yyjson_is_arr(identifiers_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(identifiers_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<TableIdentifier>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				identifiers_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "ListTablesResponse property 'identifiers_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(identifiers_val));
-		}
-		identifiers = std::move(identifiers_tmp);
-	}
-	return Validate();
 }
 
 void ListTablesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

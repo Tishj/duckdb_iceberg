@@ -20,17 +20,17 @@ public:
 	UpdateNamespacePropertiesRequest(const UpdateNamespacePropertiesRequest &) = delete;
 	UpdateNamespacePropertiesRequest &operator=(const UpdateNamespacePropertiesRequest &) = delete;
 	UpdateNamespacePropertiesRequest(UpdateNamespacePropertiesRequest &&) = default;
-	UpdateNamespacePropertiesRequest &operator=(UpdateNamespacePropertiesRequest &&) = default;
+	UpdateNamespacePropertiesRequest &operator=(UpdateNamespacePropertiesRequest &&) = delete;
 
 private:
 	friend class UpdateNamespacePropertiesRequestBuilder;
-	friend class GeneratedObjectAccess;
-	UpdateNamespacePropertiesRequest();
+	UpdateNamespacePropertiesRequest(optional<vector<string>> removals_p,
+	                                 optional<case_insensitive_map_t<string>> updates_p);
 
 public:
 	// Deserialization
 	static UpdateNamespacePropertiesRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<UpdateNamespacePropertiesRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -50,11 +50,12 @@ public:
 	UpdateNamespacePropertiesRequestBuilder();
 	UpdateNamespacePropertiesRequestBuilder &SetRemovals(vector<string> value);
 	UpdateNamespacePropertiesRequestBuilder &SetUpdates(case_insensitive_map_t<string> value);
-	string TryBuild(UpdateNamespacePropertiesRequest &result);
+	string TryBuild(optional<UpdateNamespacePropertiesRequest> &result);
 	UpdateNamespacePropertiesRequest Build();
 
 private:
-	UpdateNamespacePropertiesRequest result_;
+	optional<vector<string>> removals_;
+	optional<case_insensitive_map_t<string>> updates_;
 };
 
 } // namespace rest_api_objects

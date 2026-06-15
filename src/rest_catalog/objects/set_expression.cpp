@@ -14,75 +14,123 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetExpression::SetExpression() : term(GeneratedObjectAccess::Create<Term>()) {
+SetExpression::SetExpression(ExpressionType type_p, Term term_p, vector<PrimitiveTypeValue> values_p)
+    : type(std::move(type_p)), term(std::move(term_p)), values(std::move(values_p)) {
 }
 
 SetExpressionBuilder::SetExpressionBuilder() {
 }
 
 SetExpressionBuilder &SetExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 SetExpressionBuilder &SetExpressionBuilder::SetTerm(Term value) {
-	result_.term = std::move(value);
+	term_ = std::move(value);
 	has_term_ = true;
 	return *this;
 }
 
 SetExpressionBuilder &SetExpressionBuilder::SetValues(vector<PrimitiveTypeValue> value) {
-	result_.values = std::move(value);
+	values_ = std::move(value);
 	has_values_ = true;
 	return *this;
 }
 
-string SetExpressionBuilder::TryBuild(SetExpression &result) {
+SetExpression SetExpressionBuilder::Build() {
 	if (!has_type_) {
-		return "SetExpression required property 'type' is missing";
+		throw InvalidInputException("SetExpression required property 'type' is missing");
 	}
 	if (!has_term_) {
-		return "SetExpression required property 'term' is missing";
+		throw InvalidInputException("SetExpression required property 'term' is missing");
 	}
 	if (!has_values_) {
-		return "SetExpression required property 'values' is missing";
+		throw InvalidInputException("SetExpression required property 'values' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-SetExpression SetExpressionBuilder::Build() {
-	SetExpression result;
-	auto error = TryBuild(result);
+	auto result = SetExpression(std::move(*type_), std::move(*term_), std::move(*values_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetExpression SetExpression::FromJSON(yyjson_val *obj) {
-	SetExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetExpressionBuilder::TryBuild(optional<SetExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetExpression SetExpression::FromJSON(yyjson_val *obj) {
+	SetExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("SetExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto term_val = yyjson_obj_get(obj, "term");
+	if (!term_val) {
+		throw InvalidInputException("SetExpression required property 'term' is missing");
+	} else {
+		optional<Term> term;
+		term = Term::FromJSON(term_val);
+		builder.SetTerm(std::move(*term));
+	}
+	auto values_val = yyjson_obj_get(obj, "values");
+	if (!values_val) {
+		throw InvalidInputException("SetExpression required property 'values' is missing");
+	} else {
+		vector<PrimitiveTypeValue> values;
+		if (yyjson_is_arr(values_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(values_val, idx, max, val) {
+				auto tmp = PrimitiveTypeValue::FromJSON(val);
+				values.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("SetExpression property 'values' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(values_val));
+		}
+		builder.SetValues(std::move(values));
+	}
+	return builder.Build();
+}
+
+string SetExpression::TryFromJSON(yyjson_val *obj, optional<SetExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetExpression SetExpression::Copy() const {
-	SetExpression res;
-	res.type = type.Copy();
-	res.term = term.Copy();
-	res.values.reserve(values.size());
+	SetExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	optional<Term> term_tmp;
+	term_tmp = term.Copy();
+	builder.SetTerm(std::move(*term_tmp));
+	vector<PrimitiveTypeValue> values_tmp;
+	values_tmp.reserve(values.size());
 	for (auto &item : values) {
-		res.values.emplace_back(item.Copy());
+		values_tmp.emplace_back(item.Copy());
 	}
-	return res;
+	builder.SetValues(std::move(values_tmp));
+	return builder.Build();
 }
 
 string SetExpression::Validate() const {
@@ -105,49 +153,6 @@ string SetExpression::Validate() const {
 		}
 	}
 	return "";
-}
-
-string SetExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "SetExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		return "SetExpression required property 'term' is missing";
-	} else {
-		error = term.TryFromJSON(term_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto values_val = yyjson_obj_get(obj, "values");
-	if (!values_val) {
-		return "SetExpression required property 'values' is missing";
-	} else {
-		if (yyjson_is_arr(values_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(values_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<PrimitiveTypeValue>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				values.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format("SetExpression property 'values' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(values_val));
-		}
-	}
-	return Validate();
 }
 
 void SetExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

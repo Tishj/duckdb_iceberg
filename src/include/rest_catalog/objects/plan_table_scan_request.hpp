@@ -23,17 +23,20 @@ public:
 	PlanTableScanRequest(const PlanTableScanRequest &) = delete;
 	PlanTableScanRequest &operator=(const PlanTableScanRequest &) = delete;
 	PlanTableScanRequest(PlanTableScanRequest &&) = default;
-	PlanTableScanRequest &operator=(PlanTableScanRequest &&) = default;
+	PlanTableScanRequest &operator=(PlanTableScanRequest &&) = delete;
 
 private:
 	friend class PlanTableScanRequestBuilder;
-	friend class GeneratedObjectAccess;
-	PlanTableScanRequest();
+	PlanTableScanRequest(optional<int64_t> snapshot_id_p, optional<vector<FieldName>> select_p,
+	                     unique_ptr<Expression> filter_p, optional<int64_t> min_rows_requested_p,
+	                     optional<bool> case_sensitive_p, optional<bool> use_snapshot_schema_p,
+	                     optional<int64_t> start_snapshot_id_p, optional<int64_t> end_snapshot_id_p,
+	                     optional<vector<FieldName>> stats_fields_p);
 
 public:
 	// Deserialization
 	static PlanTableScanRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PlanTableScanRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -67,11 +70,19 @@ public:
 	PlanTableScanRequestBuilder &SetStartSnapshotId(int64_t value);
 	PlanTableScanRequestBuilder &SetEndSnapshotId(int64_t value);
 	PlanTableScanRequestBuilder &SetStatsFields(vector<FieldName> value);
-	string TryBuild(PlanTableScanRequest &result);
+	string TryBuild(optional<PlanTableScanRequest> &result);
 	PlanTableScanRequest Build();
 
 private:
-	PlanTableScanRequest result_;
+	optional<int64_t> snapshot_id_;
+	optional<vector<FieldName>> select_;
+	unique_ptr<Expression> filter_;
+	optional<int64_t> min_rows_requested_;
+	optional<bool> case_sensitive_;
+	optional<bool> use_snapshot_schema_;
+	optional<int64_t> start_snapshot_id_;
+	optional<int64_t> end_snapshot_id_;
+	optional<vector<FieldName>> stats_fields_;
 };
 
 } // namespace rest_api_objects

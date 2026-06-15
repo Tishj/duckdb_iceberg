@@ -21,17 +21,16 @@ public:
 	RemoveSnapshotsUpdate(const RemoveSnapshotsUpdate &) = delete;
 	RemoveSnapshotsUpdate &operator=(const RemoveSnapshotsUpdate &) = delete;
 	RemoveSnapshotsUpdate(RemoveSnapshotsUpdate &&) = default;
-	RemoveSnapshotsUpdate &operator=(RemoveSnapshotsUpdate &&) = default;
+	RemoveSnapshotsUpdate &operator=(RemoveSnapshotsUpdate &&) = delete;
 
 private:
 	friend class RemoveSnapshotsUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemoveSnapshotsUpdate();
+	RemoveSnapshotsUpdate(BaseUpdate base_update_p, vector<int64_t> snapshot_ids_p);
 
 public:
 	// Deserialization
 	static RemoveSnapshotsUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotsUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemoveSnapshotsUpdateBuilder();
 	RemoveSnapshotsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveSnapshotsUpdateBuilder &SetSnapshotIds(vector<int64_t> value);
-	string TryBuild(RemoveSnapshotsUpdate &result);
+	string TryBuild(optional<RemoveSnapshotsUpdate> &result);
 	RemoveSnapshotsUpdate Build();
 
 private:
-	RemoveSnapshotsUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<vector<int64_t>> snapshot_ids_;
 	bool has_snapshot_ids_ = false;
 };
 

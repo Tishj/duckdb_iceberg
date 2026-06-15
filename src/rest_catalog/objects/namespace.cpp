@@ -14,34 +14,11 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Namespace::Namespace() {
+Namespace::Namespace(vector<string> value_p) : value(std::move(value_p)) {
 }
 
 Namespace Namespace::FromJSON(yyjson_val *obj) {
-	Namespace res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-Namespace Namespace::Copy() const {
-	Namespace res;
-	res.value.reserve(value.size());
-	for (auto &item : value) {
-		res.value.emplace_back(item);
-	}
-	return res;
-}
-
-string Namespace::Validate() const {
-	string error;
-	return "";
-}
-
-string Namespace::TryFromJSON(yyjson_val *obj) {
-	string error;
+	vector<string> value;
 	if (yyjson_is_arr(obj)) {
 		size_t idx, max;
 		yyjson_val *val;
@@ -50,8 +27,8 @@ string Namespace::TryFromJSON(yyjson_val *obj) {
 			if (yyjson_is_str(val)) {
 				tmp = yyjson_get_str(val);
 			} else {
-				return StringUtil::Format("Namespace property 'tmp' is not of type 'string', found '%s' instead",
-				                          yyjson_get_type_desc(val));
+				throw InvalidInputException(StringUtil::Format(
+				    "Namespace property 'tmp' is not of type 'string', found '%s' instead", yyjson_get_type_desc(val)));
 			}
 			value.emplace_back(std::move(tmp));
 		}
@@ -59,7 +36,31 @@ string Namespace::TryFromJSON(yyjson_val *obj) {
 		return StringUtil::Format("Namespace property 'value' is not of type 'array', found '%s' instead",
 		                          yyjson_get_type_desc(obj));
 	}
-	return Validate();
+	return Namespace(std::move(value));
+}
+
+string Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+Namespace Namespace::Copy() const {
+	vector<string> value_tmp;
+	value_tmp.reserve(value.size());
+	for (auto &item : value) {
+		value_tmp.emplace_back(item);
+	}
+	return Namespace(std::move(value_tmp));
+}
+
+string Namespace::Validate() const {
+	string error;
+	return "";
 }
 
 yyjson_mut_val *Namespace::ToJSON(yyjson_mut_doc *doc) const {

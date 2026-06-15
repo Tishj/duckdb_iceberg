@@ -14,59 +14,79 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddSnapshotUpdate::AddSnapshotUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()), snapshot(GeneratedObjectAccess::Create<Snapshot>()) {
+AddSnapshotUpdate::AddSnapshotUpdate(BaseUpdate base_update_p, Snapshot snapshot_p)
+    : base_update(std::move(base_update_p)), snapshot(std::move(snapshot_p)) {
 }
 
 AddSnapshotUpdateBuilder::AddSnapshotUpdateBuilder() {
 }
 
 AddSnapshotUpdateBuilder &AddSnapshotUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 AddSnapshotUpdateBuilder &AddSnapshotUpdateBuilder::SetSnapshot(Snapshot value) {
-	result_.snapshot = std::move(value);
+	snapshot_ = std::move(value);
 	has_snapshot_ = true;
 	return *this;
 }
 
-string AddSnapshotUpdateBuilder::TryBuild(AddSnapshotUpdate &result) {
-	if (!has_snapshot_) {
-		return "AddSnapshotUpdate required property 'snapshot' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AddSnapshotUpdate AddSnapshotUpdateBuilder::Build() {
-	AddSnapshotUpdate result;
-	auto error = TryBuild(result);
+	if (!has_snapshot_) {
+		throw InvalidInputException("AddSnapshotUpdate required property 'snapshot' is missing");
+	}
+	auto result = AddSnapshotUpdate(std::move(*base_update_), std::move(*snapshot_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
-	AddSnapshotUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AddSnapshotUpdateBuilder::TryBuild(optional<AddSnapshotUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
+	AddSnapshotUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto snapshot_val = yyjson_obj_get(obj, "snapshot");
+	if (!snapshot_val) {
+		throw InvalidInputException("AddSnapshotUpdate required property 'snapshot' is missing");
+	} else {
+		optional<Snapshot> snapshot;
+		snapshot = Snapshot::FromJSON(snapshot_val);
+		builder.SetSnapshot(std::move(*snapshot));
+	}
+	return builder.Build();
+}
+
+string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, optional<AddSnapshotUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AddSnapshotUpdate AddSnapshotUpdate::Copy() const {
-	AddSnapshotUpdate res;
-	res.base_update = base_update.Copy();
-	res.snapshot = snapshot.Copy();
-	return res;
+	AddSnapshotUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<Snapshot> snapshot_tmp;
+	snapshot_tmp = snapshot.Copy();
+	builder.SetSnapshot(std::move(*snapshot_tmp));
+	return builder.Build();
 }
 
 string AddSnapshotUpdate::Validate() const {
@@ -80,24 +100,6 @@ string AddSnapshotUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto snapshot_val = yyjson_obj_get(obj, "snapshot");
-	if (!snapshot_val) {
-		return "AddSnapshotUpdate required property 'snapshot' is missing";
-	} else {
-		error = snapshot.TryFromJSON(snapshot_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void AddSnapshotUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

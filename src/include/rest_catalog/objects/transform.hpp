@@ -18,13 +18,13 @@ public:
 	Transform(const Transform &) = delete;
 	Transform &operator=(const Transform &) = delete;
 	Transform(Transform &&) = default;
-	Transform &operator=(Transform &&) = default;
-	Transform();
+	Transform &operator=(Transform &&) = delete;
+	Transform(string value_p);
 
 public:
 	// Deserialization
 	static Transform FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Transform> &result);
 	string Validate() const;
 
 	// Copy

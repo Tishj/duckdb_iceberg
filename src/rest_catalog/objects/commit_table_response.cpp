@@ -14,62 +14,96 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CommitTableResponse::CommitTableResponse() : metadata(GeneratedObjectAccess::Create<TableMetadata>()) {
+CommitTableResponse::CommitTableResponse(string metadata_location_p, TableMetadata metadata_p)
+    : metadata_location(std::move(metadata_location_p)), metadata(std::move(metadata_p)) {
 }
 
 CommitTableResponseBuilder::CommitTableResponseBuilder() {
 }
 
 CommitTableResponseBuilder &CommitTableResponseBuilder::SetMetadataLocation(string value) {
-	result_.metadata_location = std::move(value);
+	metadata_location_ = std::move(value);
 	has_metadata_location_ = true;
 	return *this;
 }
 
 CommitTableResponseBuilder &CommitTableResponseBuilder::SetMetadata(TableMetadata value) {
-	result_.metadata = std::move(value);
+	metadata_ = std::move(value);
 	has_metadata_ = true;
 	return *this;
 }
 
-string CommitTableResponseBuilder::TryBuild(CommitTableResponse &result) {
+CommitTableResponse CommitTableResponseBuilder::Build() {
 	if (!has_metadata_location_) {
-		return "CommitTableResponse required property 'metadata-location' is missing";
+		throw InvalidInputException("CommitTableResponse required property 'metadata-location' is missing");
 	}
 	if (!has_metadata_) {
-		return "CommitTableResponse required property 'metadata' is missing";
+		throw InvalidInputException("CommitTableResponse required property 'metadata' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-CommitTableResponse CommitTableResponseBuilder::Build() {
-	CommitTableResponse result;
-	auto error = TryBuild(result);
+	auto result = CommitTableResponse(std::move(*metadata_location_), std::move(*metadata_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
-	CommitTableResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CommitTableResponseBuilder::TryBuild(optional<CommitTableResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
+	CommitTableResponseBuilder builder;
+	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
+	if (!metadata_location_val) {
+		throw InvalidInputException("CommitTableResponse required property 'metadata-location' is missing");
+	} else {
+		string metadata_location;
+		if (yyjson_is_str(metadata_location_val)) {
+			metadata_location = yyjson_get_str(metadata_location_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "CommitTableResponse property 'metadata_location' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(metadata_location_val)));
+		}
+		builder.SetMetadataLocation(std::move(metadata_location));
+	}
+	auto metadata_val = yyjson_obj_get(obj, "metadata");
+	if (!metadata_val) {
+		throw InvalidInputException("CommitTableResponse required property 'metadata' is missing");
+	} else {
+		optional<TableMetadata> metadata;
+		metadata = TableMetadata::FromJSON(metadata_val);
+		builder.SetMetadata(std::move(*metadata));
+	}
+	return builder.Build();
+}
+
+string CommitTableResponse::TryFromJSON(yyjson_val *obj, optional<CommitTableResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 CommitTableResponse CommitTableResponse::Copy() const {
-	CommitTableResponse res;
-	res.metadata_location = metadata_location;
-	res.metadata = metadata.Copy();
-	return res;
+	CommitTableResponseBuilder builder;
+	string metadata_location_tmp;
+	metadata_location_tmp = metadata_location;
+	builder.SetMetadataLocation(std::move(metadata_location_tmp));
+	optional<TableMetadata> metadata_tmp;
+	metadata_tmp = metadata.Copy();
+	builder.SetMetadata(std::move(*metadata_tmp));
+	return builder.Build();
 }
 
 string CommitTableResponse::Validate() const {
@@ -79,32 +113,6 @@ string CommitTableResponse::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string CommitTableResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
-	if (!metadata_location_val) {
-		return "CommitTableResponse required property 'metadata-location' is missing";
-	} else {
-		if (yyjson_is_str(metadata_location_val)) {
-			metadata_location = yyjson_get_str(metadata_location_val);
-		} else {
-			return StringUtil::Format(
-			    "CommitTableResponse property 'metadata_location' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(metadata_location_val));
-		}
-	}
-	auto metadata_val = yyjson_obj_get(obj, "metadata");
-	if (!metadata_val) {
-		return "CommitTableResponse required property 'metadata' is missing";
-	} else {
-		error = metadata.TryFromJSON(metadata_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void CommitTableResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

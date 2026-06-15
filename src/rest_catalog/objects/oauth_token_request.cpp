@@ -14,9 +14,10 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-OAuthTokenRequest::OAuthTokenRequest()
-    : oauth_client_credentials_request(GeneratedObjectAccess::Create<optional<OAuthClientCredentialsRequest>>()),
-      oauth_token_exchange_request(GeneratedObjectAccess::Create<optional<OAuthTokenExchangeRequest>>()) {
+OAuthTokenRequest::OAuthTokenRequest(optional<OAuthClientCredentialsRequest> oauth_client_credentials_request_p,
+                                     optional<OAuthTokenExchangeRequest> oauth_token_exchange_request_p)
+    : oauth_client_credentials_request(std::move(oauth_client_credentials_request_p)),
+      oauth_token_exchange_request(std::move(oauth_token_exchange_request_p)) {
 }
 
 OAuthTokenRequestBuilder::OAuthTokenRequestBuilder() {
@@ -24,53 +25,83 @@ OAuthTokenRequestBuilder::OAuthTokenRequestBuilder() {
 
 OAuthTokenRequestBuilder &
 OAuthTokenRequestBuilder::SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest value) {
-	result_.oauth_client_credentials_request = std::move(value);
+	oauth_client_credentials_request_ = std::move(value);
 	return *this;
 }
 
 OAuthTokenRequestBuilder &OAuthTokenRequestBuilder::SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest value) {
-	result_.oauth_token_exchange_request = std::move(value);
+	oauth_token_exchange_request_ = std::move(value);
 	return *this;
 }
 
-string OAuthTokenRequestBuilder::TryBuild(OAuthTokenRequest &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 OAuthTokenRequest OAuthTokenRequestBuilder::Build() {
-	OAuthTokenRequest result;
-	auto error = TryBuild(result);
+	auto result =
+	    OAuthTokenRequest(std::move(oauth_client_credentials_request_), std::move(oauth_token_exchange_request_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
-	OAuthTokenRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string OAuthTokenRequestBuilder::TryBuild(optional<OAuthTokenRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
+	OAuthTokenRequestBuilder builder;
+	int matched_any_of_variants = 0;
+	try {
+		builder.SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	if (matched_any_of_variants == 0) {
+		throw InvalidInputException("OAuthTokenRequest failed to parse, none of the anyOf candidates matched");
+	}
+	return builder.Build();
+}
+
+string OAuthTokenRequest::TryFromJSON(yyjson_val *obj, optional<OAuthTokenRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 OAuthTokenRequest OAuthTokenRequest::Copy() const {
-	OAuthTokenRequest res;
+	OAuthTokenRequestBuilder builder;
+	optional<OAuthClientCredentialsRequest> oauth_client_credentials_request_tmp;
 	if (oauth_client_credentials_request.has_value()) {
-		res.oauth_client_credentials_request = GeneratedObjectAccess::Create<OAuthClientCredentialsRequest>();
-		(*res.oauth_client_credentials_request) = (*oauth_client_credentials_request).Copy();
+		oauth_client_credentials_request_tmp.emplace();
+		(*oauth_client_credentials_request_tmp) = (*oauth_client_credentials_request).Copy();
 	}
+	if (oauth_client_credentials_request_tmp.has_value()) {
+		builder.SetOauthClientCredentialsRequest(std::move(*oauth_client_credentials_request_tmp));
+	}
+	optional<OAuthTokenExchangeRequest> oauth_token_exchange_request_tmp;
 	if (oauth_token_exchange_request.has_value()) {
-		res.oauth_token_exchange_request = GeneratedObjectAccess::Create<OAuthTokenExchangeRequest>();
-		(*res.oauth_token_exchange_request) = (*oauth_token_exchange_request).Copy();
+		oauth_token_exchange_request_tmp.emplace();
+		(*oauth_token_exchange_request_tmp) = (*oauth_token_exchange_request).Copy();
 	}
-	return res;
+	if (oauth_token_exchange_request_tmp.has_value()) {
+		builder.SetOauthTokenExchangeRequest(std::move(*oauth_token_exchange_request_tmp));
+	}
+	return builder.Build();
 }
 
 string OAuthTokenRequest::Validate() const {
@@ -94,26 +125,6 @@ string OAuthTokenRequest::Validate() const {
 		return "OAuthTokenRequest must have at least one anyOf variant set";
 	}
 	return "";
-}
-
-string OAuthTokenRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	oauth_client_credentials_request = GeneratedObjectAccess::Create<OAuthClientCredentialsRequest>();
-	error = oauth_client_credentials_request->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		oauth_client_credentials_request = nullopt;
-	}
-	oauth_token_exchange_request = GeneratedObjectAccess::Create<OAuthTokenExchangeRequest>();
-	error = oauth_token_exchange_request->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		oauth_token_exchange_request = nullopt;
-	}
-	if (!(oauth_client_credentials_request.has_value()) && !(oauth_token_exchange_request.has_value())) {
-		return "OAuthTokenRequest failed to parse, none of the anyOf candidates matched";
-	}
-	return Validate();
 }
 
 void OAuthTokenRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

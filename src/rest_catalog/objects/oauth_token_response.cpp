@@ -14,98 +14,201 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-OAuthTokenResponse::OAuthTokenResponse() {
+OAuthTokenResponse::OAuthTokenResponse(string access_token_p, string token_type_p, optional<int32_t> expires_in_p,
+                                       optional<TokenType> issued_token_type_p, optional<string> refresh_token_p,
+                                       optional<string> scope_p)
+    : access_token(std::move(access_token_p)), token_type(std::move(token_type_p)), expires_in(std::move(expires_in_p)),
+      issued_token_type(std::move(issued_token_type_p)), refresh_token(std::move(refresh_token_p)),
+      scope(std::move(scope_p)) {
 }
 
 OAuthTokenResponseBuilder::OAuthTokenResponseBuilder() {
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetAccessToken(string value) {
-	result_.access_token = std::move(value);
+	access_token_ = std::move(value);
 	has_access_token_ = true;
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetTokenType(string value) {
-	result_.token_type = std::move(value);
+	token_type_ = std::move(value);
 	has_token_type_ = true;
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetExpiresIn(int32_t value) {
-	result_.expires_in = std::move(value);
+	expires_in_ = std::move(value);
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetIssuedTokenType(TokenType value) {
-	result_.issued_token_type = std::move(value);
+	issued_token_type_ = std::move(value);
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetRefreshToken(string value) {
-	result_.refresh_token = std::move(value);
+	refresh_token_ = std::move(value);
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetScope(string value) {
-	result_.scope = std::move(value);
+	scope_ = std::move(value);
 	return *this;
 }
 
-string OAuthTokenResponseBuilder::TryBuild(OAuthTokenResponse &result) {
+OAuthTokenResponse OAuthTokenResponseBuilder::Build() {
 	if (!has_access_token_) {
-		return "OAuthTokenResponse required property 'access_token' is missing";
+		throw InvalidInputException("OAuthTokenResponse required property 'access_token' is missing");
 	}
 	if (!has_token_type_) {
-		return "OAuthTokenResponse required property 'token_type' is missing";
+		throw InvalidInputException("OAuthTokenResponse required property 'token_type' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-OAuthTokenResponse OAuthTokenResponseBuilder::Build() {
-	OAuthTokenResponse result;
-	auto error = TryBuild(result);
+	auto result = OAuthTokenResponse(std::move(*access_token_), std::move(*token_type_), std::move(expires_in_),
+	                                 std::move(issued_token_type_), std::move(refresh_token_), std::move(scope_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-OAuthTokenResponse OAuthTokenResponse::FromJSON(yyjson_val *obj) {
-	OAuthTokenResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string OAuthTokenResponseBuilder::TryBuild(optional<OAuthTokenResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+OAuthTokenResponse OAuthTokenResponse::FromJSON(yyjson_val *obj) {
+	OAuthTokenResponseBuilder builder;
+	auto access_token_val = yyjson_obj_get(obj, "access_token");
+	if (!access_token_val) {
+		throw InvalidInputException("OAuthTokenResponse required property 'access_token' is missing");
+	} else {
+		string access_token;
+		if (yyjson_is_str(access_token_val)) {
+			access_token = yyjson_get_str(access_token_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "OAuthTokenResponse property 'access_token' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(access_token_val)));
+		}
+		builder.SetAccessToken(std::move(access_token));
+	}
+	auto token_type_val = yyjson_obj_get(obj, "token_type");
+	if (!token_type_val) {
+		throw InvalidInputException("OAuthTokenResponse required property 'token_type' is missing");
+	} else {
+		string token_type;
+		if (yyjson_is_str(token_type_val)) {
+			token_type = yyjson_get_str(token_type_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "OAuthTokenResponse property 'token_type' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(token_type_val)));
+		}
+		builder.SetTokenType(std::move(token_type));
+	}
+	auto expires_in_val = yyjson_obj_get(obj, "expires_in");
+	if (expires_in_val) {
+		int32_t expires_in;
+		if (yyjson_is_int(expires_in_val)) {
+			expires_in = yyjson_get_int(expires_in_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "OAuthTokenResponse property 'expires_in' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(expires_in_val)));
+		}
+		builder.SetExpiresIn(std::move(expires_in));
+	}
+	auto issued_token_type_val = yyjson_obj_get(obj, "issued_token_type");
+	if (issued_token_type_val) {
+		optional<TokenType> issued_token_type;
+		issued_token_type = TokenType::FromJSON(issued_token_type_val);
+		builder.SetIssuedTokenType(std::move(*issued_token_type));
+	}
+	auto refresh_token_val = yyjson_obj_get(obj, "refresh_token");
+	if (refresh_token_val) {
+		string refresh_token;
+		if (yyjson_is_str(refresh_token_val)) {
+			refresh_token = yyjson_get_str(refresh_token_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "OAuthTokenResponse property 'refresh_token' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(refresh_token_val)));
+		}
+		builder.SetRefreshToken(std::move(refresh_token));
+	}
+	auto scope_val = yyjson_obj_get(obj, "scope");
+	if (scope_val) {
+		string scope;
+		if (yyjson_is_str(scope_val)) {
+			scope = yyjson_get_str(scope_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("OAuthTokenResponse property 'scope' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(scope_val)));
+		}
+		builder.SetScope(std::move(scope));
+	}
+	return builder.Build();
+}
+
+string OAuthTokenResponse::TryFromJSON(yyjson_val *obj, optional<OAuthTokenResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 OAuthTokenResponse OAuthTokenResponse::Copy() const {
-	OAuthTokenResponse res;
-	res.access_token = access_token;
-	res.token_type = token_type;
+	OAuthTokenResponseBuilder builder;
+	string access_token_tmp;
+	access_token_tmp = access_token;
+	builder.SetAccessToken(std::move(access_token_tmp));
+	string token_type_tmp;
+	token_type_tmp = token_type;
+	builder.SetTokenType(std::move(token_type_tmp));
+	int32_t expires_in_tmp;
 	if (expires_in.has_value()) {
-		res.expires_in.emplace();
-		(*res.expires_in) = (*expires_in);
+		expires_in_tmp.emplace();
+		(*expires_in_tmp) = (*expires_in);
 	}
+	if (expires_in_tmp.has_value()) {
+		builder.SetExpiresIn(std::move(expires_in_tmp));
+	}
+	optional<TokenType> issued_token_type_tmp;
 	if (issued_token_type.has_value()) {
-		res.issued_token_type.emplace();
-		(*res.issued_token_type) = (*issued_token_type).Copy();
+		issued_token_type_tmp.emplace();
+		(*issued_token_type_tmp) = (*issued_token_type).Copy();
 	}
+	if (issued_token_type_tmp.has_value()) {
+		builder.SetIssuedTokenType(std::move(*issued_token_type_tmp));
+	}
+	string refresh_token_tmp;
 	if (refresh_token.has_value()) {
-		res.refresh_token.emplace();
-		(*res.refresh_token) = (*refresh_token);
+		refresh_token_tmp.emplace();
+		(*refresh_token_tmp) = (*refresh_token);
 	}
+	if (refresh_token_tmp.has_value()) {
+		builder.SetRefreshToken(std::move(refresh_token_tmp));
+	}
+	string scope_tmp;
 	if (scope.has_value()) {
-		res.scope.emplace();
-		(*res.scope) = (*scope);
+		scope_tmp.emplace();
+		(*scope_tmp) = (*scope);
 	}
-	return res;
+	if (scope_tmp.has_value()) {
+		builder.SetScope(std::move(scope_tmp));
+	}
+	return builder.Build();
 }
 
 string OAuthTokenResponse::Validate() const {
@@ -122,80 +225,6 @@ string OAuthTokenResponse::Validate() const {
 		}
 	}
 	return "";
-}
-
-string OAuthTokenResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto access_token_val = yyjson_obj_get(obj, "access_token");
-	if (!access_token_val) {
-		return "OAuthTokenResponse required property 'access_token' is missing";
-	} else {
-		if (yyjson_is_str(access_token_val)) {
-			access_token = yyjson_get_str(access_token_val);
-		} else {
-			return StringUtil::Format(
-			    "OAuthTokenResponse property 'access_token' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(access_token_val));
-		}
-	}
-	auto token_type_val = yyjson_obj_get(obj, "token_type");
-	if (!token_type_val) {
-		return "OAuthTokenResponse required property 'token_type' is missing";
-	} else {
-		if (yyjson_is_str(token_type_val)) {
-			token_type = yyjson_get_str(token_type_val);
-		} else {
-			return StringUtil::Format(
-			    "OAuthTokenResponse property 'token_type' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(token_type_val));
-		}
-	}
-	auto expires_in_val = yyjson_obj_get(obj, "expires_in");
-	if (expires_in_val) {
-		int32_t expires_in_tmp;
-		if (yyjson_is_int(expires_in_val)) {
-			expires_in_tmp = yyjson_get_int(expires_in_val);
-		} else {
-			return StringUtil::Format(
-			    "OAuthTokenResponse property 'expires_in_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(expires_in_val));
-		}
-		expires_in = std::move(expires_in_tmp);
-	}
-	auto issued_token_type_val = yyjson_obj_get(obj, "issued_token_type");
-	if (issued_token_type_val) {
-		TokenType issued_token_type_tmp;
-		error = issued_token_type_tmp.TryFromJSON(issued_token_type_val);
-		if (!error.empty()) {
-			return error;
-		}
-		issued_token_type = std::move(issued_token_type_tmp);
-	}
-	auto refresh_token_val = yyjson_obj_get(obj, "refresh_token");
-	if (refresh_token_val) {
-		string refresh_token_tmp;
-		if (yyjson_is_str(refresh_token_val)) {
-			refresh_token_tmp = yyjson_get_str(refresh_token_val);
-		} else {
-			return StringUtil::Format(
-			    "OAuthTokenResponse property 'refresh_token_tmp' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(refresh_token_val));
-		}
-		refresh_token = std::move(refresh_token_tmp);
-	}
-	auto scope_val = yyjson_obj_get(obj, "scope");
-	if (scope_val) {
-		string scope_tmp;
-		if (yyjson_is_str(scope_val)) {
-			scope_tmp = yyjson_get_str(scope_val);
-		} else {
-			return StringUtil::Format(
-			    "OAuthTokenResponse property 'scope_tmp' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(scope_val));
-		}
-		scope = std::move(scope_tmp);
-	}
-	return Validate();
 }
 
 void OAuthTokenResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

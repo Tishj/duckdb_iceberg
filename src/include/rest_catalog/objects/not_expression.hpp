@@ -23,17 +23,16 @@ public:
 	NotExpression(const NotExpression &) = delete;
 	NotExpression &operator=(const NotExpression &) = delete;
 	NotExpression(NotExpression &&) = default;
-	NotExpression &operator=(NotExpression &&) = default;
+	NotExpression &operator=(NotExpression &&) = delete;
 
 private:
 	friend class NotExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	NotExpression();
+	NotExpression(ExpressionType type_p, unique_ptr<Expression> child_p);
 
 public:
 	// Deserialization
 	static NotExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<NotExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -53,11 +52,12 @@ public:
 	NotExpressionBuilder();
 	NotExpressionBuilder &SetType(ExpressionType value);
 	NotExpressionBuilder &SetChild(unique_ptr<Expression> value);
-	string TryBuild(NotExpression &result);
+	string TryBuild(optional<NotExpression> &result);
 	NotExpression Build();
 
 private:
-	NotExpression result_;
+	optional<ExpressionType> type_;
+	unique_ptr<Expression> child_;
 	bool has_type_ = false;
 	bool has_child_ = false;
 };

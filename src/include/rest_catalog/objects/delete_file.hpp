@@ -22,17 +22,17 @@ public:
 	DeleteFile(const DeleteFile &) = delete;
 	DeleteFile &operator=(const DeleteFile &) = delete;
 	DeleteFile(DeleteFile &&) = default;
-	DeleteFile &operator=(DeleteFile &&) = default;
+	DeleteFile &operator=(DeleteFile &&) = delete;
 
 private:
 	friend class DeleteFileBuilder;
-	friend class GeneratedObjectAccess;
-	DeleteFile();
+	DeleteFile(optional<PositionDeleteFile> position_delete_file_p,
+	           optional<EqualityDeleteFile> equality_delete_file_p);
 
 public:
 	// Deserialization
 	static DeleteFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<DeleteFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +52,12 @@ public:
 	DeleteFileBuilder();
 	DeleteFileBuilder &SetPositionDeleteFile(PositionDeleteFile value);
 	DeleteFileBuilder &SetEqualityDeleteFile(EqualityDeleteFile value);
-	string TryBuild(DeleteFile &result);
+	string TryBuild(optional<DeleteFile> &result);
 	DeleteFile Build();
 
 private:
-	DeleteFile result_;
+	optional<PositionDeleteFile> position_delete_file_;
+	optional<EqualityDeleteFile> equality_delete_file_;
 };
 
 } // namespace rest_api_objects

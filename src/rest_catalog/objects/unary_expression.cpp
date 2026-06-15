@@ -14,62 +14,90 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-UnaryExpression::UnaryExpression() : term(GeneratedObjectAccess::Create<Term>()) {
+UnaryExpression::UnaryExpression(ExpressionType type_p, Term term_p)
+    : type(std::move(type_p)), term(std::move(term_p)) {
 }
 
 UnaryExpressionBuilder::UnaryExpressionBuilder() {
 }
 
 UnaryExpressionBuilder &UnaryExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 UnaryExpressionBuilder &UnaryExpressionBuilder::SetTerm(Term value) {
-	result_.term = std::move(value);
+	term_ = std::move(value);
 	has_term_ = true;
 	return *this;
 }
 
-string UnaryExpressionBuilder::TryBuild(UnaryExpression &result) {
+UnaryExpression UnaryExpressionBuilder::Build() {
 	if (!has_type_) {
-		return "UnaryExpression required property 'type' is missing";
+		throw InvalidInputException("UnaryExpression required property 'type' is missing");
 	}
 	if (!has_term_) {
-		return "UnaryExpression required property 'term' is missing";
+		throw InvalidInputException("UnaryExpression required property 'term' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-UnaryExpression UnaryExpressionBuilder::Build() {
-	UnaryExpression result;
-	auto error = TryBuild(result);
+	auto result = UnaryExpression(std::move(*type_), std::move(*term_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
-	UnaryExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string UnaryExpressionBuilder::TryBuild(optional<UnaryExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
+	UnaryExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("UnaryExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto term_val = yyjson_obj_get(obj, "term");
+	if (!term_val) {
+		throw InvalidInputException("UnaryExpression required property 'term' is missing");
+	} else {
+		optional<Term> term;
+		term = Term::FromJSON(term_val);
+		builder.SetTerm(std::move(*term));
+	}
+	return builder.Build();
+}
+
+string UnaryExpression::TryFromJSON(yyjson_val *obj, optional<UnaryExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 UnaryExpression UnaryExpression::Copy() const {
-	UnaryExpression res;
-	res.type = type.Copy();
-	res.term = term.Copy();
-	return res;
+	UnaryExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	optional<Term> term_tmp;
+	term_tmp = term.Copy();
+	builder.SetTerm(std::move(*term_tmp));
+	return builder.Build();
 }
 
 string UnaryExpression::Validate() const {
@@ -88,29 +116,6 @@ string UnaryExpression::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string UnaryExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "UnaryExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		return "UnaryExpression required property 'term' is missing";
-	} else {
-		error = term.TryFromJSON(term_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 yyjson_mut_val *UnaryExpression::ToJSON(yyjson_mut_doc *doc) const {

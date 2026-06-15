@@ -22,17 +22,16 @@ public:
 	AddViewVersionUpdate(const AddViewVersionUpdate &) = delete;
 	AddViewVersionUpdate &operator=(const AddViewVersionUpdate &) = delete;
 	AddViewVersionUpdate(AddViewVersionUpdate &&) = default;
-	AddViewVersionUpdate &operator=(AddViewVersionUpdate &&) = default;
+	AddViewVersionUpdate &operator=(AddViewVersionUpdate &&) = delete;
 
 private:
 	friend class AddViewVersionUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	AddViewVersionUpdate();
+	AddViewVersionUpdate(BaseUpdate base_update_p, ViewVersion view_version_p);
 
 public:
 	// Deserialization
 	static AddViewVersionUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AddViewVersionUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	AddViewVersionUpdateBuilder();
 	AddViewVersionUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddViewVersionUpdateBuilder &SetViewVersion(ViewVersion value);
-	string TryBuild(AddViewVersionUpdate &result);
+	string TryBuild(optional<AddViewVersionUpdate> &result);
 	AddViewVersionUpdate Build();
 
 private:
-	AddViewVersionUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<ViewVersion> view_version_;
 	bool has_view_version_ = false;
 };
 

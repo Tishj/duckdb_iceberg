@@ -22,17 +22,16 @@ public:
 	TransformTerm(const TransformTerm &) = delete;
 	TransformTerm &operator=(const TransformTerm &) = delete;
 	TransformTerm(TransformTerm &&) = default;
-	TransformTerm &operator=(TransformTerm &&) = default;
+	TransformTerm &operator=(TransformTerm &&) = delete;
 
 private:
 	friend class TransformTermBuilder;
-	friend class GeneratedObjectAccess;
-	TransformTerm();
+	TransformTerm(string type_p, Transform transform_p, Reference term_p);
 
 public:
 	// Deserialization
 	static TransformTerm FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TransformTerm> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +53,13 @@ public:
 	TransformTermBuilder &SetType(string value);
 	TransformTermBuilder &SetTransform(Transform value);
 	TransformTermBuilder &SetTerm(Reference value);
-	string TryBuild(TransformTerm &result);
+	string TryBuild(optional<TransformTerm> &result);
 	TransformTerm Build();
 
 private:
-	TransformTerm result_;
+	optional<string> type_;
+	optional<Transform> transform_;
+	optional<Reference> term_;
 	bool has_type_ = false;
 	bool has_transform_ = false;
 	bool has_term_ = false;

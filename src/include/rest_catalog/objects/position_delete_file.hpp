@@ -21,17 +21,17 @@ public:
 	PositionDeleteFile(const PositionDeleteFile &) = delete;
 	PositionDeleteFile &operator=(const PositionDeleteFile &) = delete;
 	PositionDeleteFile(PositionDeleteFile &&) = default;
-	PositionDeleteFile &operator=(PositionDeleteFile &&) = default;
+	PositionDeleteFile &operator=(PositionDeleteFile &&) = delete;
 
 private:
 	friend class PositionDeleteFileBuilder;
-	friend class GeneratedObjectAccess;
-	PositionDeleteFile();
+	PositionDeleteFile(ContentFile content_file_p, optional<int64_t> content_offset_p,
+	                   optional<int64_t> content_size_in_bytes_p);
 
 public:
 	// Deserialization
 	static PositionDeleteFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PositionDeleteFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -53,11 +53,13 @@ public:
 	PositionDeleteFileBuilder &SetContentFile(ContentFile value);
 	PositionDeleteFileBuilder &SetContentOffset(int64_t value);
 	PositionDeleteFileBuilder &SetContentSizeInBytes(int64_t value);
-	string TryBuild(PositionDeleteFile &result);
+	string TryBuild(optional<PositionDeleteFile> &result);
 	PositionDeleteFile Build();
 
 private:
-	PositionDeleteFile result_;
+	optional<ContentFile> content_file_;
+	optional<int64_t> content_offset_;
+	optional<int64_t> content_size_in_bytes_;
 };
 
 } // namespace rest_api_objects

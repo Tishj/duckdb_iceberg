@@ -14,60 +14,79 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddEncryptionKeyUpdate::AddEncryptionKeyUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
-      encryption_key(GeneratedObjectAccess::Create<EncryptedKey>()) {
+AddEncryptionKeyUpdate::AddEncryptionKeyUpdate(BaseUpdate base_update_p, EncryptedKey encryption_key_p)
+    : base_update(std::move(base_update_p)), encryption_key(std::move(encryption_key_p)) {
 }
 
 AddEncryptionKeyUpdateBuilder::AddEncryptionKeyUpdateBuilder() {
 }
 
 AddEncryptionKeyUpdateBuilder &AddEncryptionKeyUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 AddEncryptionKeyUpdateBuilder &AddEncryptionKeyUpdateBuilder::SetEncryptionKey(EncryptedKey value) {
-	result_.encryption_key = std::move(value);
+	encryption_key_ = std::move(value);
 	has_encryption_key_ = true;
 	return *this;
 }
 
-string AddEncryptionKeyUpdateBuilder::TryBuild(AddEncryptionKeyUpdate &result) {
-	if (!has_encryption_key_) {
-		return "AddEncryptionKeyUpdate required property 'encryption-key' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AddEncryptionKeyUpdate AddEncryptionKeyUpdateBuilder::Build() {
-	AddEncryptionKeyUpdate result;
-	auto error = TryBuild(result);
+	if (!has_encryption_key_) {
+		throw InvalidInputException("AddEncryptionKeyUpdate required property 'encryption-key' is missing");
+	}
+	auto result = AddEncryptionKeyUpdate(std::move(*base_update_), std::move(*encryption_key_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
-	AddEncryptionKeyUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AddEncryptionKeyUpdateBuilder::TryBuild(optional<AddEncryptionKeyUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
+	AddEncryptionKeyUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto encryption_key_val = yyjson_obj_get(obj, "encryption-key");
+	if (!encryption_key_val) {
+		throw InvalidInputException("AddEncryptionKeyUpdate required property 'encryption-key' is missing");
+	} else {
+		optional<EncryptedKey> encryption_key;
+		encryption_key = EncryptedKey::FromJSON(encryption_key_val);
+		builder.SetEncryptionKey(std::move(*encryption_key));
+	}
+	return builder.Build();
+}
+
+string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, optional<AddEncryptionKeyUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AddEncryptionKeyUpdate AddEncryptionKeyUpdate::Copy() const {
-	AddEncryptionKeyUpdate res;
-	res.base_update = base_update.Copy();
-	res.encryption_key = encryption_key.Copy();
-	return res;
+	AddEncryptionKeyUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<EncryptedKey> encryption_key_tmp;
+	encryption_key_tmp = encryption_key.Copy();
+	builder.SetEncryptionKey(std::move(*encryption_key_tmp));
+	return builder.Build();
 }
 
 string AddEncryptionKeyUpdate::Validate() const {
@@ -81,24 +100,6 @@ string AddEncryptionKeyUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto encryption_key_val = yyjson_obj_get(obj, "encryption-key");
-	if (!encryption_key_val) {
-		return "AddEncryptionKeyUpdate required property 'encryption-key' is missing";
-	} else {
-		error = encryption_key.TryFromJSON(encryption_key_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void AddEncryptionKeyUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

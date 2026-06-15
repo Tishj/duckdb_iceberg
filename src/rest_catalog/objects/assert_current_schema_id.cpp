@@ -14,62 +14,96 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssertCurrentSchemaId::AssertCurrentSchemaId() {
+AssertCurrentSchemaId::AssertCurrentSchemaId(TableRequirementType type_p, int32_t current_schema_id_p)
+    : type(std::move(type_p)), current_schema_id(std::move(current_schema_id_p)) {
 }
 
 AssertCurrentSchemaIdBuilder::AssertCurrentSchemaIdBuilder() {
 }
 
 AssertCurrentSchemaIdBuilder &AssertCurrentSchemaIdBuilder::SetType(TableRequirementType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 AssertCurrentSchemaIdBuilder &AssertCurrentSchemaIdBuilder::SetCurrentSchemaId(int32_t value) {
-	result_.current_schema_id = std::move(value);
+	current_schema_id_ = std::move(value);
 	has_current_schema_id_ = true;
 	return *this;
 }
 
-string AssertCurrentSchemaIdBuilder::TryBuild(AssertCurrentSchemaId &result) {
+AssertCurrentSchemaId AssertCurrentSchemaIdBuilder::Build() {
 	if (!has_type_) {
-		return "AssertCurrentSchemaId required property 'type' is missing";
+		throw InvalidInputException("AssertCurrentSchemaId required property 'type' is missing");
 	}
 	if (!has_current_schema_id_) {
-		return "AssertCurrentSchemaId required property 'current-schema-id' is missing";
+		throw InvalidInputException("AssertCurrentSchemaId required property 'current-schema-id' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-AssertCurrentSchemaId AssertCurrentSchemaIdBuilder::Build() {
-	AssertCurrentSchemaId result;
-	auto error = TryBuild(result);
+	auto result = AssertCurrentSchemaId(std::move(*type_), std::move(*current_schema_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
-	AssertCurrentSchemaId res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AssertCurrentSchemaIdBuilder::TryBuild(optional<AssertCurrentSchemaId> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
+	AssertCurrentSchemaIdBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("AssertCurrentSchemaId required property 'type' is missing");
+	} else {
+		optional<TableRequirementType> type;
+		type = TableRequirementType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto current_schema_id_val = yyjson_obj_get(obj, "current-schema-id");
+	if (!current_schema_id_val) {
+		throw InvalidInputException("AssertCurrentSchemaId required property 'current-schema-id' is missing");
+	} else {
+		int32_t current_schema_id;
+		if (yyjson_is_int(current_schema_id_val)) {
+			current_schema_id = yyjson_get_int(current_schema_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "AssertCurrentSchemaId property 'current_schema_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(current_schema_id_val)));
+		}
+		builder.SetCurrentSchemaId(std::move(current_schema_id));
+	}
+	return builder.Build();
+}
+
+string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, optional<AssertCurrentSchemaId> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AssertCurrentSchemaId AssertCurrentSchemaId::Copy() const {
-	AssertCurrentSchemaId res;
-	res.type = type.Copy();
-	res.current_schema_id = current_schema_id;
-	return res;
+	AssertCurrentSchemaIdBuilder builder;
+	optional<TableRequirementType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	int32_t current_schema_id_tmp;
+	current_schema_id_tmp = current_schema_id;
+	builder.SetCurrentSchemaId(std::move(current_schema_id_tmp));
+	return builder.Build();
 }
 
 string AssertCurrentSchemaId::Validate() const {
@@ -83,32 +117,6 @@ string AssertCurrentSchemaId::Validate() const {
 		                          type.value);
 	}
 	return "";
-}
-
-string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "AssertCurrentSchemaId required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto current_schema_id_val = yyjson_obj_get(obj, "current-schema-id");
-	if (!current_schema_id_val) {
-		return "AssertCurrentSchemaId required property 'current-schema-id' is missing";
-	} else {
-		if (yyjson_is_int(current_schema_id_val)) {
-			current_schema_id = yyjson_get_int(current_schema_id_val);
-		} else {
-			return StringUtil::Format(
-			    "AssertCurrentSchemaId property 'current_schema_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(current_schema_id_val));
-		}
-	}
-	return Validate();
 }
 
 void AssertCurrentSchemaId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

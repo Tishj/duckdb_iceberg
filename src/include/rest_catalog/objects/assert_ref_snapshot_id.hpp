@@ -21,17 +21,16 @@ public:
 	AssertRefSnapshotId(const AssertRefSnapshotId &) = delete;
 	AssertRefSnapshotId &operator=(const AssertRefSnapshotId &) = delete;
 	AssertRefSnapshotId(AssertRefSnapshotId &&) = default;
-	AssertRefSnapshotId &operator=(AssertRefSnapshotId &&) = default;
+	AssertRefSnapshotId &operator=(AssertRefSnapshotId &&) = delete;
 
 private:
 	friend class AssertRefSnapshotIdBuilder;
-	friend class GeneratedObjectAccess;
-	AssertRefSnapshotId();
+	AssertRefSnapshotId(TableRequirementType type_p, string ref_p, optional<int64_t> snapshot_id_p);
 
 public:
 	// Deserialization
 	static AssertRefSnapshotId FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertRefSnapshotId> &result);
 	string Validate() const;
 
 	// Copy
@@ -53,11 +52,13 @@ public:
 	AssertRefSnapshotIdBuilder &SetType(TableRequirementType value);
 	AssertRefSnapshotIdBuilder &SetRef(string value);
 	AssertRefSnapshotIdBuilder &SetSnapshotId(int64_t value);
-	string TryBuild(AssertRefSnapshotId &result);
+	string TryBuild(optional<AssertRefSnapshotId> &result);
 	AssertRefSnapshotId Build();
 
 private:
-	AssertRefSnapshotId result_;
+	optional<TableRequirementType> type_;
+	optional<string> ref_;
+	optional<int64_t> snapshot_id_;
 	bool has_type_ = false;
 	bool has_ref_ = false;
 };

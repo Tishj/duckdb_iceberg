@@ -28,17 +28,22 @@ public:
 	TableRequirement(const TableRequirement &) = delete;
 	TableRequirement &operator=(const TableRequirement &) = delete;
 	TableRequirement(TableRequirement &&) = default;
-	TableRequirement &operator=(TableRequirement &&) = default;
+	TableRequirement &operator=(TableRequirement &&) = delete;
 
 private:
 	friend class TableRequirementBuilder;
-	friend class GeneratedObjectAccess;
-	TableRequirement();
+	TableRequirement(optional<AssertCreate> assert_create_p, optional<AssertTableUUID> assert_table_uuid_p,
+	                 optional<AssertRefSnapshotId> assert_ref_snapshot_id_p,
+	                 optional<AssertLastAssignedFieldId> assert_last_assigned_field_id_p,
+	                 optional<AssertCurrentSchemaId> assert_current_schema_id_p,
+	                 optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id_p,
+	                 optional<AssertDefaultSpecId> assert_default_spec_id_p,
+	                 optional<AssertDefaultSortOrderId> assert_default_sort_order_id_p);
 
 public:
 	// Deserialization
 	static TableRequirement FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TableRequirement> &result);
 	string Validate() const;
 
 	// Copy
@@ -70,11 +75,18 @@ public:
 	TableRequirementBuilder &SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId value);
 	TableRequirementBuilder &SetAssertDefaultSpecId(AssertDefaultSpecId value);
 	TableRequirementBuilder &SetAssertDefaultSortOrderId(AssertDefaultSortOrderId value);
-	string TryBuild(TableRequirement &result);
+	string TryBuild(optional<TableRequirement> &result);
 	TableRequirement Build();
 
 private:
-	TableRequirement result_;
+	optional<AssertCreate> assert_create_;
+	optional<AssertTableUUID> assert_table_uuid_;
+	optional<AssertRefSnapshotId> assert_ref_snapshot_id_;
+	optional<AssertLastAssignedFieldId> assert_last_assigned_field_id_;
+	optional<AssertCurrentSchemaId> assert_current_schema_id_;
+	optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id_;
+	optional<AssertDefaultSpecId> assert_default_spec_id_;
+	optional<AssertDefaultSortOrderId> assert_default_sort_order_id_;
 };
 
 } // namespace rest_api_objects

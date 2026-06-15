@@ -18,13 +18,13 @@ public:
 	NullOrder(const NullOrder &) = delete;
 	NullOrder &operator=(const NullOrder &) = delete;
 	NullOrder(NullOrder &&) = default;
-	NullOrder &operator=(NullOrder &&) = default;
-	NullOrder();
+	NullOrder &operator=(NullOrder &&) = delete;
+	NullOrder(string value_p);
 
 public:
 	// Deserialization
 	static NullOrder FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<NullOrder> &result);
 	string Validate() const;
 
 	// Copy

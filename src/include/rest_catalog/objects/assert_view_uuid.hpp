@@ -20,17 +20,16 @@ public:
 	AssertViewUUID(const AssertViewUUID &) = delete;
 	AssertViewUUID &operator=(const AssertViewUUID &) = delete;
 	AssertViewUUID(AssertViewUUID &&) = default;
-	AssertViewUUID &operator=(AssertViewUUID &&) = default;
+	AssertViewUUID &operator=(AssertViewUUID &&) = delete;
 
 private:
 	friend class AssertViewUUIDBuilder;
-	friend class GeneratedObjectAccess;
-	AssertViewUUID();
+	AssertViewUUID(string type_p, string uuid_p);
 
 public:
 	// Deserialization
 	static AssertViewUUID FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertViewUUID> &result);
 	string Validate() const;
 
 	// Copy
@@ -50,11 +49,12 @@ public:
 	AssertViewUUIDBuilder();
 	AssertViewUUIDBuilder &SetType(string value);
 	AssertViewUUIDBuilder &SetUuid(string value);
-	string TryBuild(AssertViewUUID &result);
+	string TryBuild(optional<AssertViewUUID> &result);
 	AssertViewUUID Build();
 
 private:
-	AssertViewUUID result_;
+	optional<string> type_;
+	optional<string> uuid_;
 	bool has_type_ = false;
 	bool has_uuid_ = false;
 };

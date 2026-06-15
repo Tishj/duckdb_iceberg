@@ -14,82 +14,54 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemoveSnapshotsUpdate::RemoveSnapshotsUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+RemoveSnapshotsUpdate::RemoveSnapshotsUpdate(BaseUpdate base_update_p, vector<int64_t> snapshot_ids_p)
+    : base_update(std::move(base_update_p)), snapshot_ids(std::move(snapshot_ids_p)) {
 }
 
 RemoveSnapshotsUpdateBuilder::RemoveSnapshotsUpdateBuilder() {
 }
 
 RemoveSnapshotsUpdateBuilder &RemoveSnapshotsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 RemoveSnapshotsUpdateBuilder &RemoveSnapshotsUpdateBuilder::SetSnapshotIds(vector<int64_t> value) {
-	result_.snapshot_ids = std::move(value);
+	snapshot_ids_ = std::move(value);
 	has_snapshot_ids_ = true;
 	return *this;
 }
 
-string RemoveSnapshotsUpdateBuilder::TryBuild(RemoveSnapshotsUpdate &result) {
-	if (!has_snapshot_ids_) {
-		return "RemoveSnapshotsUpdate required property 'snapshot-ids' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 RemoveSnapshotsUpdate RemoveSnapshotsUpdateBuilder::Build() {
-	RemoveSnapshotsUpdate result;
-	auto error = TryBuild(result);
+	if (!has_snapshot_ids_) {
+		throw InvalidInputException("RemoveSnapshotsUpdate required property 'snapshot-ids' is missing");
+	}
+	auto result = RemoveSnapshotsUpdate(std::move(*base_update_), std::move(*snapshot_ids_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
+string RemoveSnapshotsUpdateBuilder::TryBuild(optional<RemoveSnapshotsUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
 RemoveSnapshotsUpdate RemoveSnapshotsUpdate::FromJSON(yyjson_val *obj) {
-	RemoveSnapshotsUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-RemoveSnapshotsUpdate RemoveSnapshotsUpdate::Copy() const {
-	RemoveSnapshotsUpdate res;
-	res.base_update = base_update.Copy();
-	res.snapshot_ids.reserve(snapshot_ids.size());
-	for (auto &item : snapshot_ids) {
-		res.snapshot_ids.emplace_back(item);
-	}
-	return res;
-}
-
-string RemoveSnapshotsUpdate::Validate() const {
-	string error;
-	error = base_update.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	return "";
-}
-
-string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
+	RemoveSnapshotsUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 	auto snapshot_ids_val = yyjson_obj_get(obj, "snapshot-ids");
 	if (!snapshot_ids_val) {
-		return "RemoveSnapshotsUpdate required property 'snapshot-ids' is missing";
+		throw InvalidInputException("RemoveSnapshotsUpdate required property 'snapshot-ids' is missing");
 	} else {
+		vector<int64_t> snapshot_ids;
 		if (yyjson_is_arr(snapshot_ids_val)) {
 			size_t idx, max;
 			yyjson_val *val;
@@ -100,9 +72,9 @@ string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj) {
 				} else if (yyjson_is_uint(val)) {
 					tmp = yyjson_get_uint(val);
 				} else {
-					return StringUtil::Format(
+					throw InvalidInputException(StringUtil::Format(
 					    "RemoveSnapshotsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val));
+					    yyjson_get_type_desc(val)));
 				}
 				snapshot_ids.emplace_back(std::move(tmp));
 			}
@@ -111,8 +83,42 @@ string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj) {
 			    "RemoveSnapshotsUpdate property 'snapshot_ids' is not of type 'array', found '%s' instead",
 			    yyjson_get_type_desc(snapshot_ids_val));
 		}
+		builder.SetSnapshotIds(std::move(snapshot_ids));
 	}
-	return Validate();
+	return builder.Build();
+}
+
+string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotsUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+RemoveSnapshotsUpdate RemoveSnapshotsUpdate::Copy() const {
+	RemoveSnapshotsUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	vector<int64_t> snapshot_ids_tmp;
+	snapshot_ids_tmp.reserve(snapshot_ids.size());
+	for (auto &item : snapshot_ids) {
+		snapshot_ids_tmp.emplace_back(item);
+	}
+	builder.SetSnapshotIds(std::move(snapshot_ids_tmp));
+	return builder.Build();
+}
+
+string RemoveSnapshotsUpdate::Validate() const {
+	string error;
+	error = base_update.Validate();
+	if (!error.empty()) {
+		return error;
+	}
+	return "";
 }
 
 void RemoveSnapshotsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

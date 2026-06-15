@@ -14,52 +14,69 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-EmptyPlanningResult::EmptyPlanningResult() {
+EmptyPlanningResult::EmptyPlanningResult(PlanStatus status_p) : status(std::move(status_p)) {
 }
 
 EmptyPlanningResultBuilder::EmptyPlanningResultBuilder() {
 }
 
 EmptyPlanningResultBuilder &EmptyPlanningResultBuilder::SetStatus(PlanStatus value) {
-	result_.status = std::move(value);
+	status_ = std::move(value);
 	has_status_ = true;
 	return *this;
 }
 
-string EmptyPlanningResultBuilder::TryBuild(EmptyPlanningResult &result) {
-	if (!has_status_) {
-		return "EmptyPlanningResult required property 'status' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 EmptyPlanningResult EmptyPlanningResultBuilder::Build() {
-	EmptyPlanningResult result;
-	auto error = TryBuild(result);
+	if (!has_status_) {
+		throw InvalidInputException("EmptyPlanningResult required property 'status' is missing");
+	}
+	auto result = EmptyPlanningResult(std::move(*status_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
-	EmptyPlanningResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string EmptyPlanningResultBuilder::TryBuild(optional<EmptyPlanningResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
+	EmptyPlanningResultBuilder builder;
+	auto status_val = yyjson_obj_get(obj, "status");
+	if (!status_val) {
+		throw InvalidInputException("EmptyPlanningResult required property 'status' is missing");
+	} else {
+		optional<PlanStatus> status;
+		status = PlanStatus::FromJSON(status_val);
+		builder.SetStatus(std::move(*status));
+	}
+	return builder.Build();
+}
+
+string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, optional<EmptyPlanningResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 EmptyPlanningResult EmptyPlanningResult::Copy() const {
-	EmptyPlanningResult res;
-	res.status = status.Copy();
-	return res;
+	EmptyPlanningResultBuilder builder;
+	optional<PlanStatus> status_tmp;
+	status_tmp = status.Copy();
+	builder.SetStatus(std::move(*status_tmp));
+	return builder.Build();
 }
 
 string EmptyPlanningResult::Validate() const {
@@ -73,20 +90,6 @@ string EmptyPlanningResult::Validate() const {
 		                          status.value);
 	}
 	return "";
-}
-
-string EmptyPlanningResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto status_val = yyjson_obj_get(obj, "status");
-	if (!status_val) {
-		return "EmptyPlanningResult required property 'status' is missing";
-	} else {
-		error = status.TryFromJSON(status_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void EmptyPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

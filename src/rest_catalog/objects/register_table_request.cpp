@@ -14,117 +14,132 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RegisterTableRequest::RegisterTableRequest() {
+RegisterTableRequest::RegisterTableRequest(string name_p, string metadata_location_p, optional<bool> overwrite_p)
+    : name(std::move(name_p)), metadata_location(std::move(metadata_location_p)), overwrite(std::move(overwrite_p)) {
 }
 
 RegisterTableRequestBuilder::RegisterTableRequestBuilder() {
 }
 
 RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetName(string value) {
-	result_.name = std::move(value);
+	name_ = std::move(value);
 	has_name_ = true;
 	return *this;
 }
 
 RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetMetadataLocation(string value) {
-	result_.metadata_location = std::move(value);
+	metadata_location_ = std::move(value);
 	has_metadata_location_ = true;
 	return *this;
 }
 
 RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetOverwrite(bool value) {
-	result_.overwrite = std::move(value);
+	overwrite_ = std::move(value);
 	return *this;
 }
 
-string RegisterTableRequestBuilder::TryBuild(RegisterTableRequest &result) {
+RegisterTableRequest RegisterTableRequestBuilder::Build() {
 	if (!has_name_) {
-		return "RegisterTableRequest required property 'name' is missing";
+		throw InvalidInputException("RegisterTableRequest required property 'name' is missing");
 	}
 	if (!has_metadata_location_) {
-		return "RegisterTableRequest required property 'metadata-location' is missing";
+		throw InvalidInputException("RegisterTableRequest required property 'metadata-location' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-RegisterTableRequest RegisterTableRequestBuilder::Build() {
-	RegisterTableRequest result;
-	auto error = TryBuild(result);
+	auto result = RegisterTableRequest(std::move(*name_), std::move(*metadata_location_), std::move(overwrite_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RegisterTableRequest RegisterTableRequest::FromJSON(yyjson_val *obj) {
-	RegisterTableRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RegisterTableRequestBuilder::TryBuild(optional<RegisterTableRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RegisterTableRequest RegisterTableRequest::FromJSON(yyjson_val *obj) {
+	RegisterTableRequestBuilder builder;
+	auto name_val = yyjson_obj_get(obj, "name");
+	if (!name_val) {
+		throw InvalidInputException("RegisterTableRequest required property 'name' is missing");
+	} else {
+		string name;
+		if (yyjson_is_str(name_val)) {
+			name = yyjson_get_str(name_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("RegisterTableRequest property 'name' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(name_val)));
+		}
+		builder.SetName(std::move(name));
+	}
+	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
+	if (!metadata_location_val) {
+		throw InvalidInputException("RegisterTableRequest required property 'metadata-location' is missing");
+	} else {
+		string metadata_location;
+		if (yyjson_is_str(metadata_location_val)) {
+			metadata_location = yyjson_get_str(metadata_location_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RegisterTableRequest property 'metadata_location' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(metadata_location_val)));
+		}
+		builder.SetMetadataLocation(std::move(metadata_location));
+	}
+	auto overwrite_val = yyjson_obj_get(obj, "overwrite");
+	if (overwrite_val) {
+		bool overwrite;
+		if (yyjson_is_bool(overwrite_val)) {
+			overwrite = yyjson_get_bool(overwrite_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "RegisterTableRequest property 'overwrite' is not of type 'boolean', found '%s' instead",
+			    yyjson_get_type_desc(overwrite_val)));
+		}
+		builder.SetOverwrite(std::move(overwrite));
+	}
+	return builder.Build();
+}
+
+string RegisterTableRequest::TryFromJSON(yyjson_val *obj, optional<RegisterTableRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RegisterTableRequest RegisterTableRequest::Copy() const {
-	RegisterTableRequest res;
-	res.name = name;
-	res.metadata_location = metadata_location;
+	RegisterTableRequestBuilder builder;
+	string name_tmp;
+	name_tmp = name;
+	builder.SetName(std::move(name_tmp));
+	string metadata_location_tmp;
+	metadata_location_tmp = metadata_location;
+	builder.SetMetadataLocation(std::move(metadata_location_tmp));
+	bool overwrite_tmp;
 	if (overwrite.has_value()) {
-		res.overwrite.emplace();
-		(*res.overwrite) = (*overwrite);
+		overwrite_tmp.emplace();
+		(*overwrite_tmp) = (*overwrite);
 	}
-	return res;
+	if (overwrite_tmp.has_value()) {
+		builder.SetOverwrite(std::move(overwrite_tmp));
+	}
+	return builder.Build();
 }
 
 string RegisterTableRequest::Validate() const {
 	string error;
 	return "";
-}
-
-string RegisterTableRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		return "RegisterTableRequest required property 'name' is missing";
-	} else {
-		if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			return StringUtil::Format(
-			    "RegisterTableRequest property 'name' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(name_val));
-		}
-	}
-	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
-	if (!metadata_location_val) {
-		return "RegisterTableRequest required property 'metadata-location' is missing";
-	} else {
-		if (yyjson_is_str(metadata_location_val)) {
-			metadata_location = yyjson_get_str(metadata_location_val);
-		} else {
-			return StringUtil::Format(
-			    "RegisterTableRequest property 'metadata_location' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(metadata_location_val));
-		}
-	}
-	auto overwrite_val = yyjson_obj_get(obj, "overwrite");
-	if (overwrite_val) {
-		bool overwrite_tmp;
-		if (yyjson_is_bool(overwrite_val)) {
-			overwrite_tmp = yyjson_get_bool(overwrite_val);
-		} else {
-			return StringUtil::Format(
-			    "RegisterTableRequest property 'overwrite_tmp' is not of type 'boolean', found '%s' instead",
-			    yyjson_get_type_desc(overwrite_val));
-		}
-		overwrite = std::move(overwrite_tmp);
-	}
-	return Validate();
 }
 
 void RegisterTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -22,17 +22,16 @@ public:
 	ListNamespacesResponse(const ListNamespacesResponse &) = delete;
 	ListNamespacesResponse &operator=(const ListNamespacesResponse &) = delete;
 	ListNamespacesResponse(ListNamespacesResponse &&) = default;
-	ListNamespacesResponse &operator=(ListNamespacesResponse &&) = default;
+	ListNamespacesResponse &operator=(ListNamespacesResponse &&) = delete;
 
 private:
 	friend class ListNamespacesResponseBuilder;
-	friend class GeneratedObjectAccess;
-	ListNamespacesResponse();
+	ListNamespacesResponse(optional<PageToken> next_page_token_p, optional<vector<Namespace>> namespaces_p);
 
 public:
 	// Deserialization
 	static ListNamespacesResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ListNamespacesResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	ListNamespacesResponseBuilder();
 	ListNamespacesResponseBuilder &SetNextPageToken(PageToken value);
 	ListNamespacesResponseBuilder &SetNamespaces(vector<Namespace> value);
-	string TryBuild(ListNamespacesResponse &result);
+	string TryBuild(optional<ListNamespacesResponse> &result);
 	ListNamespacesResponse Build();
 
 private:
-	ListNamespacesResponse result_;
+	optional<PageToken> next_page_token_;
+	optional<vector<Namespace>> namespaces_;
 };
 
 } // namespace rest_api_objects

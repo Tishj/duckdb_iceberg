@@ -21,17 +21,16 @@ public:
 	ViewRepresentation(const ViewRepresentation &) = delete;
 	ViewRepresentation &operator=(const ViewRepresentation &) = delete;
 	ViewRepresentation(ViewRepresentation &&) = default;
-	ViewRepresentation &operator=(ViewRepresentation &&) = default;
+	ViewRepresentation &operator=(ViewRepresentation &&) = delete;
 
 private:
 	friend class ViewRepresentationBuilder;
-	friend class GeneratedObjectAccess;
-	ViewRepresentation();
+	ViewRepresentation(optional<SQLViewRepresentation> sqlview_representation_p);
 
 public:
 	// Deserialization
 	static ViewRepresentation FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ViewRepresentation> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class ViewRepresentationBuilder {
 public:
 	ViewRepresentationBuilder();
 	ViewRepresentationBuilder &SetSqlviewRepresentation(SQLViewRepresentation value);
-	string TryBuild(ViewRepresentation &result);
+	string TryBuild(optional<ViewRepresentation> &result);
 	ViewRepresentation Build();
 
 private:
-	ViewRepresentation result_;
+	optional<SQLViewRepresentation> sqlview_representation_;
 };
 
 } // namespace rest_api_objects

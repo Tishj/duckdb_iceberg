@@ -21,17 +21,16 @@ public:
 	AssertCurrentSchemaId(const AssertCurrentSchemaId &) = delete;
 	AssertCurrentSchemaId &operator=(const AssertCurrentSchemaId &) = delete;
 	AssertCurrentSchemaId(AssertCurrentSchemaId &&) = default;
-	AssertCurrentSchemaId &operator=(AssertCurrentSchemaId &&) = default;
+	AssertCurrentSchemaId &operator=(AssertCurrentSchemaId &&) = delete;
 
 private:
 	friend class AssertCurrentSchemaIdBuilder;
-	friend class GeneratedObjectAccess;
-	AssertCurrentSchemaId();
+	AssertCurrentSchemaId(TableRequirementType type_p, int32_t current_schema_id_p);
 
 public:
 	// Deserialization
 	static AssertCurrentSchemaId FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertCurrentSchemaId> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssertCurrentSchemaIdBuilder();
 	AssertCurrentSchemaIdBuilder &SetType(TableRequirementType value);
 	AssertCurrentSchemaIdBuilder &SetCurrentSchemaId(int32_t value);
-	string TryBuild(AssertCurrentSchemaId &result);
+	string TryBuild(optional<AssertCurrentSchemaId> &result);
 	AssertCurrentSchemaId Build();
 
 private:
-	AssertCurrentSchemaId result_;
+	optional<TableRequirementType> type_;
+	optional<int32_t> current_schema_id_;
 	bool has_type_ = false;
 	bool has_current_schema_id_ = false;
 };

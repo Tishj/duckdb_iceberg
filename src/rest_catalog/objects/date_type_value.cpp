@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-DateTypeValue::DateTypeValue() {
+DateTypeValue::DateTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
 DateTypeValue DateTypeValue::FromJSON(yyjson_val *obj) {
-	DateTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "DateTypeValue property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return DateTypeValue(std::move(value));
+}
+
+string DateTypeValue::TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 DateTypeValue DateTypeValue::Copy() const {
-	DateTypeValue res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return DateTypeValue(std::move(value_tmp));
 }
 
 string DateTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string DateTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("DateTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *DateTypeValue::ToJSON(yyjson_mut_doc *doc) const {

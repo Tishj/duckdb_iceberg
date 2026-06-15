@@ -14,8 +14,8 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SnapshotReferences::SnapshotReferences()
-    : additional_properties(GeneratedObjectAccess::Create<case_insensitive_map_t<SnapshotReference>>()) {
+SnapshotReferences::SnapshotReferences(case_insensitive_map_t<SnapshotReference> additional_properties_p)
+    : additional_properties(std::move(additional_properties_p)) {
 }
 
 SnapshotReferencesBuilder::SnapshotReferencesBuilder() {
@@ -23,43 +23,62 @@ SnapshotReferencesBuilder::SnapshotReferencesBuilder() {
 
 SnapshotReferencesBuilder &
 SnapshotReferencesBuilder::SetAdditionalProperties(case_insensitive_map_t<SnapshotReference> value) {
-	result_.additional_properties = std::move(value);
+	additional_properties_ = std::move(value);
 	return *this;
 }
 
-string SnapshotReferencesBuilder::TryBuild(SnapshotReferences &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SnapshotReferences SnapshotReferencesBuilder::Build() {
-	SnapshotReferences result;
-	auto error = TryBuild(result);
+	auto result = SnapshotReferences(additional_properties_.has_value() ? std::move(*additional_properties_)
+	                                                                    : case_insensitive_map_t<SnapshotReference>());
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SnapshotReferences SnapshotReferences::FromJSON(yyjson_val *obj) {
-	SnapshotReferences res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SnapshotReferencesBuilder::TryBuild(optional<SnapshotReferences> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SnapshotReferences SnapshotReferences::FromJSON(yyjson_val *obj) {
+	SnapshotReferencesBuilder builder;
+	case_insensitive_map_t<SnapshotReference> additional_properties;
+	size_t idx, max;
+	yyjson_val *key, *val;
+	yyjson_obj_foreach(obj, idx, max, key, val) {
+		auto key_str = yyjson_get_str(key);
+		auto tmp = SnapshotReference::FromJSON(val);
+		additional_properties.emplace(key_str, std::move(tmp));
+	}
+	builder.SetAdditionalProperties(std::move(additional_properties));
+	return builder.Build();
+}
+
+string SnapshotReferences::TryFromJSON(yyjson_val *obj, optional<SnapshotReferences> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SnapshotReferences SnapshotReferences::Copy() const {
-	SnapshotReferences res;
+	SnapshotReferencesBuilder builder;
+	case_insensitive_map_t<SnapshotReference> additional_properties_tmp;
 	for (auto &entry : additional_properties) {
-		res.additional_properties.emplace(entry.first, entry.second.Copy());
+		additional_properties_tmp.emplace(entry.first, entry.second.Copy());
 	}
-	return res;
+	builder.SetAdditionalProperties(std::move(additional_properties_tmp));
+	return builder.Build();
 }
 
 string SnapshotReferences::Validate() const {
@@ -71,22 +90,6 @@ string SnapshotReferences::Validate() const {
 		}
 	}
 	return "";
-}
-
-string SnapshotReferences::TryFromJSON(yyjson_val *obj) {
-	string error;
-	size_t idx, max;
-	yyjson_val *key, *val;
-	yyjson_obj_foreach(obj, idx, max, key, val) {
-		auto key_str = yyjson_get_str(key);
-		auto tmp = GeneratedObjectAccess::Create<SnapshotReference>();
-		error = tmp.TryFromJSON(val);
-		if (!error.empty()) {
-			return error;
-		}
-		additional_properties.emplace(key_str, std::move(tmp));
-	}
-	return Validate();
 }
 
 void SnapshotReferences::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

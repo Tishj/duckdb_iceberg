@@ -18,10 +18,7 @@ public:
 	SnapshotLog(const SnapshotLog &) = delete;
 	SnapshotLog &operator=(const SnapshotLog &) = delete;
 	SnapshotLog(SnapshotLog &&) = default;
-	SnapshotLog &operator=(SnapshotLog &&) = default;
-	SnapshotLog();
-
-public:
+	SnapshotLog &operator=(SnapshotLog &&) = delete;
 	class Object3Builder;
 
 	class Object3 {
@@ -29,17 +26,16 @@ public:
 		Object3(const Object3 &) = delete;
 		Object3 &operator=(const Object3 &) = delete;
 		Object3(Object3 &&) = default;
-		Object3 &operator=(Object3 &&) = default;
+		Object3 &operator=(Object3 &&) = delete;
 
 	private:
 		friend class Object3Builder;
-		friend class GeneratedObjectAccess;
-		Object3();
+		Object3(int64_t snapshot_id_p, int64_t timestamp_ms_p);
 
 	public:
 		// Deserialization
 		static Object3 FromJSON(yyjson_val *obj);
-		string TryFromJSON(yyjson_val *obj);
+		static string TryFromJSON(yyjson_val *obj, optional<Object3> &result);
 		string Validate() const;
 
 		// Copy
@@ -59,19 +55,22 @@ public:
 		Object3Builder();
 		Object3Builder &SetSnapshotId(int64_t value);
 		Object3Builder &SetTimestampMs(int64_t value);
-		string TryBuild(Object3 &result);
+		string TryBuild(optional<Object3> &result);
 		Object3 Build();
 
 	private:
-		Object3 result_;
+		optional<int64_t> snapshot_id_;
+		optional<int64_t> timestamp_ms_;
 		bool has_snapshot_id_ = false;
 		bool has_timestamp_ms_ = false;
 	};
 
+	SnapshotLog(vector<Object3> value_p);
+
 public:
 	// Deserialization
 	static SnapshotLog FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result);
 	string Validate() const;
 
 	// Copy

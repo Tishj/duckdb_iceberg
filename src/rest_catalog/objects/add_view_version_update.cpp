@@ -14,60 +14,79 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddViewVersionUpdate::AddViewVersionUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
-      view_version(GeneratedObjectAccess::Create<ViewVersion>()) {
+AddViewVersionUpdate::AddViewVersionUpdate(BaseUpdate base_update_p, ViewVersion view_version_p)
+    : base_update(std::move(base_update_p)), view_version(std::move(view_version_p)) {
 }
 
 AddViewVersionUpdateBuilder::AddViewVersionUpdateBuilder() {
 }
 
 AddViewVersionUpdateBuilder &AddViewVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 AddViewVersionUpdateBuilder &AddViewVersionUpdateBuilder::SetViewVersion(ViewVersion value) {
-	result_.view_version = std::move(value);
+	view_version_ = std::move(value);
 	has_view_version_ = true;
 	return *this;
 }
 
-string AddViewVersionUpdateBuilder::TryBuild(AddViewVersionUpdate &result) {
-	if (!has_view_version_) {
-		return "AddViewVersionUpdate required property 'view-version' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AddViewVersionUpdate AddViewVersionUpdateBuilder::Build() {
-	AddViewVersionUpdate result;
-	auto error = TryBuild(result);
+	if (!has_view_version_) {
+		throw InvalidInputException("AddViewVersionUpdate required property 'view-version' is missing");
+	}
+	auto result = AddViewVersionUpdate(std::move(*base_update_), std::move(*view_version_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
-	AddViewVersionUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AddViewVersionUpdateBuilder::TryBuild(optional<AddViewVersionUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
+	AddViewVersionUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto view_version_val = yyjson_obj_get(obj, "view-version");
+	if (!view_version_val) {
+		throw InvalidInputException("AddViewVersionUpdate required property 'view-version' is missing");
+	} else {
+		optional<ViewVersion> view_version;
+		view_version = ViewVersion::FromJSON(view_version_val);
+		builder.SetViewVersion(std::move(*view_version));
+	}
+	return builder.Build();
+}
+
+string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, optional<AddViewVersionUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AddViewVersionUpdate AddViewVersionUpdate::Copy() const {
-	AddViewVersionUpdate res;
-	res.base_update = base_update.Copy();
-	res.view_version = view_version.Copy();
-	return res;
+	AddViewVersionUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<ViewVersion> view_version_tmp;
+	view_version_tmp = view_version.Copy();
+	builder.SetViewVersion(std::move(*view_version_tmp));
+	return builder.Build();
 }
 
 string AddViewVersionUpdate::Validate() const {
@@ -81,24 +100,6 @@ string AddViewVersionUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto view_version_val = yyjson_obj_get(obj, "view-version");
-	if (!view_version_val) {
-		return "AddViewVersionUpdate required property 'view-version' is missing";
-	} else {
-		error = view_version.TryFromJSON(view_version_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void AddViewVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

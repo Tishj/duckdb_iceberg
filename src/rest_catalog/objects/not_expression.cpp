@@ -14,62 +14,90 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-NotExpression::NotExpression() : child(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
+NotExpression::NotExpression(ExpressionType type_p, unique_ptr<Expression> child_p)
+    : type(std::move(type_p)), child(std::move(child_p)) {
 }
 
 NotExpressionBuilder::NotExpressionBuilder() {
 }
 
 NotExpressionBuilder &NotExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 NotExpressionBuilder &NotExpressionBuilder::SetChild(unique_ptr<Expression> value) {
-	result_.child = std::move(value);
+	child_ = std::move(value);
 	has_child_ = true;
 	return *this;
 }
 
-string NotExpressionBuilder::TryBuild(NotExpression &result) {
+NotExpression NotExpressionBuilder::Build() {
 	if (!has_type_) {
-		return "NotExpression required property 'type' is missing";
+		throw InvalidInputException("NotExpression required property 'type' is missing");
 	}
 	if (!has_child_) {
-		return "NotExpression required property 'child' is missing";
+		throw InvalidInputException("NotExpression required property 'child' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-NotExpression NotExpressionBuilder::Build() {
-	NotExpression result;
-	auto error = TryBuild(result);
+	auto result = NotExpression(std::move(*type_), std::move(child_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-NotExpression NotExpression::FromJSON(yyjson_val *obj) {
-	NotExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string NotExpressionBuilder::TryBuild(optional<NotExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+NotExpression NotExpression::FromJSON(yyjson_val *obj) {
+	NotExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("NotExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto child_val = yyjson_obj_get(obj, "child");
+	if (!child_val) {
+		throw InvalidInputException("NotExpression required property 'child' is missing");
+	} else {
+		unique_ptr<Expression> child;
+		child = make_uniq<Expression>(Expression::FromJSON(child_val));
+		builder.SetChild(std::move(child));
+	}
+	return builder.Build();
+}
+
+string NotExpression::TryFromJSON(yyjson_val *obj, optional<NotExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 NotExpression NotExpression::Copy() const {
-	NotExpression res;
-	res.type = type.Copy();
-	res.child = child ? make_uniq<Expression>(child->Copy()) : nullptr;
-	return res;
+	NotExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	unique_ptr<Expression> child_tmp;
+	child_tmp = child ? make_uniq<Expression>(child->Copy()) : nullptr;
+	builder.SetChild(std::move(child_tmp));
+	return builder.Build();
 }
 
 string NotExpression::Validate() const {
@@ -86,30 +114,6 @@ string NotExpression::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string NotExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "NotExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto child_val = yyjson_obj_get(obj, "child");
-	if (!child_val) {
-		return "NotExpression required property 'child' is missing";
-	} else {
-		child = GeneratedObjectAccess::CreateUnique<Expression>();
-		error = child->TryFromJSON(child_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void NotExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

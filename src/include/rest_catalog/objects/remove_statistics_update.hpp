@@ -21,17 +21,16 @@ public:
 	RemoveStatisticsUpdate(const RemoveStatisticsUpdate &) = delete;
 	RemoveStatisticsUpdate &operator=(const RemoveStatisticsUpdate &) = delete;
 	RemoveStatisticsUpdate(RemoveStatisticsUpdate &&) = default;
-	RemoveStatisticsUpdate &operator=(RemoveStatisticsUpdate &&) = default;
+	RemoveStatisticsUpdate &operator=(RemoveStatisticsUpdate &&) = delete;
 
 private:
 	friend class RemoveStatisticsUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemoveStatisticsUpdate();
+	RemoveStatisticsUpdate(BaseUpdate base_update_p, int64_t snapshot_id_p);
 
 public:
 	// Deserialization
 	static RemoveStatisticsUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemoveStatisticsUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemoveStatisticsUpdateBuilder();
 	RemoveStatisticsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveStatisticsUpdateBuilder &SetSnapshotId(int64_t value);
-	string TryBuild(RemoveStatisticsUpdate &result);
+	string TryBuild(optional<RemoveStatisticsUpdate> &result);
 	RemoveStatisticsUpdate Build();
 
 private:
-	RemoveStatisticsUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<int64_t> snapshot_id_;
 	bool has_snapshot_id_ = false;
 };
 

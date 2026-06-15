@@ -18,13 +18,13 @@ public:
 	FixedTypeValue(const FixedTypeValue &) = delete;
 	FixedTypeValue &operator=(const FixedTypeValue &) = delete;
 	FixedTypeValue(FixedTypeValue &&) = default;
-	FixedTypeValue &operator=(FixedTypeValue &&) = default;
-	FixedTypeValue();
+	FixedTypeValue &operator=(FixedTypeValue &&) = delete;
+	FixedTypeValue(string value_p);
 
 public:
 	// Deserialization
 	static FixedTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &result);
 	string Validate() const;
 
 	// Copy

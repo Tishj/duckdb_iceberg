@@ -14,38 +14,40 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-BooleanTypeValue::BooleanTypeValue() {
+BooleanTypeValue::BooleanTypeValue(bool value_p) : value(std::move(value_p)) {
 }
 
 BooleanTypeValue BooleanTypeValue::FromJSON(yyjson_val *obj) {
-	BooleanTypeValue res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	bool value;
+	if (yyjson_is_bool(obj)) {
+		value = yyjson_get_bool(obj);
+	} else {
+		throw InvalidInputException(
+		    StringUtil::Format("BooleanTypeValue property 'value' is not of type 'boolean', found '%s' instead",
+		                       yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return BooleanTypeValue(std::move(value));
+}
+
+string BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 BooleanTypeValue BooleanTypeValue::Copy() const {
-	BooleanTypeValue res;
-	res.value = value;
-	return res;
+	bool value_tmp;
+	value_tmp = value;
+	return BooleanTypeValue(std::move(value_tmp));
 }
 
 string BooleanTypeValue::Validate() const {
 	string error;
 	return "";
-}
-
-string BooleanTypeValue::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_bool(obj)) {
-		value = yyjson_get_bool(obj);
-	} else {
-		return StringUtil::Format("BooleanTypeValue property 'value' is not of type 'boolean', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *BooleanTypeValue::ToJSON(yyjson_mut_doc *doc) const {

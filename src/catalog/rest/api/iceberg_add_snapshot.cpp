@@ -229,7 +229,7 @@ void IcebergAddSnapshot::CreateUpdate(DatabaseInstance &db, ClientContext &conte
 	commit_state.latest_snapshot = commit_state.created_snapshots.back();
 
 	//! Finally add a Iceberg REST Catalog 'TableUpdate' to commit
-	commit_state.table_change.updates.push_back(CreateAddSnapshotUpdate(table_info, *commit_state.latest_snapshot));
+	commit_state.updates.push_back(CreateAddSnapshotUpdate(table_info, *commit_state.latest_snapshot));
 }
 
 void IcebergAddSnapshot::AddManifestFile(IcebergManifestListEntry &&manifest_file) {

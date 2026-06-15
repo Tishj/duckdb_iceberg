@@ -14,95 +14,199 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-StatisticsFile::StatisticsFile() {
+StatisticsFile::StatisticsFile(int64_t snapshot_id_p, string statistics_path_p, int64_t file_size_in_bytes_p,
+                               int64_t file_footer_size_in_bytes_p, vector<BlobMetadata> blob_metadata_p)
+    : snapshot_id(std::move(snapshot_id_p)), statistics_path(std::move(statistics_path_p)),
+      file_size_in_bytes(std::move(file_size_in_bytes_p)),
+      file_footer_size_in_bytes(std::move(file_footer_size_in_bytes_p)), blob_metadata(std::move(blob_metadata_p)) {
 }
 
 StatisticsFileBuilder::StatisticsFileBuilder() {
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetStatisticsPath(string value) {
-	result_.statistics_path = std::move(value);
+	statistics_path_ = std::move(value);
 	has_statistics_path_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetFileSizeInBytes(int64_t value) {
-	result_.file_size_in_bytes = std::move(value);
+	file_size_in_bytes_ = std::move(value);
 	has_file_size_in_bytes_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetFileFooterSizeInBytes(int64_t value) {
-	result_.file_footer_size_in_bytes = std::move(value);
+	file_footer_size_in_bytes_ = std::move(value);
 	has_file_footer_size_in_bytes_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetBlobMetadata(vector<BlobMetadata> value) {
-	result_.blob_metadata = std::move(value);
+	blob_metadata_ = std::move(value);
 	has_blob_metadata_ = true;
 	return *this;
 }
 
-string StatisticsFileBuilder::TryBuild(StatisticsFile &result) {
+StatisticsFile StatisticsFileBuilder::Build() {
 	if (!has_snapshot_id_) {
-		return "StatisticsFile required property 'snapshot-id' is missing";
+		throw InvalidInputException("StatisticsFile required property 'snapshot-id' is missing");
 	}
 	if (!has_statistics_path_) {
-		return "StatisticsFile required property 'statistics-path' is missing";
+		throw InvalidInputException("StatisticsFile required property 'statistics-path' is missing");
 	}
 	if (!has_file_size_in_bytes_) {
-		return "StatisticsFile required property 'file-size-in-bytes' is missing";
+		throw InvalidInputException("StatisticsFile required property 'file-size-in-bytes' is missing");
 	}
 	if (!has_file_footer_size_in_bytes_) {
-		return "StatisticsFile required property 'file-footer-size-in-bytes' is missing";
+		throw InvalidInputException("StatisticsFile required property 'file-footer-size-in-bytes' is missing");
 	}
 	if (!has_blob_metadata_) {
-		return "StatisticsFile required property 'blob-metadata' is missing";
+		throw InvalidInputException("StatisticsFile required property 'blob-metadata' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-StatisticsFile StatisticsFileBuilder::Build() {
-	StatisticsFile result;
-	auto error = TryBuild(result);
+	auto result =
+	    StatisticsFile(std::move(*snapshot_id_), std::move(*statistics_path_), std::move(*file_size_in_bytes_),
+	                   std::move(*file_footer_size_in_bytes_), std::move(*blob_metadata_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
-	StatisticsFile res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string StatisticsFileBuilder::TryBuild(optional<StatisticsFile> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
+	StatisticsFileBuilder builder;
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (!snapshot_id_val) {
+		throw InvalidInputException("StatisticsFile required property 'snapshot-id' is missing");
+	} else {
+		int64_t snapshot_id;
+		if (yyjson_is_sint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_sint(snapshot_id_val);
+		} else if (yyjson_is_uint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_uint(snapshot_id_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("StatisticsFile property 'snapshot_id' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(snapshot_id_val)));
+		}
+		builder.SetSnapshotId(std::move(snapshot_id));
+	}
+	auto statistics_path_val = yyjson_obj_get(obj, "statistics-path");
+	if (!statistics_path_val) {
+		throw InvalidInputException("StatisticsFile required property 'statistics-path' is missing");
+	} else {
+		string statistics_path;
+		if (yyjson_is_str(statistics_path_val)) {
+			statistics_path = yyjson_get_str(statistics_path_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "StatisticsFile property 'statistics_path' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(statistics_path_val)));
+		}
+		builder.SetStatisticsPath(std::move(statistics_path));
+	}
+	auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
+	if (!file_size_in_bytes_val) {
+		throw InvalidInputException("StatisticsFile required property 'file-size-in-bytes' is missing");
+	} else {
+		int64_t file_size_in_bytes;
+		if (yyjson_is_sint(file_size_in_bytes_val)) {
+			file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
+		} else if (yyjson_is_uint(file_size_in_bytes_val)) {
+			file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "StatisticsFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(file_size_in_bytes_val)));
+		}
+		builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
+	}
+	auto file_footer_size_in_bytes_val = yyjson_obj_get(obj, "file-footer-size-in-bytes");
+	if (!file_footer_size_in_bytes_val) {
+		throw InvalidInputException("StatisticsFile required property 'file-footer-size-in-bytes' is missing");
+	} else {
+		int64_t file_footer_size_in_bytes;
+		if (yyjson_is_sint(file_footer_size_in_bytes_val)) {
+			file_footer_size_in_bytes = yyjson_get_sint(file_footer_size_in_bytes_val);
+		} else if (yyjson_is_uint(file_footer_size_in_bytes_val)) {
+			file_footer_size_in_bytes = yyjson_get_uint(file_footer_size_in_bytes_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "StatisticsFile property 'file_footer_size_in_bytes' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(file_footer_size_in_bytes_val)));
+		}
+		builder.SetFileFooterSizeInBytes(std::move(file_footer_size_in_bytes));
+	}
+	auto blob_metadata_val = yyjson_obj_get(obj, "blob-metadata");
+	if (!blob_metadata_val) {
+		throw InvalidInputException("StatisticsFile required property 'blob-metadata' is missing");
+	} else {
+		vector<BlobMetadata> blob_metadata;
+		if (yyjson_is_arr(blob_metadata_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(blob_metadata_val, idx, max, val) {
+				auto tmp = BlobMetadata::FromJSON(val);
+				blob_metadata.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "StatisticsFile property 'blob_metadata' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(blob_metadata_val));
+		}
+		builder.SetBlobMetadata(std::move(blob_metadata));
+	}
+	return builder.Build();
+}
+
+string StatisticsFile::TryFromJSON(yyjson_val *obj, optional<StatisticsFile> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 StatisticsFile StatisticsFile::Copy() const {
-	StatisticsFile res;
-	res.snapshot_id = snapshot_id;
-	res.statistics_path = statistics_path;
-	res.file_size_in_bytes = file_size_in_bytes;
-	res.file_footer_size_in_bytes = file_footer_size_in_bytes;
-	res.blob_metadata.reserve(blob_metadata.size());
+	StatisticsFileBuilder builder;
+	int64_t snapshot_id_tmp;
+	snapshot_id_tmp = snapshot_id;
+	builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	string statistics_path_tmp;
+	statistics_path_tmp = statistics_path;
+	builder.SetStatisticsPath(std::move(statistics_path_tmp));
+	int64_t file_size_in_bytes_tmp;
+	file_size_in_bytes_tmp = file_size_in_bytes;
+	builder.SetFileSizeInBytes(std::move(file_size_in_bytes_tmp));
+	int64_t file_footer_size_in_bytes_tmp;
+	file_footer_size_in_bytes_tmp = file_footer_size_in_bytes;
+	builder.SetFileFooterSizeInBytes(std::move(file_footer_size_in_bytes_tmp));
+	vector<BlobMetadata> blob_metadata_tmp;
+	blob_metadata_tmp.reserve(blob_metadata.size());
 	for (auto &item : blob_metadata) {
-		res.blob_metadata.emplace_back(item.Copy());
+		blob_metadata_tmp.emplace_back(item.Copy());
 	}
-	return res;
+	builder.SetBlobMetadata(std::move(blob_metadata_tmp));
+	return builder.Build();
 }
 
 string StatisticsFile::Validate() const {
@@ -114,86 +218,6 @@ string StatisticsFile::Validate() const {
 		}
 	}
 	return "";
-}
-
-string StatisticsFile::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		return "StatisticsFile required property 'snapshot-id' is missing";
-	} else {
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "StatisticsFile property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val));
-		}
-	}
-	auto statistics_path_val = yyjson_obj_get(obj, "statistics-path");
-	if (!statistics_path_val) {
-		return "StatisticsFile required property 'statistics-path' is missing";
-	} else {
-		if (yyjson_is_str(statistics_path_val)) {
-			statistics_path = yyjson_get_str(statistics_path_val);
-		} else {
-			return StringUtil::Format(
-			    "StatisticsFile property 'statistics_path' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(statistics_path_val));
-		}
-	}
-	auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
-	if (!file_size_in_bytes_val) {
-		return "StatisticsFile required property 'file-size-in-bytes' is missing";
-	} else {
-		if (yyjson_is_sint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
-		} else if (yyjson_is_uint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
-		} else {
-			return StringUtil::Format(
-			    "StatisticsFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(file_size_in_bytes_val));
-		}
-	}
-	auto file_footer_size_in_bytes_val = yyjson_obj_get(obj, "file-footer-size-in-bytes");
-	if (!file_footer_size_in_bytes_val) {
-		return "StatisticsFile required property 'file-footer-size-in-bytes' is missing";
-	} else {
-		if (yyjson_is_sint(file_footer_size_in_bytes_val)) {
-			file_footer_size_in_bytes = yyjson_get_sint(file_footer_size_in_bytes_val);
-		} else if (yyjson_is_uint(file_footer_size_in_bytes_val)) {
-			file_footer_size_in_bytes = yyjson_get_uint(file_footer_size_in_bytes_val);
-		} else {
-			return StringUtil::Format(
-			    "StatisticsFile property 'file_footer_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(file_footer_size_in_bytes_val));
-		}
-	}
-	auto blob_metadata_val = yyjson_obj_get(obj, "blob-metadata");
-	if (!blob_metadata_val) {
-		return "StatisticsFile required property 'blob-metadata' is missing";
-	} else {
-		if (yyjson_is_arr(blob_metadata_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(blob_metadata_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<BlobMetadata>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				blob_metadata.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "StatisticsFile property 'blob_metadata' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(blob_metadata_val));
-		}
-	}
-	return Validate();
 }
 
 void StatisticsFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -21,17 +21,16 @@ public:
 	FalseExpression(const FalseExpression &) = delete;
 	FalseExpression &operator=(const FalseExpression &) = delete;
 	FalseExpression(FalseExpression &&) = default;
-	FalseExpression &operator=(FalseExpression &&) = default;
+	FalseExpression &operator=(FalseExpression &&) = delete;
 
 private:
 	friend class FalseExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	FalseExpression();
+	FalseExpression(ExpressionType type_p);
 
 public:
 	// Deserialization
 	static FalseExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FalseExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class FalseExpressionBuilder {
 public:
 	FalseExpressionBuilder();
 	FalseExpressionBuilder &SetType(ExpressionType value);
-	string TryBuild(FalseExpression &result);
+	string TryBuild(optional<FalseExpression> &result);
 	FalseExpression Build();
 
 private:
-	FalseExpression result_;
+	optional<ExpressionType> type_;
 	bool has_type_ = false;
 };
 

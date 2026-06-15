@@ -14,72 +14,116 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TransformTerm::TransformTerm() {
+TransformTerm::TransformTerm(string type_p, Transform transform_p, Reference term_p)
+    : type(std::move(type_p)), transform(std::move(transform_p)), term(std::move(term_p)) {
 }
 
 TransformTermBuilder::TransformTermBuilder() {
 }
 
 TransformTermBuilder &TransformTermBuilder::SetType(string value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 TransformTermBuilder &TransformTermBuilder::SetTransform(Transform value) {
-	result_.transform = std::move(value);
+	transform_ = std::move(value);
 	has_transform_ = true;
 	return *this;
 }
 
 TransformTermBuilder &TransformTermBuilder::SetTerm(Reference value) {
-	result_.term = std::move(value);
+	term_ = std::move(value);
 	has_term_ = true;
 	return *this;
 }
 
-string TransformTermBuilder::TryBuild(TransformTerm &result) {
+TransformTerm TransformTermBuilder::Build() {
 	if (!has_type_) {
-		return "TransformTerm required property 'type' is missing";
+		throw InvalidInputException("TransformTerm required property 'type' is missing");
 	}
 	if (!has_transform_) {
-		return "TransformTerm required property 'transform' is missing";
+		throw InvalidInputException("TransformTerm required property 'transform' is missing");
 	}
 	if (!has_term_) {
-		return "TransformTerm required property 'term' is missing";
+		throw InvalidInputException("TransformTerm required property 'term' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-TransformTerm TransformTermBuilder::Build() {
-	TransformTerm result;
-	auto error = TryBuild(result);
+	auto result = TransformTerm(std::move(*type_), std::move(*transform_), std::move(*term_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-TransformTerm TransformTerm::FromJSON(yyjson_val *obj) {
-	TransformTerm res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string TransformTermBuilder::TryBuild(optional<TransformTerm> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+TransformTerm TransformTerm::FromJSON(yyjson_val *obj) {
+	TransformTermBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("TransformTerm required property 'type' is missing");
+	} else {
+		string type;
+		if (yyjson_is_str(type_val)) {
+			type = yyjson_get_str(type_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("TransformTerm property 'type' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(type_val)));
+		}
+		builder.SetType(std::move(type));
+	}
+	auto transform_val = yyjson_obj_get(obj, "transform");
+	if (!transform_val) {
+		throw InvalidInputException("TransformTerm required property 'transform' is missing");
+	} else {
+		optional<Transform> transform;
+		transform = Transform::FromJSON(transform_val);
+		builder.SetTransform(std::move(*transform));
+	}
+	auto term_val = yyjson_obj_get(obj, "term");
+	if (!term_val) {
+		throw InvalidInputException("TransformTerm required property 'term' is missing");
+	} else {
+		optional<Reference> term;
+		term = Reference::FromJSON(term_val);
+		builder.SetTerm(std::move(*term));
+	}
+	return builder.Build();
+}
+
+string TransformTerm::TryFromJSON(yyjson_val *obj, optional<TransformTerm> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TransformTerm TransformTerm::Copy() const {
-	TransformTerm res;
-	res.type = type;
-	res.transform = transform.Copy();
-	res.term = term.Copy();
-	return res;
+	TransformTermBuilder builder;
+	string type_tmp;
+	type_tmp = type;
+	builder.SetType(std::move(type_tmp));
+	optional<Transform> transform_tmp;
+	transform_tmp = transform.Copy();
+	builder.SetTransform(std::move(*transform_tmp));
+	optional<Reference> term_tmp;
+	term_tmp = term.Copy();
+	builder.SetTerm(std::move(*term_tmp));
+	return builder.Build();
 }
 
 string TransformTerm::Validate() const {
@@ -96,40 +140,6 @@ string TransformTerm::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string TransformTerm::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "TransformTerm required property 'type' is missing";
-	} else {
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			return StringUtil::Format("TransformTerm property 'type' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(type_val));
-		}
-	}
-	auto transform_val = yyjson_obj_get(obj, "transform");
-	if (!transform_val) {
-		return "TransformTerm required property 'transform' is missing";
-	} else {
-		error = transform.TryFromJSON(transform_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		return "TransformTerm required property 'term' is missing";
-	} else {
-		error = term.TryFromJSON(term_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void TransformTerm::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

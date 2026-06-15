@@ -22,17 +22,17 @@ public:
 	CreateViewRequest(const CreateViewRequest &) = delete;
 	CreateViewRequest &operator=(const CreateViewRequest &) = delete;
 	CreateViewRequest(CreateViewRequest &&) = default;
-	CreateViewRequest &operator=(CreateViewRequest &&) = default;
+	CreateViewRequest &operator=(CreateViewRequest &&) = delete;
 
 private:
 	friend class CreateViewRequestBuilder;
-	friend class GeneratedObjectAccess;
-	CreateViewRequest();
+	CreateViewRequest(string name_p, Schema schema_p, ViewVersion view_version_p,
+	                  case_insensitive_map_t<string> properties_p, optional<string> location_p);
 
 public:
 	// Deserialization
 	static CreateViewRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CreateViewRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -58,11 +58,15 @@ public:
 	CreateViewRequestBuilder &SetViewVersion(ViewVersion value);
 	CreateViewRequestBuilder &SetProperties(case_insensitive_map_t<string> value);
 	CreateViewRequestBuilder &SetLocation(string value);
-	string TryBuild(CreateViewRequest &result);
+	string TryBuild(optional<CreateViewRequest> &result);
 	CreateViewRequest Build();
 
 private:
-	CreateViewRequest result_;
+	optional<string> name_;
+	optional<Schema> schema_;
+	optional<ViewVersion> view_version_;
+	optional<case_insensitive_map_t<string>> properties_;
+	optional<string> location_;
 	bool has_name_ = false;
 	bool has_schema_ = false;
 	bool has_view_version_ = false;

@@ -14,40 +14,41 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PageToken::PageToken() {
+PageToken::PageToken(string value_p) : value(std::move(value_p)) {
 }
 
 PageToken PageToken::FromJSON(yyjson_val *obj) {
-	PageToken res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
-	}
-	return res;
-}
-
-PageToken PageToken::Copy() const {
-	PageToken res;
-	res.value = value;
-	return res;
-}
-
-string PageToken::Validate() const {
-	string error;
-	return "";
-}
-
-string PageToken::TryFromJSON(yyjson_val *obj) {
-	string error;
+	string value;
 	if (yyjson_is_null(obj)) {
 		//! do nothing, property is explicitly nullable
 	} else if (yyjson_is_str(obj)) {
 		value = yyjson_get_str(obj);
 	} else {
-		return StringUtil::Format("PageToken property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
+		throw InvalidInputException(StringUtil::Format(
+		    "PageToken property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return Validate();
+	return PageToken(std::move(value));
+}
+
+string PageToken::TryFromJSON(yyjson_val *obj, optional<PageToken> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
+}
+
+PageToken PageToken::Copy() const {
+	string value_tmp;
+	value_tmp = value;
+	return PageToken(std::move(value_tmp));
+}
+
+string PageToken::Validate() const {
+	string error;
+	return "";
 }
 
 yyjson_mut_val *PageToken::ToJSON(yyjson_mut_doc *doc) const {

@@ -14,55 +14,84 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LoadCredentialsResponse::LoadCredentialsResponse() {
+LoadCredentialsResponse::LoadCredentialsResponse(vector<StorageCredential> storage_credentials_p)
+    : storage_credentials(std::move(storage_credentials_p)) {
 }
 
 LoadCredentialsResponseBuilder::LoadCredentialsResponseBuilder() {
 }
 
 LoadCredentialsResponseBuilder &LoadCredentialsResponseBuilder::SetStorageCredentials(vector<StorageCredential> value) {
-	result_.storage_credentials = std::move(value);
+	storage_credentials_ = std::move(value);
 	has_storage_credentials_ = true;
 	return *this;
 }
 
-string LoadCredentialsResponseBuilder::TryBuild(LoadCredentialsResponse &result) {
-	if (!has_storage_credentials_) {
-		return "LoadCredentialsResponse required property 'storage-credentials' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 LoadCredentialsResponse LoadCredentialsResponseBuilder::Build() {
-	LoadCredentialsResponse result;
-	auto error = TryBuild(result);
+	if (!has_storage_credentials_) {
+		throw InvalidInputException("LoadCredentialsResponse required property 'storage-credentials' is missing");
+	}
+	auto result = LoadCredentialsResponse(std::move(*storage_credentials_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
-	LoadCredentialsResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string LoadCredentialsResponseBuilder::TryBuild(optional<LoadCredentialsResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
+	LoadCredentialsResponseBuilder builder;
+	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
+	if (!storage_credentials_val) {
+		throw InvalidInputException("LoadCredentialsResponse required property 'storage-credentials' is missing");
+	} else {
+		vector<StorageCredential> storage_credentials;
+		if (yyjson_is_arr(storage_credentials_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
+				auto tmp = StorageCredential::FromJSON(val);
+				storage_credentials.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "LoadCredentialsResponse property 'storage_credentials' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(storage_credentials_val));
+		}
+		builder.SetStorageCredentials(std::move(storage_credentials));
+	}
+	return builder.Build();
+}
+
+string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, optional<LoadCredentialsResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 LoadCredentialsResponse LoadCredentialsResponse::Copy() const {
-	LoadCredentialsResponse res;
-	res.storage_credentials.reserve(storage_credentials.size());
+	LoadCredentialsResponseBuilder builder;
+	vector<StorageCredential> storage_credentials_tmp;
+	storage_credentials_tmp.reserve(storage_credentials.size());
 	for (auto &item : storage_credentials) {
-		res.storage_credentials.emplace_back(item.Copy());
+		storage_credentials_tmp.emplace_back(item.Copy());
 	}
-	return res;
+	builder.SetStorageCredentials(std::move(storage_credentials_tmp));
+	return builder.Build();
 }
 
 string LoadCredentialsResponse::Validate() const {
@@ -74,32 +103,6 @@ string LoadCredentialsResponse::Validate() const {
 		}
 	}
 	return "";
-}
-
-string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
-	if (!storage_credentials_val) {
-		return "LoadCredentialsResponse required property 'storage-credentials' is missing";
-	} else {
-		if (yyjson_is_arr(storage_credentials_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<StorageCredential>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				storage_credentials.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "LoadCredentialsResponse property 'storage_credentials' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(storage_credentials_val));
-		}
-	}
-	return Validate();
 }
 
 void LoadCredentialsResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

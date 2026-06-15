@@ -20,17 +20,16 @@ public:
 	ViewHistoryEntry(const ViewHistoryEntry &) = delete;
 	ViewHistoryEntry &operator=(const ViewHistoryEntry &) = delete;
 	ViewHistoryEntry(ViewHistoryEntry &&) = default;
-	ViewHistoryEntry &operator=(ViewHistoryEntry &&) = default;
+	ViewHistoryEntry &operator=(ViewHistoryEntry &&) = delete;
 
 private:
 	friend class ViewHistoryEntryBuilder;
-	friend class GeneratedObjectAccess;
-	ViewHistoryEntry();
+	ViewHistoryEntry(int32_t version_id_p, int64_t timestamp_ms_p);
 
 public:
 	// Deserialization
 	static ViewHistoryEntry FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ViewHistoryEntry> &result);
 	string Validate() const;
 
 	// Copy
@@ -50,11 +49,12 @@ public:
 	ViewHistoryEntryBuilder();
 	ViewHistoryEntryBuilder &SetVersionId(int32_t value);
 	ViewHistoryEntryBuilder &SetTimestampMs(int64_t value);
-	string TryBuild(ViewHistoryEntry &result);
+	string TryBuild(optional<ViewHistoryEntry> &result);
 	ViewHistoryEntry Build();
 
 private:
-	ViewHistoryEntry result_;
+	optional<int32_t> version_id_;
+	optional<int64_t> timestamp_ms_;
 	bool has_version_id_ = false;
 	bool has_timestamp_ms_ = false;
 };

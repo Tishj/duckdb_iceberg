@@ -21,17 +21,16 @@ public:
 	RenameTableRequest(const RenameTableRequest &) = delete;
 	RenameTableRequest &operator=(const RenameTableRequest &) = delete;
 	RenameTableRequest(RenameTableRequest &&) = default;
-	RenameTableRequest &operator=(RenameTableRequest &&) = default;
+	RenameTableRequest &operator=(RenameTableRequest &&) = delete;
 
 private:
 	friend class RenameTableRequestBuilder;
-	friend class GeneratedObjectAccess;
-	RenameTableRequest();
+	RenameTableRequest(TableIdentifier source_p, TableIdentifier destination_p);
 
 public:
 	// Deserialization
 	static RenameTableRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RenameTableRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RenameTableRequestBuilder();
 	RenameTableRequestBuilder &SetSource(TableIdentifier value);
 	RenameTableRequestBuilder &SetDestination(TableIdentifier value);
-	string TryBuild(RenameTableRequest &result);
+	string TryBuild(optional<RenameTableRequest> &result);
 	RenameTableRequest Build();
 
 private:
-	RenameTableRequest result_;
+	optional<TableIdentifier> source_;
+	optional<TableIdentifier> destination_;
 	bool has_source_ = false;
 	bool has_destination_ = false;
 };

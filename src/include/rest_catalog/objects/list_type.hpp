@@ -22,17 +22,16 @@ public:
 	ListType(const ListType &) = delete;
 	ListType &operator=(const ListType &) = delete;
 	ListType(ListType &&) = default;
-	ListType &operator=(ListType &&) = default;
+	ListType &operator=(ListType &&) = delete;
 
 private:
 	friend class ListTypeBuilder;
-	friend class GeneratedObjectAccess;
-	ListType();
+	ListType(string type_p, int32_t element_id_p, unique_ptr<Type> element_p, bool element_required_p);
 
 public:
 	// Deserialization
 	static ListType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ListType> &result);
 	string Validate() const;
 
 	// Copy
@@ -56,11 +55,14 @@ public:
 	ListTypeBuilder &SetElementId(int32_t value);
 	ListTypeBuilder &SetElement(unique_ptr<Type> value);
 	ListTypeBuilder &SetElementRequired(bool value);
-	string TryBuild(ListType &result);
+	string TryBuild(optional<ListType> &result);
 	ListType Build();
 
 private:
-	ListType result_;
+	optional<string> type_;
+	optional<int32_t> element_id_;
+	unique_ptr<Type> element_;
+	optional<bool> element_required_;
 	bool has_type_ = false;
 	bool has_element_id_ = false;
 	bool has_element_ = false;

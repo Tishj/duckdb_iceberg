@@ -21,17 +21,17 @@ public:
 	LoadViewResult(const LoadViewResult &) = delete;
 	LoadViewResult &operator=(const LoadViewResult &) = delete;
 	LoadViewResult(LoadViewResult &&) = default;
-	LoadViewResult &operator=(LoadViewResult &&) = default;
+	LoadViewResult &operator=(LoadViewResult &&) = delete;
 
 private:
 	friend class LoadViewResultBuilder;
-	friend class GeneratedObjectAccess;
-	LoadViewResult();
+	LoadViewResult(string metadata_location_p, ViewMetadata metadata_p,
+	               optional<case_insensitive_map_t<string>> config_p);
 
 public:
 	// Deserialization
 	static LoadViewResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<LoadViewResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -53,11 +53,13 @@ public:
 	LoadViewResultBuilder &SetMetadataLocation(string value);
 	LoadViewResultBuilder &SetMetadata(ViewMetadata value);
 	LoadViewResultBuilder &SetConfig(case_insensitive_map_t<string> value);
-	string TryBuild(LoadViewResult &result);
+	string TryBuild(optional<LoadViewResult> &result);
 	LoadViewResult Build();
 
 private:
-	LoadViewResult result_;
+	optional<string> metadata_location_;
+	optional<ViewMetadata> metadata_;
+	optional<case_insensitive_map_t<string>> config_;
 	bool has_metadata_location_ = false;
 	bool has_metadata_ = false;
 };

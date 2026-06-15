@@ -27,17 +27,19 @@ public:
 	Expression(const Expression &) = delete;
 	Expression &operator=(const Expression &) = delete;
 	Expression(Expression &&) = default;
-	Expression &operator=(Expression &&) = default;
+	Expression &operator=(Expression &&) = delete;
 
 private:
 	friend class ExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	Expression();
+	Expression(optional<TrueExpression> true_expression_p, optional<FalseExpression> false_expression_p,
+	           optional<AndOrExpression> and_or_expression_p, optional<NotExpression> not_expression_p,
+	           optional<SetExpression> set_expression_p, optional<LiteralExpression> literal_expression_p,
+	           optional<UnaryExpression> unary_expression_p);
 
 public:
 	// Deserialization
 	static Expression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Expression> &result);
 	string Validate() const;
 
 	// Copy
@@ -67,11 +69,17 @@ public:
 	ExpressionBuilder &SetSetExpression(SetExpression value);
 	ExpressionBuilder &SetLiteralExpression(LiteralExpression value);
 	ExpressionBuilder &SetUnaryExpression(UnaryExpression value);
-	string TryBuild(Expression &result);
+	string TryBuild(optional<Expression> &result);
 	Expression Build();
 
 private:
-	Expression result_;
+	optional<TrueExpression> true_expression_;
+	optional<FalseExpression> false_expression_;
+	optional<AndOrExpression> and_or_expression_;
+	optional<NotExpression> not_expression_;
+	optional<SetExpression> set_expression_;
+	optional<LiteralExpression> literal_expression_;
+	optional<UnaryExpression> unary_expression_;
 };
 
 } // namespace rest_api_objects

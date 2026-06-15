@@ -22,17 +22,16 @@ public:
 	AddSnapshotUpdate(const AddSnapshotUpdate &) = delete;
 	AddSnapshotUpdate &operator=(const AddSnapshotUpdate &) = delete;
 	AddSnapshotUpdate(AddSnapshotUpdate &&) = default;
-	AddSnapshotUpdate &operator=(AddSnapshotUpdate &&) = default;
+	AddSnapshotUpdate &operator=(AddSnapshotUpdate &&) = delete;
 
 private:
 	friend class AddSnapshotUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	AddSnapshotUpdate();
+	AddSnapshotUpdate(BaseUpdate base_update_p, Snapshot snapshot_p);
 
 public:
 	// Deserialization
 	static AddSnapshotUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AddSnapshotUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	AddSnapshotUpdateBuilder();
 	AddSnapshotUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddSnapshotUpdateBuilder &SetSnapshot(Snapshot value);
-	string TryBuild(AddSnapshotUpdate &result);
+	string TryBuild(optional<AddSnapshotUpdate> &result);
 	AddSnapshotUpdate Build();
 
 private:
-	AddSnapshotUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<Snapshot> snapshot_;
 	bool has_snapshot_ = false;
 };
 

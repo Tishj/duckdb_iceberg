@@ -21,17 +21,16 @@ public:
 	AssertLastAssignedPartitionId(const AssertLastAssignedPartitionId &) = delete;
 	AssertLastAssignedPartitionId &operator=(const AssertLastAssignedPartitionId &) = delete;
 	AssertLastAssignedPartitionId(AssertLastAssignedPartitionId &&) = default;
-	AssertLastAssignedPartitionId &operator=(AssertLastAssignedPartitionId &&) = default;
+	AssertLastAssignedPartitionId &operator=(AssertLastAssignedPartitionId &&) = delete;
 
 private:
 	friend class AssertLastAssignedPartitionIdBuilder;
-	friend class GeneratedObjectAccess;
-	AssertLastAssignedPartitionId();
+	AssertLastAssignedPartitionId(TableRequirementType type_p, int32_t last_assigned_partition_id_p);
 
 public:
 	// Deserialization
 	static AssertLastAssignedPartitionId FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertLastAssignedPartitionId> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssertLastAssignedPartitionIdBuilder();
 	AssertLastAssignedPartitionIdBuilder &SetType(TableRequirementType value);
 	AssertLastAssignedPartitionIdBuilder &SetLastAssignedPartitionId(int32_t value);
-	string TryBuild(AssertLastAssignedPartitionId &result);
+	string TryBuild(optional<AssertLastAssignedPartitionId> &result);
 	AssertLastAssignedPartitionId Build();
 
 private:
-	AssertLastAssignedPartitionId result_;
+	optional<TableRequirementType> type_;
+	optional<int32_t> last_assigned_partition_id_;
 	bool has_type_ = false;
 	bool has_last_assigned_partition_id_ = false;
 };

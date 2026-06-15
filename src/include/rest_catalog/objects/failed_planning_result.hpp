@@ -22,14 +22,7 @@ public:
 	FailedPlanningResult(const FailedPlanningResult &) = delete;
 	FailedPlanningResult &operator=(const FailedPlanningResult &) = delete;
 	FailedPlanningResult(FailedPlanningResult &&) = default;
-	FailedPlanningResult &operator=(FailedPlanningResult &&) = default;
-
-private:
-	friend class FailedPlanningResultBuilder;
-	friend class GeneratedObjectAccess;
-	FailedPlanningResult();
-
-public:
+	FailedPlanningResult &operator=(FailedPlanningResult &&) = delete;
 	class Object7Builder;
 
 	class Object7 {
@@ -37,17 +30,16 @@ public:
 		Object7(const Object7 &) = delete;
 		Object7 &operator=(const Object7 &) = delete;
 		Object7(Object7 &&) = default;
-		Object7 &operator=(Object7 &&) = default;
+		Object7 &operator=(Object7 &&) = delete;
 
 	private:
 		friend class Object7Builder;
-		friend class GeneratedObjectAccess;
-		Object7();
+		Object7(PlanStatus status_p);
 
 	public:
 		// Deserialization
 		static Object7 FromJSON(yyjson_val *obj);
-		string TryFromJSON(yyjson_val *obj);
+		static string TryFromJSON(yyjson_val *obj, optional<Object7> &result);
 		string Validate() const;
 
 		// Copy
@@ -65,18 +57,22 @@ public:
 	public:
 		Object7Builder();
 		Object7Builder &SetStatus(PlanStatus value);
-		string TryBuild(Object7 &result);
+		string TryBuild(optional<Object7> &result);
 		Object7 Build();
 
 	private:
-		Object7 result_;
+		optional<PlanStatus> status_;
 		bool has_status_ = false;
 	};
+
+private:
+	friend class FailedPlanningResultBuilder;
+	FailedPlanningResult(IcebergErrorResponse iceberg_error_response_p, Object7 object_7_p);
 
 public:
 	// Deserialization
 	static FailedPlanningResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FailedPlanningResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -96,11 +92,12 @@ public:
 	FailedPlanningResultBuilder();
 	FailedPlanningResultBuilder &SetIcebergErrorResponse(IcebergErrorResponse value);
 	FailedPlanningResultBuilder &SetObject7(FailedPlanningResult::Object7 value);
-	string TryBuild(FailedPlanningResult &result);
+	string TryBuild(optional<FailedPlanningResult> &result);
 	FailedPlanningResult Build();
 
 private:
-	FailedPlanningResult result_;
+	optional<IcebergErrorResponse> iceberg_error_response_;
+	optional<FailedPlanningResult::Object7> object_7_;
 };
 
 } // namespace rest_api_objects

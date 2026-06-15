@@ -23,14 +23,7 @@ public:
 	CompletedPlanningResult(const CompletedPlanningResult &) = delete;
 	CompletedPlanningResult &operator=(const CompletedPlanningResult &) = delete;
 	CompletedPlanningResult(CompletedPlanningResult &&) = default;
-	CompletedPlanningResult &operator=(CompletedPlanningResult &&) = default;
-
-private:
-	friend class CompletedPlanningResultBuilder;
-	friend class GeneratedObjectAccess;
-	CompletedPlanningResult();
-
-public:
+	CompletedPlanningResult &operator=(CompletedPlanningResult &&) = delete;
 	class Object5Builder;
 
 	class Object5 {
@@ -38,17 +31,16 @@ public:
 		Object5(const Object5 &) = delete;
 		Object5 &operator=(const Object5 &) = delete;
 		Object5(Object5 &&) = default;
-		Object5 &operator=(Object5 &&) = default;
+		Object5 &operator=(Object5 &&) = delete;
 
 	private:
 		friend class Object5Builder;
-		friend class GeneratedObjectAccess;
-		Object5();
+		Object5(PlanStatus status_p, optional<vector<StorageCredential>> storage_credentials_p);
 
 	public:
 		// Deserialization
 		static Object5 FromJSON(yyjson_val *obj);
-		string TryFromJSON(yyjson_val *obj);
+		static string TryFromJSON(yyjson_val *obj, optional<Object5> &result);
 		string Validate() const;
 
 		// Copy
@@ -68,18 +60,23 @@ public:
 		Object5Builder();
 		Object5Builder &SetStatus(PlanStatus value);
 		Object5Builder &SetStorageCredentials(vector<StorageCredential> value);
-		string TryBuild(Object5 &result);
+		string TryBuild(optional<Object5> &result);
 		Object5 Build();
 
 	private:
-		Object5 result_;
+		optional<PlanStatus> status_;
+		optional<vector<StorageCredential>> storage_credentials_;
 		bool has_status_ = false;
 	};
+
+private:
+	friend class CompletedPlanningResultBuilder;
+	CompletedPlanningResult(ScanTasks scan_tasks_p, Object5 object_5_p);
 
 public:
 	// Deserialization
 	static CompletedPlanningResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CompletedPlanningResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -99,11 +96,12 @@ public:
 	CompletedPlanningResultBuilder();
 	CompletedPlanningResultBuilder &SetScanTasks(ScanTasks value);
 	CompletedPlanningResultBuilder &SetObject5(CompletedPlanningResult::Object5 value);
-	string TryBuild(CompletedPlanningResult &result);
+	string TryBuild(optional<CompletedPlanningResult> &result);
 	CompletedPlanningResult Build();
 
 private:
-	CompletedPlanningResult result_;
+	optional<ScanTasks> scan_tasks_;
+	optional<CompletedPlanningResult::Object5> object_5_;
 };
 
 } // namespace rest_api_objects

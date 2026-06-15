@@ -14,60 +14,99 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-EqualityDeleteFile::EqualityDeleteFile() : content_file(GeneratedObjectAccess::Create<ContentFile>()) {
+EqualityDeleteFile::EqualityDeleteFile(ContentFile content_file_p, optional<vector<int32_t>> equality_ids_p)
+    : content_file(std::move(content_file_p)), equality_ids(std::move(equality_ids_p)) {
 }
 
 EqualityDeleteFileBuilder::EqualityDeleteFileBuilder() {
 }
 
 EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetContentFile(ContentFile value) {
-	result_.content_file = std::move(value);
+	content_file_ = std::move(value);
 	return *this;
 }
 
 EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetEqualityIds(vector<int32_t> value) {
-	result_.equality_ids = std::move(value);
+	equality_ids_ = std::move(value);
 	return *this;
 }
 
-string EqualityDeleteFileBuilder::TryBuild(EqualityDeleteFile &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 EqualityDeleteFile EqualityDeleteFileBuilder::Build() {
-	EqualityDeleteFile result;
-	auto error = TryBuild(result);
+	auto result = EqualityDeleteFile(std::move(*content_file_), std::move(equality_ids_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
-	EqualityDeleteFile res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string EqualityDeleteFileBuilder::TryBuild(optional<EqualityDeleteFile> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
+	EqualityDeleteFileBuilder builder;
+	builder.SetContentFile(ContentFile::FromJSON(obj));
+	auto equality_ids_val = yyjson_obj_get(obj, "equality-ids");
+	if (equality_ids_val) {
+		vector<int32_t> equality_ids;
+		if (yyjson_is_arr(equality_ids_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(equality_ids_val, idx, max, val) {
+				int32_t tmp;
+				if (yyjson_is_int(val)) {
+					tmp = yyjson_get_int(val);
+				} else {
+					throw InvalidInputException(StringUtil::Format(
+					    "EqualityDeleteFile property 'tmp' is not of type 'integer', found '%s' instead",
+					    yyjson_get_type_desc(val)));
+				}
+				equality_ids.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "EqualityDeleteFile property 'equality_ids' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(equality_ids_val));
+		}
+		builder.SetEqualityIds(std::move(equality_ids));
+	}
+	return builder.Build();
+}
+
+string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, optional<EqualityDeleteFile> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 EqualityDeleteFile EqualityDeleteFile::Copy() const {
-	EqualityDeleteFile res;
-	res.content_file = content_file.Copy();
+	EqualityDeleteFileBuilder builder;
+	optional<ContentFile> content_file_tmp;
+	content_file_tmp = content_file.Copy();
+	builder.SetContentFile(std::move(*content_file_tmp));
+	vector<int32_t> equality_ids_tmp;
 	if (equality_ids.has_value()) {
-		res.equality_ids.emplace();
-		(*res.equality_ids).reserve((*equality_ids).size());
+		equality_ids_tmp.emplace();
+		(*equality_ids_tmp).reserve((*equality_ids).size());
 		for (auto &item : (*equality_ids)) {
-			(*res.equality_ids).emplace_back(item);
+			(*equality_ids_tmp).emplace_back(item);
 		}
 	}
-	return res;
+	if (equality_ids_tmp.has_value()) {
+		builder.SetEqualityIds(std::move(equality_ids_tmp));
+	}
+	return builder.Build();
 }
 
 string EqualityDeleteFile::Validate() const {
@@ -77,39 +116,6 @@ string EqualityDeleteFile::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string EqualityDeleteFile::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = content_file.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto equality_ids_val = yyjson_obj_get(obj, "equality-ids");
-	if (equality_ids_val) {
-		vector<int32_t> equality_ids_tmp;
-		if (yyjson_is_arr(equality_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(equality_ids_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					return StringUtil::Format(
-					    "EqualityDeleteFile property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val));
-				}
-				equality_ids_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "EqualityDeleteFile property 'equality_ids_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(equality_ids_val));
-		}
-		equality_ids = std::move(equality_ids_tmp);
-	}
-	return Validate();
 }
 
 void EqualityDeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

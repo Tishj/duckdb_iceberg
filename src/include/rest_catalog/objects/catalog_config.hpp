@@ -20,17 +20,17 @@ public:
 	CatalogConfig(const CatalogConfig &) = delete;
 	CatalogConfig &operator=(const CatalogConfig &) = delete;
 	CatalogConfig(CatalogConfig &&) = default;
-	CatalogConfig &operator=(CatalogConfig &&) = default;
+	CatalogConfig &operator=(CatalogConfig &&) = delete;
 
 private:
 	friend class CatalogConfigBuilder;
-	friend class GeneratedObjectAccess;
-	CatalogConfig();
+	CatalogConfig(case_insensitive_map_t<string> defaults_p, case_insensitive_map_t<string> overrides_p,
+	              optional<vector<string>> endpoints_p, optional<string> idempotency_key_lifetime_p);
 
 public:
 	// Deserialization
 	static CatalogConfig FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CatalogConfig> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +54,14 @@ public:
 	CatalogConfigBuilder &SetOverrides(case_insensitive_map_t<string> value);
 	CatalogConfigBuilder &SetEndpoints(vector<string> value);
 	CatalogConfigBuilder &SetIdempotencyKeyLifetime(string value);
-	string TryBuild(CatalogConfig &result);
+	string TryBuild(optional<CatalogConfig> &result);
 	CatalogConfig Build();
 
 private:
-	CatalogConfig result_;
+	optional<case_insensitive_map_t<string>> defaults_;
+	optional<case_insensitive_map_t<string>> overrides_;
+	optional<vector<string>> endpoints_;
+	optional<string> idempotency_key_lifetime_;
 	bool has_defaults_ = false;
 	bool has_overrides_ = false;
 };

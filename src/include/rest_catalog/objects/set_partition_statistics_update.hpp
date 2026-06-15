@@ -22,17 +22,16 @@ public:
 	SetPartitionStatisticsUpdate(const SetPartitionStatisticsUpdate &) = delete;
 	SetPartitionStatisticsUpdate &operator=(const SetPartitionStatisticsUpdate &) = delete;
 	SetPartitionStatisticsUpdate(SetPartitionStatisticsUpdate &&) = default;
-	SetPartitionStatisticsUpdate &operator=(SetPartitionStatisticsUpdate &&) = default;
+	SetPartitionStatisticsUpdate &operator=(SetPartitionStatisticsUpdate &&) = delete;
 
 private:
 	friend class SetPartitionStatisticsUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetPartitionStatisticsUpdate();
+	SetPartitionStatisticsUpdate(BaseUpdate base_update_p, PartitionStatisticsFile partition_statistics_p);
 
 public:
 	// Deserialization
 	static SetPartitionStatisticsUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetPartitionStatisticsUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	SetPartitionStatisticsUpdateBuilder();
 	SetPartitionStatisticsUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetPartitionStatisticsUpdateBuilder &SetPartitionStatistics(PartitionStatisticsFile value);
-	string TryBuild(SetPartitionStatisticsUpdate &result);
+	string TryBuild(optional<SetPartitionStatisticsUpdate> &result);
 	SetPartitionStatisticsUpdate Build();
 
 private:
-	SetPartitionStatisticsUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<PartitionStatisticsFile> partition_statistics_;
 	bool has_partition_statistics_ = false;
 };
 

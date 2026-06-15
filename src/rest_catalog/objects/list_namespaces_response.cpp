@@ -14,63 +14,103 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ListNamespacesResponse::ListNamespacesResponse() {
+ListNamespacesResponse::ListNamespacesResponse(optional<PageToken> next_page_token_p,
+                                               optional<vector<Namespace>> namespaces_p)
+    : next_page_token(std::move(next_page_token_p)), namespaces(std::move(namespaces_p)) {
 }
 
 ListNamespacesResponseBuilder::ListNamespacesResponseBuilder() {
 }
 
 ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNextPageToken(PageToken value) {
-	result_.next_page_token = std::move(value);
+	next_page_token_ = std::move(value);
 	return *this;
 }
 
 ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNamespaces(vector<Namespace> value) {
-	result_.namespaces = std::move(value);
+	namespaces_ = std::move(value);
 	return *this;
 }
 
-string ListNamespacesResponseBuilder::TryBuild(ListNamespacesResponse &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ListNamespacesResponse ListNamespacesResponseBuilder::Build() {
-	ListNamespacesResponse result;
-	auto error = TryBuild(result);
+	auto result = ListNamespacesResponse(std::move(next_page_token_), std::move(namespaces_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
-	ListNamespacesResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ListNamespacesResponseBuilder::TryBuild(optional<ListNamespacesResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
+	ListNamespacesResponseBuilder builder;
+	auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
+	if (next_page_token_val) {
+		optional<PageToken> next_page_token;
+		next_page_token = PageToken::FromJSON(next_page_token_val);
+		builder.SetNextPageToken(std::move(*next_page_token));
+	}
+	auto namespaces_val = yyjson_obj_get(obj, "namespaces");
+	if (namespaces_val) {
+		vector<Namespace> namespaces;
+		if (yyjson_is_arr(namespaces_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(namespaces_val, idx, max, val) {
+				auto tmp = Namespace::FromJSON(val);
+				namespaces.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "ListNamespacesResponse property 'namespaces' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(namespaces_val));
+		}
+		builder.SetNamespaces(std::move(namespaces));
+	}
+	return builder.Build();
+}
+
+string ListNamespacesResponse::TryFromJSON(yyjson_val *obj, optional<ListNamespacesResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ListNamespacesResponse ListNamespacesResponse::Copy() const {
-	ListNamespacesResponse res;
+	ListNamespacesResponseBuilder builder;
+	optional<PageToken> next_page_token_tmp;
 	if (next_page_token.has_value()) {
-		res.next_page_token.emplace();
-		(*res.next_page_token) = (*next_page_token).Copy();
+		next_page_token_tmp.emplace();
+		(*next_page_token_tmp) = (*next_page_token).Copy();
 	}
+	if (next_page_token_tmp.has_value()) {
+		builder.SetNextPageToken(std::move(*next_page_token_tmp));
+	}
+	vector<Namespace> namespaces_tmp;
 	if (namespaces.has_value()) {
-		res.namespaces.emplace();
-		(*res.namespaces).reserve((*namespaces).size());
+		namespaces_tmp.emplace();
+		(*namespaces_tmp).reserve((*namespaces).size());
 		for (auto &item : (*namespaces)) {
-			(*res.namespaces).emplace_back(item.Copy());
+			(*namespaces_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (namespaces_tmp.has_value()) {
+		builder.SetNamespaces(std::move(namespaces_tmp));
+	}
+	return builder.Build();
 }
 
 string ListNamespacesResponse::Validate() const {
@@ -90,41 +130,6 @@ string ListNamespacesResponse::Validate() const {
 		}
 	}
 	return "";
-}
-
-string ListNamespacesResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
-	if (next_page_token_val) {
-		PageToken next_page_token_tmp;
-		error = next_page_token_tmp.TryFromJSON(next_page_token_val);
-		if (!error.empty()) {
-			return error;
-		}
-		next_page_token = std::move(next_page_token_tmp);
-	}
-	auto namespaces_val = yyjson_obj_get(obj, "namespaces");
-	if (namespaces_val) {
-		vector<Namespace> namespaces_tmp;
-		if (yyjson_is_arr(namespaces_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(namespaces_val, idx, max, val) {
-				Namespace tmp;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				namespaces_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "ListNamespacesResponse property 'namespaces_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(namespaces_val));
-		}
-		namespaces = std::move(namespaces_tmp);
-	}
-	return Validate();
 }
 
 void ListNamespacesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

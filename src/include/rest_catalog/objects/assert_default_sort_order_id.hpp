@@ -21,17 +21,16 @@ public:
 	AssertDefaultSortOrderId(const AssertDefaultSortOrderId &) = delete;
 	AssertDefaultSortOrderId &operator=(const AssertDefaultSortOrderId &) = delete;
 	AssertDefaultSortOrderId(AssertDefaultSortOrderId &&) = default;
-	AssertDefaultSortOrderId &operator=(AssertDefaultSortOrderId &&) = default;
+	AssertDefaultSortOrderId &operator=(AssertDefaultSortOrderId &&) = delete;
 
 private:
 	friend class AssertDefaultSortOrderIdBuilder;
-	friend class GeneratedObjectAccess;
-	AssertDefaultSortOrderId();
+	AssertDefaultSortOrderId(TableRequirementType type_p, int32_t default_sort_order_id_p);
 
 public:
 	// Deserialization
 	static AssertDefaultSortOrderId FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertDefaultSortOrderId> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssertDefaultSortOrderIdBuilder();
 	AssertDefaultSortOrderIdBuilder &SetType(TableRequirementType value);
 	AssertDefaultSortOrderIdBuilder &SetDefaultSortOrderId(int32_t value);
-	string TryBuild(AssertDefaultSortOrderId &result);
+	string TryBuild(optional<AssertDefaultSortOrderId> &result);
 	AssertDefaultSortOrderId Build();
 
 private:
-	AssertDefaultSortOrderId result_;
+	optional<TableRequirementType> type_;
+	optional<int32_t> default_sort_order_id_;
 	bool has_type_ = false;
 	bool has_default_sort_order_id_ = false;
 };

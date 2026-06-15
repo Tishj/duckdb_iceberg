@@ -23,17 +23,17 @@ public:
 	CommitViewRequest(const CommitViewRequest &) = delete;
 	CommitViewRequest &operator=(const CommitViewRequest &) = delete;
 	CommitViewRequest(CommitViewRequest &&) = default;
-	CommitViewRequest &operator=(CommitViewRequest &&) = default;
+	CommitViewRequest &operator=(CommitViewRequest &&) = delete;
 
 private:
 	friend class CommitViewRequestBuilder;
-	friend class GeneratedObjectAccess;
-	CommitViewRequest();
+	CommitViewRequest(vector<ViewUpdate> updates_p, optional<TableIdentifier> identifier_p,
+	                  optional<vector<ViewRequirement>> requirements_p);
 
 public:
 	// Deserialization
 	static CommitViewRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CommitViewRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +55,13 @@ public:
 	CommitViewRequestBuilder &SetUpdates(vector<ViewUpdate> value);
 	CommitViewRequestBuilder &SetIdentifier(TableIdentifier value);
 	CommitViewRequestBuilder &SetRequirements(vector<ViewRequirement> value);
-	string TryBuild(CommitViewRequest &result);
+	string TryBuild(optional<CommitViewRequest> &result);
 	CommitViewRequest Build();
 
 private:
-	CommitViewRequest result_;
+	optional<vector<ViewUpdate>> updates_;
+	optional<TableIdentifier> identifier_;
+	optional<vector<ViewRequirement>> requirements_;
 	bool has_updates_ = false;
 };
 

@@ -23,17 +23,18 @@ public:
 	ScanReport(const ScanReport &) = delete;
 	ScanReport &operator=(const ScanReport &) = delete;
 	ScanReport(ScanReport &&) = default;
-	ScanReport &operator=(ScanReport &&) = default;
+	ScanReport &operator=(ScanReport &&) = delete;
 
 private:
 	friend class ScanReportBuilder;
-	friend class GeneratedObjectAccess;
-	ScanReport();
+	ScanReport(string table_name_p, int64_t snapshot_id_p, unique_ptr<Expression> filter_p, int32_t schema_id_p,
+	           vector<int32_t> projected_field_ids_p, vector<string> projected_field_names_p, Metrics metrics_p,
+	           optional<case_insensitive_map_t<string>> metadata_p);
 
 public:
 	// Deserialization
 	static ScanReport FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ScanReport> &result);
 	string Validate() const;
 
 	// Copy
@@ -65,11 +66,18 @@ public:
 	ScanReportBuilder &SetProjectedFieldNames(vector<string> value);
 	ScanReportBuilder &SetMetrics(Metrics value);
 	ScanReportBuilder &SetMetadata(case_insensitive_map_t<string> value);
-	string TryBuild(ScanReport &result);
+	string TryBuild(optional<ScanReport> &result);
 	ScanReport Build();
 
 private:
-	ScanReport result_;
+	optional<string> table_name_;
+	optional<int64_t> snapshot_id_;
+	unique_ptr<Expression> filter_;
+	optional<int32_t> schema_id_;
+	optional<vector<int32_t>> projected_field_ids_;
+	optional<vector<string>> projected_field_names_;
+	optional<Metrics> metrics_;
+	optional<case_insensitive_map_t<string>> metadata_;
 	bool has_table_name_ = false;
 	bool has_snapshot_id_ = false;
 	bool has_filter_ = false;

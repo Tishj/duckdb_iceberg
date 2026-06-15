@@ -21,17 +21,16 @@ public:
 	TrueExpression(const TrueExpression &) = delete;
 	TrueExpression &operator=(const TrueExpression &) = delete;
 	TrueExpression(TrueExpression &&) = default;
-	TrueExpression &operator=(TrueExpression &&) = default;
+	TrueExpression &operator=(TrueExpression &&) = delete;
 
 private:
 	friend class TrueExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	TrueExpression();
+	TrueExpression(ExpressionType type_p);
 
 public:
 	// Deserialization
 	static TrueExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<TrueExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class TrueExpressionBuilder {
 public:
 	TrueExpressionBuilder();
 	TrueExpressionBuilder &SetType(ExpressionType value);
-	string TryBuild(TrueExpression &result);
+	string TryBuild(optional<TrueExpression> &result);
 	TrueExpression Build();
 
 private:
-	TrueExpression result_;
+	optional<ExpressionType> type_;
 	bool has_type_ = false;
 };
 

@@ -20,17 +20,16 @@ public:
 	SQLViewRepresentation(const SQLViewRepresentation &) = delete;
 	SQLViewRepresentation &operator=(const SQLViewRepresentation &) = delete;
 	SQLViewRepresentation(SQLViewRepresentation &&) = default;
-	SQLViewRepresentation &operator=(SQLViewRepresentation &&) = default;
+	SQLViewRepresentation &operator=(SQLViewRepresentation &&) = delete;
 
 private:
 	friend class SQLViewRepresentationBuilder;
-	friend class GeneratedObjectAccess;
-	SQLViewRepresentation();
+	SQLViewRepresentation(string type_p, string sql_p, string dialect_p);
 
 public:
 	// Deserialization
 	static SQLViewRepresentation FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SQLViewRepresentation> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,13 @@ public:
 	SQLViewRepresentationBuilder &SetType(string value);
 	SQLViewRepresentationBuilder &SetSql(string value);
 	SQLViewRepresentationBuilder &SetDialect(string value);
-	string TryBuild(SQLViewRepresentation &result);
+	string TryBuild(optional<SQLViewRepresentation> &result);
 	SQLViewRepresentation Build();
 
 private:
-	SQLViewRepresentation result_;
+	optional<string> type_;
+	optional<string> sql_;
+	optional<string> dialect_;
 	bool has_type_ = false;
 	bool has_sql_ = false;
 	bool has_dialect_ = false;

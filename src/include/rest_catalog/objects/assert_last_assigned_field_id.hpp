@@ -21,17 +21,16 @@ public:
 	AssertLastAssignedFieldId(const AssertLastAssignedFieldId &) = delete;
 	AssertLastAssignedFieldId &operator=(const AssertLastAssignedFieldId &) = delete;
 	AssertLastAssignedFieldId(AssertLastAssignedFieldId &&) = default;
-	AssertLastAssignedFieldId &operator=(AssertLastAssignedFieldId &&) = default;
+	AssertLastAssignedFieldId &operator=(AssertLastAssignedFieldId &&) = delete;
 
 private:
 	friend class AssertLastAssignedFieldIdBuilder;
-	friend class GeneratedObjectAccess;
-	AssertLastAssignedFieldId();
+	AssertLastAssignedFieldId(TableRequirementType type_p, int32_t last_assigned_field_id_p);
 
 public:
 	// Deserialization
 	static AssertLastAssignedFieldId FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertLastAssignedFieldId> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssertLastAssignedFieldIdBuilder();
 	AssertLastAssignedFieldIdBuilder &SetType(TableRequirementType value);
 	AssertLastAssignedFieldIdBuilder &SetLastAssignedFieldId(int32_t value);
-	string TryBuild(AssertLastAssignedFieldId &result);
+	string TryBuild(optional<AssertLastAssignedFieldId> &result);
 	AssertLastAssignedFieldId Build();
 
 private:
-	AssertLastAssignedFieldId result_;
+	optional<TableRequirementType> type_;
+	optional<int32_t> last_assigned_field_id_;
 	bool has_type_ = false;
 	bool has_last_assigned_field_id_ = false;
 };

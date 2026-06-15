@@ -21,17 +21,16 @@ public:
 	ViewRequirement(const ViewRequirement &) = delete;
 	ViewRequirement &operator=(const ViewRequirement &) = delete;
 	ViewRequirement(ViewRequirement &&) = default;
-	ViewRequirement &operator=(ViewRequirement &&) = default;
+	ViewRequirement &operator=(ViewRequirement &&) = delete;
 
 private:
 	friend class ViewRequirementBuilder;
-	friend class GeneratedObjectAccess;
-	ViewRequirement();
+	ViewRequirement(optional<AssertViewUUID> assert_view_uuid_p);
 
 public:
 	// Deserialization
 	static ViewRequirement FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ViewRequirement> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class ViewRequirementBuilder {
 public:
 	ViewRequirementBuilder();
 	ViewRequirementBuilder &SetAssertViewUuid(AssertViewUUID value);
-	string TryBuild(ViewRequirement &result);
+	string TryBuild(optional<ViewRequirement> &result);
 	ViewRequirement Build();
 
 private:
-	ViewRequirement result_;
+	optional<AssertViewUUID> assert_view_uuid_;
 };
 
 } // namespace rest_api_objects

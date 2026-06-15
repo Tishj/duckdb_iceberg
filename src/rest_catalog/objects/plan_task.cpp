@@ -14,38 +14,39 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PlanTask::PlanTask() {
+PlanTask::PlanTask(string value_p) : value(std::move(value_p)) {
 }
 
 PlanTask PlanTask::FromJSON(yyjson_val *obj) {
-	PlanTask res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "PlanTask property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return PlanTask(std::move(value));
+}
+
+string PlanTask::TryFromJSON(yyjson_val *obj, optional<PlanTask> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 PlanTask PlanTask::Copy() const {
-	PlanTask res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return PlanTask(std::move(value_tmp));
 }
 
 string PlanTask::Validate() const {
 	string error;
 	return "";
-}
-
-string PlanTask::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("PlanTask property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *PlanTask::ToJSON(yyjson_mut_doc *doc) const {

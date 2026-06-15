@@ -21,17 +21,16 @@ public:
 	FetchScanTasksResult(const FetchScanTasksResult &) = delete;
 	FetchScanTasksResult &operator=(const FetchScanTasksResult &) = delete;
 	FetchScanTasksResult(FetchScanTasksResult &&) = default;
-	FetchScanTasksResult &operator=(FetchScanTasksResult &&) = default;
+	FetchScanTasksResult &operator=(FetchScanTasksResult &&) = delete;
 
 private:
 	friend class FetchScanTasksResultBuilder;
-	friend class GeneratedObjectAccess;
-	FetchScanTasksResult();
+	FetchScanTasksResult(ScanTasks scan_tasks_p);
 
 public:
 	// Deserialization
 	static FetchScanTasksResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FetchScanTasksResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class FetchScanTasksResultBuilder {
 public:
 	FetchScanTasksResultBuilder();
 	FetchScanTasksResultBuilder &SetScanTasks(ScanTasks value);
-	string TryBuild(FetchScanTasksResult &result);
+	string TryBuild(optional<FetchScanTasksResult> &result);
 	FetchScanTasksResult Build();
 
 private:
-	FetchScanTasksResult result_;
+	optional<ScanTasks> scan_tasks_;
 };
 
 } // namespace rest_api_objects

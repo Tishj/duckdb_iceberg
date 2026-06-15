@@ -14,61 +14,100 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-RemovePartitionSpecsUpdate::RemovePartitionSpecsUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+RemovePartitionSpecsUpdate::RemovePartitionSpecsUpdate(BaseUpdate base_update_p, vector<int32_t> spec_ids_p)
+    : base_update(std::move(base_update_p)), spec_ids(std::move(spec_ids_p)) {
 }
 
 RemovePartitionSpecsUpdateBuilder::RemovePartitionSpecsUpdateBuilder() {
 }
 
 RemovePartitionSpecsUpdateBuilder &RemovePartitionSpecsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 RemovePartitionSpecsUpdateBuilder &RemovePartitionSpecsUpdateBuilder::SetSpecIds(vector<int32_t> value) {
-	result_.spec_ids = std::move(value);
+	spec_ids_ = std::move(value);
 	has_spec_ids_ = true;
 	return *this;
 }
 
-string RemovePartitionSpecsUpdateBuilder::TryBuild(RemovePartitionSpecsUpdate &result) {
-	if (!has_spec_ids_) {
-		return "RemovePartitionSpecsUpdate required property 'spec-ids' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdateBuilder::Build() {
-	RemovePartitionSpecsUpdate result;
-	auto error = TryBuild(result);
+	if (!has_spec_ids_) {
+		throw InvalidInputException("RemovePartitionSpecsUpdate required property 'spec-ids' is missing");
+	}
+	auto result = RemovePartitionSpecsUpdate(std::move(*base_update_), std::move(*spec_ids_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj) {
-	RemovePartitionSpecsUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string RemovePartitionSpecsUpdateBuilder::TryBuild(optional<RemovePartitionSpecsUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj) {
+	RemovePartitionSpecsUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto spec_ids_val = yyjson_obj_get(obj, "spec-ids");
+	if (!spec_ids_val) {
+		throw InvalidInputException("RemovePartitionSpecsUpdate required property 'spec-ids' is missing");
+	} else {
+		vector<int32_t> spec_ids;
+		if (yyjson_is_arr(spec_ids_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(spec_ids_val, idx, max, val) {
+				int32_t tmp;
+				if (yyjson_is_int(val)) {
+					tmp = yyjson_get_int(val);
+				} else {
+					throw InvalidInputException(StringUtil::Format(
+					    "RemovePartitionSpecsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
+					    yyjson_get_type_desc(val)));
+				}
+				spec_ids.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "RemovePartitionSpecsUpdate property 'spec_ids' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(spec_ids_val));
+		}
+		builder.SetSpecIds(std::move(spec_ids));
+	}
+	return builder.Build();
+}
+
+string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, optional<RemovePartitionSpecsUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::Copy() const {
-	RemovePartitionSpecsUpdate res;
-	res.base_update = base_update.Copy();
-	res.spec_ids.reserve(spec_ids.size());
+	RemovePartitionSpecsUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	vector<int32_t> spec_ids_tmp;
+	spec_ids_tmp.reserve(spec_ids.size());
 	for (auto &item : spec_ids) {
-		res.spec_ids.emplace_back(item);
+		spec_ids_tmp.emplace_back(item);
 	}
-	return res;
+	builder.SetSpecIds(std::move(spec_ids_tmp));
+	return builder.Build();
 }
 
 string RemovePartitionSpecsUpdate::Validate() const {
@@ -78,39 +117,6 @@ string RemovePartitionSpecsUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto spec_ids_val = yyjson_obj_get(obj, "spec-ids");
-	if (!spec_ids_val) {
-		return "RemovePartitionSpecsUpdate required property 'spec-ids' is missing";
-	} else {
-		if (yyjson_is_arr(spec_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(spec_ids_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					return StringUtil::Format(
-					    "RemovePartitionSpecsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val));
-				}
-				spec_ids.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "RemovePartitionSpecsUpdate property 'spec_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(spec_ids_val));
-		}
-	}
-	return Validate();
 }
 
 void RemovePartitionSpecsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

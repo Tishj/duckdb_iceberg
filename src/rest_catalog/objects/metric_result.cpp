@@ -14,62 +14,90 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-MetricResult::MetricResult()
-    : counter_result(GeneratedObjectAccess::Create<optional<CounterResult>>()),
-      timer_result(GeneratedObjectAccess::Create<optional<TimerResult>>()) {
+MetricResult::MetricResult(optional<CounterResult> counter_result_p, optional<TimerResult> timer_result_p)
+    : counter_result(std::move(counter_result_p)), timer_result(std::move(timer_result_p)) {
 }
 
 MetricResultBuilder::MetricResultBuilder() {
 }
 
 MetricResultBuilder &MetricResultBuilder::SetCounterResult(CounterResult value) {
-	result_.counter_result = std::move(value);
+	counter_result_ = std::move(value);
 	return *this;
 }
 
 MetricResultBuilder &MetricResultBuilder::SetTimerResult(TimerResult value) {
-	result_.timer_result = std::move(value);
+	timer_result_ = std::move(value);
 	return *this;
 }
 
-string MetricResultBuilder::TryBuild(MetricResult &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 MetricResult MetricResultBuilder::Build() {
-	MetricResult result;
-	auto error = TryBuild(result);
+	auto result = MetricResult(std::move(counter_result_), std::move(timer_result_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-MetricResult MetricResult::FromJSON(yyjson_val *obj) {
-	MetricResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string MetricResultBuilder::TryBuild(optional<MetricResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+MetricResult MetricResult::FromJSON(yyjson_val *obj) {
+	MetricResultBuilder builder;
+	int matched_any_of_variants = 0;
+	try {
+		builder.SetCounterResult(CounterResult::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetTimerResult(TimerResult::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	if (matched_any_of_variants == 0) {
+		throw InvalidInputException("MetricResult failed to parse, none of the anyOf candidates matched");
+	}
+	return builder.Build();
+}
+
+string MetricResult::TryFromJSON(yyjson_val *obj, optional<MetricResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 MetricResult MetricResult::Copy() const {
-	MetricResult res;
+	MetricResultBuilder builder;
+	optional<CounterResult> counter_result_tmp;
 	if (counter_result.has_value()) {
-		res.counter_result = GeneratedObjectAccess::Create<CounterResult>();
-		(*res.counter_result) = (*counter_result).Copy();
+		counter_result_tmp.emplace();
+		(*counter_result_tmp) = (*counter_result).Copy();
 	}
+	if (counter_result_tmp.has_value()) {
+		builder.SetCounterResult(std::move(*counter_result_tmp));
+	}
+	optional<TimerResult> timer_result_tmp;
 	if (timer_result.has_value()) {
-		res.timer_result = GeneratedObjectAccess::Create<TimerResult>();
-		(*res.timer_result) = (*timer_result).Copy();
+		timer_result_tmp.emplace();
+		(*timer_result_tmp) = (*timer_result).Copy();
 	}
-	return res;
+	if (timer_result_tmp.has_value()) {
+		builder.SetTimerResult(std::move(*timer_result_tmp));
+	}
+	return builder.Build();
 }
 
 string MetricResult::Validate() const {
@@ -93,26 +121,6 @@ string MetricResult::Validate() const {
 		return "MetricResult must have at least one anyOf variant set";
 	}
 	return "";
-}
-
-string MetricResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	counter_result = GeneratedObjectAccess::Create<CounterResult>();
-	error = counter_result->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		counter_result = nullopt;
-	}
-	timer_result = GeneratedObjectAccess::Create<TimerResult>();
-	error = timer_result->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		timer_result = nullopt;
-	}
-	if (!(counter_result.has_value()) && !(timer_result.has_value())) {
-		return "MetricResult failed to parse, none of the anyOf candidates matched";
-	}
-	return Validate();
 }
 
 void MetricResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

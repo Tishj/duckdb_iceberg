@@ -18,13 +18,13 @@ public:
 	SortDirection(const SortDirection &) = delete;
 	SortDirection &operator=(const SortDirection &) = delete;
 	SortDirection(SortDirection &&) = default;
-	SortDirection &operator=(SortDirection &&) = default;
-	SortDirection();
+	SortDirection &operator=(SortDirection &&) = delete;
+	SortDirection(string value_p);
 
 public:
 	// Deserialization
 	static SortDirection FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SortDirection> &result);
 	string Validate() const;
 
 	// Copy

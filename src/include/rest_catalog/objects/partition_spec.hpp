@@ -21,17 +21,16 @@ public:
 	PartitionSpec(const PartitionSpec &) = delete;
 	PartitionSpec &operator=(const PartitionSpec &) = delete;
 	PartitionSpec(PartitionSpec &&) = default;
-	PartitionSpec &operator=(PartitionSpec &&) = default;
+	PartitionSpec &operator=(PartitionSpec &&) = delete;
 
 private:
 	friend class PartitionSpecBuilder;
-	friend class GeneratedObjectAccess;
-	PartitionSpec();
+	PartitionSpec(vector<PartitionField> fields_p, optional<int32_t> spec_id_p);
 
 public:
 	// Deserialization
 	static PartitionSpec FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PartitionSpec> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	PartitionSpecBuilder();
 	PartitionSpecBuilder &SetFields(vector<PartitionField> value);
 	PartitionSpecBuilder &SetSpecId(int32_t value);
-	string TryBuild(PartitionSpec &result);
+	string TryBuild(optional<PartitionSpec> &result);
 	PartitionSpec Build();
 
 private:
-	PartitionSpec result_;
+	optional<vector<PartitionField>> fields_;
+	optional<int32_t> spec_id_;
 	bool has_fields_ = false;
 };
 

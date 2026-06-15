@@ -21,17 +21,16 @@ public:
 	EqualityDeleteFile(const EqualityDeleteFile &) = delete;
 	EqualityDeleteFile &operator=(const EqualityDeleteFile &) = delete;
 	EqualityDeleteFile(EqualityDeleteFile &&) = default;
-	EqualityDeleteFile &operator=(EqualityDeleteFile &&) = default;
+	EqualityDeleteFile &operator=(EqualityDeleteFile &&) = delete;
 
 private:
 	friend class EqualityDeleteFileBuilder;
-	friend class GeneratedObjectAccess;
-	EqualityDeleteFile();
+	EqualityDeleteFile(ContentFile content_file_p, optional<vector<int32_t>> equality_ids_p);
 
 public:
 	// Deserialization
 	static EqualityDeleteFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<EqualityDeleteFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	EqualityDeleteFileBuilder();
 	EqualityDeleteFileBuilder &SetContentFile(ContentFile value);
 	EqualityDeleteFileBuilder &SetEqualityIds(vector<int32_t> value);
-	string TryBuild(EqualityDeleteFile &result);
+	string TryBuild(optional<EqualityDeleteFile> &result);
 	EqualityDeleteFile Build();
 
 private:
-	EqualityDeleteFile result_;
+	optional<ContentFile> content_file_;
+	optional<vector<int32_t>> equality_ids_;
 };
 
 } // namespace rest_api_objects

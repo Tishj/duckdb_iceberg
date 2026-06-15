@@ -23,17 +23,16 @@ public:
 	AndOrExpression(const AndOrExpression &) = delete;
 	AndOrExpression &operator=(const AndOrExpression &) = delete;
 	AndOrExpression(AndOrExpression &&) = default;
-	AndOrExpression &operator=(AndOrExpression &&) = default;
+	AndOrExpression &operator=(AndOrExpression &&) = delete;
 
 private:
 	friend class AndOrExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	AndOrExpression();
+	AndOrExpression(ExpressionType type_p, unique_ptr<Expression> left_p, unique_ptr<Expression> right_p);
 
 public:
 	// Deserialization
 	static AndOrExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AndOrExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +54,13 @@ public:
 	AndOrExpressionBuilder &SetType(ExpressionType value);
 	AndOrExpressionBuilder &SetLeft(unique_ptr<Expression> value);
 	AndOrExpressionBuilder &SetRight(unique_ptr<Expression> value);
-	string TryBuild(AndOrExpression &result);
+	string TryBuild(optional<AndOrExpression> &result);
 	AndOrExpression Build();
 
 private:
-	AndOrExpression result_;
+	optional<ExpressionType> type_;
+	unique_ptr<Expression> left_;
+	unique_ptr<Expression> right_;
 	bool has_type_ = false;
 	bool has_left_ = false;
 	bool has_right_ = false;

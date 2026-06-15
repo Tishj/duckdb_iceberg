@@ -14,66 +14,114 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CountMap::CountMap() {
+CountMap::CountMap(optional<vector<IntegerTypeValue>> keys_p, optional<vector<LongTypeValue>> values_p)
+    : keys(std::move(keys_p)), values(std::move(values_p)) {
 }
 
 CountMapBuilder::CountMapBuilder() {
 }
 
 CountMapBuilder &CountMapBuilder::SetKeys(vector<IntegerTypeValue> value) {
-	result_.keys = std::move(value);
+	keys_ = std::move(value);
 	return *this;
 }
 
 CountMapBuilder &CountMapBuilder::SetValues(vector<LongTypeValue> value) {
-	result_.values = std::move(value);
+	values_ = std::move(value);
 	return *this;
 }
 
-string CountMapBuilder::TryBuild(CountMap &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 CountMap CountMapBuilder::Build() {
-	CountMap result;
-	auto error = TryBuild(result);
+	auto result = CountMap(std::move(keys_), std::move(values_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CountMap CountMap::FromJSON(yyjson_val *obj) {
-	CountMap res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CountMapBuilder::TryBuild(optional<CountMap> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+CountMap CountMap::FromJSON(yyjson_val *obj) {
+	CountMapBuilder builder;
+	auto keys_val = yyjson_obj_get(obj, "keys");
+	if (keys_val) {
+		vector<IntegerTypeValue> keys;
+		if (yyjson_is_arr(keys_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(keys_val, idx, max, val) {
+				auto tmp = IntegerTypeValue::FromJSON(val);
+				keys.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("CountMap property 'keys' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(keys_val));
+		}
+		builder.SetKeys(std::move(keys));
+	}
+	auto values_val = yyjson_obj_get(obj, "values");
+	if (values_val) {
+		vector<LongTypeValue> values;
+		if (yyjson_is_arr(values_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(values_val, idx, max, val) {
+				auto tmp = LongTypeValue::FromJSON(val);
+				values.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("CountMap property 'values' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(values_val));
+		}
+		builder.SetValues(std::move(values));
+	}
+	return builder.Build();
+}
+
+string CountMap::TryFromJSON(yyjson_val *obj, optional<CountMap> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 CountMap CountMap::Copy() const {
-	CountMap res;
+	CountMapBuilder builder;
+	vector<IntegerTypeValue> keys_tmp;
 	if (keys.has_value()) {
-		res.keys.emplace();
-		(*res.keys).reserve((*keys).size());
+		keys_tmp.emplace();
+		(*keys_tmp).reserve((*keys).size());
 		for (auto &item : (*keys)) {
-			(*res.keys).emplace_back(item.Copy());
+			(*keys_tmp).emplace_back(item.Copy());
 		}
 	}
+	if (keys_tmp.has_value()) {
+		builder.SetKeys(std::move(keys_tmp));
+	}
+	vector<LongTypeValue> values_tmp;
 	if (values.has_value()) {
-		res.values.emplace();
-		(*res.values).reserve((*values).size());
+		values_tmp.emplace();
+		(*values_tmp).reserve((*values).size());
 		for (auto &item : (*values)) {
-			(*res.values).emplace_back(item.Copy());
+			(*values_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (values_tmp.has_value()) {
+		builder.SetValues(std::move(values_tmp));
+	}
+	return builder.Build();
 }
 
 string CountMap::Validate() const {
@@ -95,51 +143,6 @@ string CountMap::Validate() const {
 		}
 	}
 	return "";
-}
-
-string CountMap::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto keys_val = yyjson_obj_get(obj, "keys");
-	if (keys_val) {
-		vector<IntegerTypeValue> keys_tmp;
-		if (yyjson_is_arr(keys_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(keys_val, idx, max, val) {
-				IntegerTypeValue tmp;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				keys_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format("CountMap property 'keys_tmp' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(keys_val));
-		}
-		keys = std::move(keys_tmp);
-	}
-	auto values_val = yyjson_obj_get(obj, "values");
-	if (values_val) {
-		vector<LongTypeValue> values_tmp;
-		if (yyjson_is_arr(values_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(values_val, idx, max, val) {
-				LongTypeValue tmp;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				values_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format("CountMap property 'values_tmp' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(values_val));
-		}
-		values = std::move(values_tmp);
-	}
-	return Validate();
 }
 
 void CountMap::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -14,66 +14,97 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetSnapshotRefUpdate::SetSnapshotRefUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
-      snapshot_reference(GeneratedObjectAccess::Create<SnapshotReference>()) {
+SetSnapshotRefUpdate::SetSnapshotRefUpdate(BaseUpdate base_update_p, SnapshotReference snapshot_reference_p,
+                                           string ref_name_p)
+    : base_update(std::move(base_update_p)), snapshot_reference(std::move(snapshot_reference_p)),
+      ref_name(std::move(ref_name_p)) {
 }
 
 SetSnapshotRefUpdateBuilder::SetSnapshotRefUpdateBuilder() {
 }
 
 SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetSnapshotReference(SnapshotReference value) {
-	result_.snapshot_reference = std::move(value);
+	snapshot_reference_ = std::move(value);
 	return *this;
 }
 
 SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetRefName(string value) {
-	result_.ref_name = std::move(value);
+	ref_name_ = std::move(value);
 	has_ref_name_ = true;
 	return *this;
 }
 
-string SetSnapshotRefUpdateBuilder::TryBuild(SetSnapshotRefUpdate &result) {
-	if (!has_ref_name_) {
-		return "SetSnapshotRefUpdate required property 'ref-name' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetSnapshotRefUpdate SetSnapshotRefUpdateBuilder::Build() {
-	SetSnapshotRefUpdate result;
-	auto error = TryBuild(result);
+	if (!has_ref_name_) {
+		throw InvalidInputException("SetSnapshotRefUpdate required property 'ref-name' is missing");
+	}
+	auto result =
+	    SetSnapshotRefUpdate(std::move(*base_update_), std::move(*snapshot_reference_), std::move(*ref_name_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
-	SetSnapshotRefUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetSnapshotRefUpdateBuilder::TryBuild(optional<SetSnapshotRefUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
+	SetSnapshotRefUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	builder.SetSnapshotReference(SnapshotReference::FromJSON(obj));
+	auto ref_name_val = yyjson_obj_get(obj, "ref-name");
+	if (!ref_name_val) {
+		throw InvalidInputException("SetSnapshotRefUpdate required property 'ref-name' is missing");
+	} else {
+		string ref_name;
+		if (yyjson_is_str(ref_name_val)) {
+			ref_name = yyjson_get_str(ref_name_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "SetSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(ref_name_val)));
+		}
+		builder.SetRefName(std::move(ref_name));
+	}
+	return builder.Build();
+}
+
+string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, optional<SetSnapshotRefUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetSnapshotRefUpdate SetSnapshotRefUpdate::Copy() const {
-	SetSnapshotRefUpdate res;
-	res.base_update = base_update.Copy();
-	res.snapshot_reference = snapshot_reference.Copy();
-	res.ref_name = ref_name;
-	return res;
+	SetSnapshotRefUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<SnapshotReference> snapshot_reference_tmp;
+	snapshot_reference_tmp = snapshot_reference.Copy();
+	builder.SetSnapshotReference(std::move(*snapshot_reference_tmp));
+	string ref_name_tmp;
+	ref_name_tmp = ref_name;
+	builder.SetRefName(std::move(ref_name_tmp));
+	return builder.Build();
 }
 
 string SetSnapshotRefUpdate::Validate() const {
@@ -87,31 +118,6 @@ string SetSnapshotRefUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	error = snapshot_reference.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto ref_name_val = yyjson_obj_get(obj, "ref-name");
-	if (!ref_name_val) {
-		return "SetSnapshotRefUpdate required property 'ref-name' is missing";
-	} else {
-		if (yyjson_is_str(ref_name_val)) {
-			ref_name = yyjson_get_str(ref_name_val);
-		} else {
-			return StringUtil::Format(
-			    "SetSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(ref_name_val));
-		}
-	}
-	return Validate();
 }
 
 void SetSnapshotRefUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

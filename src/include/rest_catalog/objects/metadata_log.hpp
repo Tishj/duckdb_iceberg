@@ -18,10 +18,7 @@ public:
 	MetadataLog(const MetadataLog &) = delete;
 	MetadataLog &operator=(const MetadataLog &) = delete;
 	MetadataLog(MetadataLog &&) = default;
-	MetadataLog &operator=(MetadataLog &&) = default;
-	MetadataLog();
-
-public:
+	MetadataLog &operator=(MetadataLog &&) = delete;
 	class Object4Builder;
 
 	class Object4 {
@@ -29,17 +26,16 @@ public:
 		Object4(const Object4 &) = delete;
 		Object4 &operator=(const Object4 &) = delete;
 		Object4(Object4 &&) = default;
-		Object4 &operator=(Object4 &&) = default;
+		Object4 &operator=(Object4 &&) = delete;
 
 	private:
 		friend class Object4Builder;
-		friend class GeneratedObjectAccess;
-		Object4();
+		Object4(string metadata_file_p, int64_t timestamp_ms_p);
 
 	public:
 		// Deserialization
 		static Object4 FromJSON(yyjson_val *obj);
-		string TryFromJSON(yyjson_val *obj);
+		static string TryFromJSON(yyjson_val *obj, optional<Object4> &result);
 		string Validate() const;
 
 		// Copy
@@ -59,19 +55,22 @@ public:
 		Object4Builder();
 		Object4Builder &SetMetadataFile(string value);
 		Object4Builder &SetTimestampMs(int64_t value);
-		string TryBuild(Object4 &result);
+		string TryBuild(optional<Object4> &result);
 		Object4 Build();
 
 	private:
-		Object4 result_;
+		optional<string> metadata_file_;
+		optional<int64_t> timestamp_ms_;
 		bool has_metadata_file_ = false;
 		bool has_timestamp_ms_ = false;
 	};
 
+	MetadataLog(vector<Object4> value_p);
+
 public:
 	// Deserialization
 	static MetadataLog FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result);
 	string Validate() const;
 
 	// Copy

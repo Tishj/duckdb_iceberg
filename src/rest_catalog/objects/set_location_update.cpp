@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetLocationUpdate::SetLocationUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+SetLocationUpdate::SetLocationUpdate(BaseUpdate base_update_p, string location_p)
+    : base_update(std::move(base_update_p)), location(std::move(location_p)) {
 }
 
 SetLocationUpdateBuilder::SetLocationUpdateBuilder() {
 }
 
 SetLocationUpdateBuilder &SetLocationUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetLocationUpdateBuilder &SetLocationUpdateBuilder::SetLocation(string value) {
-	result_.location = std::move(value);
+	location_ = std::move(value);
 	has_location_ = true;
 	return *this;
 }
 
-string SetLocationUpdateBuilder::TryBuild(SetLocationUpdate &result) {
-	if (!has_location_) {
-		return "SetLocationUpdate required property 'location' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetLocationUpdate SetLocationUpdateBuilder::Build() {
-	SetLocationUpdate result;
-	auto error = TryBuild(result);
+	if (!has_location_) {
+		throw InvalidInputException("SetLocationUpdate required property 'location' is missing");
+	}
+	auto result = SetLocationUpdate(std::move(*base_update_), std::move(*location_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetLocationUpdate SetLocationUpdate::FromJSON(yyjson_val *obj) {
-	SetLocationUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetLocationUpdateBuilder::TryBuild(optional<SetLocationUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetLocationUpdate SetLocationUpdate::FromJSON(yyjson_val *obj) {
+	SetLocationUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto location_val = yyjson_obj_get(obj, "location");
+	if (!location_val) {
+		throw InvalidInputException("SetLocationUpdate required property 'location' is missing");
+	} else {
+		string location;
+		if (yyjson_is_str(location_val)) {
+			location = yyjson_get_str(location_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("SetLocationUpdate property 'location' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(location_val)));
+		}
+		builder.SetLocation(std::move(location));
+	}
+	return builder.Build();
+}
+
+string SetLocationUpdate::TryFromJSON(yyjson_val *obj, optional<SetLocationUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetLocationUpdate SetLocationUpdate::Copy() const {
-	SetLocationUpdate res;
-	res.base_update = base_update.Copy();
-	res.location = location;
-	return res;
+	SetLocationUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	string location_tmp;
+	location_tmp = location;
+	builder.SetLocation(std::move(location_tmp));
+	return builder.Build();
 }
 
 string SetLocationUpdate::Validate() const {
@@ -75,27 +102,6 @@ string SetLocationUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetLocationUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto location_val = yyjson_obj_get(obj, "location");
-	if (!location_val) {
-		return "SetLocationUpdate required property 'location' is missing";
-	} else {
-		if (yyjson_is_str(location_val)) {
-			location = yyjson_get_str(location_val);
-		} else {
-			return StringUtil::Format(
-			    "SetLocationUpdate property 'location' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(location_val));
-		}
-	}
-	return Validate();
 }
 
 void SetLocationUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

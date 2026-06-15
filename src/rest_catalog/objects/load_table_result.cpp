@@ -14,86 +14,174 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-LoadTableResult::LoadTableResult()
-    : metadata(GeneratedObjectAccess::Create<TableMetadata>()),
-      config(GeneratedObjectAccess::Create<optional<case_insensitive_map_t<string>>>()) {
+LoadTableResult::LoadTableResult(TableMetadata metadata_p, optional<string> metadata_location_p,
+                                 optional<case_insensitive_map_t<string>> config_p,
+                                 optional<vector<StorageCredential>> storage_credentials_p)
+    : metadata(std::move(metadata_p)), metadata_location(std::move(metadata_location_p)), config(std::move(config_p)),
+      storage_credentials(std::move(storage_credentials_p)) {
 }
 
 LoadTableResultBuilder::LoadTableResultBuilder() {
 }
 
 LoadTableResultBuilder &LoadTableResultBuilder::SetMetadata(TableMetadata value) {
-	result_.metadata = std::move(value);
+	metadata_ = std::move(value);
 	has_metadata_ = true;
 	return *this;
 }
 
 LoadTableResultBuilder &LoadTableResultBuilder::SetMetadataLocation(string value) {
-	result_.metadata_location = std::move(value);
+	metadata_location_ = std::move(value);
 	return *this;
 }
 
 LoadTableResultBuilder &LoadTableResultBuilder::SetConfig(case_insensitive_map_t<string> value) {
-	result_.config = std::move(value);
+	config_ = std::move(value);
 	return *this;
 }
 
 LoadTableResultBuilder &LoadTableResultBuilder::SetStorageCredentials(vector<StorageCredential> value) {
-	result_.storage_credentials = std::move(value);
+	storage_credentials_ = std::move(value);
 	return *this;
 }
 
-string LoadTableResultBuilder::TryBuild(LoadTableResult &result) {
-	if (!has_metadata_) {
-		return "LoadTableResult required property 'metadata' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 LoadTableResult LoadTableResultBuilder::Build() {
-	LoadTableResult result;
-	auto error = TryBuild(result);
+	if (!has_metadata_) {
+		throw InvalidInputException("LoadTableResult required property 'metadata' is missing");
+	}
+	auto result = LoadTableResult(std::move(*metadata_), std::move(metadata_location_), std::move(config_),
+	                              std::move(storage_credentials_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-LoadTableResult LoadTableResult::FromJSON(yyjson_val *obj) {
-	LoadTableResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string LoadTableResultBuilder::TryBuild(optional<LoadTableResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+LoadTableResult LoadTableResult::FromJSON(yyjson_val *obj) {
+	LoadTableResultBuilder builder;
+	auto metadata_val = yyjson_obj_get(obj, "metadata");
+	if (!metadata_val) {
+		throw InvalidInputException("LoadTableResult required property 'metadata' is missing");
+	} else {
+		optional<TableMetadata> metadata;
+		metadata = TableMetadata::FromJSON(metadata_val);
+		builder.SetMetadata(std::move(*metadata));
+	}
+	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
+	if (metadata_location_val) {
+		if (yyjson_is_null(metadata_location_val)) {
+			//! do nothing, property is explicitly nullable
+		} else {
+			string metadata_location;
+			if (yyjson_is_str(metadata_location_val)) {
+				metadata_location = yyjson_get_str(metadata_location_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "LoadTableResult property 'metadata_location' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(metadata_location_val)));
+			}
+			builder.SetMetadataLocation(std::move(metadata_location));
+		}
+	}
+	auto config_val = yyjson_obj_get(obj, "config");
+	if (config_val) {
+		case_insensitive_map_t<string> config;
+		if (yyjson_is_obj(config_val)) {
+			size_t idx, max;
+			yyjson_val *key, *val;
+			yyjson_obj_foreach(config_val, idx, max, key, val) {
+				auto key_str = yyjson_get_str(key);
+				string tmp;
+				if (yyjson_is_str(val)) {
+					tmp = yyjson_get_str(val);
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("LoadTableResult property 'tmp' is not of type 'string', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
+				}
+				config.emplace(key_str, std::move(tmp));
+			}
+		} else {
+			throw InvalidInputException("LoadTableResult property 'config' is not of type 'object'");
+		}
+		builder.SetConfig(std::move(config));
+	}
+	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
+	if (storage_credentials_val) {
+		vector<StorageCredential> storage_credentials;
+		if (yyjson_is_arr(storage_credentials_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
+				auto tmp = StorageCredential::FromJSON(val);
+				storage_credentials.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "LoadTableResult property 'storage_credentials' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(storage_credentials_val));
+		}
+		builder.SetStorageCredentials(std::move(storage_credentials));
+	}
+	return builder.Build();
+}
+
+string LoadTableResult::TryFromJSON(yyjson_val *obj, optional<LoadTableResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 LoadTableResult LoadTableResult::Copy() const {
-	LoadTableResult res;
-	res.metadata = metadata.Copy();
+	LoadTableResultBuilder builder;
+	optional<TableMetadata> metadata_tmp;
+	metadata_tmp = metadata.Copy();
+	builder.SetMetadata(std::move(*metadata_tmp));
+	string metadata_location_tmp;
 	if (metadata_location.has_value()) {
-		res.metadata_location.emplace();
-		(*res.metadata_location) = (*metadata_location);
+		metadata_location_tmp.emplace();
+		(*metadata_location_tmp) = (*metadata_location);
 	}
+	if (metadata_location_tmp.has_value()) {
+		builder.SetMetadataLocation(std::move(metadata_location_tmp));
+	}
+	case_insensitive_map_t<string> config_tmp;
 	if (config.has_value()) {
-		res.config = GeneratedObjectAccess::Create<case_insensitive_map_t<string>>();
+		config_tmp.emplace();
 		for (auto &entry : (*config)) {
-			(*res.config).emplace(entry.first, entry.second);
+			(*config_tmp).emplace(entry.first, entry.second);
 		}
 	}
+	if (config_tmp.has_value()) {
+		builder.SetConfig(std::move(config_tmp));
+	}
+	vector<StorageCredential> storage_credentials_tmp;
 	if (storage_credentials.has_value()) {
-		res.storage_credentials.emplace();
-		(*res.storage_credentials).reserve((*storage_credentials).size());
+		storage_credentials_tmp.emplace();
+		(*storage_credentials_tmp).reserve((*storage_credentials).size());
 		for (auto &item : (*storage_credentials)) {
-			(*res.storage_credentials).emplace_back(item.Copy());
+			(*storage_credentials_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (storage_credentials_tmp.has_value()) {
+		builder.SetStorageCredentials(std::move(storage_credentials_tmp));
+	}
+	return builder.Build();
 }
 
 string LoadTableResult::Validate() const {
@@ -111,80 +199,6 @@ string LoadTableResult::Validate() const {
 		}
 	}
 	return "";
-}
-
-string LoadTableResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto metadata_val = yyjson_obj_get(obj, "metadata");
-	if (!metadata_val) {
-		return "LoadTableResult required property 'metadata' is missing";
-	} else {
-		error = metadata.TryFromJSON(metadata_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
-	if (metadata_location_val) {
-		if (yyjson_is_null(metadata_location_val)) {
-			//! do nothing, property is explicitly nullable
-		} else {
-			string metadata_location_tmp;
-			if (yyjson_is_str(metadata_location_val)) {
-				metadata_location_tmp = yyjson_get_str(metadata_location_val);
-			} else {
-				return StringUtil::Format(
-				    "LoadTableResult property 'metadata_location_tmp' is not of type 'string', found '%s' instead",
-				    yyjson_get_type_desc(metadata_location_val));
-			}
-			metadata_location = std::move(metadata_location_tmp);
-		}
-	}
-	auto config_val = yyjson_obj_get(obj, "config");
-	if (config_val) {
-		case_insensitive_map_t<string> config_tmp;
-		if (yyjson_is_obj(config_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(config_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					return StringUtil::Format(
-					    "LoadTableResult property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val));
-				}
-				config_tmp.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			return "LoadTableResult property 'config_tmp' is not of type 'object'";
-		}
-		config = std::move(config_tmp);
-	}
-	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
-	if (storage_credentials_val) {
-		vector<StorageCredential> storage_credentials_tmp;
-		if (yyjson_is_arr(storage_credentials_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<StorageCredential>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				storage_credentials_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "LoadTableResult property 'storage_credentials_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(storage_credentials_val));
-		}
-		storage_credentials = std::move(storage_credentials_tmp);
-	}
-	return Validate();
 }
 
 void LoadTableResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

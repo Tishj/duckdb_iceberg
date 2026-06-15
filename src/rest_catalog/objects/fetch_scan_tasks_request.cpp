@@ -14,52 +14,69 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FetchScanTasksRequest::FetchScanTasksRequest() {
+FetchScanTasksRequest::FetchScanTasksRequest(PlanTask plan_task_p) : plan_task(std::move(plan_task_p)) {
 }
 
 FetchScanTasksRequestBuilder::FetchScanTasksRequestBuilder() {
 }
 
 FetchScanTasksRequestBuilder &FetchScanTasksRequestBuilder::SetPlanTask(PlanTask value) {
-	result_.plan_task = std::move(value);
+	plan_task_ = std::move(value);
 	has_plan_task_ = true;
 	return *this;
 }
 
-string FetchScanTasksRequestBuilder::TryBuild(FetchScanTasksRequest &result) {
-	if (!has_plan_task_) {
-		return "FetchScanTasksRequest required property 'plan-task' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 FetchScanTasksRequest FetchScanTasksRequestBuilder::Build() {
-	FetchScanTasksRequest result;
-	auto error = TryBuild(result);
+	if (!has_plan_task_) {
+		throw InvalidInputException("FetchScanTasksRequest required property 'plan-task' is missing");
+	}
+	auto result = FetchScanTasksRequest(std::move(*plan_task_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-FetchScanTasksRequest FetchScanTasksRequest::FromJSON(yyjson_val *obj) {
-	FetchScanTasksRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string FetchScanTasksRequestBuilder::TryBuild(optional<FetchScanTasksRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+FetchScanTasksRequest FetchScanTasksRequest::FromJSON(yyjson_val *obj) {
+	FetchScanTasksRequestBuilder builder;
+	auto plan_task_val = yyjson_obj_get(obj, "plan-task");
+	if (!plan_task_val) {
+		throw InvalidInputException("FetchScanTasksRequest required property 'plan-task' is missing");
+	} else {
+		optional<PlanTask> plan_task;
+		plan_task = PlanTask::FromJSON(plan_task_val);
+		builder.SetPlanTask(std::move(*plan_task));
+	}
+	return builder.Build();
+}
+
+string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj, optional<FetchScanTasksRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 FetchScanTasksRequest FetchScanTasksRequest::Copy() const {
-	FetchScanTasksRequest res;
-	res.plan_task = plan_task.Copy();
-	return res;
+	FetchScanTasksRequestBuilder builder;
+	optional<PlanTask> plan_task_tmp;
+	plan_task_tmp = plan_task.Copy();
+	builder.SetPlanTask(std::move(*plan_task_tmp));
+	return builder.Build();
 }
 
 string FetchScanTasksRequest::Validate() const {
@@ -69,20 +86,6 @@ string FetchScanTasksRequest::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto plan_task_val = yyjson_obj_get(obj, "plan-task");
-	if (!plan_task_val) {
-		return "FetchScanTasksRequest required property 'plan-task' is missing";
-	} else {
-		error = plan_task.TryFromJSON(plan_task_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void FetchScanTasksRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

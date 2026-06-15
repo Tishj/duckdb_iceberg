@@ -23,17 +23,17 @@ public:
 	CommitTableRequest(const CommitTableRequest &) = delete;
 	CommitTableRequest &operator=(const CommitTableRequest &) = delete;
 	CommitTableRequest(CommitTableRequest &&) = default;
-	CommitTableRequest &operator=(CommitTableRequest &&) = default;
+	CommitTableRequest &operator=(CommitTableRequest &&) = delete;
 
 private:
 	friend class CommitTableRequestBuilder;
-	friend class GeneratedObjectAccess;
-	CommitTableRequest();
+	CommitTableRequest(vector<TableRequirement> requirements_p, vector<TableUpdate> updates_p,
+	                   optional<TableIdentifier> identifier_p);
 
 public:
 	// Deserialization
 	static CommitTableRequest FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CommitTableRequest> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +55,13 @@ public:
 	CommitTableRequestBuilder &SetRequirements(vector<TableRequirement> value);
 	CommitTableRequestBuilder &SetUpdates(vector<TableUpdate> value);
 	CommitTableRequestBuilder &SetIdentifier(TableIdentifier value);
-	string TryBuild(CommitTableRequest &result);
+	string TryBuild(optional<CommitTableRequest> &result);
 	CommitTableRequest Build();
 
 private:
-	CommitTableRequest result_;
+	optional<vector<TableRequirement>> requirements_;
+	optional<vector<TableUpdate>> updates_;
+	optional<TableIdentifier> identifier_;
 	bool has_requirements_ = false;
 	bool has_updates_ = false;
 };

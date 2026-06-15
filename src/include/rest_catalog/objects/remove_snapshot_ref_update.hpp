@@ -21,17 +21,16 @@ public:
 	RemoveSnapshotRefUpdate(const RemoveSnapshotRefUpdate &) = delete;
 	RemoveSnapshotRefUpdate &operator=(const RemoveSnapshotRefUpdate &) = delete;
 	RemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate &&) = default;
-	RemoveSnapshotRefUpdate &operator=(RemoveSnapshotRefUpdate &&) = default;
+	RemoveSnapshotRefUpdate &operator=(RemoveSnapshotRefUpdate &&) = delete;
 
 private:
 	friend class RemoveSnapshotRefUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	RemoveSnapshotRefUpdate();
+	RemoveSnapshotRefUpdate(BaseUpdate base_update_p, string ref_name_p);
 
 public:
 	// Deserialization
 	static RemoveSnapshotRefUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotRefUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	RemoveSnapshotRefUpdateBuilder();
 	RemoveSnapshotRefUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveSnapshotRefUpdateBuilder &SetRefName(string value);
-	string TryBuild(RemoveSnapshotRefUpdate &result);
+	string TryBuild(optional<RemoveSnapshotRefUpdate> &result);
 	RemoveSnapshotRefUpdate Build();
 
 private:
-	RemoveSnapshotRefUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<string> ref_name_;
 	bool has_ref_name_ = false;
 };
 

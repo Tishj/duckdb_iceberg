@@ -155,36 +155,36 @@ rest_api_objects::PrimitiveTypeValue IcebergTypeHelper::PrimitiveTypeFromValue(c
 	}
 	//! BooleanTypeValue
 	case LogicalTypeId::BOOLEAN: {
-		rest_api_objects::BooleanTypeValue boolean_type_value;
-		boolean_type_value.value = value.GetValue<bool>();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetBooleanTypeValue(std::move(boolean_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetBooleanTypeValue(rest_api_objects::BooleanTypeValue(value.GetValue<bool>()))
+		    .Build();
 	}
 	case LogicalTypeId::INTEGER: {
-		rest_api_objects::IntegerTypeValue integer_type_value;
-		integer_type_value.value = value.GetValue<int32_t>();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetIntegerTypeValue(std::move(integer_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetIntegerTypeValue(rest_api_objects::IntegerTypeValue(value.GetValue<int32_t>()))
+		    .Build();
 	}
 	case LogicalTypeId::BIGINT: {
-		rest_api_objects::LongTypeValue long_type_value;
-		long_type_value.value = value.GetValue<int64_t>();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetLongTypeValue(std::move(long_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetLongTypeValue(rest_api_objects::LongTypeValue(value.GetValue<int64_t>()))
+		    .Build();
 	}
 	case LogicalTypeId::FLOAT: {
-		rest_api_objects::FloatTypeValue float_type_value;
-		float_type_value.value = value.GetValue<float>();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetFloatTypeValue(std::move(float_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetFloatTypeValue(rest_api_objects::FloatTypeValue(value.GetValue<float>()))
+		    .Build();
 	}
 	case LogicalTypeId::DOUBLE: {
-		rest_api_objects::DoubleTypeValue double_type_value;
-		double_type_value.value = value.GetValue<double>();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetDoubleTypeValue(std::move(double_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetDoubleTypeValue(rest_api_objects::DoubleTypeValue(value.GetValue<double>()))
+		    .Build();
 	}
 	//! DecimalTypeValue
 	case LogicalTypeId::DECIMAL: {
 		//! FIXME: Spec says scientific notation should be used for negative scale decimals
-		rest_api_objects::StringTypeValue string_type_value;
-		string_type_value.value = value.ToString();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetStringTypeValue(std::move(string_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetStringTypeValue(rest_api_objects::StringTypeValue(value.ToString()))
+		    .Build();
 	}
 	//! NOTE: when parsing we can't differentiate between these, so we set string_type
 	//! StringTypeValue
@@ -195,9 +195,9 @@ rest_api_objects::PrimitiveTypeValue IcebergTypeHelper::PrimitiveTypeFromValue(c
 	case LogicalTypeId::DATE:
 	case LogicalTypeId::TIME:
 	case LogicalTypeId::VARCHAR: {
-		rest_api_objects::StringTypeValue string_type_value;
-		string_type_value.value = value.ToString();
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetStringTypeValue(std::move(string_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetStringTypeValue(rest_api_objects::StringTypeValue(value.ToString()))
+		    .Build();
 	}
 	//! TimestampTypeValue
 	//! TimestampNanoTypeValue
@@ -213,27 +213,24 @@ rest_api_objects::PrimitiveTypeValue IcebergTypeHelper::PrimitiveTypeFromValue(c
 		auto str = StringUtil::Join(splits, "T");
 
 		if (type.id() == LogicalTypeId::TIMESTAMP || type.id() == LogicalTypeId::TIMESTAMP_NS) {
-			rest_api_objects::StringTypeValue string_type_value;
-			string_type_value.value = str;
 			return rest_api_objects::PrimitiveTypeValueBuilder()
-			    .SetStringTypeValue(std::move(string_type_value))
+			    .SetStringTypeValue(rest_api_objects::StringTypeValue(str))
 			    .Build();
 		}
 
 		str += ":00";
-		rest_api_objects::StringTypeValue string_type_value;
-		string_type_value.value = str;
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetStringTypeValue(std::move(string_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetStringTypeValue(rest_api_objects::StringTypeValue(str))
+		    .Build();
 	}
 	//! FIXME: missing FixedTypeValue
 	//! BinaryTypeValue
 	case LogicalTypeId::BLOB: {
 		auto str = value.GetValueUnsafe<string_t>();
 		auto blob_str = ConvertBlobDefault(str);
-
-		rest_api_objects::BinaryTypeValue binary_type_value;
-		binary_type_value.value = blob_str;
-		return rest_api_objects::PrimitiveTypeValueBuilder().SetBinaryTypeValue(std::move(binary_type_value)).Build();
+		return rest_api_objects::PrimitiveTypeValueBuilder()
+		    .SetBinaryTypeValue(rest_api_objects::BinaryTypeValue(blob_str))
+		    .Build();
 	}
 	default:
 		throw NotImplementedException("DEFAULT values for nested types (like %s) not implemented", type.ToString());
@@ -248,7 +245,7 @@ rest_api_objects::StructField IcebergTypeHelper::CreateIcebergRestType(const str
 	unique_ptr<rest_api_objects::Type> rest_type;
 	optional<rest_api_objects::PrimitiveTypeValue> initial_default;
 	if (!default_val.IsNull() && type.id() != LogicalTypeId::STRUCT) {
-		initial_default = IcebergTypeHelper::PrimitiveTypeFromValue(default_val);
+		initial_default.emplace(IcebergTypeHelper::PrimitiveTypeFromValue(default_val));
 	}
 
 	switch (type.id()) {
@@ -313,10 +310,10 @@ rest_api_objects::StructField IcebergTypeHelper::CreateIcebergRestType(const str
 		throw InvalidConfigurationException("Array type not supported in Iceberg type. Please cast to LIST");
 	}
 	default:
-		rest_api_objects::PrimitiveType primitive_type;
-		primitive_type.value = IcebergTypeHelper::LogicalTypeToIcebergType(type);
 		rest_type = make_uniq<rest_api_objects::Type>(
-		    rest_api_objects::TypeBuilder().SetPrimitiveType(std::move(primitive_type)).Build());
+		    rest_api_objects::TypeBuilder()
+		        .SetPrimitiveType(rest_api_objects::PrimitiveType(IcebergTypeHelper::LogicalTypeToIcebergType(type)))
+		        .Build());
 		break;
 	}
 
@@ -330,7 +327,7 @@ rest_api_objects::StructField IcebergTypeHelper::CreateIcebergRestType(const str
 		result._doc = doc;
 	}
 	if (initial_default) {
-		result.initial_default = std::move(initial_default);
+		result.initial_default.emplace(std::move(*initial_default));
 	}
 	return result;
 }

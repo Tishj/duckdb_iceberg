@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetDefaultSpecUpdate::SetDefaultSpecUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+SetDefaultSpecUpdate::SetDefaultSpecUpdate(BaseUpdate base_update_p, int32_t spec_id_p)
+    : base_update(std::move(base_update_p)), spec_id(std::move(spec_id_p)) {
 }
 
 SetDefaultSpecUpdateBuilder::SetDefaultSpecUpdateBuilder() {
 }
 
 SetDefaultSpecUpdateBuilder &SetDefaultSpecUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetDefaultSpecUpdateBuilder &SetDefaultSpecUpdateBuilder::SetSpecId(int32_t value) {
-	result_.spec_id = std::move(value);
+	spec_id_ = std::move(value);
 	has_spec_id_ = true;
 	return *this;
 }
 
-string SetDefaultSpecUpdateBuilder::TryBuild(SetDefaultSpecUpdate &result) {
-	if (!has_spec_id_) {
-		return "SetDefaultSpecUpdate required property 'spec-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetDefaultSpecUpdate SetDefaultSpecUpdateBuilder::Build() {
-	SetDefaultSpecUpdate result;
-	auto error = TryBuild(result);
+	if (!has_spec_id_) {
+		throw InvalidInputException("SetDefaultSpecUpdate required property 'spec-id' is missing");
+	}
+	auto result = SetDefaultSpecUpdate(std::move(*base_update_), std::move(*spec_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
-	SetDefaultSpecUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetDefaultSpecUpdateBuilder::TryBuild(optional<SetDefaultSpecUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
+	SetDefaultSpecUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto spec_id_val = yyjson_obj_get(obj, "spec-id");
+	if (!spec_id_val) {
+		throw InvalidInputException("SetDefaultSpecUpdate required property 'spec-id' is missing");
+	} else {
+		int32_t spec_id;
+		if (yyjson_is_int(spec_id_val)) {
+			spec_id = yyjson_get_int(spec_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "SetDefaultSpecUpdate property 'spec_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(spec_id_val)));
+		}
+		builder.SetSpecId(std::move(spec_id));
+	}
+	return builder.Build();
+}
+
+string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, optional<SetDefaultSpecUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetDefaultSpecUpdate SetDefaultSpecUpdate::Copy() const {
-	SetDefaultSpecUpdate res;
-	res.base_update = base_update.Copy();
-	res.spec_id = spec_id;
-	return res;
+	SetDefaultSpecUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int32_t spec_id_tmp;
+	spec_id_tmp = spec_id;
+	builder.SetSpecId(std::move(spec_id_tmp));
+	return builder.Build();
 }
 
 string SetDefaultSpecUpdate::Validate() const {
@@ -75,27 +102,6 @@ string SetDefaultSpecUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto spec_id_val = yyjson_obj_get(obj, "spec-id");
-	if (!spec_id_val) {
-		return "SetDefaultSpecUpdate required property 'spec-id' is missing";
-	} else {
-		if (yyjson_is_int(spec_id_val)) {
-			spec_id = yyjson_get_int(spec_id_val);
-		} else {
-			return StringUtil::Format(
-			    "SetDefaultSpecUpdate property 'spec_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(spec_id_val));
-		}
-	}
-	return Validate();
 }
 
 void SetDefaultSpecUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

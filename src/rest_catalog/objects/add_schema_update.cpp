@@ -14,68 +14,104 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AddSchemaUpdate::AddSchemaUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()), schema(GeneratedObjectAccess::Create<Schema>()) {
+AddSchemaUpdate::AddSchemaUpdate(BaseUpdate base_update_p, Schema schema_p, optional<int32_t> last_column_id_p)
+    : base_update(std::move(base_update_p)), schema(std::move(schema_p)), last_column_id(std::move(last_column_id_p)) {
 }
 
 AddSchemaUpdateBuilder::AddSchemaUpdateBuilder() {
 }
 
 AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetSchema(Schema value) {
-	result_.schema = std::move(value);
+	schema_ = std::move(value);
 	has_schema_ = true;
 	return *this;
 }
 
 AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetLastColumnId(int32_t value) {
-	result_.last_column_id = std::move(value);
+	last_column_id_ = std::move(value);
 	return *this;
 }
 
-string AddSchemaUpdateBuilder::TryBuild(AddSchemaUpdate &result) {
-	if (!has_schema_) {
-		return "AddSchemaUpdate required property 'schema' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AddSchemaUpdate AddSchemaUpdateBuilder::Build() {
-	AddSchemaUpdate result;
-	auto error = TryBuild(result);
+	if (!has_schema_) {
+		throw InvalidInputException("AddSchemaUpdate required property 'schema' is missing");
+	}
+	auto result = AddSchemaUpdate(std::move(*base_update_), std::move(*schema_), std::move(last_column_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
-	AddSchemaUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AddSchemaUpdateBuilder::TryBuild(optional<AddSchemaUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
+	AddSchemaUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto schema_val = yyjson_obj_get(obj, "schema");
+	if (!schema_val) {
+		throw InvalidInputException("AddSchemaUpdate required property 'schema' is missing");
+	} else {
+		optional<Schema> schema;
+		schema = Schema::FromJSON(schema_val);
+		builder.SetSchema(std::move(*schema));
+	}
+	auto last_column_id_val = yyjson_obj_get(obj, "last-column-id");
+	if (last_column_id_val) {
+		int32_t last_column_id;
+		if (yyjson_is_int(last_column_id_val)) {
+			last_column_id = yyjson_get_int(last_column_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "AddSchemaUpdate property 'last_column_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(last_column_id_val)));
+		}
+		builder.SetLastColumnId(std::move(last_column_id));
+	}
+	return builder.Build();
+}
+
+string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, optional<AddSchemaUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AddSchemaUpdate AddSchemaUpdate::Copy() const {
-	AddSchemaUpdate res;
-	res.base_update = base_update.Copy();
-	res.schema = schema.Copy();
+	AddSchemaUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<Schema> schema_tmp;
+	schema_tmp = schema.Copy();
+	builder.SetSchema(std::move(*schema_tmp));
+	int32_t last_column_id_tmp;
 	if (last_column_id.has_value()) {
-		res.last_column_id.emplace();
-		(*res.last_column_id) = (*last_column_id);
+		last_column_id_tmp.emplace();
+		(*last_column_id_tmp) = (*last_column_id);
 	}
-	return res;
+	if (last_column_id_tmp.has_value()) {
+		builder.SetLastColumnId(std::move(last_column_id_tmp));
+	}
+	return builder.Build();
 }
 
 string AddSchemaUpdate::Validate() const {
@@ -89,36 +125,6 @@ string AddSchemaUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AddSchemaUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto schema_val = yyjson_obj_get(obj, "schema");
-	if (!schema_val) {
-		return "AddSchemaUpdate required property 'schema' is missing";
-	} else {
-		error = schema.TryFromJSON(schema_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto last_column_id_val = yyjson_obj_get(obj, "last-column-id");
-	if (last_column_id_val) {
-		int32_t last_column_id_tmp;
-		if (yyjson_is_int(last_column_id_val)) {
-			last_column_id_tmp = yyjson_get_int(last_column_id_val);
-		} else {
-			return StringUtil::Format(
-			    "AddSchemaUpdate property 'last_column_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(last_column_id_val));
-		}
-		last_column_id = std::move(last_column_id_tmp);
-	}
-	return Validate();
 }
 
 void AddSchemaUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

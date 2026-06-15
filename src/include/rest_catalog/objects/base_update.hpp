@@ -20,17 +20,16 @@ public:
 	BaseUpdate(const BaseUpdate &) = delete;
 	BaseUpdate &operator=(const BaseUpdate &) = delete;
 	BaseUpdate(BaseUpdate &&) = default;
-	BaseUpdate &operator=(BaseUpdate &&) = default;
+	BaseUpdate &operator=(BaseUpdate &&) = delete;
 
 private:
 	friend class BaseUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	BaseUpdate();
+	BaseUpdate(string action_p);
 
 public:
 	// Deserialization
 	static BaseUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<BaseUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -48,11 +47,11 @@ class BaseUpdateBuilder {
 public:
 	BaseUpdateBuilder();
 	BaseUpdateBuilder &SetAction(string value);
-	string TryBuild(BaseUpdate &result);
+	string TryBuild(optional<BaseUpdate> &result);
 	BaseUpdate Build();
 
 private:
-	BaseUpdate result_;
+	optional<string> action_;
 	bool has_action_ = false;
 };
 

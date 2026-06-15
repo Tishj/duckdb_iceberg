@@ -14,10 +14,7 @@ struct IcebergTransactionDeleteUpdate;
 struct IcebergTransactionRenameUpdate;
 
 struct TableTransactionInfo {
-	TableTransactionInfo()
-	    : request(rest_api_objects::CommitTransactionRequestBuilder().SetTableChanges({}).Build()) {};
-
-	rest_api_objects::CommitTransactionRequest request;
+	vector<rest_api_objects::CommitTableRequest> table_changes;
 	case_insensitive_map_t<idx_t> table_requests;
 
 	// if a table is created with assert create, we cannot use the

@@ -14,62 +14,96 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssertTableUUID::AssertTableUUID() {
+AssertTableUUID::AssertTableUUID(TableRequirementType type_p, string uuid_p)
+    : type(std::move(type_p)), uuid(std::move(uuid_p)) {
 }
 
 AssertTableUUIDBuilder::AssertTableUUIDBuilder() {
 }
 
 AssertTableUUIDBuilder &AssertTableUUIDBuilder::SetType(TableRequirementType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 AssertTableUUIDBuilder &AssertTableUUIDBuilder::SetUuid(string value) {
-	result_.uuid = std::move(value);
+	uuid_ = std::move(value);
 	has_uuid_ = true;
 	return *this;
 }
 
-string AssertTableUUIDBuilder::TryBuild(AssertTableUUID &result) {
+AssertTableUUID AssertTableUUIDBuilder::Build() {
 	if (!has_type_) {
-		return "AssertTableUUID required property 'type' is missing";
+		throw InvalidInputException("AssertTableUUID required property 'type' is missing");
 	}
 	if (!has_uuid_) {
-		return "AssertTableUUID required property 'uuid' is missing";
+		throw InvalidInputException("AssertTableUUID required property 'uuid' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-AssertTableUUID AssertTableUUIDBuilder::Build() {
-	AssertTableUUID result;
-	auto error = TryBuild(result);
+	auto result = AssertTableUUID(std::move(*type_), std::move(*uuid_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
-	AssertTableUUID res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AssertTableUUIDBuilder::TryBuild(optional<AssertTableUUID> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
+	AssertTableUUIDBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("AssertTableUUID required property 'type' is missing");
+	} else {
+		optional<TableRequirementType> type;
+		type = TableRequirementType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto uuid_val = yyjson_obj_get(obj, "uuid");
+	if (!uuid_val) {
+		throw InvalidInputException("AssertTableUUID required property 'uuid' is missing");
+	} else {
+		string uuid;
+		if (yyjson_is_str(uuid_val)) {
+			uuid = yyjson_get_str(uuid_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("AssertTableUUID property 'uuid' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(uuid_val)));
+		}
+		builder.SetUuid(std::move(uuid));
+	}
+	return builder.Build();
+}
+
+string AssertTableUUID::TryFromJSON(yyjson_val *obj, optional<AssertTableUUID> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AssertTableUUID AssertTableUUID::Copy() const {
-	AssertTableUUID res;
-	res.type = type.Copy();
-	res.uuid = uuid;
-	return res;
+	AssertTableUUIDBuilder builder;
+	optional<TableRequirementType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	string uuid_tmp;
+	uuid_tmp = uuid;
+	builder.SetUuid(std::move(uuid_tmp));
+	return builder.Build();
 }
 
 string AssertTableUUID::Validate() const {
@@ -82,31 +116,6 @@ string AssertTableUUID::Validate() const {
 		return StringUtil::Format("AssertTableUUID property 'type' must be assert-table-uuid, not %s", type.value);
 	}
 	return "";
-}
-
-string AssertTableUUID::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "AssertTableUUID required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto uuid_val = yyjson_obj_get(obj, "uuid");
-	if (!uuid_val) {
-		return "AssertTableUUID required property 'uuid' is missing";
-	} else {
-		if (yyjson_is_str(uuid_val)) {
-			uuid = yyjson_get_str(uuid_val);
-		} else {
-			return StringUtil::Format("AssertTableUUID property 'uuid' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(uuid_val));
-		}
-	}
-	return Validate();
 }
 
 void AssertTableUUID::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

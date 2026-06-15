@@ -23,17 +23,16 @@ public:
 	SetExpression(const SetExpression &) = delete;
 	SetExpression &operator=(const SetExpression &) = delete;
 	SetExpression(SetExpression &&) = default;
-	SetExpression &operator=(SetExpression &&) = default;
+	SetExpression &operator=(SetExpression &&) = delete;
 
 private:
 	friend class SetExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	SetExpression();
+	SetExpression(ExpressionType type_p, Term term_p, vector<PrimitiveTypeValue> values_p);
 
 public:
 	// Deserialization
 	static SetExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +54,13 @@ public:
 	SetExpressionBuilder &SetType(ExpressionType value);
 	SetExpressionBuilder &SetTerm(Term value);
 	SetExpressionBuilder &SetValues(vector<PrimitiveTypeValue> value);
-	string TryBuild(SetExpression &result);
+	string TryBuild(optional<SetExpression> &result);
 	SetExpression Build();
 
 private:
-	SetExpression result_;
+	optional<ExpressionType> type_;
+	optional<Term> term_;
+	optional<vector<PrimitiveTypeValue>> values_;
 	bool has_type_ = false;
 	bool has_term_ = false;
 	bool has_values_ = false;

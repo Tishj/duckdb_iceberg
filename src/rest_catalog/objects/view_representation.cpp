@@ -14,52 +14,71 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ViewRepresentation::ViewRepresentation()
-    : sqlview_representation(GeneratedObjectAccess::Create<optional<SQLViewRepresentation>>()) {
+ViewRepresentation::ViewRepresentation(optional<SQLViewRepresentation> sqlview_representation_p)
+    : sqlview_representation(std::move(sqlview_representation_p)) {
 }
 
 ViewRepresentationBuilder::ViewRepresentationBuilder() {
 }
 
 ViewRepresentationBuilder &ViewRepresentationBuilder::SetSqlviewRepresentation(SQLViewRepresentation value) {
-	result_.sqlview_representation = std::move(value);
+	sqlview_representation_ = std::move(value);
 	return *this;
 }
 
-string ViewRepresentationBuilder::TryBuild(ViewRepresentation &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 ViewRepresentation ViewRepresentationBuilder::Build() {
-	ViewRepresentation result;
-	auto error = TryBuild(result);
+	auto result = ViewRepresentation(std::move(sqlview_representation_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
-	ViewRepresentation res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ViewRepresentationBuilder::TryBuild(optional<ViewRepresentation> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
+	ViewRepresentationBuilder builder;
+	do {
+		try {
+			builder.SetSqlviewRepresentation(SQLViewRepresentation::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("ViewRepresentation failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string ViewRepresentation::TryFromJSON(yyjson_val *obj, optional<ViewRepresentation> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ViewRepresentation ViewRepresentation::Copy() const {
-	ViewRepresentation res;
+	ViewRepresentationBuilder builder;
+	optional<SQLViewRepresentation> sqlview_representation_tmp;
 	if (sqlview_representation.has_value()) {
-		res.sqlview_representation = GeneratedObjectAccess::Create<SQLViewRepresentation>();
-		(*res.sqlview_representation) = (*sqlview_representation).Copy();
+		sqlview_representation_tmp.emplace();
+		(*sqlview_representation_tmp) = (*sqlview_representation).Copy();
 	}
-	return res;
+	if (sqlview_representation_tmp.has_value()) {
+		builder.SetSqlviewRepresentation(std::move(*sqlview_representation_tmp));
+	}
+	return builder.Build();
 }
 
 string ViewRepresentation::Validate() const {
@@ -76,21 +95,6 @@ string ViewRepresentation::Validate() const {
 		return "ViewRepresentation must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string ViewRepresentation::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		sqlview_representation = GeneratedObjectAccess::Create<SQLViewRepresentation>();
-		error = sqlview_representation->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			sqlview_representation = nullopt;
-		}
-		return "ViewRepresentation failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 void ViewRepresentation::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

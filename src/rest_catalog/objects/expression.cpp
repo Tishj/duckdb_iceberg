@@ -14,112 +14,187 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Expression::Expression()
-    : true_expression(GeneratedObjectAccess::Create<optional<TrueExpression>>()),
-      false_expression(GeneratedObjectAccess::Create<optional<FalseExpression>>()),
-      and_or_expression(GeneratedObjectAccess::Create<optional<AndOrExpression>>()),
-      not_expression(GeneratedObjectAccess::Create<optional<NotExpression>>()),
-      set_expression(GeneratedObjectAccess::Create<optional<SetExpression>>()),
-      literal_expression(GeneratedObjectAccess::Create<optional<LiteralExpression>>()),
-      unary_expression(GeneratedObjectAccess::Create<optional<UnaryExpression>>()) {
+Expression::Expression(optional<TrueExpression> true_expression_p, optional<FalseExpression> false_expression_p,
+                       optional<AndOrExpression> and_or_expression_p, optional<NotExpression> not_expression_p,
+                       optional<SetExpression> set_expression_p, optional<LiteralExpression> literal_expression_p,
+                       optional<UnaryExpression> unary_expression_p)
+    : true_expression(std::move(true_expression_p)), false_expression(std::move(false_expression_p)),
+      and_or_expression(std::move(and_or_expression_p)), not_expression(std::move(not_expression_p)),
+      set_expression(std::move(set_expression_p)), literal_expression(std::move(literal_expression_p)),
+      unary_expression(std::move(unary_expression_p)) {
 }
 
 ExpressionBuilder::ExpressionBuilder() {
 }
 
 ExpressionBuilder &ExpressionBuilder::SetTrueExpression(TrueExpression value) {
-	result_.true_expression = std::move(value);
+	true_expression_ = std::move(value);
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetFalseExpression(FalseExpression value) {
-	result_.false_expression = std::move(value);
+	false_expression_ = std::move(value);
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetAndOrExpression(AndOrExpression value) {
-	result_.and_or_expression = std::move(value);
+	and_or_expression_ = std::move(value);
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetNotExpression(NotExpression value) {
-	result_.not_expression = std::move(value);
+	not_expression_ = std::move(value);
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetSetExpression(SetExpression value) {
-	result_.set_expression = std::move(value);
+	set_expression_ = std::move(value);
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetLiteralExpression(LiteralExpression value) {
-	result_.literal_expression = std::move(value);
+	literal_expression_ = std::move(value);
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetUnaryExpression(UnaryExpression value) {
-	result_.unary_expression = std::move(value);
+	unary_expression_ = std::move(value);
 	return *this;
 }
 
-string ExpressionBuilder::TryBuild(Expression &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 Expression ExpressionBuilder::Build() {
-	Expression result;
-	auto error = TryBuild(result);
+	auto result = Expression(std::move(true_expression_), std::move(false_expression_), std::move(and_or_expression_),
+	                         std::move(not_expression_), std::move(set_expression_), std::move(literal_expression_),
+	                         std::move(unary_expression_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-Expression Expression::FromJSON(yyjson_val *obj) {
-	Expression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ExpressionBuilder::TryBuild(optional<Expression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+Expression Expression::FromJSON(yyjson_val *obj) {
+	ExpressionBuilder builder;
+	do {
+		try {
+			builder.SetTrueExpression(TrueExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetFalseExpression(FalseExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAndOrExpression(AndOrExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetNotExpression(NotExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetExpression(SetExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetLiteralExpression(LiteralExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetUnaryExpression(UnaryExpression::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("Expression failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string Expression::TryFromJSON(yyjson_val *obj, optional<Expression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 Expression Expression::Copy() const {
-	Expression res;
+	ExpressionBuilder builder;
+	optional<TrueExpression> true_expression_tmp;
 	if (true_expression.has_value()) {
-		res.true_expression = GeneratedObjectAccess::Create<TrueExpression>();
-		(*res.true_expression) = (*true_expression).Copy();
+		true_expression_tmp.emplace();
+		(*true_expression_tmp) = (*true_expression).Copy();
 	}
+	if (true_expression_tmp.has_value()) {
+		builder.SetTrueExpression(std::move(*true_expression_tmp));
+	}
+	optional<FalseExpression> false_expression_tmp;
 	if (false_expression.has_value()) {
-		res.false_expression = GeneratedObjectAccess::Create<FalseExpression>();
-		(*res.false_expression) = (*false_expression).Copy();
+		false_expression_tmp.emplace();
+		(*false_expression_tmp) = (*false_expression).Copy();
 	}
+	if (false_expression_tmp.has_value()) {
+		builder.SetFalseExpression(std::move(*false_expression_tmp));
+	}
+	optional<AndOrExpression> and_or_expression_tmp;
 	if (and_or_expression.has_value()) {
-		res.and_or_expression = GeneratedObjectAccess::Create<AndOrExpression>();
-		(*res.and_or_expression) = (*and_or_expression).Copy();
+		and_or_expression_tmp.emplace();
+		(*and_or_expression_tmp) = (*and_or_expression).Copy();
 	}
+	if (and_or_expression_tmp.has_value()) {
+		builder.SetAndOrExpression(std::move(*and_or_expression_tmp));
+	}
+	optional<NotExpression> not_expression_tmp;
 	if (not_expression.has_value()) {
-		res.not_expression = GeneratedObjectAccess::Create<NotExpression>();
-		(*res.not_expression) = (*not_expression).Copy();
+		not_expression_tmp.emplace();
+		(*not_expression_tmp) = (*not_expression).Copy();
 	}
+	if (not_expression_tmp.has_value()) {
+		builder.SetNotExpression(std::move(*not_expression_tmp));
+	}
+	optional<SetExpression> set_expression_tmp;
 	if (set_expression.has_value()) {
-		res.set_expression = GeneratedObjectAccess::Create<SetExpression>();
-		(*res.set_expression) = (*set_expression).Copy();
+		set_expression_tmp.emplace();
+		(*set_expression_tmp) = (*set_expression).Copy();
 	}
+	if (set_expression_tmp.has_value()) {
+		builder.SetSetExpression(std::move(*set_expression_tmp));
+	}
+	optional<LiteralExpression> literal_expression_tmp;
 	if (literal_expression.has_value()) {
-		res.literal_expression = GeneratedObjectAccess::Create<LiteralExpression>();
-		(*res.literal_expression) = (*literal_expression).Copy();
+		literal_expression_tmp.emplace();
+		(*literal_expression_tmp) = (*literal_expression).Copy();
 	}
+	if (literal_expression_tmp.has_value()) {
+		builder.SetLiteralExpression(std::move(*literal_expression_tmp));
+	}
+	optional<UnaryExpression> unary_expression_tmp;
 	if (unary_expression.has_value()) {
-		res.unary_expression = GeneratedObjectAccess::Create<UnaryExpression>();
-		(*res.unary_expression) = (*unary_expression).Copy();
+		unary_expression_tmp.emplace();
+		(*unary_expression_tmp) = (*unary_expression).Copy();
 	}
-	return res;
+	if (unary_expression_tmp.has_value()) {
+		builder.SetUnaryExpression(std::move(*unary_expression_tmp));
+	}
+	return builder.Build();
 }
 
 string Expression::Validate() const {
@@ -178,63 +253,6 @@ string Expression::Validate() const {
 		return "Expression must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string Expression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		true_expression = GeneratedObjectAccess::Create<TrueExpression>();
-		error = true_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			true_expression = nullopt;
-		}
-		false_expression = GeneratedObjectAccess::Create<FalseExpression>();
-		error = false_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			false_expression = nullopt;
-		}
-		and_or_expression = GeneratedObjectAccess::Create<AndOrExpression>();
-		error = and_or_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			and_or_expression = nullopt;
-		}
-		not_expression = GeneratedObjectAccess::Create<NotExpression>();
-		error = not_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			not_expression = nullopt;
-		}
-		set_expression = GeneratedObjectAccess::Create<SetExpression>();
-		error = set_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			set_expression = nullopt;
-		}
-		literal_expression = GeneratedObjectAccess::Create<LiteralExpression>();
-		error = literal_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			literal_expression = nullopt;
-		}
-		unary_expression = GeneratedObjectAccess::Create<UnaryExpression>();
-		error = unary_expression->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			unary_expression = nullopt;
-		}
-		return "Expression failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 void Expression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

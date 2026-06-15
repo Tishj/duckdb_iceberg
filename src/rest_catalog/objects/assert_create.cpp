@@ -14,52 +14,69 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssertCreate::AssertCreate() {
+AssertCreate::AssertCreate(TableRequirementType type_p) : type(std::move(type_p)) {
 }
 
 AssertCreateBuilder::AssertCreateBuilder() {
 }
 
 AssertCreateBuilder &AssertCreateBuilder::SetType(TableRequirementType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
-string AssertCreateBuilder::TryBuild(AssertCreate &result) {
-	if (!has_type_) {
-		return "AssertCreate required property 'type' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 AssertCreate AssertCreateBuilder::Build() {
-	AssertCreate result;
-	auto error = TryBuild(result);
+	if (!has_type_) {
+		throw InvalidInputException("AssertCreate required property 'type' is missing");
+	}
+	auto result = AssertCreate(std::move(*type_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
-	AssertCreate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AssertCreateBuilder::TryBuild(optional<AssertCreate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
+	AssertCreateBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("AssertCreate required property 'type' is missing");
+	} else {
+		optional<TableRequirementType> type;
+		type = TableRequirementType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	return builder.Build();
+}
+
+string AssertCreate::TryFromJSON(yyjson_val *obj, optional<AssertCreate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AssertCreate AssertCreate::Copy() const {
-	AssertCreate res;
-	res.type = type.Copy();
-	return res;
+	AssertCreateBuilder builder;
+	optional<TableRequirementType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	return builder.Build();
 }
 
 string AssertCreate::Validate() const {
@@ -72,20 +89,6 @@ string AssertCreate::Validate() const {
 		return StringUtil::Format("AssertCreate property 'type' must be assert-create, not %s", type.value);
 	}
 	return "";
-}
-
-string AssertCreate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "AssertCreate required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void AssertCreate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

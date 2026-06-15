@@ -14,74 +14,110 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AndOrExpression::AndOrExpression()
-    : left(GeneratedObjectAccess::Create<unique_ptr<Expression>>()),
-      right(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
+AndOrExpression::AndOrExpression(ExpressionType type_p, unique_ptr<Expression> left_p, unique_ptr<Expression> right_p)
+    : type(std::move(type_p)), left(std::move(left_p)), right(std::move(right_p)) {
 }
 
 AndOrExpressionBuilder::AndOrExpressionBuilder() {
 }
 
 AndOrExpressionBuilder &AndOrExpressionBuilder::SetType(ExpressionType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 AndOrExpressionBuilder &AndOrExpressionBuilder::SetLeft(unique_ptr<Expression> value) {
-	result_.left = std::move(value);
+	left_ = std::move(value);
 	has_left_ = true;
 	return *this;
 }
 
 AndOrExpressionBuilder &AndOrExpressionBuilder::SetRight(unique_ptr<Expression> value) {
-	result_.right = std::move(value);
+	right_ = std::move(value);
 	has_right_ = true;
 	return *this;
 }
 
-string AndOrExpressionBuilder::TryBuild(AndOrExpression &result) {
+AndOrExpression AndOrExpressionBuilder::Build() {
 	if (!has_type_) {
-		return "AndOrExpression required property 'type' is missing";
+		throw InvalidInputException("AndOrExpression required property 'type' is missing");
 	}
 	if (!has_left_) {
-		return "AndOrExpression required property 'left' is missing";
+		throw InvalidInputException("AndOrExpression required property 'left' is missing");
 	}
 	if (!has_right_) {
-		return "AndOrExpression required property 'right' is missing";
+		throw InvalidInputException("AndOrExpression required property 'right' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-AndOrExpression AndOrExpressionBuilder::Build() {
-	AndOrExpression result;
-	auto error = TryBuild(result);
+	auto result = AndOrExpression(std::move(*type_), std::move(left_), std::move(right_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
-	AndOrExpression res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AndOrExpressionBuilder::TryBuild(optional<AndOrExpression> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
+	AndOrExpressionBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("AndOrExpression required property 'type' is missing");
+	} else {
+		optional<ExpressionType> type;
+		type = ExpressionType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto left_val = yyjson_obj_get(obj, "left");
+	if (!left_val) {
+		throw InvalidInputException("AndOrExpression required property 'left' is missing");
+	} else {
+		unique_ptr<Expression> left;
+		left = make_uniq<Expression>(Expression::FromJSON(left_val));
+		builder.SetLeft(std::move(left));
+	}
+	auto right_val = yyjson_obj_get(obj, "right");
+	if (!right_val) {
+		throw InvalidInputException("AndOrExpression required property 'right' is missing");
+	} else {
+		unique_ptr<Expression> right;
+		right = make_uniq<Expression>(Expression::FromJSON(right_val));
+		builder.SetRight(std::move(right));
+	}
+	return builder.Build();
+}
+
+string AndOrExpression::TryFromJSON(yyjson_val *obj, optional<AndOrExpression> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AndOrExpression AndOrExpression::Copy() const {
-	AndOrExpression res;
-	res.type = type.Copy();
-	res.left = left ? make_uniq<Expression>(left->Copy()) : nullptr;
-	res.right = right ? make_uniq<Expression>(right->Copy()) : nullptr;
-	return res;
+	AndOrExpressionBuilder builder;
+	optional<ExpressionType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	unique_ptr<Expression> left_tmp;
+	left_tmp = left ? make_uniq<Expression>(left->Copy()) : nullptr;
+	builder.SetLeft(std::move(left_tmp));
+	unique_ptr<Expression> right_tmp;
+	right_tmp = right ? make_uniq<Expression>(right->Copy()) : nullptr;
+	builder.SetRight(std::move(right_tmp));
+	return builder.Build();
 }
 
 string AndOrExpression::Validate() const {
@@ -102,40 +138,6 @@ string AndOrExpression::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string AndOrExpression::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "AndOrExpression required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto left_val = yyjson_obj_get(obj, "left");
-	if (!left_val) {
-		return "AndOrExpression required property 'left' is missing";
-	} else {
-		left = GeneratedObjectAccess::CreateUnique<Expression>();
-		error = left->TryFromJSON(left_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto right_val = yyjson_obj_get(obj, "right");
-	if (!right_val) {
-		return "AndOrExpression required property 'right' is missing";
-	} else {
-		right = GeneratedObjectAccess::CreateUnique<Expression>();
-		error = right->TryFromJSON(right_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void AndOrExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

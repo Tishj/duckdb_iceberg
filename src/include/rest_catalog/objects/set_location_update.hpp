@@ -21,17 +21,16 @@ public:
 	SetLocationUpdate(const SetLocationUpdate &) = delete;
 	SetLocationUpdate &operator=(const SetLocationUpdate &) = delete;
 	SetLocationUpdate(SetLocationUpdate &&) = default;
-	SetLocationUpdate &operator=(SetLocationUpdate &&) = default;
+	SetLocationUpdate &operator=(SetLocationUpdate &&) = delete;
 
 private:
 	friend class SetLocationUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetLocationUpdate();
+	SetLocationUpdate(BaseUpdate base_update_p, string location_p);
 
 public:
 	// Deserialization
 	static SetLocationUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetLocationUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	SetLocationUpdateBuilder();
 	SetLocationUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetLocationUpdateBuilder &SetLocation(string value);
-	string TryBuild(SetLocationUpdate &result);
+	string TryBuild(optional<SetLocationUpdate> &result);
 	SetLocationUpdate Build();
 
 private:
-	SetLocationUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<string> location_;
 	bool has_location_ = false;
 };
 

@@ -14,50 +14,70 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Metrics::Metrics() : additional_properties(GeneratedObjectAccess::Create<case_insensitive_map_t<MetricResult>>()) {
+Metrics::Metrics(case_insensitive_map_t<MetricResult> additional_properties_p)
+    : additional_properties(std::move(additional_properties_p)) {
 }
 
 MetricsBuilder::MetricsBuilder() {
 }
 
 MetricsBuilder &MetricsBuilder::SetAdditionalProperties(case_insensitive_map_t<MetricResult> value) {
-	result_.additional_properties = std::move(value);
+	additional_properties_ = std::move(value);
 	return *this;
 }
 
-string MetricsBuilder::TryBuild(Metrics &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 Metrics MetricsBuilder::Build() {
-	Metrics result;
-	auto error = TryBuild(result);
+	auto result = Metrics(additional_properties_.has_value() ? std::move(*additional_properties_)
+	                                                         : case_insensitive_map_t<MetricResult>());
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-Metrics Metrics::FromJSON(yyjson_val *obj) {
-	Metrics res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string MetricsBuilder::TryBuild(optional<Metrics> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+Metrics Metrics::FromJSON(yyjson_val *obj) {
+	MetricsBuilder builder;
+	case_insensitive_map_t<MetricResult> additional_properties;
+	size_t idx, max;
+	yyjson_val *key, *val;
+	yyjson_obj_foreach(obj, idx, max, key, val) {
+		auto key_str = yyjson_get_str(key);
+		auto tmp = MetricResult::FromJSON(val);
+		additional_properties.emplace(key_str, std::move(tmp));
+	}
+	builder.SetAdditionalProperties(std::move(additional_properties));
+	return builder.Build();
+}
+
+string Metrics::TryFromJSON(yyjson_val *obj, optional<Metrics> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 Metrics Metrics::Copy() const {
-	Metrics res;
+	MetricsBuilder builder;
+	case_insensitive_map_t<MetricResult> additional_properties_tmp;
 	for (auto &entry : additional_properties) {
-		res.additional_properties.emplace(entry.first, entry.second.Copy());
+		additional_properties_tmp.emplace(entry.first, entry.second.Copy());
 	}
-	return res;
+	builder.SetAdditionalProperties(std::move(additional_properties_tmp));
+	return builder.Build();
 }
 
 string Metrics::Validate() const {
@@ -69,22 +89,6 @@ string Metrics::Validate() const {
 		}
 	}
 	return "";
-}
-
-string Metrics::TryFromJSON(yyjson_val *obj) {
-	string error;
-	size_t idx, max;
-	yyjson_val *key, *val;
-	yyjson_obj_foreach(obj, idx, max, key, val) {
-		auto key_str = yyjson_get_str(key);
-		auto tmp = GeneratedObjectAccess::Create<MetricResult>();
-		error = tmp.TryFromJSON(val);
-		if (!error.empty()) {
-			return error;
-		}
-		additional_properties.emplace(key_str, std::move(tmp));
-	}
-	return Validate();
 }
 
 void Metrics::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -14,52 +14,69 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-IcebergErrorResponse::IcebergErrorResponse() : _error(GeneratedObjectAccess::Create<ErrorModel>()) {
+IcebergErrorResponse::IcebergErrorResponse(ErrorModel _error_p) : _error(std::move(_error_p)) {
 }
 
 IcebergErrorResponseBuilder::IcebergErrorResponseBuilder() {
 }
 
 IcebergErrorResponseBuilder &IcebergErrorResponseBuilder::SetError(ErrorModel value) {
-	result_._error = std::move(value);
+	_error_ = std::move(value);
 	has__error_ = true;
 	return *this;
 }
 
-string IcebergErrorResponseBuilder::TryBuild(IcebergErrorResponse &result) {
-	if (!has__error_) {
-		return "IcebergErrorResponse required property 'error' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 IcebergErrorResponse IcebergErrorResponseBuilder::Build() {
-	IcebergErrorResponse result;
-	auto error = TryBuild(result);
+	if (!has__error_) {
+		throw InvalidInputException("IcebergErrorResponse required property 'error' is missing");
+	}
+	auto result = IcebergErrorResponse(std::move(*_error_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
-	IcebergErrorResponse res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string IcebergErrorResponseBuilder::TryBuild(optional<IcebergErrorResponse> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
+	IcebergErrorResponseBuilder builder;
+	auto _error_val = yyjson_obj_get(obj, "error");
+	if (!_error_val) {
+		throw InvalidInputException("IcebergErrorResponse required property 'error' is missing");
+	} else {
+		optional<ErrorModel> _error;
+		_error = ErrorModel::FromJSON(_error_val);
+		builder.SetError(std::move(*_error));
+	}
+	return builder.Build();
+}
+
+string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, optional<IcebergErrorResponse> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 IcebergErrorResponse IcebergErrorResponse::Copy() const {
-	IcebergErrorResponse res;
-	res._error = _error.Copy();
-	return res;
+	IcebergErrorResponseBuilder builder;
+	optional<ErrorModel> _error_tmp;
+	_error_tmp = _error.Copy();
+	builder.SetError(std::move(*_error_tmp));
+	return builder.Build();
 }
 
 string IcebergErrorResponse::Validate() const {
@@ -69,20 +86,6 @@ string IcebergErrorResponse::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string IcebergErrorResponse::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto _error_val = yyjson_obj_get(obj, "error");
-	if (!_error_val) {
-		return "IcebergErrorResponse required property 'error' is missing";
-	} else {
-		error = _error.TryFromJSON(_error_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	return Validate();
 }
 
 void IcebergErrorResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

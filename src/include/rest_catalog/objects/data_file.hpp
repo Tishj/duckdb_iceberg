@@ -23,17 +23,19 @@ public:
 	DataFile(const DataFile &) = delete;
 	DataFile &operator=(const DataFile &) = delete;
 	DataFile(DataFile &&) = default;
-	DataFile &operator=(DataFile &&) = default;
+	DataFile &operator=(DataFile &&) = delete;
 
 private:
 	friend class DataFileBuilder;
-	friend class GeneratedObjectAccess;
-	DataFile();
+	DataFile(ContentFile content_file_p, optional<int64_t> first_row_id_p, optional<CountMap> column_sizes_p,
+	         optional<CountMap> value_counts_p, optional<CountMap> null_value_counts_p,
+	         optional<CountMap> nan_value_counts_p, optional<ValueMap> lower_bounds_p,
+	         optional<ValueMap> upper_bounds_p);
 
 public:
 	// Deserialization
 	static DataFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<DataFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -65,11 +67,18 @@ public:
 	DataFileBuilder &SetNanValueCounts(CountMap value);
 	DataFileBuilder &SetLowerBounds(ValueMap value);
 	DataFileBuilder &SetUpperBounds(ValueMap value);
-	string TryBuild(DataFile &result);
+	string TryBuild(optional<DataFile> &result);
 	DataFile Build();
 
 private:
-	DataFile result_;
+	optional<ContentFile> content_file_;
+	optional<int64_t> first_row_id_;
+	optional<CountMap> column_sizes_;
+	optional<CountMap> value_counts_;
+	optional<CountMap> null_value_counts_;
+	optional<CountMap> nan_value_counts_;
+	optional<ValueMap> lower_bounds_;
+	optional<ValueMap> upper_bounds_;
 };
 
 } // namespace rest_api_objects

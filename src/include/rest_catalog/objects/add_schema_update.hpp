@@ -22,17 +22,16 @@ public:
 	AddSchemaUpdate(const AddSchemaUpdate &) = delete;
 	AddSchemaUpdate &operator=(const AddSchemaUpdate &) = delete;
 	AddSchemaUpdate(AddSchemaUpdate &&) = default;
-	AddSchemaUpdate &operator=(AddSchemaUpdate &&) = default;
+	AddSchemaUpdate &operator=(AddSchemaUpdate &&) = delete;
 
 private:
 	friend class AddSchemaUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	AddSchemaUpdate();
+	AddSchemaUpdate(BaseUpdate base_update_p, Schema schema_p, optional<int32_t> last_column_id_p);
 
 public:
 	// Deserialization
 	static AddSchemaUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AddSchemaUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +53,13 @@ public:
 	AddSchemaUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddSchemaUpdateBuilder &SetSchema(Schema value);
 	AddSchemaUpdateBuilder &SetLastColumnId(int32_t value);
-	string TryBuild(AddSchemaUpdate &result);
+	string TryBuild(optional<AddSchemaUpdate> &result);
 	AddSchemaUpdate Build();
 
 private:
-	AddSchemaUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<Schema> schema_;
+	optional<int32_t> last_column_id_;
 	bool has_schema_ = false;
 };
 

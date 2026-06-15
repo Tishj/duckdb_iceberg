@@ -21,17 +21,17 @@ public:
 	StatisticsFile(const StatisticsFile &) = delete;
 	StatisticsFile &operator=(const StatisticsFile &) = delete;
 	StatisticsFile(StatisticsFile &&) = default;
-	StatisticsFile &operator=(StatisticsFile &&) = default;
+	StatisticsFile &operator=(StatisticsFile &&) = delete;
 
 private:
 	friend class StatisticsFileBuilder;
-	friend class GeneratedObjectAccess;
-	StatisticsFile();
+	StatisticsFile(int64_t snapshot_id_p, string statistics_path_p, int64_t file_size_in_bytes_p,
+	               int64_t file_footer_size_in_bytes_p, vector<BlobMetadata> blob_metadata_p);
 
 public:
 	// Deserialization
 	static StatisticsFile FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<StatisticsFile> &result);
 	string Validate() const;
 
 	// Copy
@@ -57,11 +57,15 @@ public:
 	StatisticsFileBuilder &SetFileSizeInBytes(int64_t value);
 	StatisticsFileBuilder &SetFileFooterSizeInBytes(int64_t value);
 	StatisticsFileBuilder &SetBlobMetadata(vector<BlobMetadata> value);
-	string TryBuild(StatisticsFile &result);
+	string TryBuild(optional<StatisticsFile> &result);
 	StatisticsFile Build();
 
 private:
-	StatisticsFile result_;
+	optional<int64_t> snapshot_id_;
+	optional<string> statistics_path_;
+	optional<int64_t> file_size_in_bytes_;
+	optional<int64_t> file_footer_size_in_bytes_;
+	optional<vector<BlobMetadata>> blob_metadata_;
 	bool has_snapshot_id_ = false;
 	bool has_statistics_path_ = false;
 	bool has_file_size_in_bytes_ = false;

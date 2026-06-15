@@ -24,17 +24,17 @@ public:
 	Type(const Type &) = delete;
 	Type &operator=(const Type &) = delete;
 	Type(Type &&) = default;
-	Type &operator=(Type &&) = default;
+	Type &operator=(Type &&) = delete;
 
 private:
 	friend class TypeBuilder;
-	friend class GeneratedObjectAccess;
-	Type();
+	Type(optional<PrimitiveType> primitive_type_p, optional<StructType> struct_type_p, optional<ListType> list_type_p,
+	     optional<MapType> map_type_p);
 
 public:
 	// Deserialization
 	static Type FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Type> &result);
 	string Validate() const;
 
 	// Copy
@@ -57,11 +57,14 @@ public:
 	TypeBuilder &SetStructType(StructType value);
 	TypeBuilder &SetListType(ListType value);
 	TypeBuilder &SetMapType(MapType value);
-	string TryBuild(Type &result);
+	string TryBuild(optional<Type> &result);
 	Type Build();
 
 private:
-	Type result_;
+	optional<PrimitiveType> primitive_type_;
+	optional<StructType> struct_type_;
+	optional<ListType> list_type_;
+	optional<MapType> map_type_;
 };
 
 } // namespace rest_api_objects

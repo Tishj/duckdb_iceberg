@@ -22,17 +22,16 @@ public:
 	ListTablesResponse(const ListTablesResponse &) = delete;
 	ListTablesResponse &operator=(const ListTablesResponse &) = delete;
 	ListTablesResponse(ListTablesResponse &&) = default;
-	ListTablesResponse &operator=(ListTablesResponse &&) = default;
+	ListTablesResponse &operator=(ListTablesResponse &&) = delete;
 
 private:
 	friend class ListTablesResponseBuilder;
-	friend class GeneratedObjectAccess;
-	ListTablesResponse();
+	ListTablesResponse(optional<PageToken> next_page_token_p, optional<vector<TableIdentifier>> identifiers_p);
 
 public:
 	// Deserialization
 	static ListTablesResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ListTablesResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	ListTablesResponseBuilder();
 	ListTablesResponseBuilder &SetNextPageToken(PageToken value);
 	ListTablesResponseBuilder &SetIdentifiers(vector<TableIdentifier> value);
-	string TryBuild(ListTablesResponse &result);
+	string TryBuild(optional<ListTablesResponse> &result);
 	ListTablesResponse Build();
 
 private:
-	ListTablesResponse result_;
+	optional<PageToken> next_page_token_;
+	optional<vector<TableIdentifier>> identifiers_;
 };
 
 } // namespace rest_api_objects

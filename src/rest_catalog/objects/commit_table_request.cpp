@@ -14,77 +14,138 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-CommitTableRequest::CommitTableRequest() : identifier(GeneratedObjectAccess::Create<optional<TableIdentifier>>()) {
+CommitTableRequest::CommitTableRequest(vector<TableRequirement> requirements_p, vector<TableUpdate> updates_p,
+                                       optional<TableIdentifier> identifier_p)
+    : requirements(std::move(requirements_p)), updates(std::move(updates_p)), identifier(std::move(identifier_p)) {
 }
 
 CommitTableRequestBuilder::CommitTableRequestBuilder() {
 }
 
 CommitTableRequestBuilder &CommitTableRequestBuilder::SetRequirements(vector<TableRequirement> value) {
-	result_.requirements = std::move(value);
+	requirements_ = std::move(value);
 	has_requirements_ = true;
 	return *this;
 }
 
 CommitTableRequestBuilder &CommitTableRequestBuilder::SetUpdates(vector<TableUpdate> value) {
-	result_.updates = std::move(value);
+	updates_ = std::move(value);
 	has_updates_ = true;
 	return *this;
 }
 
 CommitTableRequestBuilder &CommitTableRequestBuilder::SetIdentifier(TableIdentifier value) {
-	result_.identifier = std::move(value);
+	identifier_ = std::move(value);
 	return *this;
 }
 
-string CommitTableRequestBuilder::TryBuild(CommitTableRequest &result) {
+CommitTableRequest CommitTableRequestBuilder::Build() {
 	if (!has_requirements_) {
-		return "CommitTableRequest required property 'requirements' is missing";
+		throw InvalidInputException("CommitTableRequest required property 'requirements' is missing");
 	}
 	if (!has_updates_) {
-		return "CommitTableRequest required property 'updates' is missing";
+		throw InvalidInputException("CommitTableRequest required property 'updates' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-CommitTableRequest CommitTableRequestBuilder::Build() {
-	CommitTableRequest result;
-	auto error = TryBuild(result);
+	auto result = CommitTableRequest(std::move(*requirements_), std::move(*updates_), std::move(identifier_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
-	CommitTableRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string CommitTableRequestBuilder::TryBuild(optional<CommitTableRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
+	CommitTableRequestBuilder builder;
+	auto requirements_val = yyjson_obj_get(obj, "requirements");
+	if (!requirements_val) {
+		throw InvalidInputException("CommitTableRequest required property 'requirements' is missing");
+	} else {
+		vector<TableRequirement> requirements;
+		if (yyjson_is_arr(requirements_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(requirements_val, idx, max, val) {
+				auto tmp = TableRequirement::FromJSON(val);
+				requirements.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "CommitTableRequest property 'requirements' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(requirements_val));
+		}
+		builder.SetRequirements(std::move(requirements));
+	}
+	auto updates_val = yyjson_obj_get(obj, "updates");
+	if (!updates_val) {
+		throw InvalidInputException("CommitTableRequest required property 'updates' is missing");
+	} else {
+		vector<TableUpdate> updates;
+		if (yyjson_is_arr(updates_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(updates_val, idx, max, val) {
+				auto tmp = TableUpdate::FromJSON(val);
+				updates.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "CommitTableRequest property 'updates' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(updates_val));
+		}
+		builder.SetUpdates(std::move(updates));
+	}
+	auto identifier_val = yyjson_obj_get(obj, "identifier");
+	if (identifier_val) {
+		optional<TableIdentifier> identifier;
+		identifier = TableIdentifier::FromJSON(identifier_val);
+		builder.SetIdentifier(std::move(*identifier));
+	}
+	return builder.Build();
+}
+
+string CommitTableRequest::TryFromJSON(yyjson_val *obj, optional<CommitTableRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 CommitTableRequest CommitTableRequest::Copy() const {
-	CommitTableRequest res;
-	res.requirements.reserve(requirements.size());
+	CommitTableRequestBuilder builder;
+	vector<TableRequirement> requirements_tmp;
+	requirements_tmp.reserve(requirements.size());
 	for (auto &item : requirements) {
-		res.requirements.emplace_back(item.Copy());
+		requirements_tmp.emplace_back(item.Copy());
 	}
-	res.updates.reserve(updates.size());
+	builder.SetRequirements(std::move(requirements_tmp));
+	vector<TableUpdate> updates_tmp;
+	updates_tmp.reserve(updates.size());
 	for (auto &item : updates) {
-		res.updates.emplace_back(item.Copy());
+		updates_tmp.emplace_back(item.Copy());
 	}
+	builder.SetUpdates(std::move(updates_tmp));
+	optional<TableIdentifier> identifier_tmp;
 	if (identifier.has_value()) {
-		res.identifier = GeneratedObjectAccess::Create<TableIdentifier>();
-		(*res.identifier) = (*identifier).Copy();
+		identifier_tmp.emplace();
+		(*identifier_tmp) = (*identifier).Copy();
 	}
-	return res;
+	if (identifier_tmp.has_value()) {
+		builder.SetIdentifier(std::move(*identifier_tmp));
+	}
+	return builder.Build();
 }
 
 string CommitTableRequest::Validate() const {
@@ -108,62 +169,6 @@ string CommitTableRequest::Validate() const {
 		}
 	}
 	return "";
-}
-
-string CommitTableRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto requirements_val = yyjson_obj_get(obj, "requirements");
-	if (!requirements_val) {
-		return "CommitTableRequest required property 'requirements' is missing";
-	} else {
-		if (yyjson_is_arr(requirements_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(requirements_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<TableRequirement>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				requirements.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "CommitTableRequest property 'requirements' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(requirements_val));
-		}
-	}
-	auto updates_val = yyjson_obj_get(obj, "updates");
-	if (!updates_val) {
-		return "CommitTableRequest required property 'updates' is missing";
-	} else {
-		if (yyjson_is_arr(updates_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(updates_val, idx, max, val) {
-				auto tmp = GeneratedObjectAccess::Create<TableUpdate>();
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				updates.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "CommitTableRequest property 'updates' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(updates_val));
-		}
-	}
-	auto identifier_val = yyjson_obj_get(obj, "identifier");
-	if (identifier_val) {
-		auto identifier_tmp = GeneratedObjectAccess::Create<TableIdentifier>();
-		error = identifier_tmp.TryFromJSON(identifier_val);
-		if (!error.empty()) {
-			return error;
-		}
-		identifier = std::move(identifier_tmp);
-	}
-	return Validate();
 }
 
 void CommitTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

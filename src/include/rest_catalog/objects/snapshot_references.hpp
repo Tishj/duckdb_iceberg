@@ -21,17 +21,16 @@ public:
 	SnapshotReferences(const SnapshotReferences &) = delete;
 	SnapshotReferences &operator=(const SnapshotReferences &) = delete;
 	SnapshotReferences(SnapshotReferences &&) = default;
-	SnapshotReferences &operator=(SnapshotReferences &&) = default;
+	SnapshotReferences &operator=(SnapshotReferences &&) = delete;
 
 private:
 	friend class SnapshotReferencesBuilder;
-	friend class GeneratedObjectAccess;
-	SnapshotReferences();
+	SnapshotReferences(case_insensitive_map_t<SnapshotReference> additional_properties_p);
 
 public:
 	// Deserialization
 	static SnapshotReferences FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SnapshotReferences> &result);
 	string Validate() const;
 
 	// Copy
@@ -49,11 +48,11 @@ class SnapshotReferencesBuilder {
 public:
 	SnapshotReferencesBuilder();
 	SnapshotReferencesBuilder &SetAdditionalProperties(case_insensitive_map_t<SnapshotReference> value);
-	string TryBuild(SnapshotReferences &result);
+	string TryBuild(optional<SnapshotReferences> &result);
 	SnapshotReferences Build();
 
 private:
-	SnapshotReferences result_;
+	optional<case_insensitive_map_t<SnapshotReference>> additional_properties_;
 };
 
 } // namespace rest_api_objects

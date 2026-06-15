@@ -14,69 +14,108 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetStatisticsUpdate::SetStatisticsUpdate()
-    : base_update(GeneratedObjectAccess::Create<BaseUpdate>()),
-      statistics(GeneratedObjectAccess::Create<StatisticsFile>()) {
+SetStatisticsUpdate::SetStatisticsUpdate(BaseUpdate base_update_p, StatisticsFile statistics_p,
+                                         optional<int64_t> snapshot_id_p)
+    : base_update(std::move(base_update_p)), statistics(std::move(statistics_p)),
+      snapshot_id(std::move(snapshot_id_p)) {
 }
 
 SetStatisticsUpdateBuilder::SetStatisticsUpdateBuilder() {
 }
 
 SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetStatistics(StatisticsFile value) {
-	result_.statistics = std::move(value);
+	statistics_ = std::move(value);
 	has_statistics_ = true;
 	return *this;
 }
 
 SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	return *this;
 }
 
-string SetStatisticsUpdateBuilder::TryBuild(SetStatisticsUpdate &result) {
-	if (!has_statistics_) {
-		return "SetStatisticsUpdate required property 'statistics' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetStatisticsUpdate SetStatisticsUpdateBuilder::Build() {
-	SetStatisticsUpdate result;
-	auto error = TryBuild(result);
+	if (!has_statistics_) {
+		throw InvalidInputException("SetStatisticsUpdate required property 'statistics' is missing");
+	}
+	auto result = SetStatisticsUpdate(std::move(*base_update_), std::move(*statistics_), std::move(snapshot_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	SetStatisticsUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetStatisticsUpdateBuilder::TryBuild(optional<SetStatisticsUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	SetStatisticsUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto statistics_val = yyjson_obj_get(obj, "statistics");
+	if (!statistics_val) {
+		throw InvalidInputException("SetStatisticsUpdate required property 'statistics' is missing");
+	} else {
+		optional<StatisticsFile> statistics;
+		statistics = StatisticsFile::FromJSON(statistics_val);
+		builder.SetStatistics(std::move(*statistics));
+	}
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (snapshot_id_val) {
+		int64_t snapshot_id;
+		if (yyjson_is_sint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_sint(snapshot_id_val);
+		} else if (yyjson_is_uint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_uint(snapshot_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "SetStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(snapshot_id_val)));
+		}
+		builder.SetSnapshotId(std::move(snapshot_id));
+	}
+	return builder.Build();
+}
+
+string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<SetStatisticsUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetStatisticsUpdate SetStatisticsUpdate::Copy() const {
-	SetStatisticsUpdate res;
-	res.base_update = base_update.Copy();
-	res.statistics = statistics.Copy();
+	SetStatisticsUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	optional<StatisticsFile> statistics_tmp;
+	statistics_tmp = statistics.Copy();
+	builder.SetStatistics(std::move(*statistics_tmp));
+	int64_t snapshot_id_tmp;
 	if (snapshot_id.has_value()) {
-		res.snapshot_id.emplace();
-		(*res.snapshot_id) = (*snapshot_id);
+		snapshot_id_tmp.emplace();
+		(*snapshot_id_tmp) = (*snapshot_id);
 	}
-	return res;
+	if (snapshot_id_tmp.has_value()) {
+		builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	}
+	return builder.Build();
 }
 
 string SetStatisticsUpdate::Validate() const {
@@ -90,38 +129,6 @@ string SetStatisticsUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto statistics_val = yyjson_obj_get(obj, "statistics");
-	if (!statistics_val) {
-		return "SetStatisticsUpdate required property 'statistics' is missing";
-	} else {
-		error = statistics.TryFromJSON(statistics_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (snapshot_id_val) {
-		int64_t snapshot_id_tmp;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id_tmp = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id_tmp = yyjson_get_uint(snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "SetStatisticsUpdate property 'snapshot_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val));
-		}
-		snapshot_id = std::move(snapshot_id_tmp);
-	}
-	return Validate();
 }
 
 void SetStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

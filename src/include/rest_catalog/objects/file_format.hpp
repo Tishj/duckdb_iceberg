@@ -18,13 +18,13 @@ public:
 	FileFormat(const FileFormat &) = delete;
 	FileFormat &operator=(const FileFormat &) = delete;
 	FileFormat(FileFormat &&) = default;
-	FileFormat &operator=(FileFormat &&) = default;
-	FileFormat();
+	FileFormat &operator=(FileFormat &&) = delete;
+	FileFormat(string value_p);
 
 public:
 	// Deserialization
 	static FileFormat FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FileFormat> &result);
 	string Validate() const;
 
 	// Copy

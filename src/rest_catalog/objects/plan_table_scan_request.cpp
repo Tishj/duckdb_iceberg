@@ -14,128 +14,303 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-PlanTableScanRequest::PlanTableScanRequest() : filter(GeneratedObjectAccess::Create<unique_ptr<Expression>>()) {
+PlanTableScanRequest::PlanTableScanRequest(optional<int64_t> snapshot_id_p, optional<vector<FieldName>> select_p,
+                                           unique_ptr<Expression> filter_p, optional<int64_t> min_rows_requested_p,
+                                           optional<bool> case_sensitive_p, optional<bool> use_snapshot_schema_p,
+                                           optional<int64_t> start_snapshot_id_p, optional<int64_t> end_snapshot_id_p,
+                                           optional<vector<FieldName>> stats_fields_p)
+    : snapshot_id(std::move(snapshot_id_p)), select(std::move(select_p)), filter(std::move(filter_p)),
+      min_rows_requested(std::move(min_rows_requested_p)), case_sensitive(std::move(case_sensitive_p)),
+      use_snapshot_schema(std::move(use_snapshot_schema_p)), start_snapshot_id(std::move(start_snapshot_id_p)),
+      end_snapshot_id(std::move(end_snapshot_id_p)), stats_fields(std::move(stats_fields_p)) {
 }
 
 PlanTableScanRequestBuilder::PlanTableScanRequestBuilder() {
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetSelect(vector<FieldName> value) {
-	result_.select = std::move(value);
+	select_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetFilter(unique_ptr<Expression> value) {
-	result_.filter = std::move(value);
+	filter_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetMinRowsRequested(int64_t value) {
-	result_.min_rows_requested = std::move(value);
+	min_rows_requested_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetCaseSensitive(bool value) {
-	result_.case_sensitive = std::move(value);
+	case_sensitive_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetUseSnapshotSchema(bool value) {
-	result_.use_snapshot_schema = std::move(value);
+	use_snapshot_schema_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetStartSnapshotId(int64_t value) {
-	result_.start_snapshot_id = std::move(value);
+	start_snapshot_id_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetEndSnapshotId(int64_t value) {
-	result_.end_snapshot_id = std::move(value);
+	end_snapshot_id_ = std::move(value);
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetStatsFields(vector<FieldName> value) {
-	result_.stats_fields = std::move(value);
+	stats_fields_ = std::move(value);
 	return *this;
 }
 
-string PlanTableScanRequestBuilder::TryBuild(PlanTableScanRequest &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 PlanTableScanRequest PlanTableScanRequestBuilder::Build() {
-	PlanTableScanRequest result;
-	auto error = TryBuild(result);
+	auto result = PlanTableScanRequest(std::move(snapshot_id_), std::move(select_), std::move(filter_),
+	                                   std::move(min_rows_requested_), std::move(case_sensitive_),
+	                                   std::move(use_snapshot_schema_), std::move(start_snapshot_id_),
+	                                   std::move(end_snapshot_id_), std::move(stats_fields_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
-	PlanTableScanRequest res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string PlanTableScanRequestBuilder::TryBuild(optional<PlanTableScanRequest> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
+	PlanTableScanRequestBuilder builder;
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (snapshot_id_val) {
+		int64_t snapshot_id;
+		if (yyjson_is_sint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_sint(snapshot_id_val);
+		} else if (yyjson_is_uint(snapshot_id_val)) {
+			snapshot_id = yyjson_get_uint(snapshot_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "PlanTableScanRequest property 'snapshot_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(snapshot_id_val)));
+		}
+		builder.SetSnapshotId(std::move(snapshot_id));
+	}
+	auto select_val = yyjson_obj_get(obj, "select");
+	if (select_val) {
+		vector<FieldName> select;
+		if (yyjson_is_arr(select_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(select_val, idx, max, val) {
+				auto tmp = FieldName::FromJSON(val);
+				select.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "PlanTableScanRequest property 'select' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(select_val));
+		}
+		builder.SetSelect(std::move(select));
+	}
+	auto filter_val = yyjson_obj_get(obj, "filter");
+	if (filter_val) {
+		unique_ptr<Expression> filter;
+		filter = make_uniq<Expression>(Expression::FromJSON(filter_val));
+		builder.SetFilter(std::move(filter));
+	}
+	auto min_rows_requested_val = yyjson_obj_get(obj, "min-rows-requested");
+	if (min_rows_requested_val) {
+		int64_t min_rows_requested;
+		if (yyjson_is_sint(min_rows_requested_val)) {
+			min_rows_requested = yyjson_get_sint(min_rows_requested_val);
+		} else if (yyjson_is_uint(min_rows_requested_val)) {
+			min_rows_requested = yyjson_get_uint(min_rows_requested_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "PlanTableScanRequest property 'min_rows_requested' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(min_rows_requested_val)));
+		}
+		builder.SetMinRowsRequested(std::move(min_rows_requested));
+	}
+	auto case_sensitive_val = yyjson_obj_get(obj, "case-sensitive");
+	if (case_sensitive_val) {
+		bool case_sensitive;
+		if (yyjson_is_bool(case_sensitive_val)) {
+			case_sensitive = yyjson_get_bool(case_sensitive_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "PlanTableScanRequest property 'case_sensitive' is not of type 'boolean', found '%s' instead",
+			    yyjson_get_type_desc(case_sensitive_val)));
+		}
+		builder.SetCaseSensitive(std::move(case_sensitive));
+	}
+	auto use_snapshot_schema_val = yyjson_obj_get(obj, "use-snapshot-schema");
+	if (use_snapshot_schema_val) {
+		bool use_snapshot_schema;
+		if (yyjson_is_bool(use_snapshot_schema_val)) {
+			use_snapshot_schema = yyjson_get_bool(use_snapshot_schema_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "PlanTableScanRequest property 'use_snapshot_schema' is not of type 'boolean', found '%s' instead",
+			    yyjson_get_type_desc(use_snapshot_schema_val)));
+		}
+		builder.SetUseSnapshotSchema(std::move(use_snapshot_schema));
+	}
+	auto start_snapshot_id_val = yyjson_obj_get(obj, "start-snapshot-id");
+	if (start_snapshot_id_val) {
+		int64_t start_snapshot_id;
+		if (yyjson_is_sint(start_snapshot_id_val)) {
+			start_snapshot_id = yyjson_get_sint(start_snapshot_id_val);
+		} else if (yyjson_is_uint(start_snapshot_id_val)) {
+			start_snapshot_id = yyjson_get_uint(start_snapshot_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "PlanTableScanRequest property 'start_snapshot_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(start_snapshot_id_val)));
+		}
+		builder.SetStartSnapshotId(std::move(start_snapshot_id));
+	}
+	auto end_snapshot_id_val = yyjson_obj_get(obj, "end-snapshot-id");
+	if (end_snapshot_id_val) {
+		int64_t end_snapshot_id;
+		if (yyjson_is_sint(end_snapshot_id_val)) {
+			end_snapshot_id = yyjson_get_sint(end_snapshot_id_val);
+		} else if (yyjson_is_uint(end_snapshot_id_val)) {
+			end_snapshot_id = yyjson_get_uint(end_snapshot_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "PlanTableScanRequest property 'end_snapshot_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(end_snapshot_id_val)));
+		}
+		builder.SetEndSnapshotId(std::move(end_snapshot_id));
+	}
+	auto stats_fields_val = yyjson_obj_get(obj, "stats-fields");
+	if (stats_fields_val) {
+		vector<FieldName> stats_fields;
+		if (yyjson_is_arr(stats_fields_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(stats_fields_val, idx, max, val) {
+				auto tmp = FieldName::FromJSON(val);
+				stats_fields.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format(
+			    "PlanTableScanRequest property 'stats_fields' is not of type 'array', found '%s' instead",
+			    yyjson_get_type_desc(stats_fields_val));
+		}
+		builder.SetStatsFields(std::move(stats_fields));
+	}
+	return builder.Build();
+}
+
+string PlanTableScanRequest::TryFromJSON(yyjson_val *obj, optional<PlanTableScanRequest> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 PlanTableScanRequest PlanTableScanRequest::Copy() const {
-	PlanTableScanRequest res;
+	PlanTableScanRequestBuilder builder;
+	int64_t snapshot_id_tmp;
 	if (snapshot_id.has_value()) {
-		res.snapshot_id.emplace();
-		(*res.snapshot_id) = (*snapshot_id);
+		snapshot_id_tmp.emplace();
+		(*snapshot_id_tmp) = (*snapshot_id);
 	}
+	if (snapshot_id_tmp.has_value()) {
+		builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	}
+	vector<FieldName> select_tmp;
 	if (select.has_value()) {
-		res.select.emplace();
-		(*res.select).reserve((*select).size());
+		select_tmp.emplace();
+		(*select_tmp).reserve((*select).size());
 		for (auto &item : (*select)) {
-			(*res.select).emplace_back(item.Copy());
+			(*select_tmp).emplace_back(item.Copy());
 		}
 	}
+	if (select_tmp.has_value()) {
+		builder.SetSelect(std::move(select_tmp));
+	}
+	unique_ptr<Expression> filter_tmp;
 	if (filter != nullptr) {
-		res.filter = filter ? make_uniq<Expression>(filter->Copy()) : nullptr;
+		filter_tmp = nullptr;
+		filter_tmp = filter ? make_uniq<Expression>(filter->Copy()) : nullptr;
 	}
+	if (filter_tmp != nullptr) {
+		builder.SetFilter(std::move(filter_tmp));
+	}
+	int64_t min_rows_requested_tmp;
 	if (min_rows_requested.has_value()) {
-		res.min_rows_requested.emplace();
-		(*res.min_rows_requested) = (*min_rows_requested);
+		min_rows_requested_tmp.emplace();
+		(*min_rows_requested_tmp) = (*min_rows_requested);
 	}
+	if (min_rows_requested_tmp.has_value()) {
+		builder.SetMinRowsRequested(std::move(min_rows_requested_tmp));
+	}
+	bool case_sensitive_tmp;
 	if (case_sensitive.has_value()) {
-		res.case_sensitive.emplace();
-		(*res.case_sensitive) = (*case_sensitive);
+		case_sensitive_tmp.emplace();
+		(*case_sensitive_tmp) = (*case_sensitive);
 	}
+	if (case_sensitive_tmp.has_value()) {
+		builder.SetCaseSensitive(std::move(case_sensitive_tmp));
+	}
+	bool use_snapshot_schema_tmp;
 	if (use_snapshot_schema.has_value()) {
-		res.use_snapshot_schema.emplace();
-		(*res.use_snapshot_schema) = (*use_snapshot_schema);
+		use_snapshot_schema_tmp.emplace();
+		(*use_snapshot_schema_tmp) = (*use_snapshot_schema);
 	}
+	if (use_snapshot_schema_tmp.has_value()) {
+		builder.SetUseSnapshotSchema(std::move(use_snapshot_schema_tmp));
+	}
+	int64_t start_snapshot_id_tmp;
 	if (start_snapshot_id.has_value()) {
-		res.start_snapshot_id.emplace();
-		(*res.start_snapshot_id) = (*start_snapshot_id);
+		start_snapshot_id_tmp.emplace();
+		(*start_snapshot_id_tmp) = (*start_snapshot_id);
 	}
+	if (start_snapshot_id_tmp.has_value()) {
+		builder.SetStartSnapshotId(std::move(start_snapshot_id_tmp));
+	}
+	int64_t end_snapshot_id_tmp;
 	if (end_snapshot_id.has_value()) {
-		res.end_snapshot_id.emplace();
-		(*res.end_snapshot_id) = (*end_snapshot_id);
+		end_snapshot_id_tmp.emplace();
+		(*end_snapshot_id_tmp) = (*end_snapshot_id);
 	}
+	if (end_snapshot_id_tmp.has_value()) {
+		builder.SetEndSnapshotId(std::move(end_snapshot_id_tmp));
+	}
+	vector<FieldName> stats_fields_tmp;
 	if (stats_fields.has_value()) {
-		res.stats_fields.emplace();
-		(*res.stats_fields).reserve((*stats_fields).size());
+		stats_fields_tmp.emplace();
+		(*stats_fields_tmp).reserve((*stats_fields).size());
 		for (auto &item : (*stats_fields)) {
-			(*res.stats_fields).emplace_back(item.Copy());
+			(*stats_fields_tmp).emplace_back(item.Copy());
 		}
 	}
-	return res;
+	if (stats_fields_tmp.has_value()) {
+		builder.SetStatsFields(std::move(stats_fields_tmp));
+	}
+	return builder.Build();
 }
 
 string PlanTableScanRequest::Validate() const {
@@ -163,141 +338,6 @@ string PlanTableScanRequest::Validate() const {
 		}
 	}
 	return "";
-}
-
-string PlanTableScanRequest::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (snapshot_id_val) {
-		int64_t snapshot_id_tmp;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id_tmp = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id_tmp = yyjson_get_uint(snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'snapshot_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val));
-		}
-		snapshot_id = std::move(snapshot_id_tmp);
-	}
-	auto select_val = yyjson_obj_get(obj, "select");
-	if (select_val) {
-		vector<FieldName> select_tmp;
-		if (yyjson_is_arr(select_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(select_val, idx, max, val) {
-				FieldName tmp;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				select_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'select_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(select_val));
-		}
-		select = std::move(select_tmp);
-	}
-	auto filter_val = yyjson_obj_get(obj, "filter");
-	if (filter_val) {
-		filter = GeneratedObjectAccess::CreateUnique<Expression>();
-		error = filter->TryFromJSON(filter_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto min_rows_requested_val = yyjson_obj_get(obj, "min-rows-requested");
-	if (min_rows_requested_val) {
-		int64_t min_rows_requested_tmp;
-		if (yyjson_is_sint(min_rows_requested_val)) {
-			min_rows_requested_tmp = yyjson_get_sint(min_rows_requested_val);
-		} else if (yyjson_is_uint(min_rows_requested_val)) {
-			min_rows_requested_tmp = yyjson_get_uint(min_rows_requested_val);
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'min_rows_requested_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(min_rows_requested_val));
-		}
-		min_rows_requested = std::move(min_rows_requested_tmp);
-	}
-	auto case_sensitive_val = yyjson_obj_get(obj, "case-sensitive");
-	if (case_sensitive_val) {
-		bool case_sensitive_tmp;
-		if (yyjson_is_bool(case_sensitive_val)) {
-			case_sensitive_tmp = yyjson_get_bool(case_sensitive_val);
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'case_sensitive_tmp' is not of type 'boolean', found '%s' instead",
-			    yyjson_get_type_desc(case_sensitive_val));
-		}
-		case_sensitive = std::move(case_sensitive_tmp);
-	}
-	auto use_snapshot_schema_val = yyjson_obj_get(obj, "use-snapshot-schema");
-	if (use_snapshot_schema_val) {
-		bool use_snapshot_schema_tmp;
-		if (yyjson_is_bool(use_snapshot_schema_val)) {
-			use_snapshot_schema_tmp = yyjson_get_bool(use_snapshot_schema_val);
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'use_snapshot_schema_tmp' is not of type 'boolean', found '%s' instead",
-			    yyjson_get_type_desc(use_snapshot_schema_val));
-		}
-		use_snapshot_schema = std::move(use_snapshot_schema_tmp);
-	}
-	auto start_snapshot_id_val = yyjson_obj_get(obj, "start-snapshot-id");
-	if (start_snapshot_id_val) {
-		int64_t start_snapshot_id_tmp;
-		if (yyjson_is_sint(start_snapshot_id_val)) {
-			start_snapshot_id_tmp = yyjson_get_sint(start_snapshot_id_val);
-		} else if (yyjson_is_uint(start_snapshot_id_val)) {
-			start_snapshot_id_tmp = yyjson_get_uint(start_snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'start_snapshot_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(start_snapshot_id_val));
-		}
-		start_snapshot_id = std::move(start_snapshot_id_tmp);
-	}
-	auto end_snapshot_id_val = yyjson_obj_get(obj, "end-snapshot-id");
-	if (end_snapshot_id_val) {
-		int64_t end_snapshot_id_tmp;
-		if (yyjson_is_sint(end_snapshot_id_val)) {
-			end_snapshot_id_tmp = yyjson_get_sint(end_snapshot_id_val);
-		} else if (yyjson_is_uint(end_snapshot_id_val)) {
-			end_snapshot_id_tmp = yyjson_get_uint(end_snapshot_id_val);
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'end_snapshot_id_tmp' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(end_snapshot_id_val));
-		}
-		end_snapshot_id = std::move(end_snapshot_id_tmp);
-	}
-	auto stats_fields_val = yyjson_obj_get(obj, "stats-fields");
-	if (stats_fields_val) {
-		vector<FieldName> stats_fields_tmp;
-		if (yyjson_is_arr(stats_fields_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(stats_fields_val, idx, max, val) {
-				FieldName tmp;
-				error = tmp.TryFromJSON(val);
-				if (!error.empty()) {
-					return error;
-				}
-				stats_fields_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'stats_fields_tmp' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(stats_fields_val));
-		}
-		stats_fields = std::move(stats_fields_tmp);
-	}
-	return Validate();
 }
 
 void PlanTableScanRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -14,60 +14,89 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Term::Term() : transform_term(GeneratedObjectAccess::Create<optional<TransformTerm>>()) {
+Term::Term(optional<Reference> reference_p, optional<TransformTerm> transform_term_p)
+    : reference(std::move(reference_p)), transform_term(std::move(transform_term_p)) {
 }
 
 TermBuilder::TermBuilder() {
 }
 
 TermBuilder &TermBuilder::SetReference(Reference value) {
-	result_.reference = std::move(value);
+	reference_ = std::move(value);
 	return *this;
 }
 
 TermBuilder &TermBuilder::SetTransformTerm(TransformTerm value) {
-	result_.transform_term = std::move(value);
+	transform_term_ = std::move(value);
 	return *this;
 }
 
-string TermBuilder::TryBuild(Term &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 Term TermBuilder::Build() {
-	Term result;
-	auto error = TryBuild(result);
+	auto result = Term(std::move(reference_), std::move(transform_term_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-Term Term::FromJSON(yyjson_val *obj) {
-	Term res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string TermBuilder::TryBuild(optional<Term> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+Term Term::FromJSON(yyjson_val *obj) {
+	TermBuilder builder;
+	do {
+		try {
+			builder.SetReference(Reference::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTransformTerm(TransformTerm::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("Term failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string Term::TryFromJSON(yyjson_val *obj, optional<Term> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 Term Term::Copy() const {
-	Term res;
+	TermBuilder builder;
+	optional<Reference> reference_tmp;
 	if (reference.has_value()) {
-		res.reference.emplace();
-		(*res.reference) = (*reference).Copy();
+		reference_tmp.emplace();
+		(*reference_tmp) = (*reference).Copy();
 	}
+	if (reference_tmp.has_value()) {
+		builder.SetReference(std::move(*reference_tmp));
+	}
+	optional<TransformTerm> transform_term_tmp;
 	if (transform_term.has_value()) {
-		res.transform_term = GeneratedObjectAccess::Create<TransformTerm>();
-		(*res.transform_term) = (*transform_term).Copy();
+		transform_term_tmp.emplace();
+		(*transform_term_tmp) = (*transform_term).Copy();
 	}
-	return res;
+	if (transform_term_tmp.has_value()) {
+		builder.SetTransformTerm(std::move(*transform_term_tmp));
+	}
+	return builder.Build();
 }
 
 string Term::Validate() const {
@@ -91,28 +120,6 @@ string Term::Validate() const {
 		return "Term must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string Term::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		reference.emplace();
-		error = reference->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			reference = nullopt;
-		}
-		transform_term = GeneratedObjectAccess::Create<TransformTerm>();
-		error = transform_term->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			transform_term = nullopt;
-		}
-		return "Term failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 yyjson_mut_val *Term::ToJSON(yyjson_mut_doc *doc) const {

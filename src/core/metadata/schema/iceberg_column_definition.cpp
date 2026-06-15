@@ -157,20 +157,21 @@ CreateStructField(const string &name, int32_t field_id, bool required, const res
                   const optional<string> &doc = std::nullopt,
                   const optional<rest_api_objects::PrimitiveTypeValue> &initial_default = std::nullopt,
                   const optional<rest_api_objects::PrimitiveTypeValue> &write_default = std::nullopt) {
-	auto result = rest_api_objects::StructFieldBuilder()
-	                  .SetId(field_id)
-	                  .SetName(name)
-	                  .SetType(make_uniq<rest_api_objects::Type>(iceberg_type.Copy()))
-	                  .SetRequired(required)
-	                  .Build();
-	result._doc = doc;
+	rest_api_objects::StructFieldBuilder builder;
+	builder.SetId(field_id);
+	builder.SetName(name);
+	builder.SetType(make_uniq<rest_api_objects::Type>(iceberg_type.Copy()));
+	builder.SetRequired(required);
+	if (doc) {
+		builder.SetDoc(*doc);
+	}
 	if (initial_default) {
-		result.initial_default = initial_default->Copy();
+		builder.SetInitialDefault(initial_default->Copy());
 	}
 	if (write_default) {
-		result.write_default = write_default->Copy();
+		builder.SetWriteDefault(write_default->Copy());
 	}
-	return result;
+	return builder.Build();
 }
 
 unique_ptr<IcebergColumnDefinition>

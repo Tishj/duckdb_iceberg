@@ -18,13 +18,13 @@ public:
 	LongTypeValue(const LongTypeValue &) = delete;
 	LongTypeValue &operator=(const LongTypeValue &) = delete;
 	LongTypeValue(LongTypeValue &&) = default;
-	LongTypeValue &operator=(LongTypeValue &&) = default;
-	LongTypeValue();
+	LongTypeValue &operator=(LongTypeValue &&) = delete;
+	LongTypeValue(int64_t value_p);
 
 public:
 	// Deserialization
 	static LongTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &result);
 	string Validate() const;
 
 	// Copy

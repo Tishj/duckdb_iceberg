@@ -21,17 +21,18 @@ public:
 	OAuthTokenResponse(const OAuthTokenResponse &) = delete;
 	OAuthTokenResponse &operator=(const OAuthTokenResponse &) = delete;
 	OAuthTokenResponse(OAuthTokenResponse &&) = default;
-	OAuthTokenResponse &operator=(OAuthTokenResponse &&) = default;
+	OAuthTokenResponse &operator=(OAuthTokenResponse &&) = delete;
 
 private:
 	friend class OAuthTokenResponseBuilder;
-	friend class GeneratedObjectAccess;
-	OAuthTokenResponse();
+	OAuthTokenResponse(string access_token_p, string token_type_p, optional<int32_t> expires_in_p,
+	                   optional<TokenType> issued_token_type_p, optional<string> refresh_token_p,
+	                   optional<string> scope_p);
 
 public:
 	// Deserialization
 	static OAuthTokenResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<OAuthTokenResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -59,11 +60,16 @@ public:
 	OAuthTokenResponseBuilder &SetIssuedTokenType(TokenType value);
 	OAuthTokenResponseBuilder &SetRefreshToken(string value);
 	OAuthTokenResponseBuilder &SetScope(string value);
-	string TryBuild(OAuthTokenResponse &result);
+	string TryBuild(optional<OAuthTokenResponse> &result);
 	OAuthTokenResponse Build();
 
 private:
-	OAuthTokenResponse result_;
+	optional<string> access_token_;
+	optional<string> token_type_;
+	optional<int32_t> expires_in_;
+	optional<TokenType> issued_token_type_;
+	optional<string> refresh_token_;
+	optional<string> scope_;
 	bool has_access_token_ = false;
 	bool has_token_type_ = false;
 };

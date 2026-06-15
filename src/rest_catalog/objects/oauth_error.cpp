@@ -14,70 +14,127 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-OAuthError::OAuthError() {
+OAuthError::OAuthError(string _error_p, optional<string> error_description_p, optional<string> error_uri_p)
+    : _error(std::move(_error_p)), error_description(std::move(error_description_p)),
+      error_uri(std::move(error_uri_p)) {
 }
 
 OAuthErrorBuilder::OAuthErrorBuilder() {
 }
 
 OAuthErrorBuilder &OAuthErrorBuilder::SetError(string value) {
-	result_._error = std::move(value);
+	_error_ = std::move(value);
 	has__error_ = true;
 	return *this;
 }
 
 OAuthErrorBuilder &OAuthErrorBuilder::SetErrorDescription(string value) {
-	result_.error_description = std::move(value);
+	error_description_ = std::move(value);
 	return *this;
 }
 
 OAuthErrorBuilder &OAuthErrorBuilder::SetErrorUri(string value) {
-	result_.error_uri = std::move(value);
+	error_uri_ = std::move(value);
 	return *this;
 }
 
-string OAuthErrorBuilder::TryBuild(OAuthError &result) {
-	if (!has__error_) {
-		return "OAuthError required property 'error' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 OAuthError OAuthErrorBuilder::Build() {
-	OAuthError result;
-	auto error = TryBuild(result);
+	if (!has__error_) {
+		throw InvalidInputException("OAuthError required property 'error' is missing");
+	}
+	auto result = OAuthError(std::move(*_error_), std::move(error_description_), std::move(error_uri_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-OAuthError OAuthError::FromJSON(yyjson_val *obj) {
-	OAuthError res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string OAuthErrorBuilder::TryBuild(optional<OAuthError> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+OAuthError OAuthError::FromJSON(yyjson_val *obj) {
+	OAuthErrorBuilder builder;
+	auto _error_val = yyjson_obj_get(obj, "error");
+	if (!_error_val) {
+		throw InvalidInputException("OAuthError required property 'error' is missing");
+	} else {
+		string _error;
+		if (yyjson_is_str(_error_val)) {
+			_error = yyjson_get_str(_error_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("OAuthError property '_error' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(_error_val)));
+		}
+		builder.SetError(std::move(_error));
+	}
+	auto error_description_val = yyjson_obj_get(obj, "error_description");
+	if (error_description_val) {
+		string error_description;
+		if (yyjson_is_str(error_description_val)) {
+			error_description = yyjson_get_str(error_description_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "OAuthError property 'error_description' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(error_description_val)));
+		}
+		builder.SetErrorDescription(std::move(error_description));
+	}
+	auto error_uri_val = yyjson_obj_get(obj, "error_uri");
+	if (error_uri_val) {
+		string error_uri;
+		if (yyjson_is_str(error_uri_val)) {
+			error_uri = yyjson_get_str(error_uri_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("OAuthError property 'error_uri' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(error_uri_val)));
+		}
+		builder.SetErrorUri(std::move(error_uri));
+	}
+	return builder.Build();
+}
+
+string OAuthError::TryFromJSON(yyjson_val *obj, optional<OAuthError> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 OAuthError OAuthError::Copy() const {
-	OAuthError res;
-	res._error = _error;
+	OAuthErrorBuilder builder;
+	string _error_tmp;
+	_error_tmp = _error;
+	builder.SetError(std::move(_error_tmp));
+	string error_description_tmp;
 	if (error_description.has_value()) {
-		res.error_description.emplace();
-		(*res.error_description) = (*error_description);
+		error_description_tmp.emplace();
+		(*error_description_tmp) = (*error_description);
 	}
+	if (error_description_tmp.has_value()) {
+		builder.SetErrorDescription(std::move(error_description_tmp));
+	}
+	string error_uri_tmp;
 	if (error_uri.has_value()) {
-		res.error_uri.emplace();
-		(*res.error_uri) = (*error_uri);
+		error_uri_tmp.emplace();
+		(*error_uri_tmp) = (*error_uri);
 	}
-	return res;
+	if (error_uri_tmp.has_value()) {
+		builder.SetErrorUri(std::move(error_uri_tmp));
+	}
+	return builder.Build();
 }
 
 string OAuthError::Validate() const {
@@ -90,45 +147,6 @@ string OAuthError::Validate() const {
 		                          _error);
 	}
 	return "";
-}
-
-string OAuthError::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto _error_val = yyjson_obj_get(obj, "error");
-	if (!_error_val) {
-		return "OAuthError required property 'error' is missing";
-	} else {
-		if (yyjson_is_str(_error_val)) {
-			_error = yyjson_get_str(_error_val);
-		} else {
-			return StringUtil::Format("OAuthError property '_error' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(_error_val));
-		}
-	}
-	auto error_description_val = yyjson_obj_get(obj, "error_description");
-	if (error_description_val) {
-		string error_description_tmp;
-		if (yyjson_is_str(error_description_val)) {
-			error_description_tmp = yyjson_get_str(error_description_val);
-		} else {
-			return StringUtil::Format(
-			    "OAuthError property 'error_description_tmp' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(error_description_val));
-		}
-		error_description = std::move(error_description_tmp);
-	}
-	auto error_uri_val = yyjson_obj_get(obj, "error_uri");
-	if (error_uri_val) {
-		string error_uri_tmp;
-		if (yyjson_is_str(error_uri_val)) {
-			error_uri_tmp = yyjson_get_str(error_uri_val);
-		} else {
-			return StringUtil::Format("OAuthError property 'error_uri_tmp' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(error_uri_val));
-		}
-		error_uri = std::move(error_uri_tmp);
-	}
-	return Validate();
 }
 
 void OAuthError::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

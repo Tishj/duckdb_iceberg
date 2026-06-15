@@ -14,81 +14,128 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-Type::Type()
-    : struct_type(GeneratedObjectAccess::Create<optional<StructType>>()),
-      list_type(GeneratedObjectAccess::Create<optional<ListType>>()),
-      map_type(GeneratedObjectAccess::Create<optional<MapType>>()) {
+Type::Type(optional<PrimitiveType> primitive_type_p, optional<StructType> struct_type_p, optional<ListType> list_type_p,
+           optional<MapType> map_type_p)
+    : primitive_type(std::move(primitive_type_p)), struct_type(std::move(struct_type_p)),
+      list_type(std::move(list_type_p)), map_type(std::move(map_type_p)) {
 }
 
 TypeBuilder::TypeBuilder() {
 }
 
 TypeBuilder &TypeBuilder::SetPrimitiveType(PrimitiveType value) {
-	result_.primitive_type = std::move(value);
+	primitive_type_ = std::move(value);
 	return *this;
 }
 
 TypeBuilder &TypeBuilder::SetStructType(StructType value) {
-	result_.struct_type = std::move(value);
+	struct_type_ = std::move(value);
 	return *this;
 }
 
 TypeBuilder &TypeBuilder::SetListType(ListType value) {
-	result_.list_type = std::move(value);
+	list_type_ = std::move(value);
 	return *this;
 }
 
 TypeBuilder &TypeBuilder::SetMapType(MapType value) {
-	result_.map_type = std::move(value);
+	map_type_ = std::move(value);
 	return *this;
 }
 
-string TypeBuilder::TryBuild(Type &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 Type TypeBuilder::Build() {
-	Type result;
-	auto error = TryBuild(result);
+	auto result =
+	    Type(std::move(primitive_type_), std::move(struct_type_), std::move(list_type_), std::move(map_type_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-Type Type::FromJSON(yyjson_val *obj) {
-	Type res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string TypeBuilder::TryBuild(optional<Type> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+Type Type::FromJSON(yyjson_val *obj) {
+	TypeBuilder builder;
+	do {
+		try {
+			builder.SetPrimitiveType(PrimitiveType::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetStructType(StructType::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetListType(ListType::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetMapType(MapType::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("Type failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string Type::TryFromJSON(yyjson_val *obj, optional<Type> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 Type Type::Copy() const {
-	Type res;
+	TypeBuilder builder;
+	optional<PrimitiveType> primitive_type_tmp;
 	if (primitive_type.has_value()) {
-		res.primitive_type.emplace();
-		(*res.primitive_type) = (*primitive_type).Copy();
+		primitive_type_tmp.emplace();
+		(*primitive_type_tmp) = (*primitive_type).Copy();
 	}
+	if (primitive_type_tmp.has_value()) {
+		builder.SetPrimitiveType(std::move(*primitive_type_tmp));
+	}
+	optional<StructType> struct_type_tmp;
 	if (struct_type.has_value()) {
-		res.struct_type = GeneratedObjectAccess::Create<StructType>();
-		(*res.struct_type) = (*struct_type).Copy();
+		struct_type_tmp.emplace();
+		(*struct_type_tmp) = (*struct_type).Copy();
 	}
+	if (struct_type_tmp.has_value()) {
+		builder.SetStructType(std::move(*struct_type_tmp));
+	}
+	optional<ListType> list_type_tmp;
 	if (list_type.has_value()) {
-		res.list_type = GeneratedObjectAccess::Create<ListType>();
-		(*res.list_type) = (*list_type).Copy();
+		list_type_tmp.emplace();
+		(*list_type_tmp) = (*list_type).Copy();
 	}
+	if (list_type_tmp.has_value()) {
+		builder.SetListType(std::move(*list_type_tmp));
+	}
+	optional<MapType> map_type_tmp;
 	if (map_type.has_value()) {
-		res.map_type = GeneratedObjectAccess::Create<MapType>();
-		(*res.map_type) = (*map_type).Copy();
+		map_type_tmp.emplace();
+		(*map_type_tmp) = (*map_type).Copy();
 	}
-	return res;
+	if (map_type_tmp.has_value()) {
+		builder.SetMapType(std::move(*map_type_tmp));
+	}
+	return builder.Build();
 }
 
 string Type::Validate() const {
@@ -126,42 +173,6 @@ string Type::Validate() const {
 		return "Type must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string Type::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		primitive_type.emplace();
-		error = primitive_type->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			primitive_type = nullopt;
-		}
-		struct_type = GeneratedObjectAccess::Create<StructType>();
-		error = struct_type->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			struct_type = nullopt;
-		}
-		list_type = GeneratedObjectAccess::Create<ListType>();
-		error = list_type->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			list_type = nullopt;
-		}
-		map_type = GeneratedObjectAccess::Create<MapType>();
-		error = map_type->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			map_type = nullopt;
-		}
-		return "Type failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 yyjson_mut_val *Type::ToJSON(yyjson_mut_doc *doc) const {

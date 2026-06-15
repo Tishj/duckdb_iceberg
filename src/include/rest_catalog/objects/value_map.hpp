@@ -22,17 +22,16 @@ public:
 	ValueMap(const ValueMap &) = delete;
 	ValueMap &operator=(const ValueMap &) = delete;
 	ValueMap(ValueMap &&) = default;
-	ValueMap &operator=(ValueMap &&) = default;
+	ValueMap &operator=(ValueMap &&) = delete;
 
 private:
 	friend class ValueMapBuilder;
-	friend class GeneratedObjectAccess;
-	ValueMap();
+	ValueMap(optional<vector<IntegerTypeValue>> keys_p, optional<vector<PrimitiveTypeValue>> values_p);
 
 public:
 	// Deserialization
 	static ValueMap FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<ValueMap> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +51,12 @@ public:
 	ValueMapBuilder();
 	ValueMapBuilder &SetKeys(vector<IntegerTypeValue> value);
 	ValueMapBuilder &SetValues(vector<PrimitiveTypeValue> value);
-	string TryBuild(ValueMap &result);
+	string TryBuild(optional<ValueMap> &result);
 	ValueMap Build();
 
 private:
-	ValueMap result_;
+	optional<vector<IntegerTypeValue>> keys_;
+	optional<vector<PrimitiveTypeValue>> values_;
 };
 
 } // namespace rest_api_objects

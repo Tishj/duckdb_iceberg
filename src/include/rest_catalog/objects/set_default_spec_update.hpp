@@ -21,17 +21,16 @@ public:
 	SetDefaultSpecUpdate(const SetDefaultSpecUpdate &) = delete;
 	SetDefaultSpecUpdate &operator=(const SetDefaultSpecUpdate &) = delete;
 	SetDefaultSpecUpdate(SetDefaultSpecUpdate &&) = default;
-	SetDefaultSpecUpdate &operator=(SetDefaultSpecUpdate &&) = default;
+	SetDefaultSpecUpdate &operator=(SetDefaultSpecUpdate &&) = delete;
 
 private:
 	friend class SetDefaultSpecUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetDefaultSpecUpdate();
+	SetDefaultSpecUpdate(BaseUpdate base_update_p, int32_t spec_id_p);
 
 public:
 	// Deserialization
 	static SetDefaultSpecUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetDefaultSpecUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	SetDefaultSpecUpdateBuilder();
 	SetDefaultSpecUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetDefaultSpecUpdateBuilder &SetSpecId(int32_t value);
-	string TryBuild(SetDefaultSpecUpdate &result);
+	string TryBuild(optional<SetDefaultSpecUpdate> &result);
 	SetDefaultSpecUpdate Build();
 
 private:
-	SetDefaultSpecUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<int32_t> spec_id_;
 	bool has_spec_id_ = false;
 };
 

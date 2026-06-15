@@ -21,17 +21,16 @@ public:
 	AssertTableUUID(const AssertTableUUID &) = delete;
 	AssertTableUUID &operator=(const AssertTableUUID &) = delete;
 	AssertTableUUID(AssertTableUUID &&) = default;
-	AssertTableUUID &operator=(AssertTableUUID &&) = default;
+	AssertTableUUID &operator=(AssertTableUUID &&) = delete;
 
 private:
 	friend class AssertTableUUIDBuilder;
-	friend class GeneratedObjectAccess;
-	AssertTableUUID();
+	AssertTableUUID(TableRequirementType type_p, string uuid_p);
 
 public:
 	// Deserialization
 	static AssertTableUUID FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<AssertTableUUID> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	AssertTableUUIDBuilder();
 	AssertTableUUIDBuilder &SetType(TableRequirementType value);
 	AssertTableUUIDBuilder &SetUuid(string value);
-	string TryBuild(AssertTableUUID &result);
+	string TryBuild(optional<AssertTableUUID> &result);
 	AssertTableUUID Build();
 
 private:
-	AssertTableUUID result_;
+	optional<TableRequirementType> type_;
+	optional<string> uuid_;
 	bool has_type_ = false;
 	bool has_uuid_ = false;
 };

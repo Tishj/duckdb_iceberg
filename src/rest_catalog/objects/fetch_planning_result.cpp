@@ -14,72 +14,112 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-FetchPlanningResult::FetchPlanningResult()
-    : completed_planning_result(GeneratedObjectAccess::Create<optional<CompletedPlanningResult>>()),
-      failed_planning_result(GeneratedObjectAccess::Create<optional<FailedPlanningResult>>()),
-      empty_planning_result(GeneratedObjectAccess::Create<optional<EmptyPlanningResult>>()) {
+FetchPlanningResult::FetchPlanningResult(optional<CompletedPlanningResult> completed_planning_result_p,
+                                         optional<FailedPlanningResult> failed_planning_result_p,
+                                         optional<EmptyPlanningResult> empty_planning_result_p)
+    : completed_planning_result(std::move(completed_planning_result_p)),
+      failed_planning_result(std::move(failed_planning_result_p)),
+      empty_planning_result(std::move(empty_planning_result_p)) {
 }
 
 FetchPlanningResultBuilder::FetchPlanningResultBuilder() {
 }
 
 FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetCompletedPlanningResult(CompletedPlanningResult value) {
-	result_.completed_planning_result = std::move(value);
+	completed_planning_result_ = std::move(value);
 	return *this;
 }
 
 FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetFailedPlanningResult(FailedPlanningResult value) {
-	result_.failed_planning_result = std::move(value);
+	failed_planning_result_ = std::move(value);
 	return *this;
 }
 
 FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetEmptyPlanningResult(EmptyPlanningResult value) {
-	result_.empty_planning_result = std::move(value);
+	empty_planning_result_ = std::move(value);
 	return *this;
 }
 
-string FetchPlanningResultBuilder::TryBuild(FetchPlanningResult &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 FetchPlanningResult FetchPlanningResultBuilder::Build() {
-	FetchPlanningResult result;
-	auto error = TryBuild(result);
+	auto result = FetchPlanningResult(std::move(completed_planning_result_), std::move(failed_planning_result_),
+	                                  std::move(empty_planning_result_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
-	FetchPlanningResult res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string FetchPlanningResultBuilder::TryBuild(optional<FetchPlanningResult> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
+	FetchPlanningResultBuilder builder;
+	do {
+		try {
+			builder.SetCompletedPlanningResult(CompletedPlanningResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetFailedPlanningResult(FailedPlanningResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetEmptyPlanningResult(EmptyPlanningResult::FromJSON(obj));
+			break;
+		} catch (const Exception &) {
+		}
+		throw InvalidInputException("FetchPlanningResult failed to parse, none of the oneOf candidates matched");
+	} while (false);
+	return builder.Build();
+}
+
+string FetchPlanningResult::TryFromJSON(yyjson_val *obj, optional<FetchPlanningResult> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 FetchPlanningResult FetchPlanningResult::Copy() const {
-	FetchPlanningResult res;
+	FetchPlanningResultBuilder builder;
+	optional<CompletedPlanningResult> completed_planning_result_tmp;
 	if (completed_planning_result.has_value()) {
-		res.completed_planning_result = GeneratedObjectAccess::Create<CompletedPlanningResult>();
-		(*res.completed_planning_result) = (*completed_planning_result).Copy();
+		completed_planning_result_tmp.emplace();
+		(*completed_planning_result_tmp) = (*completed_planning_result).Copy();
 	}
+	if (completed_planning_result_tmp.has_value()) {
+		builder.SetCompletedPlanningResult(std::move(*completed_planning_result_tmp));
+	}
+	optional<FailedPlanningResult> failed_planning_result_tmp;
 	if (failed_planning_result.has_value()) {
-		res.failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
-		(*res.failed_planning_result) = (*failed_planning_result).Copy();
+		failed_planning_result_tmp.emplace();
+		(*failed_planning_result_tmp) = (*failed_planning_result).Copy();
 	}
+	if (failed_planning_result_tmp.has_value()) {
+		builder.SetFailedPlanningResult(std::move(*failed_planning_result_tmp));
+	}
+	optional<EmptyPlanningResult> empty_planning_result_tmp;
 	if (empty_planning_result.has_value()) {
-		res.empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
-		(*res.empty_planning_result) = (*empty_planning_result).Copy();
+		empty_planning_result_tmp.emplace();
+		(*empty_planning_result_tmp) = (*empty_planning_result).Copy();
 	}
-	return res;
+	if (empty_planning_result_tmp.has_value()) {
+		builder.SetEmptyPlanningResult(std::move(*empty_planning_result_tmp));
+	}
+	return builder.Build();
 }
 
 string FetchPlanningResult::Validate() const {
@@ -110,35 +150,6 @@ string FetchPlanningResult::Validate() const {
 		return "FetchPlanningResult must have exactly one oneOf variant set";
 	}
 	return "";
-}
-
-string FetchPlanningResult::TryFromJSON(yyjson_val *obj) {
-	string error;
-	do {
-		completed_planning_result = GeneratedObjectAccess::Create<CompletedPlanningResult>();
-		error = completed_planning_result->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			completed_planning_result = nullopt;
-		}
-		failed_planning_result = GeneratedObjectAccess::Create<FailedPlanningResult>();
-		error = failed_planning_result->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			failed_planning_result = nullopt;
-		}
-		empty_planning_result = GeneratedObjectAccess::Create<EmptyPlanningResult>();
-		error = empty_planning_result->TryFromJSON(obj);
-		if (error.empty()) {
-			break;
-		} else {
-			empty_planning_result = nullopt;
-		}
-		return "FetchPlanningResult failed to parse, none of the oneOf candidates matched";
-	} while (false);
-	return Validate();
 }
 
 void FetchPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

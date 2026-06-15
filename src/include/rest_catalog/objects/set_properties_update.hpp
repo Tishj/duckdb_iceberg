@@ -21,17 +21,16 @@ public:
 	SetPropertiesUpdate(const SetPropertiesUpdate &) = delete;
 	SetPropertiesUpdate &operator=(const SetPropertiesUpdate &) = delete;
 	SetPropertiesUpdate(SetPropertiesUpdate &&) = default;
-	SetPropertiesUpdate &operator=(SetPropertiesUpdate &&) = default;
+	SetPropertiesUpdate &operator=(SetPropertiesUpdate &&) = delete;
 
 private:
 	friend class SetPropertiesUpdateBuilder;
-	friend class GeneratedObjectAccess;
-	SetPropertiesUpdate();
+	SetPropertiesUpdate(BaseUpdate base_update_p, case_insensitive_map_t<string> updates_p);
 
 public:
 	// Deserialization
 	static SetPropertiesUpdate FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<SetPropertiesUpdate> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	SetPropertiesUpdateBuilder();
 	SetPropertiesUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetPropertiesUpdateBuilder &SetUpdates(case_insensitive_map_t<string> value);
-	string TryBuild(SetPropertiesUpdate &result);
+	string TryBuild(optional<SetPropertiesUpdate> &result);
 	SetPropertiesUpdate Build();
 
 private:
-	SetPropertiesUpdate result_;
+	optional<BaseUpdate> base_update_;
+	optional<case_insensitive_map_t<string>> updates_;
 	bool has_updates_ = false;
 };
 

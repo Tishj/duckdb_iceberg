@@ -18,13 +18,13 @@ public:
 	FloatTypeValue(const FloatTypeValue &) = delete;
 	FloatTypeValue &operator=(const FloatTypeValue &) = delete;
 	FloatTypeValue(FloatTypeValue &&) = default;
-	FloatTypeValue &operator=(FloatTypeValue &&) = default;
-	FloatTypeValue();
+	FloatTypeValue &operator=(FloatTypeValue &&) = delete;
+	FloatTypeValue(double value_p);
 
 public:
 	// Deserialization
 	static FloatTypeValue FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &result);
 	string Validate() const;
 
 	// Copy

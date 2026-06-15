@@ -14,62 +14,96 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssertDefaultSortOrderId::AssertDefaultSortOrderId() {
+AssertDefaultSortOrderId::AssertDefaultSortOrderId(TableRequirementType type_p, int32_t default_sort_order_id_p)
+    : type(std::move(type_p)), default_sort_order_id(std::move(default_sort_order_id_p)) {
 }
 
 AssertDefaultSortOrderIdBuilder::AssertDefaultSortOrderIdBuilder() {
 }
 
 AssertDefaultSortOrderIdBuilder &AssertDefaultSortOrderIdBuilder::SetType(TableRequirementType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 AssertDefaultSortOrderIdBuilder &AssertDefaultSortOrderIdBuilder::SetDefaultSortOrderId(int32_t value) {
-	result_.default_sort_order_id = std::move(value);
+	default_sort_order_id_ = std::move(value);
 	has_default_sort_order_id_ = true;
 	return *this;
 }
 
-string AssertDefaultSortOrderIdBuilder::TryBuild(AssertDefaultSortOrderId &result) {
+AssertDefaultSortOrderId AssertDefaultSortOrderIdBuilder::Build() {
 	if (!has_type_) {
-		return "AssertDefaultSortOrderId required property 'type' is missing";
+		throw InvalidInputException("AssertDefaultSortOrderId required property 'type' is missing");
 	}
 	if (!has_default_sort_order_id_) {
-		return "AssertDefaultSortOrderId required property 'default-sort-order-id' is missing";
+		throw InvalidInputException("AssertDefaultSortOrderId required property 'default-sort-order-id' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-AssertDefaultSortOrderId AssertDefaultSortOrderIdBuilder::Build() {
-	AssertDefaultSortOrderId result;
-	auto error = TryBuild(result);
+	auto result = AssertDefaultSortOrderId(std::move(*type_), std::move(*default_sort_order_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AssertDefaultSortOrderId AssertDefaultSortOrderId::FromJSON(yyjson_val *obj) {
-	AssertDefaultSortOrderId res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AssertDefaultSortOrderIdBuilder::TryBuild(optional<AssertDefaultSortOrderId> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AssertDefaultSortOrderId AssertDefaultSortOrderId::FromJSON(yyjson_val *obj) {
+	AssertDefaultSortOrderIdBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("AssertDefaultSortOrderId required property 'type' is missing");
+	} else {
+		optional<TableRequirementType> type;
+		type = TableRequirementType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto default_sort_order_id_val = yyjson_obj_get(obj, "default-sort-order-id");
+	if (!default_sort_order_id_val) {
+		throw InvalidInputException("AssertDefaultSortOrderId required property 'default-sort-order-id' is missing");
+	} else {
+		int32_t default_sort_order_id;
+		if (yyjson_is_int(default_sort_order_id_val)) {
+			default_sort_order_id = yyjson_get_int(default_sort_order_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format("AssertDefaultSortOrderId property 'default_sort_order_id' "
+			                                               "is not of type 'integer', found '%s' instead",
+			                                               yyjson_get_type_desc(default_sort_order_id_val)));
+		}
+		builder.SetDefaultSortOrderId(std::move(default_sort_order_id));
+	}
+	return builder.Build();
+}
+
+string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj, optional<AssertDefaultSortOrderId> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AssertDefaultSortOrderId AssertDefaultSortOrderId::Copy() const {
-	AssertDefaultSortOrderId res;
-	res.type = type.Copy();
-	res.default_sort_order_id = default_sort_order_id;
-	return res;
+	AssertDefaultSortOrderIdBuilder builder;
+	optional<TableRequirementType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	int32_t default_sort_order_id_tmp;
+	default_sort_order_id_tmp = default_sort_order_id;
+	builder.SetDefaultSortOrderId(std::move(default_sort_order_id_tmp));
+	return builder.Build();
 }
 
 string AssertDefaultSortOrderId::Validate() const {
@@ -83,32 +117,6 @@ string AssertDefaultSortOrderId::Validate() const {
 		    "AssertDefaultSortOrderId property 'type' must be assert-default-sort-order-id, not %s", type.value);
 	}
 	return "";
-}
-
-string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "AssertDefaultSortOrderId required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto default_sort_order_id_val = yyjson_obj_get(obj, "default-sort-order-id");
-	if (!default_sort_order_id_val) {
-		return "AssertDefaultSortOrderId required property 'default-sort-order-id' is missing";
-	} else {
-		if (yyjson_is_int(default_sort_order_id_val)) {
-			default_sort_order_id = yyjson_get_int(default_sort_order_id_val);
-		} else {
-			return StringUtil::Format("AssertDefaultSortOrderId property 'default_sort_order_id' is not of type "
-			                          "'integer', found '%s' instead",
-			                          yyjson_get_type_desc(default_sort_order_id_val));
-		}
-	}
-	return Validate();
 }
 
 void AssertDefaultSortOrderId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

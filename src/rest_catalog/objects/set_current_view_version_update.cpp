@@ -14,58 +14,85 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-SetCurrentViewVersionUpdate::SetCurrentViewVersionUpdate() : base_update(GeneratedObjectAccess::Create<BaseUpdate>()) {
+SetCurrentViewVersionUpdate::SetCurrentViewVersionUpdate(BaseUpdate base_update_p, int32_t view_version_id_p)
+    : base_update(std::move(base_update_p)), view_version_id(std::move(view_version_id_p)) {
 }
 
 SetCurrentViewVersionUpdateBuilder::SetCurrentViewVersionUpdateBuilder() {
 }
 
 SetCurrentViewVersionUpdateBuilder &SetCurrentViewVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	result_.base_update = std::move(value);
+	base_update_ = std::move(value);
 	return *this;
 }
 
 SetCurrentViewVersionUpdateBuilder &SetCurrentViewVersionUpdateBuilder::SetViewVersionId(int32_t value) {
-	result_.view_version_id = std::move(value);
+	view_version_id_ = std::move(value);
 	has_view_version_id_ = true;
 	return *this;
 }
 
-string SetCurrentViewVersionUpdateBuilder::TryBuild(SetCurrentViewVersionUpdate &result) {
-	if (!has_view_version_id_) {
-		return "SetCurrentViewVersionUpdate required property 'view-version-id' is missing";
-	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 SetCurrentViewVersionUpdate SetCurrentViewVersionUpdateBuilder::Build() {
-	SetCurrentViewVersionUpdate result;
-	auto error = TryBuild(result);
+	if (!has_view_version_id_) {
+		throw InvalidInputException("SetCurrentViewVersionUpdate required property 'view-version-id' is missing");
+	}
+	auto result = SetCurrentViewVersionUpdate(std::move(*base_update_), std::move(*view_version_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::FromJSON(yyjson_val *obj) {
-	SetCurrentViewVersionUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string SetCurrentViewVersionUpdateBuilder::TryBuild(optional<SetCurrentViewVersionUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::FromJSON(yyjson_val *obj) {
+	SetCurrentViewVersionUpdateBuilder builder;
+	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+	auto view_version_id_val = yyjson_obj_get(obj, "view-version-id");
+	if (!view_version_id_val) {
+		throw InvalidInputException("SetCurrentViewVersionUpdate required property 'view-version-id' is missing");
+	} else {
+		int32_t view_version_id;
+		if (yyjson_is_int(view_version_id_val)) {
+			view_version_id = yyjson_get_int(view_version_id_val);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "SetCurrentViewVersionUpdate property 'view_version_id' is not of type 'integer', found '%s' instead",
+			    yyjson_get_type_desc(view_version_id_val)));
+		}
+		builder.SetViewVersionId(std::move(view_version_id));
+	}
+	return builder.Build();
+}
+
+string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj, optional<SetCurrentViewVersionUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::Copy() const {
-	SetCurrentViewVersionUpdate res;
-	res.base_update = base_update.Copy();
-	res.view_version_id = view_version_id;
-	return res;
+	SetCurrentViewVersionUpdateBuilder builder;
+	optional<BaseUpdate> base_update_tmp;
+	base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	int32_t view_version_id_tmp;
+	view_version_id_tmp = view_version_id;
+	builder.SetViewVersionId(std::move(view_version_id_tmp));
+	return builder.Build();
 }
 
 string SetCurrentViewVersionUpdate::Validate() const {
@@ -75,27 +102,6 @@ string SetCurrentViewVersionUpdate::Validate() const {
 		return error;
 	}
 	return "";
-}
-
-string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	error = base_update.TryFromJSON(obj);
-	if (!error.empty()) {
-		return error;
-	}
-	auto view_version_id_val = yyjson_obj_get(obj, "view-version-id");
-	if (!view_version_id_val) {
-		return "SetCurrentViewVersionUpdate required property 'view-version-id' is missing";
-	} else {
-		if (yyjson_is_int(view_version_id_val)) {
-			view_version_id = yyjson_get_int(view_version_id_val);
-		} else {
-			return StringUtil::Format(
-			    "SetCurrentViewVersionUpdate property 'view_version_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(view_version_id_val));
-		}
-	}
-	return Validate();
 }
 
 void SetCurrentViewVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

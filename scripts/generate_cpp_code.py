@@ -424,6 +424,43 @@ class CPPClass:
     def builder_class_name(self) -> str:
         return f'{self.name}Builder'
 
+    def member_is_required(self, member: CPPMember) -> bool:
+        if member.variable_name in [prop.variable_name for prop in self.required_properties.values()]:
+            return True
+        return member.variable_name in [item.name for item in self.all_of]
+
+    def member_is_optional_output(self, member: CPPMember) -> bool:
+        if member.variable_name in [prop.variable_name for prop in self.optional_properties.values()]:
+            return True
+        return member.variable_name in [item.name for item in self.one_of + self.any_of]
+
+    def member_storage_field_name(self, member: CPPMember) -> str:
+        return f'{member.variable_name}_'
+
+    def parse_local_name(self, variable_name: str) -> str:
+        return f'{variable_name}_tmp'
+
+    def default_value_expression(self, type_name: str) -> str:
+        return f'{type_name}()'
+
+    def parse_local_type(self, schema: Property) -> str:
+        if schema.type == Property.Type.SCHEMA_REFERENCE:
+            schema_property = cast(SchemaReferenceProperty, schema)
+            if schema_property.ref in self.parse_info.recursive_schemas:
+                return f'unique_ptr<{schema_property.ref}>'
+            return f'optional<{schema_property.ref}>'
+        return self.generate_variable_type(schema)
+
+    def parse_local_declaration(self, schema: Property, variable_name: str) -> str:
+        return f'{self.parse_local_type(schema)} {variable_name};'
+
+    def parse_local_value_expression(self, schema: Property, variable_name: str) -> str:
+        if schema.type == Property.Type.SCHEMA_REFERENCE:
+            schema_property = cast(SchemaReferenceProperty, schema)
+            if schema_property.ref not in self.parse_info.recursive_schemas:
+                return f'std::move(*{variable_name})'
+        return f'std::move({variable_name})'
+
     def write_required_property(self, required_property: RequiredProperty) -> List[str]:
         res = []
         res.extend(
@@ -433,13 +470,23 @@ class CPPClass:
             ]
         )
         if required_property.default is not None:
+            res.extend([f'\t{self.parse_local_declaration(required_property.schema, required_property.variable_name)}'])
             res.extend([f'\t{x}' for x in required_property.default])
+            setter_name = f'Set{to_pascal_case(required_property.variable_name)}'
+            res.append(
+                f'\tbuilder.{setter_name}({self.parse_local_value_expression(required_property.schema, required_property.variable_name)});'
+            )
         else:
             res.extend(
-                [f"""\treturn "{self.name} required property '{required_property.property_name}' is missing";"""]
+                [f"""\tthrow InvalidInputException("{self.name} required property '{required_property.property_name}' is missing");"""]
             )
         res.extend(['} else {'])
+        res.append(f'\t{self.parse_local_declaration(required_property.schema, required_property.variable_name)}')
         res.extend([f'\t{x}' for x in required_property.body])
+        setter_name = f'Set{to_pascal_case(required_property.variable_name)}'
+        res.append(
+            f'\tbuilder.{setter_name}({self.parse_local_value_expression(required_property.schema, required_property.variable_name)});'
+        )
         res.append('}')
         return res
 
@@ -459,10 +506,20 @@ class CPPClass:
                     '\t} else {',
                 ]
             )
+            res.append(f'\t\t{self.parse_local_declaration(optional_property.schema, optional_property.variable_name)}')
             res.extend([f'\t\t{x}' for x in optional_property.body])
+            setter_name = f'Set{to_pascal_case(optional_property.variable_name)}'
+            res.append(
+                f'\t\tbuilder.{setter_name}({self.parse_local_value_expression(optional_property.schema, optional_property.variable_name)});'
+            )
             res.append('\t}')
         else:
+            res.append(f'\t{self.parse_local_declaration(optional_property.schema, optional_property.variable_name)}')
             res.extend([f'\t{x}' for x in optional_property.body])
+            setter_name = f'Set{to_pascal_case(optional_property.variable_name)}'
+            res.append(
+                f'\tbuilder.{setter_name}({self.parse_local_value_expression(optional_property.schema, optional_property.variable_name)});'
+            )
         res.append('}')
         return res
 
@@ -470,6 +527,7 @@ class CPPClass:
         if not self.additional_properties:
             return []
         res = []
+        res.append('case_insensitive_map_t<' + self.generate_variable_type(self.additional_properties.schema) + '> additional_properties;')
 
         res.extend(self.additional_properties.exclude_list)
         res.extend(
@@ -489,6 +547,7 @@ class CPPClass:
                 '}',
             ]
         )
+        res.append('builder.SetAdditionalProperties(std::move(additional_properties));')
         return res
 
     def write_all_of(self) -> List[str]:
@@ -496,15 +555,11 @@ class CPPClass:
             return []
         res = []
         for item in self.all_of:
+            setter_name = f'Set{to_pascal_case(item.name)}'
             if item.dereference_style == '->':
-                res.append(f'{item.name} = {self.create_unique_value_expression(item.class_name)};')
-            res.extend(
-                [
-                    f'error = {item.name}{item.dereference_style}TryFromJSON(obj);' 'if (!error.empty()) {',
-                    '\treturn error;',
-                    '}',
-                ]
-            )
+                res.append(f'builder.{setter_name}(make_uniq<{item.class_name}>({item.class_name}::FromJSON(obj)));')
+            else:
+                res.append(f'builder.{setter_name}({item.class_name}::FromJSON(obj));')
         return res
 
     def write_one_of(self) -> List[str]:
@@ -514,24 +569,14 @@ class CPPClass:
         res.append('do {')
         for item in self.one_of:
             is_recursive = item.class_name in self.parse_info.recursive_schemas
+            setter_name = f'Set{to_pascal_case(item.name)}'
+            res.append('\ttry {')
             if is_recursive:
-                res.append(f'{item.name} = {self.create_unique_value_expression(item.class_name)};')
+                res.append(f'\t\tbuilder.{setter_name}(make_uniq<{item.class_name}>({item.class_name}::FromJSON(obj)));')
             else:
-                if self.type_uses_private_constructor(item.class_name):
-                    res.append(f'{item.name} = {self.create_default_value_expression(item.class_name)};')
-                else:
-                    res.append(f'{item.name}.emplace();')
-            res.extend(
-                [
-                    f'error = {item.name}->TryFromJSON(obj);',
-                    'if (error.empty()) {',
-                    '\tbreak;',
-                    '} else {',
-                    f'\t{item.name} = {"nullptr" if is_recursive else "nullopt"};',
-                    '}',
-                ]
-            )
-        res.append(f'\treturn "{self.name} failed to parse, none of the oneOf candidates matched";')
+                res.append(f'\t\tbuilder.{setter_name}({item.class_name}::FromJSON(obj));')
+            res.extend(['\t\tbreak;', '\t} catch (const Exception &) {', '\t}'])
+        res.append(f'''\tthrow InvalidInputException("{self.name} failed to parse, none of the oneOf candidates matched");''')
         res.append('} while (false);')
         return res
 
@@ -539,35 +584,19 @@ class CPPClass:
         if not self.any_of:
             return []
         res = []
-
-        all_options = sorted(
-            [
-                f'!({self.presence_condition(item.name, item.class_name not in self.parse_info.recursive_schemas)})'
-                for item in self.any_of
-            ]
-        )
-        condition = ' && '.join(all_options)
+        res.append('int matched_any_of_variants = 0;')
 
         for item in self.any_of:
             is_recursive = item.class_name in self.parse_info.recursive_schemas
+            setter_name = f'Set{to_pascal_case(item.name)}'
+            res.append('try {')
             if is_recursive:
-                res.append(f'{item.name} = {self.create_unique_value_expression(item.class_name)};')
+                res.append(f'\tbuilder.{setter_name}(make_uniq<{item.class_name}>({item.class_name}::FromJSON(obj)));')
             else:
-                if self.type_uses_private_constructor(item.class_name):
-                    res.append(f'{item.name} = {self.create_default_value_expression(item.class_name)};')
-                else:
-                    res.append(f'{item.name}.emplace();')
-            res.extend(
-                [
-                    f'error = {item.name}->TryFromJSON(obj);',
-                    'if (error.empty()) {',
-                    '} else {',
-                    f'\t{item.name} = {"nullptr" if is_recursive else "nullopt"};',
-                    '}',
-                ]
-            )
+                res.append(f'\tbuilder.{setter_name}({item.class_name}::FromJSON(obj));')
+            res.extend(['\tmatched_any_of_variants++;', '} catch (const Exception &) {', '}'])
 
-        res.extend(['if (' + condition + ') {', f'\treturn "{self.name} failed to parse, none of the anyOf candidates matched";', '}'])
+        res.extend(['if (matched_any_of_variants == 0) {', f'''\tthrow InvalidInputException("{self.name} failed to parse, none of the anyOf candidates matched");''', '}'])
         return res
 
     def write_nested_classes_header(self) -> List[str]:
@@ -685,13 +714,6 @@ class CPPClass:
         return variable_name
 
     def generate_optional_assignment(self, schema: Property, target: str, source: str) -> List[str]:
-        if self.uses_optional_wrapper(schema):
-            tmp_name = f'{target}_tmp'
-            variable_type = self.generate_variable_type(schema)
-            res = [self.default_initialized_declaration(variable_type, tmp_name)]
-            res.extend(self.generate_assignment(schema, tmp_name, source, True, handle_nullable=False))
-            res.append(f'{target} = std::move({tmp_name});')
-            return res
         return self.generate_assignment(schema, target, source, True, handle_nullable=False)
 
     def write_copy_assignment_lines(self, target: str, source: str, schema: Optional[Property]) -> List[str]:
@@ -722,29 +744,51 @@ class CPPClass:
         res = [
             '',
             f'{base}{self.name} {base}{self.name}::Copy() const {{',
-            f'\t{self.name} res;',
         ]
+        if self.is_object_schema():
+            res.append(f'\t{self.builder_class_name()} builder;')
+        constructor_args: List[str] = []
         for member in self.members:
-            target = f'res.{member.variable_name}'
-            source = member.variable_name
-            if member.uses_optional_wrapper:
-                if self.schema_uses_private_constructor(member.schema):
-                    lines = [f'{target} = {self.create_default_value_expression(self.generate_variable_type(member.schema))};']
-                else:
-                    lines = [f'{target}.emplace();']
-                lines.extend(
-                    self.write_copy_assignment_lines(
-                        self.value_access_expression(target, True),
-                        self.value_access_expression(source, True),
-                        member.schema,
-                    )
-                )
-            else:
+            local_name = self.parse_local_name(member.variable_name)
+            if member.schema is not None:
+                res.append(f'\t{self.parse_local_declaration(member.schema, local_name)}')
+                target = local_name if member.copy_guard is None else self.value_access_expression(local_name, member.uses_optional_wrapper)
+                source = member.variable_name if member.copy_guard is None else self.value_access_expression(member.variable_name, member.uses_optional_wrapper)
                 lines = self.write_copy_assignment_lines(target, source, member.schema)
-            if member.copy_guard is not None:
-                lines = [f'if ({member.copy_guard}) {{'] + [f'\t{x}' for x in lines] + ['}']
-            res.extend([f'\t{x}' for x in lines])
-        res.extend(['\treturn res;', '}'])
+                if member.copy_guard is not None:
+                    if member.uses_optional_wrapper:
+                        init_line = f'{local_name}.emplace();'
+                    else:
+                        init_line = f'{local_name} = nullptr;'
+                    lines = [f'if ({member.copy_guard}) {{', f'\t{init_line}'] + [f'\t{x}' for x in lines] + ['}']
+                res.extend([f'\t{x}' for x in lines])
+                if self.is_object_schema():
+                    setter_name = f'Set{to_pascal_case(member.variable_name)}'
+                    if member.copy_guard is not None:
+                        presence = self.presence_condition(local_name, member.uses_optional_wrapper)
+                        res.append(f'\tif ({presence}) {{')
+                        res.append(
+                            f'\t\tbuilder.{setter_name}({self.parse_local_value_expression(member.schema, local_name)});'
+                        )
+                        res.append('\t}')
+                    else:
+                        res.append(
+                            f'\tbuilder.{setter_name}({self.parse_local_value_expression(member.schema, local_name)});'
+                        )
+                else:
+                    constructor_args.append(self.parse_local_value_expression(member.schema, local_name))
+            else:
+                res.append(f'\tauto {local_name} = {member.variable_name};')
+                if self.is_object_schema():
+                    setter_name = f'Set{to_pascal_case(member.variable_name)}'
+                    res.append(f'\tbuilder.{setter_name}(std::move({local_name}));')
+                else:
+                    constructor_args.append(f'std::move({local_name})')
+        if self.is_object_schema():
+            res.append('\treturn builder.Build();')
+        else:
+            res.append(f'\treturn {base}{self.name}({", ".join(constructor_args)});')
+        res.append('}')
         return res
 
     def validation_target_expression(self, variable_name: str, schema: Property, uses_optional_wrapper: bool) -> str:
@@ -1018,13 +1062,14 @@ class CPPClass:
             lines.append(f'\t{builder_name} &{setter_name}({parameter_type} value);')
         lines.extend(
             [
-                f'\tstring TryBuild({self.name} &result);',
+                f'\tstring TryBuild(optional<{self.name}> &result);',
                 f'\t{self.name} Build();',
                 '',
                 'private:',
-                f'\t{self.name} result_;',
             ]
         )
+        for member in self.members:
+            lines.append(f'\t{self.builder_storage_type(member)} {self.member_storage_field_name(member)};')
         for prop in self.required_properties.values():
             lines.append(f'\tbool {self.builder_flag_name(prop.variable_name)} = false;')
         lines.append('};')
@@ -1038,30 +1083,38 @@ class CPPClass:
             return self.schema_uses_private_constructor(self.parse_info.parsed_schemas[schema_property.ref])
         return schema.type == Property.Type.OBJECT
 
-    def type_uses_private_constructor(self, type_name: str) -> bool:
-        if type_name not in self.parse_info.parsed_schemas:
-            return False
-        return self.schema_uses_private_constructor(self.parse_info.parsed_schemas[type_name])
+    def constructor_parameters(self) -> List[Tuple[str, str]]:
+        return [(member.variable_type, f'{member.variable_name}_p') for member in self.members]
 
-    def create_default_value_expression(self, type_name: str) -> str:
-        return f'GeneratedObjectAccess::Create<{type_name}>()'
+    def constructor_parameter_list(self) -> str:
+        return ', '.join(f'{type_name} {param_name}' for type_name, param_name in self.constructor_parameters())
 
-    def create_unique_value_expression(self, type_name: str) -> str:
-        return f'GeneratedObjectAccess::CreateUnique<{type_name}>()'
+    def constructor_initializer_list(self) -> List[str]:
+        return [f'{member.variable_name}(std::move({member.variable_name}_p))' for member in self.members]
 
-    def default_initialized_declaration(self, type_name: str, variable_name: str) -> str:
-        if self.type_uses_private_constructor(type_name):
-            return f'auto {variable_name} = {self.create_default_value_expression(type_name)};'
-        return f'{type_name} {variable_name};'
+    def builder_storage_type(self, member: CPPMember) -> str:
+        if self.uses_pointer_storage(member.schema):
+            return member.variable_type
+        if self.member_is_optional_output(member):
+            return member.variable_type
+        parameter_type = member.variable_type if member.schema is None else self.generate_builder_parameter_type(member.schema)
+        return f'optional<{parameter_type}>'
 
-    def constructor_member_initializers(self) -> List[str]:
-        initializers = []
-        for member in self.members:
-            if self.schema_uses_private_constructor(member.schema):
-                initializers.append(
-                    f'{member.variable_name}({self.create_default_value_expression(member.variable_type)})'
-                )
-        return initializers
+    def builder_presence_condition(self, member: CPPMember) -> str:
+        storage_name = self.member_storage_field_name(member)
+        if self.uses_pointer_storage(member.schema):
+            return storage_name
+        return f'{storage_name}.has_value()'
+
+    def builder_value_expression(self, member: CPPMember) -> str:
+        storage_name = self.member_storage_field_name(member)
+        if self.uses_pointer_storage(member.schema):
+            return f'std::move({storage_name})'
+        if self.member_is_optional_output(member):
+            return f'std::move({storage_name})'
+        if self.member_is_required(member):
+            return f'std::move(*{storage_name})'
+        return f'{storage_name}.has_value() ? std::move(*{storage_name}) : {self.default_value_expression(member.variable_type)}'
 
     def write_builder_source(self, base: str, qualified_name: str) -> List[str]:
         if not self.is_object_schema():
@@ -1080,44 +1133,41 @@ class CPPClass:
                 [
                     '',
                     f'{builder_qualified_name} &{builder_qualified_name}::{setter_name}({parameter_type} value) {{',
-                    f'\tresult_.{member.variable_name} = std::move(value);',
+                    f'\t{self.member_storage_field_name(member)} = std::move(value);',
                 ]
             )
             if member.variable_name in [prop.variable_name for prop in self.required_properties.values()]:
                 lines.append(f'\t{self.builder_flag_name(member.variable_name)} = true;')
             lines.extend(['\treturn *this;', '}'])
 
-        lines.extend(
-            [
-                '',
-                f'string {builder_qualified_name}::TryBuild({qualified_name} &result) {{',
-            ]
-        )
+        lines.extend(['', f'{qualified_name} {builder_qualified_name}::Build() {{'])
         for prop in self.required_properties.values():
             lines.extend(
                 [
                     f'\tif (!{self.builder_flag_name(prop.variable_name)}) {{',
-                    f'''\t\treturn "{self.name} required property '{prop.property_name}' is missing";''',
+                    f'''\t\tthrow InvalidInputException("{self.name} required property '{prop.property_name}' is missing");''',
                     '\t}',
                 ]
             )
+        constructor_args = ', '.join(self.builder_value_expression(member) for member in self.members)
         lines.extend(
             [
-                '\tauto error = result_.Validate();',
-                '\tif (!error.empty()) {',
-                '\t\treturn error;',
-                '\t}',
-                '\tresult = std::move(result_);',
-                '\treturn "";',
-                '}',
-                '',
-                f'{qualified_name} {builder_qualified_name}::Build() {{',
-                f'\t{qualified_name} result;',
-                '\tauto error = TryBuild(result);',
+                f'\tauto result = {qualified_name}({constructor_args});',
+                '\tauto error = result.Validate();',
                 '\tif (!error.empty()) {',
                 '\t\tthrow InvalidInputException(error);',
                 '\t}',
                 '\treturn result;',
+                '}',
+                '',
+                f'string {builder_qualified_name}::TryBuild(optional<{qualified_name}> &result) {{',
+                '\ttry {',
+                '\t\tresult.emplace(Build());',
+                '\t\treturn "";',
+                '\t} catch (const Exception &ex) {',
+                '\t\tauto error = ErrorData(ex);',
+                '\t\treturn error.RawMessage();',
+                '\t}',
                 '}',
             ]
         )
@@ -1128,8 +1178,8 @@ class CPPClass:
         base = '::'.join(base_class) + '::' if base_class else ''
         qualified_name = f'{base}{self.name}'
         supports_population = self.supports_json_object_population()
-        member_initializers = self.constructor_member_initializers()
-        constructor_signature = f'{qualified_name}::{self.name}()'
+        constructor_signature = f'{qualified_name}::{self.name}({self.constructor_parameter_list()})'
+        member_initializers = self.constructor_initializer_list()
         if member_initializers:
             constructor_signature += f' : {", ".join(member_initializers)}'
         res.append(f'{constructor_signature} {{}}')
@@ -1137,39 +1187,36 @@ class CPPClass:
         res.extend(self.write_builder_source(base, qualified_name))
 
         # Deserialization method
+        res.extend(['', f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{'])
+        if self.is_object_schema():
+            res.append(f'\t{self.builder_class_name()} builder;')
+            res.extend([f'\t{x}' for x in self.write_all_of()])
+            res.extend([f'\t{x}' for x in self.write_one_of()])
+            res.extend([f'\t{x}' for x in self.write_any_of()])
+            res.extend(self.try_from_json_body)
+            res.extend(['\treturn builder.Build();', '}'])
+        else:
+            root_type = self.generate_variable_type(self.root_schema())
+            res.append(f'\t{root_type} value;')
+            res.extend([f'\t{x}' for x in self.try_from_json_body])
+            res.extend([f'\treturn {qualified_name}(std::move(value));', '}'])
         res.extend(
             [
                 '',
-                f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{',
-                f'\t{self.name} res;',
-                '\tauto error = res.TryFromJSON(obj);',
-                '\tif (!error.empty()) {',
-                '\t\tthrow InvalidInputException(error);',
+                f'string {qualified_name}::TryFromJSON(yyjson_val *obj, optional<{qualified_name}> &result) {{',
+                '\ttry {',
+                '\t\tresult.emplace(FromJSON(obj));',
+                '\t\treturn "";',
+                '\t} catch (const Exception &ex) {',
+                '\t\tauto error = ErrorData(ex);',
+                '\t\treturn error.RawMessage();',
                 '\t}',
-                '\treturn res;',
                 '}',
             ]
         )
         res.extend(self.write_copy_method_source(base))
         res.extend(self.write_validation_method_source(qualified_name))
-        res.extend(
-            [
-                '',
-                f'string {qualified_name}::TryFromJSON(yyjson_val *obj) {{',
-                '\tstring error;',
-            ]
-        )
-        res.extend([f'\t{x}' for x in self.write_all_of()])
-        res.extend([f'\t{x}' for x in self.write_one_of()])
-        res.extend([f'\t{x}' for x in self.write_any_of()])
-        res.extend(self.try_from_json_body)
-        res.extend(
-            [
-                '\treturn Validate();',
-                '}',
-                '',
-            ]
-        )
+        res.extend([''])
 
         if self.name not in SERIALIZATION_EXCLUDED:
             # Serialization methods
@@ -1202,30 +1249,27 @@ class CPPClass:
                 f'\t{self.name}(const {self.name}&) = delete;',
                 f'\t{self.name}& operator=(const {self.name}&) = delete;',
                 f'\t{self.name}({self.name}&&) = default;',
-                f'\t{self.name} &operator=({self.name}&&) = default;',
+                f'\t{self.name} &operator=({self.name}&&) = delete;',
             ]
         )
+        res.extend(self.write_nested_classes_header())
         if self.is_object_schema():
             res.extend(
                 [
                     'private:',
                     f'\tfriend class {self.builder_class_name()};',
-                    '\tfriend class GeneratedObjectAccess;',
-                    f'\t{self.name}();',
+                    f'\t{self.name}({self.constructor_parameter_list()});',
                     '',
                 ]
             )
         else:
-            res.append(f'\t{self.name}();')
-        if self.nested_classes:
-            res.append('public:')
-        res.extend(self.write_nested_classes_header())
+            res.append(f'\t{self.name}({self.constructor_parameter_list()});')
         res.extend(
             [
                 'public:',
                 '\t// Deserialization',
                 f'\tstatic {self.name} FromJSON(yyjson_val *obj);',
-                '\tstring TryFromJSON(yyjson_val *obj);',
+                f'\tstatic string TryFromJSON(yyjson_val *obj, optional<{self.name}> &result);',
                 '\tstring Validate() const;',
                 '',
                 '\t// Copy',
@@ -1313,18 +1357,15 @@ class CPPClass:
 
         assignment = 'std::move(tmp)'
         if item_type.type != Property.Type.SCHEMA_REFERENCE:
-            body.append(self.default_initialized_declaration(self.generate_variable_type(item_type), 'tmp'))
+            body.append(f'{self.generate_variable_type(item_type)} tmp;')
             body.extend(self.generate_item_parse(item_type, 'val', 'tmp', True))
         else:
             schema_property = cast(SchemaReferenceProperty, item_type)
             self.referenced_schemas.add(schema_property.ref)
-            item_definition = ''
             if schema_property.ref in self.parse_info.recursive_schemas:
-                body.extend([f'\tauto tmp_p = {self.create_unique_value_expression(schema_property.ref)};', '\tauto &tmp = *tmp_p;'])
-                assignment = 'std::move(tmp_p)'
+                body.append(f'\tauto tmp = make_uniq<{schema_property.ref}>({schema_property.ref}::FromJSON(val));')
             else:
-                body.append(f'\t{self.default_initialized_declaration(schema_property.ref, "tmp")}')
-            body.extend(['\terror = tmp.TryFromJSON(val);', '\tif (!error.empty()) {', '\t\treturn error;', '\t}'])
+                body.append(f'\tauto tmp = {schema_property.ref}::FromJSON(val);')
         body.append(f'\t{destination_name}.emplace_back({assignment});')
         body.append('}')
 
@@ -1340,7 +1381,7 @@ class CPPClass:
                 res.extend(
                     [
                         f'if (yyjson_is_null({array_name})) {{',
-                        f'''\treturn "{self.name} property '{destination_name}' is not nullable, but is 'null'";''',
+                        f'''\tthrow InvalidInputException("{self.name} property '{destination_name}' is not nullable, but is 'null'");''',
                     ]
                 )
 
@@ -1374,7 +1415,7 @@ class CPPClass:
                 res.extend(
                     [
                         f'if (yyjson_is_null({source})) {{',
-                        f'''\treturn "{self.name} property '{target}' is not nullable, but is 'null'";''',
+                        f'''\tthrow InvalidInputException("{self.name} property '{target}' is not nullable, but is 'null'");''',
                     ]
                 )
 
@@ -1427,7 +1468,7 @@ class CPPClass:
             res.extend(
                 [
                     '} else {',
-                    f"""\treturn StringUtil::Format("{self.name} property '{target}' is not of type '{item_type}', found '%s' instead", yyjson_get_type_desc({source}));""",
+                    f"""\tthrow InvalidInputException(StringUtil::Format("{self.name} property '{target}' is not of type '{item_type}', found '%s' instead", yyjson_get_type_desc({source})));""",
                     '}',
                 ]
             )
@@ -1437,12 +1478,11 @@ class CPPClass:
                     f'{prefix}if (yyjson_is_obj({source})) {{',
                     f'\t{target} = {source};',
                     '} else {',
-                    f"""\treturn "{self.name} property '{target}' is not of type 'object'";""",
+                    f"""\tthrow InvalidInputException("{self.name} property '{target}' is not of type 'object'");""",
                     '}',
                 ]
             )
         elif property.type == Property.Type.OBJECT and property.additional_properties:
-            object_property = cast(ObjectProperty, property)
             additional_properties = property.additional_properties
 
             res.append(f'{prefix}if (yyjson_is_obj({source})) {{')
@@ -1455,7 +1495,7 @@ class CPPClass:
             )
             # FIXME: check for null in returned char*?
             res.append('\t\tauto key_str = yyjson_get_str(key);')
-            res.append(f'\t\t{self.default_initialized_declaration(self.generate_variable_type(additional_properties), "tmp")}')
+            res.append(f'\t\t{self.generate_variable_type(additional_properties)} tmp;')
 
             if additional_properties.type != Property.Type.SCHEMA_REFERENCE:
                 item_definition = [
@@ -1468,22 +1508,14 @@ class CPPClass:
                 if schema_property.ref in self.parse_info.recursive_schemas:
                     print(f"Encountered recursive schema '{schema_property.ref}' in 'generate_additional_properties'")
                     exit(1)
-                res.append(f'\t\t{self.default_initialized_declaration(schema_property.ref, "tmp")}')
-                res.extend(
-                    [
-                        '\t\terror = tmp.TryFromJSON(val);',
-                        '\t\tif (!error.empty()) {',
-                        '\t\t\treturn error;',
-                        '\t\t}',
-                    ]
-                )
+                res.append(f'\t\tauto tmp = {schema_property.ref}::FromJSON(val);')
             res.extend(
                 [
                     f'\t\t{target}.emplace(key_str, std::move(tmp));',
                     '\t}',
                 ]
             )
-            res.extend(['} else {', f"""\treturn "{self.name} property '{target}' is not of type 'object'";""", '}'])
+            res.extend(['} else {', f"""\tthrow InvalidInputException("{self.name} property '{target}' is not of type 'object'");""", '}'])
         else:
             print(f"Unrecognized type in 'generate_item_parse', {property.type}")
             exit(1)
@@ -1499,18 +1531,10 @@ class CPPClass:
             schema_property = cast(SchemaReferenceProperty, schema)
             self.referenced_schemas.add(schema_property.ref)
             result = []
-            dereference_style = '.'
             if schema_property.ref in self.parse_info.recursive_schemas:
-                result.append(f'{target} = {self.create_unique_value_expression(schema_property.ref)};')
-                dereference_style = '->'
-            result.extend(
-                [
-                    f'error = {target}{dereference_style}TryFromJSON({source});',
-                    'if (!error.empty()) {',
-                    '    return error;',
-                    '}',
-                ]
-            )
+                result.append(f'{target} = make_uniq<{schema_property.ref}>({schema_property.ref}::FromJSON({source}));')
+            else:
+                result.append(f'{target} = {schema_property.ref}::FromJSON({source});')
             return result
         else:
             return self.generate_item_parse(schema, source, target, is_required, handle_nullable=handle_nullable)
@@ -1576,7 +1600,7 @@ class CPPClass:
 
         body = []
         if additional_properties.type != Property.Type.SCHEMA_REFERENCE:
-            body.append(f'\t{self.default_initialized_declaration(self.generate_variable_type(additional_properties), "tmp")}')
+            body.append(f'\t{self.generate_variable_type(additional_properties)} tmp;')
             body.extend(self.generate_item_parse(additional_properties, 'val', 'tmp', True))
         else:
             schema_property = cast(SchemaReferenceProperty, additional_properties)
@@ -1584,15 +1608,7 @@ class CPPClass:
             if schema_property.ref in self.parse_info.recursive_schemas:
                 print(f"Encountered recursive schema '{schema_property.ref}' in 'generate_additional_properties'")
                 exit(1)
-            body.append(f'\t{self.default_initialized_declaration(schema_property.ref, "tmp")}')
-            body.extend(
-                [
-                    'error = tmp.TryFromJSON(val);',
-                    'if (!error.empty()) {',
-                    '\treturn error;',
-                    '}',
-                ]
-            )
+            body.append(f'\tauto tmp = {schema_property.ref}::FromJSON(val);')
         self.additional_properties = AdditionalProperty(
             body=body, exclude_list=exclude_list, skip_if_excluded=skip_if_excluded, schema=additional_properties
         )

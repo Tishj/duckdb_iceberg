@@ -20,17 +20,17 @@ public:
 	UpdateNamespacePropertiesResponse(const UpdateNamespacePropertiesResponse &) = delete;
 	UpdateNamespacePropertiesResponse &operator=(const UpdateNamespacePropertiesResponse &) = delete;
 	UpdateNamespacePropertiesResponse(UpdateNamespacePropertiesResponse &&) = default;
-	UpdateNamespacePropertiesResponse &operator=(UpdateNamespacePropertiesResponse &&) = default;
+	UpdateNamespacePropertiesResponse &operator=(UpdateNamespacePropertiesResponse &&) = delete;
 
 private:
 	friend class UpdateNamespacePropertiesResponseBuilder;
-	friend class GeneratedObjectAccess;
-	UpdateNamespacePropertiesResponse();
+	UpdateNamespacePropertiesResponse(vector<string> updated_p, vector<string> removed_p,
+	                                  optional<vector<string>> missing_p);
 
 public:
 	// Deserialization
 	static UpdateNamespacePropertiesResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<UpdateNamespacePropertiesResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -52,11 +52,13 @@ public:
 	UpdateNamespacePropertiesResponseBuilder &SetUpdated(vector<string> value);
 	UpdateNamespacePropertiesResponseBuilder &SetRemoved(vector<string> value);
 	UpdateNamespacePropertiesResponseBuilder &SetMissing(vector<string> value);
-	string TryBuild(UpdateNamespacePropertiesResponse &result);
+	string TryBuild(optional<UpdateNamespacePropertiesResponse> &result);
 	UpdateNamespacePropertiesResponse Build();
 
 private:
-	UpdateNamespacePropertiesResponse result_;
+	optional<vector<string>> updated_;
+	optional<vector<string>> removed_;
+	optional<vector<string>> missing_;
 	bool has_updated_ = false;
 	bool has_removed_ = false;
 };

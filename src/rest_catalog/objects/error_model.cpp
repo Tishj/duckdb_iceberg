@@ -14,84 +14,167 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-ErrorModel::ErrorModel() {
+ErrorModel::ErrorModel(string message_p, string type_p, int32_t code_p, optional<vector<string>> stack_p)
+    : message(std::move(message_p)), type(std::move(type_p)), code(std::move(code_p)), stack(std::move(stack_p)) {
 }
 
 ErrorModelBuilder::ErrorModelBuilder() {
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetMessage(string value) {
-	result_.message = std::move(value);
+	message_ = std::move(value);
 	has_message_ = true;
 	return *this;
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetType(string value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetCode(int32_t value) {
-	result_.code = std::move(value);
+	code_ = std::move(value);
 	has_code_ = true;
 	return *this;
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetStack(vector<string> value) {
-	result_.stack = std::move(value);
+	stack_ = std::move(value);
 	return *this;
 }
 
-string ErrorModelBuilder::TryBuild(ErrorModel &result) {
+ErrorModel ErrorModelBuilder::Build() {
 	if (!has_message_) {
-		return "ErrorModel required property 'message' is missing";
+		throw InvalidInputException("ErrorModel required property 'message' is missing");
 	}
 	if (!has_type_) {
-		return "ErrorModel required property 'type' is missing";
+		throw InvalidInputException("ErrorModel required property 'type' is missing");
 	}
 	if (!has_code_) {
-		return "ErrorModel required property 'code' is missing";
+		throw InvalidInputException("ErrorModel required property 'code' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-ErrorModel ErrorModelBuilder::Build() {
-	ErrorModel result;
-	auto error = TryBuild(result);
+	auto result = ErrorModel(std::move(*message_), std::move(*type_), std::move(*code_), std::move(stack_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-ErrorModel ErrorModel::FromJSON(yyjson_val *obj) {
-	ErrorModel res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string ErrorModelBuilder::TryBuild(optional<ErrorModel> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+ErrorModel ErrorModel::FromJSON(yyjson_val *obj) {
+	ErrorModelBuilder builder;
+	auto message_val = yyjson_obj_get(obj, "message");
+	if (!message_val) {
+		throw InvalidInputException("ErrorModel required property 'message' is missing");
+	} else {
+		string message;
+		if (yyjson_is_str(message_val)) {
+			message = yyjson_get_str(message_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("ErrorModel property 'message' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(message_val)));
+		}
+		builder.SetMessage(std::move(message));
+	}
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("ErrorModel required property 'type' is missing");
+	} else {
+		string type;
+		if (yyjson_is_str(type_val)) {
+			type = yyjson_get_str(type_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("ErrorModel property 'type' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(type_val)));
+		}
+		builder.SetType(std::move(type));
+	}
+	auto code_val = yyjson_obj_get(obj, "code");
+	if (!code_val) {
+		throw InvalidInputException("ErrorModel required property 'code' is missing");
+	} else {
+		int32_t code;
+		if (yyjson_is_int(code_val)) {
+			code = yyjson_get_int(code_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("ErrorModel property 'code' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(code_val)));
+		}
+		builder.SetCode(std::move(code));
+	}
+	auto stack_val = yyjson_obj_get(obj, "stack");
+	if (stack_val) {
+		vector<string> stack;
+		if (yyjson_is_arr(stack_val)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(stack_val, idx, max, val) {
+				string tmp;
+				if (yyjson_is_str(val)) {
+					tmp = yyjson_get_str(val);
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("ErrorModel property 'tmp' is not of type 'string', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
+				}
+				stack.emplace_back(std::move(tmp));
+			}
+		} else {
+			return StringUtil::Format("ErrorModel property 'stack' is not of type 'array', found '%s' instead",
+			                          yyjson_get_type_desc(stack_val));
+		}
+		builder.SetStack(std::move(stack));
+	}
+	return builder.Build();
+}
+
+string ErrorModel::TryFromJSON(yyjson_val *obj, optional<ErrorModel> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 ErrorModel ErrorModel::Copy() const {
-	ErrorModel res;
-	res.message = message;
-	res.type = type;
-	res.code = code;
+	ErrorModelBuilder builder;
+	string message_tmp;
+	message_tmp = message;
+	builder.SetMessage(std::move(message_tmp));
+	string type_tmp;
+	type_tmp = type;
+	builder.SetType(std::move(type_tmp));
+	int32_t code_tmp;
+	code_tmp = code;
+	builder.SetCode(std::move(code_tmp));
+	vector<string> stack_tmp;
 	if (stack.has_value()) {
-		res.stack.emplace();
-		(*res.stack).reserve((*stack).size());
+		stack_tmp.emplace();
+		(*stack_tmp).reserve((*stack).size());
 		for (auto &item : (*stack)) {
-			(*res.stack).emplace_back(item);
+			(*stack_tmp).emplace_back(item);
 		}
 	}
-	return res;
+	if (stack_tmp.has_value()) {
+		builder.SetStack(std::move(stack_tmp));
+	}
+	return builder.Build();
 }
 
 string ErrorModel::Validate() const {
@@ -103,66 +186,6 @@ string ErrorModel::Validate() const {
 		return "ErrorModel property 'code' must be at most 600";
 	}
 	return "";
-}
-
-string ErrorModel::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto message_val = yyjson_obj_get(obj, "message");
-	if (!message_val) {
-		return "ErrorModel required property 'message' is missing";
-	} else {
-		if (yyjson_is_str(message_val)) {
-			message = yyjson_get_str(message_val);
-		} else {
-			return StringUtil::Format("ErrorModel property 'message' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(message_val));
-		}
-	}
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "ErrorModel required property 'type' is missing";
-	} else {
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			return StringUtil::Format("ErrorModel property 'type' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(type_val));
-		}
-	}
-	auto code_val = yyjson_obj_get(obj, "code");
-	if (!code_val) {
-		return "ErrorModel required property 'code' is missing";
-	} else {
-		if (yyjson_is_int(code_val)) {
-			code = yyjson_get_int(code_val);
-		} else {
-			return StringUtil::Format("ErrorModel property 'code' is not of type 'integer', found '%s' instead",
-			                          yyjson_get_type_desc(code_val));
-		}
-	}
-	auto stack_val = yyjson_obj_get(obj, "stack");
-	if (stack_val) {
-		vector<string> stack_tmp;
-		if (yyjson_is_arr(stack_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(stack_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					return StringUtil::Format("ErrorModel property 'tmp' is not of type 'string', found '%s' instead",
-					                          yyjson_get_type_desc(val));
-				}
-				stack_tmp.emplace_back(std::move(tmp));
-			}
-		} else {
-			return StringUtil::Format("ErrorModel property 'stack_tmp' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(stack_val));
-		}
-		stack = std::move(stack_tmp);
-	}
-	return Validate();
 }
 
 void ErrorModel::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

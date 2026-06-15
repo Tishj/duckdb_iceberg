@@ -22,17 +22,16 @@ public:
 	Term(const Term &) = delete;
 	Term &operator=(const Term &) = delete;
 	Term(Term &&) = default;
-	Term &operator=(Term &&) = default;
+	Term &operator=(Term &&) = delete;
 
 private:
 	friend class TermBuilder;
-	friend class GeneratedObjectAccess;
-	Term();
+	Term(optional<Reference> reference_p, optional<TransformTerm> transform_term_p);
 
 public:
 	// Deserialization
 	static Term FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<Term> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	TermBuilder();
 	TermBuilder &SetReference(Reference value);
 	TermBuilder &SetTransformTerm(TransformTerm value);
-	string TryBuild(Term &result);
+	string TryBuild(optional<Term> &result);
 	Term Build();
 
 private:
-	Term result_;
+	optional<Reference> reference_;
+	optional<TransformTerm> transform_term_;
 };
 
 } // namespace rest_api_objects

@@ -21,17 +21,16 @@ public:
 	PartitionField(const PartitionField &) = delete;
 	PartitionField &operator=(const PartitionField &) = delete;
 	PartitionField(PartitionField &&) = default;
-	PartitionField &operator=(PartitionField &&) = default;
+	PartitionField &operator=(PartitionField &&) = delete;
 
 private:
 	friend class PartitionFieldBuilder;
-	friend class GeneratedObjectAccess;
-	PartitionField();
+	PartitionField(int32_t source_id_p, Transform transform_p, string name_p, optional<int32_t> field_id_p);
 
 public:
 	// Deserialization
 	static PartitionField FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PartitionField> &result);
 	string Validate() const;
 
 	// Copy
@@ -55,11 +54,14 @@ public:
 	PartitionFieldBuilder &SetTransform(Transform value);
 	PartitionFieldBuilder &SetName(string value);
 	PartitionFieldBuilder &SetFieldId(int32_t value);
-	string TryBuild(PartitionField &result);
+	string TryBuild(optional<PartitionField> &result);
 	PartitionField Build();
 
 private:
-	PartitionField result_;
+	optional<int32_t> source_id_;
+	optional<Transform> transform_;
+	optional<string> name_;
+	optional<int32_t> field_id_;
 	bool has_source_id_ = false;
 	bool has_transform_ = false;
 	bool has_name_ = false;

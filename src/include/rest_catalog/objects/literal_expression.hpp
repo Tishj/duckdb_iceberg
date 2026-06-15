@@ -23,17 +23,16 @@ public:
 	LiteralExpression(const LiteralExpression &) = delete;
 	LiteralExpression &operator=(const LiteralExpression &) = delete;
 	LiteralExpression(LiteralExpression &&) = default;
-	LiteralExpression &operator=(LiteralExpression &&) = default;
+	LiteralExpression &operator=(LiteralExpression &&) = delete;
 
 private:
 	friend class LiteralExpressionBuilder;
-	friend class GeneratedObjectAccess;
-	LiteralExpression();
+	LiteralExpression(ExpressionType type_p, Term term_p, PrimitiveTypeValue value_p);
 
 public:
 	// Deserialization
 	static LiteralExpression FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<LiteralExpression> &result);
 	string Validate() const;
 
 	// Copy
@@ -54,11 +53,13 @@ public:
 	LiteralExpressionBuilder &SetType(ExpressionType value);
 	LiteralExpressionBuilder &SetTerm(Term value);
 	LiteralExpressionBuilder &SetValue(PrimitiveTypeValue value);
-	string TryBuild(LiteralExpression &result);
+	string TryBuild(optional<LiteralExpression> &result);
 	LiteralExpression Build();
 
 private:
-	LiteralExpression result_;
+	optional<ExpressionType> type_;
+	optional<Term> term_;
+	optional<PrimitiveTypeValue> value_;
 	bool has_type_ = false;
 	bool has_term_ = false;
 	bool has_value_ = false;

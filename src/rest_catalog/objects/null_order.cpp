@@ -14,22 +14,34 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-NullOrder::NullOrder() {
+NullOrder::NullOrder(string value_p) : value(std::move(value_p)) {
 }
 
 NullOrder NullOrder::FromJSON(yyjson_val *obj) {
-	NullOrder res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	string value;
+	if (yyjson_is_str(obj)) {
+		value = yyjson_get_str(obj);
+	} else {
+		throw InvalidInputException(StringUtil::Format(
+		    "NullOrder property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
-	return res;
+	return NullOrder(std::move(value));
+}
+
+string NullOrder::TryFromJSON(yyjson_val *obj, optional<NullOrder> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 NullOrder NullOrder::Copy() const {
-	NullOrder res;
-	res.value = value;
-	return res;
+	string value_tmp;
+	value_tmp = value;
+	return NullOrder(std::move(value_tmp));
 }
 
 string NullOrder::Validate() const {
@@ -38,17 +50,6 @@ string NullOrder::Validate() const {
 		return StringUtil::Format("NullOrder property 'value' must be one of [nulls-first, nulls-last], not %s", value);
 	}
 	return "";
-}
-
-string NullOrder::TryFromJSON(yyjson_val *obj) {
-	string error;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		return StringUtil::Format("NullOrder property 'value' is not of type 'string', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
-	}
-	return Validate();
 }
 
 yyjson_mut_val *NullOrder::ToJSON(yyjson_mut_doc *doc) const {

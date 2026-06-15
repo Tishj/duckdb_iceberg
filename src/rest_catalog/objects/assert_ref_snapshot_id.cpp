@@ -14,71 +14,127 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-AssertRefSnapshotId::AssertRefSnapshotId() {
+AssertRefSnapshotId::AssertRefSnapshotId(TableRequirementType type_p, string ref_p, optional<int64_t> snapshot_id_p)
+    : type(std::move(type_p)), ref(std::move(ref_p)), snapshot_id(std::move(snapshot_id_p)) {
 }
 
 AssertRefSnapshotIdBuilder::AssertRefSnapshotIdBuilder() {
 }
 
 AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetType(TableRequirementType value) {
-	result_.type = std::move(value);
+	type_ = std::move(value);
 	has_type_ = true;
 	return *this;
 }
 
 AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetRef(string value) {
-	result_.ref = std::move(value);
+	ref_ = std::move(value);
 	has_ref_ = true;
 	return *this;
 }
 
 AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetSnapshotId(int64_t value) {
-	result_.snapshot_id = std::move(value);
+	snapshot_id_ = std::move(value);
 	return *this;
 }
 
-string AssertRefSnapshotIdBuilder::TryBuild(AssertRefSnapshotId &result) {
+AssertRefSnapshotId AssertRefSnapshotIdBuilder::Build() {
 	if (!has_type_) {
-		return "AssertRefSnapshotId required property 'type' is missing";
+		throw InvalidInputException("AssertRefSnapshotId required property 'type' is missing");
 	}
 	if (!has_ref_) {
-		return "AssertRefSnapshotId required property 'ref' is missing";
+		throw InvalidInputException("AssertRefSnapshotId required property 'ref' is missing");
 	}
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
-AssertRefSnapshotId AssertRefSnapshotIdBuilder::Build() {
-	AssertRefSnapshotId result;
-	auto error = TryBuild(result);
+	auto result = AssertRefSnapshotId(std::move(*type_), std::move(*ref_), std::move(snapshot_id_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-AssertRefSnapshotId AssertRefSnapshotId::FromJSON(yyjson_val *obj) {
-	AssertRefSnapshotId res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string AssertRefSnapshotIdBuilder::TryBuild(optional<AssertRefSnapshotId> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+AssertRefSnapshotId AssertRefSnapshotId::FromJSON(yyjson_val *obj) {
+	AssertRefSnapshotIdBuilder builder;
+	auto type_val = yyjson_obj_get(obj, "type");
+	if (!type_val) {
+		throw InvalidInputException("AssertRefSnapshotId required property 'type' is missing");
+	} else {
+		optional<TableRequirementType> type;
+		type = TableRequirementType::FromJSON(type_val);
+		builder.SetType(std::move(*type));
+	}
+	auto ref_val = yyjson_obj_get(obj, "ref");
+	if (!ref_val) {
+		throw InvalidInputException("AssertRefSnapshotId required property 'ref' is missing");
+	} else {
+		string ref;
+		if (yyjson_is_str(ref_val)) {
+			ref = yyjson_get_str(ref_val);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("AssertRefSnapshotId property 'ref' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(ref_val)));
+		}
+		builder.SetRef(std::move(ref));
+	}
+	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+	if (snapshot_id_val) {
+		if (yyjson_is_null(snapshot_id_val)) {
+			//! do nothing, property is explicitly nullable
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "AssertRefSnapshotId property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+	}
+	return builder.Build();
+}
+
+string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj, optional<AssertRefSnapshotId> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 AssertRefSnapshotId AssertRefSnapshotId::Copy() const {
-	AssertRefSnapshotId res;
-	res.type = type.Copy();
-	res.ref = ref;
+	AssertRefSnapshotIdBuilder builder;
+	optional<TableRequirementType> type_tmp;
+	type_tmp = type.Copy();
+	builder.SetType(std::move(*type_tmp));
+	string ref_tmp;
+	ref_tmp = ref;
+	builder.SetRef(std::move(ref_tmp));
+	int64_t snapshot_id_tmp;
 	if (snapshot_id.has_value()) {
-		res.snapshot_id.emplace();
-		(*res.snapshot_id) = (*snapshot_id);
+		snapshot_id_tmp.emplace();
+		(*snapshot_id_tmp) = (*snapshot_id);
 	}
-	return res;
+	if (snapshot_id_tmp.has_value()) {
+		builder.SetSnapshotId(std::move(snapshot_id_tmp));
+	}
+	return builder.Build();
 }
 
 string AssertRefSnapshotId::Validate() const {
@@ -92,49 +148,6 @@ string AssertRefSnapshotId::Validate() const {
 		                          type.value);
 	}
 	return "";
-}
-
-string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj) {
-	string error;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		return "AssertRefSnapshotId required property 'type' is missing";
-	} else {
-		error = type.TryFromJSON(type_val);
-		if (!error.empty()) {
-			return error;
-		}
-	}
-	auto ref_val = yyjson_obj_get(obj, "ref");
-	if (!ref_val) {
-		return "AssertRefSnapshotId required property 'ref' is missing";
-	} else {
-		if (yyjson_is_str(ref_val)) {
-			ref = yyjson_get_str(ref_val);
-		} else {
-			return StringUtil::Format("AssertRefSnapshotId property 'ref' is not of type 'string', found '%s' instead",
-			                          yyjson_get_type_desc(ref_val));
-		}
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (snapshot_id_val) {
-		if (yyjson_is_null(snapshot_id_val)) {
-			//! do nothing, property is explicitly nullable
-		} else {
-			int64_t snapshot_id_tmp;
-			if (yyjson_is_sint(snapshot_id_val)) {
-				snapshot_id_tmp = yyjson_get_sint(snapshot_id_val);
-			} else if (yyjson_is_uint(snapshot_id_val)) {
-				snapshot_id_tmp = yyjson_get_uint(snapshot_id_val);
-			} else {
-				return StringUtil::Format(
-				    "AssertRefSnapshotId property 'snapshot_id_tmp' is not of type 'integer', found '%s' instead",
-				    yyjson_get_type_desc(snapshot_id_val));
-			}
-			snapshot_id = std::move(snapshot_id_tmp);
-		}
-	}
-	return Validate();
 }
 
 void AssertRefSnapshotId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

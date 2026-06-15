@@ -21,17 +21,16 @@ public:
 	CommitTableResponse(const CommitTableResponse &) = delete;
 	CommitTableResponse &operator=(const CommitTableResponse &) = delete;
 	CommitTableResponse(CommitTableResponse &&) = default;
-	CommitTableResponse &operator=(CommitTableResponse &&) = default;
+	CommitTableResponse &operator=(CommitTableResponse &&) = delete;
 
 private:
 	friend class CommitTableResponseBuilder;
-	friend class GeneratedObjectAccess;
-	CommitTableResponse();
+	CommitTableResponse(string metadata_location_p, TableMetadata metadata_p);
 
 public:
 	// Deserialization
 	static CommitTableResponse FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CommitTableResponse> &result);
 	string Validate() const;
 
 	// Copy
@@ -51,11 +50,12 @@ public:
 	CommitTableResponseBuilder();
 	CommitTableResponseBuilder &SetMetadataLocation(string value);
 	CommitTableResponseBuilder &SetMetadata(TableMetadata value);
-	string TryBuild(CommitTableResponse &result);
+	string TryBuild(optional<CommitTableResponse> &result);
 	CommitTableResponse Build();
 
 private:
-	CommitTableResponse result_;
+	optional<string> metadata_location_;
+	optional<TableMetadata> metadata_;
 	bool has_metadata_location_ = false;
 	bool has_metadata_ = false;
 };

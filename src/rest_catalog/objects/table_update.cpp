@@ -14,252 +14,474 @@ using namespace duckdb_yyjson;
 namespace duckdb {
 namespace rest_api_objects {
 
-TableUpdate::TableUpdate()
-    : assign_uuidupdate(GeneratedObjectAccess::Create<optional<AssignUUIDUpdate>>()),
-      upgrade_format_version_update(GeneratedObjectAccess::Create<optional<UpgradeFormatVersionUpdate>>()),
-      add_schema_update(GeneratedObjectAccess::Create<optional<AddSchemaUpdate>>()),
-      set_current_schema_update(GeneratedObjectAccess::Create<optional<SetCurrentSchemaUpdate>>()),
-      add_partition_spec_update(GeneratedObjectAccess::Create<optional<AddPartitionSpecUpdate>>()),
-      set_default_spec_update(GeneratedObjectAccess::Create<optional<SetDefaultSpecUpdate>>()),
-      add_sort_order_update(GeneratedObjectAccess::Create<optional<AddSortOrderUpdate>>()),
-      set_default_sort_order_update(GeneratedObjectAccess::Create<optional<SetDefaultSortOrderUpdate>>()),
-      add_snapshot_update(GeneratedObjectAccess::Create<optional<AddSnapshotUpdate>>()),
-      set_snapshot_ref_update(GeneratedObjectAccess::Create<optional<SetSnapshotRefUpdate>>()),
-      remove_snapshots_update(GeneratedObjectAccess::Create<optional<RemoveSnapshotsUpdate>>()),
-      remove_snapshot_ref_update(GeneratedObjectAccess::Create<optional<RemoveSnapshotRefUpdate>>()),
-      set_location_update(GeneratedObjectAccess::Create<optional<SetLocationUpdate>>()),
-      set_properties_update(GeneratedObjectAccess::Create<optional<SetPropertiesUpdate>>()),
-      remove_properties_update(GeneratedObjectAccess::Create<optional<RemovePropertiesUpdate>>()),
-      set_statistics_update(GeneratedObjectAccess::Create<optional<SetStatisticsUpdate>>()),
-      remove_statistics_update(GeneratedObjectAccess::Create<optional<RemoveStatisticsUpdate>>()),
-      remove_partition_specs_update(GeneratedObjectAccess::Create<optional<RemovePartitionSpecsUpdate>>()),
-      remove_schemas_update(GeneratedObjectAccess::Create<optional<RemoveSchemasUpdate>>()),
-      add_encryption_key_update(GeneratedObjectAccess::Create<optional<AddEncryptionKeyUpdate>>()),
-      remove_encryption_key_update(GeneratedObjectAccess::Create<optional<RemoveEncryptionKeyUpdate>>()) {
+TableUpdate::TableUpdate(
+    optional<AssignUUIDUpdate> assign_uuidupdate_p,
+    optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_p, optional<AddSchemaUpdate> add_schema_update_p,
+    optional<SetCurrentSchemaUpdate> set_current_schema_update_p,
+    optional<AddPartitionSpecUpdate> add_partition_spec_update_p,
+    optional<SetDefaultSpecUpdate> set_default_spec_update_p, optional<AddSortOrderUpdate> add_sort_order_update_p,
+    optional<SetDefaultSortOrderUpdate> set_default_sort_order_update_p,
+    optional<AddSnapshotUpdate> add_snapshot_update_p, optional<SetSnapshotRefUpdate> set_snapshot_ref_update_p,
+    optional<RemoveSnapshotsUpdate> remove_snapshots_update_p,
+    optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update_p, optional<SetLocationUpdate> set_location_update_p,
+    optional<SetPropertiesUpdate> set_properties_update_p, optional<RemovePropertiesUpdate> remove_properties_update_p,
+    optional<SetStatisticsUpdate> set_statistics_update_p, optional<RemoveStatisticsUpdate> remove_statistics_update_p,
+    optional<RemovePartitionSpecsUpdate> remove_partition_specs_update_p,
+    optional<RemoveSchemasUpdate> remove_schemas_update_p, optional<AddEncryptionKeyUpdate> add_encryption_key_update_p,
+    optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update_p)
+    : assign_uuidupdate(std::move(assign_uuidupdate_p)),
+      upgrade_format_version_update(std::move(upgrade_format_version_update_p)),
+      add_schema_update(std::move(add_schema_update_p)),
+      set_current_schema_update(std::move(set_current_schema_update_p)),
+      add_partition_spec_update(std::move(add_partition_spec_update_p)),
+      set_default_spec_update(std::move(set_default_spec_update_p)),
+      add_sort_order_update(std::move(add_sort_order_update_p)),
+      set_default_sort_order_update(std::move(set_default_sort_order_update_p)),
+      add_snapshot_update(std::move(add_snapshot_update_p)),
+      set_snapshot_ref_update(std::move(set_snapshot_ref_update_p)),
+      remove_snapshots_update(std::move(remove_snapshots_update_p)),
+      remove_snapshot_ref_update(std::move(remove_snapshot_ref_update_p)),
+      set_location_update(std::move(set_location_update_p)), set_properties_update(std::move(set_properties_update_p)),
+      remove_properties_update(std::move(remove_properties_update_p)),
+      set_statistics_update(std::move(set_statistics_update_p)),
+      remove_statistics_update(std::move(remove_statistics_update_p)),
+      remove_partition_specs_update(std::move(remove_partition_specs_update_p)),
+      remove_schemas_update(std::move(remove_schemas_update_p)),
+      add_encryption_key_update(std::move(add_encryption_key_update_p)),
+      remove_encryption_key_update(std::move(remove_encryption_key_update_p)) {
 }
 
 TableUpdateBuilder::TableUpdateBuilder() {
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAssignUuidupdate(AssignUUIDUpdate value) {
-	result_.assign_uuidupdate = std::move(value);
+	assign_uuidupdate_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value) {
-	result_.upgrade_format_version_update = std::move(value);
+	upgrade_format_version_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddSchemaUpdate(AddSchemaUpdate value) {
-	result_.add_schema_update = std::move(value);
+	add_schema_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate value) {
-	result_.set_current_schema_update = std::move(value);
+	set_current_schema_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddPartitionSpecUpdate(AddPartitionSpecUpdate value) {
-	result_.add_partition_spec_update = std::move(value);
+	add_partition_spec_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetDefaultSpecUpdate(SetDefaultSpecUpdate value) {
-	result_.set_default_spec_update = std::move(value);
+	set_default_spec_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddSortOrderUpdate(AddSortOrderUpdate value) {
-	result_.add_sort_order_update = std::move(value);
+	add_sort_order_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate value) {
-	result_.set_default_sort_order_update = std::move(value);
+	set_default_sort_order_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddSnapshotUpdate(AddSnapshotUpdate value) {
-	result_.add_snapshot_update = std::move(value);
+	add_snapshot_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetSnapshotRefUpdate(SetSnapshotRefUpdate value) {
-	result_.set_snapshot_ref_update = std::move(value);
+	set_snapshot_ref_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate value) {
-	result_.remove_snapshots_update = std::move(value);
+	remove_snapshots_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate value) {
-	result_.remove_snapshot_ref_update = std::move(value);
+	remove_snapshot_ref_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetLocationUpdate(SetLocationUpdate value) {
-	result_.set_location_update = std::move(value);
+	set_location_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetPropertiesUpdate(SetPropertiesUpdate value) {
-	result_.set_properties_update = std::move(value);
+	set_properties_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemovePropertiesUpdate(RemovePropertiesUpdate value) {
-	result_.remove_properties_update = std::move(value);
+	remove_properties_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetStatisticsUpdate(SetStatisticsUpdate value) {
-	result_.set_statistics_update = std::move(value);
+	set_statistics_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveStatisticsUpdate(RemoveStatisticsUpdate value) {
-	result_.remove_statistics_update = std::move(value);
+	remove_statistics_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate value) {
-	result_.remove_partition_specs_update = std::move(value);
+	remove_partition_specs_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveSchemasUpdate(RemoveSchemasUpdate value) {
-	result_.remove_schemas_update = std::move(value);
+	remove_schemas_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate value) {
-	result_.add_encryption_key_update = std::move(value);
+	add_encryption_key_update_ = std::move(value);
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate value) {
-	result_.remove_encryption_key_update = std::move(value);
+	remove_encryption_key_update_ = std::move(value);
 	return *this;
 }
 
-string TableUpdateBuilder::TryBuild(TableUpdate &result) {
-	auto error = result_.Validate();
-	if (!error.empty()) {
-		return error;
-	}
-	result = std::move(result_);
-	return "";
-}
-
 TableUpdate TableUpdateBuilder::Build() {
-	TableUpdate result;
-	auto error = TryBuild(result);
+	auto result = TableUpdate(
+	    std::move(assign_uuidupdate_), std::move(upgrade_format_version_update_), std::move(add_schema_update_),
+	    std::move(set_current_schema_update_), std::move(add_partition_spec_update_),
+	    std::move(set_default_spec_update_), std::move(add_sort_order_update_),
+	    std::move(set_default_sort_order_update_), std::move(add_snapshot_update_), std::move(set_snapshot_ref_update_),
+	    std::move(remove_snapshots_update_), std::move(remove_snapshot_ref_update_), std::move(set_location_update_),
+	    std::move(set_properties_update_), std::move(remove_properties_update_), std::move(set_statistics_update_),
+	    std::move(remove_statistics_update_), std::move(remove_partition_specs_update_),
+	    std::move(remove_schemas_update_), std::move(add_encryption_key_update_),
+	    std::move(remove_encryption_key_update_));
+	auto error = result.Validate();
 	if (!error.empty()) {
 		throw InvalidInputException(error);
 	}
 	return result;
 }
 
-TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
-	TableUpdate res;
-	auto error = res.TryFromJSON(obj);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+string TableUpdateBuilder::TryBuild(optional<TableUpdate> &result) {
+	try {
+		result.emplace(Build());
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
 	}
-	return res;
+}
+
+TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
+	TableUpdateBuilder builder;
+	int matched_any_of_variants = 0;
+	try {
+		builder.SetAssignUuidupdate(AssignUUIDUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddSchemaUpdate(AddSchemaUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddPartitionSpecUpdate(AddPartitionSpecUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetDefaultSpecUpdate(SetDefaultSpecUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddSortOrderUpdate(AddSortOrderUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddSnapshotUpdate(AddSnapshotUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetSnapshotRefUpdate(SetSnapshotRefUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetLocationUpdate(SetLocationUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetPropertiesUpdate(SetPropertiesUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemovePropertiesUpdate(RemovePropertiesUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetSetStatisticsUpdate(SetStatisticsUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemoveStatisticsUpdate(RemoveStatisticsUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemoveSchemasUpdate(RemoveSchemasUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	try {
+		builder.SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate::FromJSON(obj));
+		matched_any_of_variants++;
+	} catch (const Exception &) {
+	}
+	if (matched_any_of_variants == 0) {
+		throw InvalidInputException("TableUpdate failed to parse, none of the anyOf candidates matched");
+	}
+	return builder.Build();
+}
+
+string TableUpdate::TryFromJSON(yyjson_val *obj, optional<TableUpdate> &result) {
+	try {
+		result.emplace(FromJSON(obj));
+		return "";
+	} catch (const Exception &ex) {
+		auto error = ErrorData(ex);
+		return error.RawMessage();
+	}
 }
 
 TableUpdate TableUpdate::Copy() const {
-	TableUpdate res;
+	TableUpdateBuilder builder;
+	optional<AssignUUIDUpdate> assign_uuidupdate_tmp;
 	if (assign_uuidupdate.has_value()) {
-		res.assign_uuidupdate = GeneratedObjectAccess::Create<AssignUUIDUpdate>();
-		(*res.assign_uuidupdate) = (*assign_uuidupdate).Copy();
+		assign_uuidupdate_tmp.emplace();
+		(*assign_uuidupdate_tmp) = (*assign_uuidupdate).Copy();
 	}
+	if (assign_uuidupdate_tmp.has_value()) {
+		builder.SetAssignUuidupdate(std::move(*assign_uuidupdate_tmp));
+	}
+	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_tmp;
 	if (upgrade_format_version_update.has_value()) {
-		res.upgrade_format_version_update = GeneratedObjectAccess::Create<UpgradeFormatVersionUpdate>();
-		(*res.upgrade_format_version_update) = (*upgrade_format_version_update).Copy();
+		upgrade_format_version_update_tmp.emplace();
+		(*upgrade_format_version_update_tmp) = (*upgrade_format_version_update).Copy();
 	}
+	if (upgrade_format_version_update_tmp.has_value()) {
+		builder.SetUpgradeFormatVersionUpdate(std::move(*upgrade_format_version_update_tmp));
+	}
+	optional<AddSchemaUpdate> add_schema_update_tmp;
 	if (add_schema_update.has_value()) {
-		res.add_schema_update = GeneratedObjectAccess::Create<AddSchemaUpdate>();
-		(*res.add_schema_update) = (*add_schema_update).Copy();
+		add_schema_update_tmp.emplace();
+		(*add_schema_update_tmp) = (*add_schema_update).Copy();
 	}
+	if (add_schema_update_tmp.has_value()) {
+		builder.SetAddSchemaUpdate(std::move(*add_schema_update_tmp));
+	}
+	optional<SetCurrentSchemaUpdate> set_current_schema_update_tmp;
 	if (set_current_schema_update.has_value()) {
-		res.set_current_schema_update = GeneratedObjectAccess::Create<SetCurrentSchemaUpdate>();
-		(*res.set_current_schema_update) = (*set_current_schema_update).Copy();
+		set_current_schema_update_tmp.emplace();
+		(*set_current_schema_update_tmp) = (*set_current_schema_update).Copy();
 	}
+	if (set_current_schema_update_tmp.has_value()) {
+		builder.SetSetCurrentSchemaUpdate(std::move(*set_current_schema_update_tmp));
+	}
+	optional<AddPartitionSpecUpdate> add_partition_spec_update_tmp;
 	if (add_partition_spec_update.has_value()) {
-		res.add_partition_spec_update = GeneratedObjectAccess::Create<AddPartitionSpecUpdate>();
-		(*res.add_partition_spec_update) = (*add_partition_spec_update).Copy();
+		add_partition_spec_update_tmp.emplace();
+		(*add_partition_spec_update_tmp) = (*add_partition_spec_update).Copy();
 	}
+	if (add_partition_spec_update_tmp.has_value()) {
+		builder.SetAddPartitionSpecUpdate(std::move(*add_partition_spec_update_tmp));
+	}
+	optional<SetDefaultSpecUpdate> set_default_spec_update_tmp;
 	if (set_default_spec_update.has_value()) {
-		res.set_default_spec_update = GeneratedObjectAccess::Create<SetDefaultSpecUpdate>();
-		(*res.set_default_spec_update) = (*set_default_spec_update).Copy();
+		set_default_spec_update_tmp.emplace();
+		(*set_default_spec_update_tmp) = (*set_default_spec_update).Copy();
 	}
+	if (set_default_spec_update_tmp.has_value()) {
+		builder.SetSetDefaultSpecUpdate(std::move(*set_default_spec_update_tmp));
+	}
+	optional<AddSortOrderUpdate> add_sort_order_update_tmp;
 	if (add_sort_order_update.has_value()) {
-		res.add_sort_order_update = GeneratedObjectAccess::Create<AddSortOrderUpdate>();
-		(*res.add_sort_order_update) = (*add_sort_order_update).Copy();
+		add_sort_order_update_tmp.emplace();
+		(*add_sort_order_update_tmp) = (*add_sort_order_update).Copy();
 	}
+	if (add_sort_order_update_tmp.has_value()) {
+		builder.SetAddSortOrderUpdate(std::move(*add_sort_order_update_tmp));
+	}
+	optional<SetDefaultSortOrderUpdate> set_default_sort_order_update_tmp;
 	if (set_default_sort_order_update.has_value()) {
-		res.set_default_sort_order_update = GeneratedObjectAccess::Create<SetDefaultSortOrderUpdate>();
-		(*res.set_default_sort_order_update) = (*set_default_sort_order_update).Copy();
+		set_default_sort_order_update_tmp.emplace();
+		(*set_default_sort_order_update_tmp) = (*set_default_sort_order_update).Copy();
 	}
+	if (set_default_sort_order_update_tmp.has_value()) {
+		builder.SetSetDefaultSortOrderUpdate(std::move(*set_default_sort_order_update_tmp));
+	}
+	optional<AddSnapshotUpdate> add_snapshot_update_tmp;
 	if (add_snapshot_update.has_value()) {
-		res.add_snapshot_update = GeneratedObjectAccess::Create<AddSnapshotUpdate>();
-		(*res.add_snapshot_update) = (*add_snapshot_update).Copy();
+		add_snapshot_update_tmp.emplace();
+		(*add_snapshot_update_tmp) = (*add_snapshot_update).Copy();
 	}
+	if (add_snapshot_update_tmp.has_value()) {
+		builder.SetAddSnapshotUpdate(std::move(*add_snapshot_update_tmp));
+	}
+	optional<SetSnapshotRefUpdate> set_snapshot_ref_update_tmp;
 	if (set_snapshot_ref_update.has_value()) {
-		res.set_snapshot_ref_update = GeneratedObjectAccess::Create<SetSnapshotRefUpdate>();
-		(*res.set_snapshot_ref_update) = (*set_snapshot_ref_update).Copy();
+		set_snapshot_ref_update_tmp.emplace();
+		(*set_snapshot_ref_update_tmp) = (*set_snapshot_ref_update).Copy();
 	}
+	if (set_snapshot_ref_update_tmp.has_value()) {
+		builder.SetSetSnapshotRefUpdate(std::move(*set_snapshot_ref_update_tmp));
+	}
+	optional<RemoveSnapshotsUpdate> remove_snapshots_update_tmp;
 	if (remove_snapshots_update.has_value()) {
-		res.remove_snapshots_update = GeneratedObjectAccess::Create<RemoveSnapshotsUpdate>();
-		(*res.remove_snapshots_update) = (*remove_snapshots_update).Copy();
+		remove_snapshots_update_tmp.emplace();
+		(*remove_snapshots_update_tmp) = (*remove_snapshots_update).Copy();
 	}
+	if (remove_snapshots_update_tmp.has_value()) {
+		builder.SetRemoveSnapshotsUpdate(std::move(*remove_snapshots_update_tmp));
+	}
+	optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update_tmp;
 	if (remove_snapshot_ref_update.has_value()) {
-		res.remove_snapshot_ref_update = GeneratedObjectAccess::Create<RemoveSnapshotRefUpdate>();
-		(*res.remove_snapshot_ref_update) = (*remove_snapshot_ref_update).Copy();
+		remove_snapshot_ref_update_tmp.emplace();
+		(*remove_snapshot_ref_update_tmp) = (*remove_snapshot_ref_update).Copy();
 	}
+	if (remove_snapshot_ref_update_tmp.has_value()) {
+		builder.SetRemoveSnapshotRefUpdate(std::move(*remove_snapshot_ref_update_tmp));
+	}
+	optional<SetLocationUpdate> set_location_update_tmp;
 	if (set_location_update.has_value()) {
-		res.set_location_update = GeneratedObjectAccess::Create<SetLocationUpdate>();
-		(*res.set_location_update) = (*set_location_update).Copy();
+		set_location_update_tmp.emplace();
+		(*set_location_update_tmp) = (*set_location_update).Copy();
 	}
+	if (set_location_update_tmp.has_value()) {
+		builder.SetSetLocationUpdate(std::move(*set_location_update_tmp));
+	}
+	optional<SetPropertiesUpdate> set_properties_update_tmp;
 	if (set_properties_update.has_value()) {
-		res.set_properties_update = GeneratedObjectAccess::Create<SetPropertiesUpdate>();
-		(*res.set_properties_update) = (*set_properties_update).Copy();
+		set_properties_update_tmp.emplace();
+		(*set_properties_update_tmp) = (*set_properties_update).Copy();
 	}
+	if (set_properties_update_tmp.has_value()) {
+		builder.SetSetPropertiesUpdate(std::move(*set_properties_update_tmp));
+	}
+	optional<RemovePropertiesUpdate> remove_properties_update_tmp;
 	if (remove_properties_update.has_value()) {
-		res.remove_properties_update = GeneratedObjectAccess::Create<RemovePropertiesUpdate>();
-		(*res.remove_properties_update) = (*remove_properties_update).Copy();
+		remove_properties_update_tmp.emplace();
+		(*remove_properties_update_tmp) = (*remove_properties_update).Copy();
 	}
+	if (remove_properties_update_tmp.has_value()) {
+		builder.SetRemovePropertiesUpdate(std::move(*remove_properties_update_tmp));
+	}
+	optional<SetStatisticsUpdate> set_statistics_update_tmp;
 	if (set_statistics_update.has_value()) {
-		res.set_statistics_update = GeneratedObjectAccess::Create<SetStatisticsUpdate>();
-		(*res.set_statistics_update) = (*set_statistics_update).Copy();
+		set_statistics_update_tmp.emplace();
+		(*set_statistics_update_tmp) = (*set_statistics_update).Copy();
 	}
+	if (set_statistics_update_tmp.has_value()) {
+		builder.SetSetStatisticsUpdate(std::move(*set_statistics_update_tmp));
+	}
+	optional<RemoveStatisticsUpdate> remove_statistics_update_tmp;
 	if (remove_statistics_update.has_value()) {
-		res.remove_statistics_update = GeneratedObjectAccess::Create<RemoveStatisticsUpdate>();
-		(*res.remove_statistics_update) = (*remove_statistics_update).Copy();
+		remove_statistics_update_tmp.emplace();
+		(*remove_statistics_update_tmp) = (*remove_statistics_update).Copy();
 	}
+	if (remove_statistics_update_tmp.has_value()) {
+		builder.SetRemoveStatisticsUpdate(std::move(*remove_statistics_update_tmp));
+	}
+	optional<RemovePartitionSpecsUpdate> remove_partition_specs_update_tmp;
 	if (remove_partition_specs_update.has_value()) {
-		res.remove_partition_specs_update = GeneratedObjectAccess::Create<RemovePartitionSpecsUpdate>();
-		(*res.remove_partition_specs_update) = (*remove_partition_specs_update).Copy();
+		remove_partition_specs_update_tmp.emplace();
+		(*remove_partition_specs_update_tmp) = (*remove_partition_specs_update).Copy();
 	}
+	if (remove_partition_specs_update_tmp.has_value()) {
+		builder.SetRemovePartitionSpecsUpdate(std::move(*remove_partition_specs_update_tmp));
+	}
+	optional<RemoveSchemasUpdate> remove_schemas_update_tmp;
 	if (remove_schemas_update.has_value()) {
-		res.remove_schemas_update = GeneratedObjectAccess::Create<RemoveSchemasUpdate>();
-		(*res.remove_schemas_update) = (*remove_schemas_update).Copy();
+		remove_schemas_update_tmp.emplace();
+		(*remove_schemas_update_tmp) = (*remove_schemas_update).Copy();
 	}
+	if (remove_schemas_update_tmp.has_value()) {
+		builder.SetRemoveSchemasUpdate(std::move(*remove_schemas_update_tmp));
+	}
+	optional<AddEncryptionKeyUpdate> add_encryption_key_update_tmp;
 	if (add_encryption_key_update.has_value()) {
-		res.add_encryption_key_update = GeneratedObjectAccess::Create<AddEncryptionKeyUpdate>();
-		(*res.add_encryption_key_update) = (*add_encryption_key_update).Copy();
+		add_encryption_key_update_tmp.emplace();
+		(*add_encryption_key_update_tmp) = (*add_encryption_key_update).Copy();
 	}
+	if (add_encryption_key_update_tmp.has_value()) {
+		builder.SetAddEncryptionKeyUpdate(std::move(*add_encryption_key_update_tmp));
+	}
+	optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update_tmp;
 	if (remove_encryption_key_update.has_value()) {
-		res.remove_encryption_key_update = GeneratedObjectAccess::Create<RemoveEncryptionKeyUpdate>();
-		(*res.remove_encryption_key_update) = (*remove_encryption_key_update).Copy();
+		remove_encryption_key_update_tmp.emplace();
+		(*remove_encryption_key_update_tmp) = (*remove_encryption_key_update).Copy();
 	}
-	return res;
+	if (remove_encryption_key_update_tmp.has_value()) {
+		builder.SetRemoveEncryptionKeyUpdate(std::move(*remove_encryption_key_update_tmp));
+	}
+	return builder.Build();
 }
 
 string TableUpdate::Validate() const {
@@ -416,150 +638,6 @@ string TableUpdate::Validate() const {
 		return "TableUpdate must have at least one anyOf variant set";
 	}
 	return "";
-}
-
-string TableUpdate::TryFromJSON(yyjson_val *obj) {
-	string error;
-	assign_uuidupdate = GeneratedObjectAccess::Create<AssignUUIDUpdate>();
-	error = assign_uuidupdate->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		assign_uuidupdate = nullopt;
-	}
-	upgrade_format_version_update = GeneratedObjectAccess::Create<UpgradeFormatVersionUpdate>();
-	error = upgrade_format_version_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		upgrade_format_version_update = nullopt;
-	}
-	add_schema_update = GeneratedObjectAccess::Create<AddSchemaUpdate>();
-	error = add_schema_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_schema_update = nullopt;
-	}
-	set_current_schema_update = GeneratedObjectAccess::Create<SetCurrentSchemaUpdate>();
-	error = set_current_schema_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_current_schema_update = nullopt;
-	}
-	add_partition_spec_update = GeneratedObjectAccess::Create<AddPartitionSpecUpdate>();
-	error = add_partition_spec_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_partition_spec_update = nullopt;
-	}
-	set_default_spec_update = GeneratedObjectAccess::Create<SetDefaultSpecUpdate>();
-	error = set_default_spec_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_default_spec_update = nullopt;
-	}
-	add_sort_order_update = GeneratedObjectAccess::Create<AddSortOrderUpdate>();
-	error = add_sort_order_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_sort_order_update = nullopt;
-	}
-	set_default_sort_order_update = GeneratedObjectAccess::Create<SetDefaultSortOrderUpdate>();
-	error = set_default_sort_order_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_default_sort_order_update = nullopt;
-	}
-	add_snapshot_update = GeneratedObjectAccess::Create<AddSnapshotUpdate>();
-	error = add_snapshot_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_snapshot_update = nullopt;
-	}
-	set_snapshot_ref_update = GeneratedObjectAccess::Create<SetSnapshotRefUpdate>();
-	error = set_snapshot_ref_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_snapshot_ref_update = nullopt;
-	}
-	remove_snapshots_update = GeneratedObjectAccess::Create<RemoveSnapshotsUpdate>();
-	error = remove_snapshots_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_snapshots_update = nullopt;
-	}
-	remove_snapshot_ref_update = GeneratedObjectAccess::Create<RemoveSnapshotRefUpdate>();
-	error = remove_snapshot_ref_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_snapshot_ref_update = nullopt;
-	}
-	set_location_update = GeneratedObjectAccess::Create<SetLocationUpdate>();
-	error = set_location_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_location_update = nullopt;
-	}
-	set_properties_update = GeneratedObjectAccess::Create<SetPropertiesUpdate>();
-	error = set_properties_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_properties_update = nullopt;
-	}
-	remove_properties_update = GeneratedObjectAccess::Create<RemovePropertiesUpdate>();
-	error = remove_properties_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_properties_update = nullopt;
-	}
-	set_statistics_update = GeneratedObjectAccess::Create<SetStatisticsUpdate>();
-	error = set_statistics_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		set_statistics_update = nullopt;
-	}
-	remove_statistics_update = GeneratedObjectAccess::Create<RemoveStatisticsUpdate>();
-	error = remove_statistics_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_statistics_update = nullopt;
-	}
-	remove_partition_specs_update = GeneratedObjectAccess::Create<RemovePartitionSpecsUpdate>();
-	error = remove_partition_specs_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_partition_specs_update = nullopt;
-	}
-	remove_schemas_update = GeneratedObjectAccess::Create<RemoveSchemasUpdate>();
-	error = remove_schemas_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_schemas_update = nullopt;
-	}
-	add_encryption_key_update = GeneratedObjectAccess::Create<AddEncryptionKeyUpdate>();
-	error = add_encryption_key_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		add_encryption_key_update = nullopt;
-	}
-	remove_encryption_key_update = GeneratedObjectAccess::Create<RemoveEncryptionKeyUpdate>();
-	error = remove_encryption_key_update->TryFromJSON(obj);
-	if (error.empty()) {
-	} else {
-		remove_encryption_key_update = nullopt;
-	}
-	if (!(add_encryption_key_update.has_value()) && !(add_partition_spec_update.has_value()) &&
-	    !(add_schema_update.has_value()) && !(add_snapshot_update.has_value()) &&
-	    !(add_sort_order_update.has_value()) && !(assign_uuidupdate.has_value()) &&
-	    !(remove_encryption_key_update.has_value()) && !(remove_partition_specs_update.has_value()) &&
-	    !(remove_properties_update.has_value()) && !(remove_schemas_update.has_value()) &&
-	    !(remove_snapshot_ref_update.has_value()) && !(remove_snapshots_update.has_value()) &&
-	    !(remove_statistics_update.has_value()) && !(set_current_schema_update.has_value()) &&
-	    !(set_default_sort_order_update.has_value()) && !(set_default_spec_update.has_value()) &&
-	    !(set_location_update.has_value()) && !(set_properties_update.has_value()) &&
-	    !(set_snapshot_ref_update.has_value()) && !(set_statistics_update.has_value()) &&
-	    !(upgrade_format_version_update.has_value())) {
-		return "TableUpdate failed to parse, none of the anyOf candidates matched";
-	}
-	return Validate();
 }
 
 void TableUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -18,13 +18,13 @@ public:
 	PrimitiveType(const PrimitiveType &) = delete;
 	PrimitiveType &operator=(const PrimitiveType &) = delete;
 	PrimitiveType(PrimitiveType &&) = default;
-	PrimitiveType &operator=(PrimitiveType &&) = default;
-	PrimitiveType();
+	PrimitiveType &operator=(PrimitiveType &&) = delete;
+	PrimitiveType(string value_p);
 
 public:
 	// Deserialization
 	static PrimitiveType FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<PrimitiveType> &result);
 	string Validate() const;
 
 	// Copy

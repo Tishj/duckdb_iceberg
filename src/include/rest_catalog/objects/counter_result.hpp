@@ -20,17 +20,16 @@ public:
 	CounterResult(const CounterResult &) = delete;
 	CounterResult &operator=(const CounterResult &) = delete;
 	CounterResult(CounterResult &&) = default;
-	CounterResult &operator=(CounterResult &&) = default;
+	CounterResult &operator=(CounterResult &&) = delete;
 
 private:
 	friend class CounterResultBuilder;
-	friend class GeneratedObjectAccess;
-	CounterResult();
+	CounterResult(string unit_p, int64_t value_p);
 
 public:
 	// Deserialization
 	static CounterResult FromJSON(yyjson_val *obj);
-	string TryFromJSON(yyjson_val *obj);
+	static string TryFromJSON(yyjson_val *obj, optional<CounterResult> &result);
 	string Validate() const;
 
 	// Copy
@@ -50,11 +49,12 @@ public:
 	CounterResultBuilder();
 	CounterResultBuilder &SetUnit(string value);
 	CounterResultBuilder &SetValue(int64_t value);
-	string TryBuild(CounterResult &result);
+	string TryBuild(optional<CounterResult> &result);
 	CounterResult Build();
 
 private:
-	CounterResult result_;
+	optional<string> unit_;
+	optional<int64_t> value_;
 	bool has_unit_ = false;
 	bool has_value_ = false;
 };
