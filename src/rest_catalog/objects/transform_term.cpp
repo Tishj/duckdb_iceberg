@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ TransformTermBuilder::TransformTermBuilder() {
 }
 
 TransformTermBuilder &TransformTermBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 TransformTermBuilder &TransformTermBuilder::SetTransform(Transform value) {
-	transform_ = std::move(value);
+	transform_.emplace(std::move(value));
 	has_transform_ = true;
 	return *this;
 }
 
 TransformTermBuilder &TransformTermBuilder::SetTerm(Reference value) {
-	term_ = std::move(value);
+	term_.emplace(std::move(value));
 	has_term_ = true;
 	return *this;
 }
@@ -87,17 +88,13 @@ TransformTerm TransformTerm::FromJSON(yyjson_val *obj) {
 	if (!transform_val) {
 		throw InvalidInputException("TransformTerm required property 'transform' is missing");
 	} else {
-		optional<Transform> transform;
-		transform = Transform::FromJSON(transform_val);
-		builder.SetTransform(std::move(*transform));
+		builder.SetTransform(Transform::FromJSON(transform_val));
 	}
 	auto term_val = yyjson_obj_get(obj, "term");
 	if (!term_val) {
 		throw InvalidInputException("TransformTerm required property 'term' is missing");
 	} else {
-		optional<Reference> term;
-		term = Reference::FromJSON(term_val);
-		builder.SetTerm(std::move(*term));
+		builder.SetTerm(Reference::FromJSON(term_val));
 	}
 	return builder.Build();
 }
@@ -117,12 +114,10 @@ TransformTerm TransformTerm::Copy() const {
 	string type_tmp;
 	type_tmp = type;
 	builder.SetType(std::move(type_tmp));
-	optional<Transform> transform_tmp;
-	transform_tmp = transform.Copy();
-	builder.SetTransform(std::move(*transform_tmp));
-	optional<Reference> term_tmp;
-	term_tmp = term.Copy();
-	builder.SetTerm(std::move(*term_tmp));
+	auto transform_tmp = transform.Copy();
+	builder.SetTransform(std::move(transform_tmp));
+	auto term_tmp = term.Copy();
+	builder.SetTerm(std::move(term_tmp));
 	return builder.Build();
 }
 

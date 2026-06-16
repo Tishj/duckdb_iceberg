@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ AddPartitionSpecUpdateBuilder::AddPartitionSpecUpdateBuilder() {
 }
 
 AddPartitionSpecUpdateBuilder &AddPartitionSpecUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AddPartitionSpecUpdateBuilder &AddPartitionSpecUpdateBuilder::SetSpec(PartitionSpec value) {
-	spec_ = std::move(value);
+	spec_.emplace(std::move(value));
 	has_spec_ = true;
 	return *this;
 }
@@ -61,9 +62,7 @@ AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
 	if (!spec_val) {
 		throw InvalidInputException("AddPartitionSpecUpdate required property 'spec' is missing");
 	} else {
-		optional<PartitionSpec> spec;
-		spec = PartitionSpec::FromJSON(spec_val);
-		builder.SetSpec(std::move(*spec));
+		builder.SetSpec(PartitionSpec::FromJSON(spec_val));
 	}
 	return builder.Build();
 }
@@ -80,12 +79,10 @@ string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, optional<AddPartitio
 
 AddPartitionSpecUpdate AddPartitionSpecUpdate::Copy() const {
 	AddPartitionSpecUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<PartitionSpec> spec_tmp;
-	spec_tmp = spec.Copy();
-	builder.SetSpec(std::move(*spec_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto spec_tmp = spec.Copy();
+	builder.SetSpec(std::move(spec_tmp));
 	return builder.Build();
 }
 

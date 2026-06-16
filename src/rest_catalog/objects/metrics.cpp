@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ MetricsBuilder::MetricsBuilder() {
 }
 
 MetricsBuilder &MetricsBuilder::SetAdditionalProperties(case_insensitive_map_t<MetricResult> value) {
-	additional_properties_ = std::move(value);
+	additional_properties_.emplace(std::move(value));
 	return *this;
 }
 

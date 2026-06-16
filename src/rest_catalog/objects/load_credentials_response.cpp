@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ LoadCredentialsResponseBuilder::LoadCredentialsResponseBuilder() {
 }
 
 LoadCredentialsResponseBuilder &LoadCredentialsResponseBuilder::SetStorageCredentials(vector<StorageCredential> value) {
-	storage_credentials_ = std::move(value);
+	storage_credentials_.emplace(std::move(value));
 	has_storage_credentials_ = true;
 	return *this;
 }
@@ -64,9 +65,9 @@ LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
 				storage_credentials.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "LoadCredentialsResponse property 'storage_credentials' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(storage_credentials_val));
+			    yyjson_get_type_desc(storage_credentials_val)));
 		}
 		builder.SetStorageCredentials(std::move(storage_credentials));
 	}

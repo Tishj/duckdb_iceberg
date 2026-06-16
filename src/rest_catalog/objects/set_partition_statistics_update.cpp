@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,13 +24,13 @@ SetPartitionStatisticsUpdateBuilder::SetPartitionStatisticsUpdateBuilder() {
 }
 
 SetPartitionStatisticsUpdateBuilder &SetPartitionStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetPartitionStatisticsUpdateBuilder &
 SetPartitionStatisticsUpdateBuilder::SetPartitionStatistics(PartitionStatisticsFile value) {
-	partition_statistics_ = std::move(value);
+	partition_statistics_.emplace(std::move(value));
 	has_partition_statistics_ = true;
 	return *this;
 }
@@ -63,9 +64,7 @@ SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *
 	if (!partition_statistics_val) {
 		throw InvalidInputException("SetPartitionStatisticsUpdate required property 'partition-statistics' is missing");
 	} else {
-		optional<PartitionStatisticsFile> partition_statistics;
-		partition_statistics = PartitionStatisticsFile::FromJSON(partition_statistics_val);
-		builder.SetPartitionStatistics(std::move(*partition_statistics));
+		builder.SetPartitionStatistics(PartitionStatisticsFile::FromJSON(partition_statistics_val));
 	}
 	return builder.Build();
 }
@@ -82,12 +81,10 @@ string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<SetPa
 
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::Copy() const {
 	SetPartitionStatisticsUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<PartitionStatisticsFile> partition_statistics_tmp;
-	partition_statistics_tmp = partition_statistics.Copy();
-	builder.SetPartitionStatistics(std::move(*partition_statistics_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto partition_statistics_tmp = partition_statistics.Copy();
+	builder.SetPartitionStatistics(std::move(partition_statistics_tmp));
 	return builder.Build();
 }
 

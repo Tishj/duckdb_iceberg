@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -40,82 +41,82 @@ PrimitiveTypeValueBuilder::PrimitiveTypeValueBuilder() {
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetBooleanTypeValue(BooleanTypeValue value) {
-	boolean_type_value_ = std::move(value);
+	boolean_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetIntegerTypeValue(IntegerTypeValue value) {
-	integer_type_value_ = std::move(value);
+	integer_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetLongTypeValue(LongTypeValue value) {
-	long_type_value_ = std::move(value);
+	long_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetFloatTypeValue(FloatTypeValue value) {
-	float_type_value_ = std::move(value);
+	float_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetDoubleTypeValue(DoubleTypeValue value) {
-	double_type_value_ = std::move(value);
+	double_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetDecimalTypeValue(DecimalTypeValue value) {
-	decimal_type_value_ = std::move(value);
+	decimal_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetStringTypeValue(StringTypeValue value) {
-	string_type_value_ = std::move(value);
+	string_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetUuidtypeValue(UUIDTypeValue value) {
-	uuidtype_value_ = std::move(value);
+	uuidtype_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetDateTypeValue(DateTypeValue value) {
-	date_type_value_ = std::move(value);
+	date_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimeTypeValue(TimeTypeValue value) {
-	time_type_value_ = std::move(value);
+	time_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampTypeValue(TimestampTypeValue value) {
-	timestamp_type_value_ = std::move(value);
+	timestamp_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampTzTypeValue(TimestampTzTypeValue value) {
-	timestamp_tz_type_value_ = std::move(value);
+	timestamp_tz_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampNanoTypeValue(TimestampNanoTypeValue value) {
-	timestamp_nano_type_value_ = std::move(value);
+	timestamp_nano_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue value) {
-	timestamp_tz_nano_type_value_ = std::move(value);
+	timestamp_tz_nano_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetFixedTypeValue(FixedTypeValue value) {
-	fixed_type_value_ = std::move(value);
+	fixed_type_value_.emplace(std::move(value));
 	return *this;
 }
 
 PrimitiveTypeValueBuilder &PrimitiveTypeValueBuilder::SetBinaryTypeValue(BinaryTypeValue value) {
-	binary_type_value_ = std::move(value);
+	binary_type_value_.emplace(std::move(value));
 	return *this;
 }
 
@@ -247,128 +248,112 @@ PrimitiveTypeValue PrimitiveTypeValue::Copy() const {
 	PrimitiveTypeValueBuilder builder;
 	optional<BooleanTypeValue> boolean_type_value_tmp;
 	if (boolean_type_value.has_value()) {
-		boolean_type_value_tmp.emplace();
-		(*boolean_type_value_tmp) = (*boolean_type_value).Copy();
+		boolean_type_value_tmp.emplace((*boolean_type_value).Copy());
 	}
 	if (boolean_type_value_tmp.has_value()) {
 		builder.SetBooleanTypeValue(std::move(*boolean_type_value_tmp));
 	}
 	optional<IntegerTypeValue> integer_type_value_tmp;
 	if (integer_type_value.has_value()) {
-		integer_type_value_tmp.emplace();
-		(*integer_type_value_tmp) = (*integer_type_value).Copy();
+		integer_type_value_tmp.emplace((*integer_type_value).Copy());
 	}
 	if (integer_type_value_tmp.has_value()) {
 		builder.SetIntegerTypeValue(std::move(*integer_type_value_tmp));
 	}
 	optional<LongTypeValue> long_type_value_tmp;
 	if (long_type_value.has_value()) {
-		long_type_value_tmp.emplace();
-		(*long_type_value_tmp) = (*long_type_value).Copy();
+		long_type_value_tmp.emplace((*long_type_value).Copy());
 	}
 	if (long_type_value_tmp.has_value()) {
 		builder.SetLongTypeValue(std::move(*long_type_value_tmp));
 	}
 	optional<FloatTypeValue> float_type_value_tmp;
 	if (float_type_value.has_value()) {
-		float_type_value_tmp.emplace();
-		(*float_type_value_tmp) = (*float_type_value).Copy();
+		float_type_value_tmp.emplace((*float_type_value).Copy());
 	}
 	if (float_type_value_tmp.has_value()) {
 		builder.SetFloatTypeValue(std::move(*float_type_value_tmp));
 	}
 	optional<DoubleTypeValue> double_type_value_tmp;
 	if (double_type_value.has_value()) {
-		double_type_value_tmp.emplace();
-		(*double_type_value_tmp) = (*double_type_value).Copy();
+		double_type_value_tmp.emplace((*double_type_value).Copy());
 	}
 	if (double_type_value_tmp.has_value()) {
 		builder.SetDoubleTypeValue(std::move(*double_type_value_tmp));
 	}
 	optional<DecimalTypeValue> decimal_type_value_tmp;
 	if (decimal_type_value.has_value()) {
-		decimal_type_value_tmp.emplace();
-		(*decimal_type_value_tmp) = (*decimal_type_value).Copy();
+		decimal_type_value_tmp.emplace((*decimal_type_value).Copy());
 	}
 	if (decimal_type_value_tmp.has_value()) {
 		builder.SetDecimalTypeValue(std::move(*decimal_type_value_tmp));
 	}
 	optional<StringTypeValue> string_type_value_tmp;
 	if (string_type_value.has_value()) {
-		string_type_value_tmp.emplace();
-		(*string_type_value_tmp) = (*string_type_value).Copy();
+		string_type_value_tmp.emplace((*string_type_value).Copy());
 	}
 	if (string_type_value_tmp.has_value()) {
 		builder.SetStringTypeValue(std::move(*string_type_value_tmp));
 	}
 	optional<UUIDTypeValue> uuidtype_value_tmp;
 	if (uuidtype_value.has_value()) {
-		uuidtype_value_tmp.emplace();
-		(*uuidtype_value_tmp) = (*uuidtype_value).Copy();
+		uuidtype_value_tmp.emplace((*uuidtype_value).Copy());
 	}
 	if (uuidtype_value_tmp.has_value()) {
 		builder.SetUuidtypeValue(std::move(*uuidtype_value_tmp));
 	}
 	optional<DateTypeValue> date_type_value_tmp;
 	if (date_type_value.has_value()) {
-		date_type_value_tmp.emplace();
-		(*date_type_value_tmp) = (*date_type_value).Copy();
+		date_type_value_tmp.emplace((*date_type_value).Copy());
 	}
 	if (date_type_value_tmp.has_value()) {
 		builder.SetDateTypeValue(std::move(*date_type_value_tmp));
 	}
 	optional<TimeTypeValue> time_type_value_tmp;
 	if (time_type_value.has_value()) {
-		time_type_value_tmp.emplace();
-		(*time_type_value_tmp) = (*time_type_value).Copy();
+		time_type_value_tmp.emplace((*time_type_value).Copy());
 	}
 	if (time_type_value_tmp.has_value()) {
 		builder.SetTimeTypeValue(std::move(*time_type_value_tmp));
 	}
 	optional<TimestampTypeValue> timestamp_type_value_tmp;
 	if (timestamp_type_value.has_value()) {
-		timestamp_type_value_tmp.emplace();
-		(*timestamp_type_value_tmp) = (*timestamp_type_value).Copy();
+		timestamp_type_value_tmp.emplace((*timestamp_type_value).Copy());
 	}
 	if (timestamp_type_value_tmp.has_value()) {
 		builder.SetTimestampTypeValue(std::move(*timestamp_type_value_tmp));
 	}
 	optional<TimestampTzTypeValue> timestamp_tz_type_value_tmp;
 	if (timestamp_tz_type_value.has_value()) {
-		timestamp_tz_type_value_tmp.emplace();
-		(*timestamp_tz_type_value_tmp) = (*timestamp_tz_type_value).Copy();
+		timestamp_tz_type_value_tmp.emplace((*timestamp_tz_type_value).Copy());
 	}
 	if (timestamp_tz_type_value_tmp.has_value()) {
 		builder.SetTimestampTzTypeValue(std::move(*timestamp_tz_type_value_tmp));
 	}
 	optional<TimestampNanoTypeValue> timestamp_nano_type_value_tmp;
 	if (timestamp_nano_type_value.has_value()) {
-		timestamp_nano_type_value_tmp.emplace();
-		(*timestamp_nano_type_value_tmp) = (*timestamp_nano_type_value).Copy();
+		timestamp_nano_type_value_tmp.emplace((*timestamp_nano_type_value).Copy());
 	}
 	if (timestamp_nano_type_value_tmp.has_value()) {
 		builder.SetTimestampNanoTypeValue(std::move(*timestamp_nano_type_value_tmp));
 	}
 	optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value_tmp;
 	if (timestamp_tz_nano_type_value.has_value()) {
-		timestamp_tz_nano_type_value_tmp.emplace();
-		(*timestamp_tz_nano_type_value_tmp) = (*timestamp_tz_nano_type_value).Copy();
+		timestamp_tz_nano_type_value_tmp.emplace((*timestamp_tz_nano_type_value).Copy());
 	}
 	if (timestamp_tz_nano_type_value_tmp.has_value()) {
 		builder.SetTimestampTzNanoTypeValue(std::move(*timestamp_tz_nano_type_value_tmp));
 	}
 	optional<FixedTypeValue> fixed_type_value_tmp;
 	if (fixed_type_value.has_value()) {
-		fixed_type_value_tmp.emplace();
-		(*fixed_type_value_tmp) = (*fixed_type_value).Copy();
+		fixed_type_value_tmp.emplace((*fixed_type_value).Copy());
 	}
 	if (fixed_type_value_tmp.has_value()) {
 		builder.SetFixedTypeValue(std::move(*fixed_type_value_tmp));
 	}
 	optional<BinaryTypeValue> binary_type_value_tmp;
 	if (binary_type_value.has_value()) {
-		binary_type_value_tmp.emplace();
-		(*binary_type_value_tmp) = (*binary_type_value).Copy();
+		binary_type_value_tmp.emplace((*binary_type_value).Copy());
 	}
 	if (binary_type_value_tmp.has_value()) {
 		builder.SetBinaryTypeValue(std::move(*binary_type_value_tmp));

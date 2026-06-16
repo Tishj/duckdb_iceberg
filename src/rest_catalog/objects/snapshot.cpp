@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -30,13 +31,13 @@ Snapshot::Object2Builder::Object2Builder() {
 }
 
 Snapshot::Object2Builder &Snapshot::Object2Builder::SetOperation(string value) {
-	operation_ = std::move(value);
+	operation_.emplace(std::move(value));
 	has_operation_ = true;
 	return *this;
 }
 
 Snapshot::Object2Builder &Snapshot::Object2Builder::SetAdditionalProperties(case_insensitive_map_t<string> value) {
-	additional_properties_ = std::move(value);
+	additional_properties_.emplace(std::move(value));
 	return *this;
 }
 
@@ -162,51 +163,51 @@ SnapshotBuilder::SnapshotBuilder() {
 }
 
 SnapshotBuilder &SnapshotBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetTimestampMs(int64_t value) {
-	timestamp_ms_ = std::move(value);
+	timestamp_ms_.emplace(std::move(value));
 	has_timestamp_ms_ = true;
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetManifestList(string value) {
-	manifest_list_ = std::move(value);
+	manifest_list_.emplace(std::move(value));
 	has_manifest_list_ = true;
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetSummary(Snapshot::Object2 value) {
-	summary_ = std::move(value);
+	summary_.emplace(std::move(value));
 	has_summary_ = true;
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetParentSnapshotId(int64_t value) {
-	parent_snapshot_id_ = std::move(value);
+	parent_snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetSequenceNumber(int64_t value) {
-	sequence_number_ = std::move(value);
+	sequence_number_.emplace(std::move(value));
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetFirstRowId(int64_t value) {
-	first_row_id_ = std::move(value);
+	first_row_id_.emplace(std::move(value));
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetAddedRows(int64_t value) {
-	added_rows_ = std::move(value);
+	added_rows_.emplace(std::move(value));
 	return *this;
 }
 
 SnapshotBuilder &SnapshotBuilder::SetSchemaId(int32_t value) {
-	schema_id_ = std::move(value);
+	schema_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -295,9 +296,7 @@ Snapshot Snapshot::FromJSON(yyjson_val *obj) {
 	if (!summary_val) {
 		throw InvalidInputException("Snapshot required property 'summary' is missing");
 	} else {
-		optional<Object2> summary;
-		summary = Object2::FromJSON(summary_val);
-		builder.SetSummary(std::move(*summary));
+		builder.SetSummary(Object2::FromJSON(summary_val));
 	}
 	auto parent_snapshot_id_val = yyjson_obj_get(obj, "parent-snapshot-id");
 	if (parent_snapshot_id_val) {
@@ -391,48 +390,47 @@ Snapshot Snapshot::Copy() const {
 	string manifest_list_tmp;
 	manifest_list_tmp = manifest_list;
 	builder.SetManifestList(std::move(manifest_list_tmp));
-	optional<Object2> summary_tmp;
-	summary_tmp = summary.Copy();
-	builder.SetSummary(std::move(*summary_tmp));
-	int64_t parent_snapshot_id_tmp;
+	auto summary_tmp = summary.Copy();
+	builder.SetSummary(std::move(summary_tmp));
+	optional<int64_t> parent_snapshot_id_tmp;
 	if (parent_snapshot_id.has_value()) {
 		parent_snapshot_id_tmp.emplace();
 		(*parent_snapshot_id_tmp) = (*parent_snapshot_id);
 	}
 	if (parent_snapshot_id_tmp.has_value()) {
-		builder.SetParentSnapshotId(std::move(parent_snapshot_id_tmp));
+		builder.SetParentSnapshotId(std::move((*parent_snapshot_id_tmp)));
 	}
-	int64_t sequence_number_tmp;
+	optional<int64_t> sequence_number_tmp;
 	if (sequence_number.has_value()) {
 		sequence_number_tmp.emplace();
 		(*sequence_number_tmp) = (*sequence_number);
 	}
 	if (sequence_number_tmp.has_value()) {
-		builder.SetSequenceNumber(std::move(sequence_number_tmp));
+		builder.SetSequenceNumber(std::move((*sequence_number_tmp)));
 	}
-	int64_t first_row_id_tmp;
+	optional<int64_t> first_row_id_tmp;
 	if (first_row_id.has_value()) {
 		first_row_id_tmp.emplace();
 		(*first_row_id_tmp) = (*first_row_id);
 	}
 	if (first_row_id_tmp.has_value()) {
-		builder.SetFirstRowId(std::move(first_row_id_tmp));
+		builder.SetFirstRowId(std::move((*first_row_id_tmp)));
 	}
-	int64_t added_rows_tmp;
+	optional<int64_t> added_rows_tmp;
 	if (added_rows.has_value()) {
 		added_rows_tmp.emplace();
 		(*added_rows_tmp) = (*added_rows);
 	}
 	if (added_rows_tmp.has_value()) {
-		builder.SetAddedRows(std::move(added_rows_tmp));
+		builder.SetAddedRows(std::move((*added_rows_tmp)));
 	}
-	int32_t schema_id_tmp;
+	optional<int32_t> schema_id_tmp;
 	if (schema_id.has_value()) {
 		schema_id_tmp.emplace();
 		(*schema_id_tmp) = (*schema_id);
 	}
 	if (schema_id_tmp.has_value()) {
-		builder.SetSchemaId(std::move(schema_id_tmp));
+		builder.SetSchemaId(std::move((*schema_id_tmp)));
 	}
 	return builder.Build();
 }

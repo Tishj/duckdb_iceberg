@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,19 +24,19 @@ CommitTableRequestBuilder::CommitTableRequestBuilder() {
 }
 
 CommitTableRequestBuilder &CommitTableRequestBuilder::SetRequirements(vector<TableRequirement> value) {
-	requirements_ = std::move(value);
+	requirements_.emplace(std::move(value));
 	has_requirements_ = true;
 	return *this;
 }
 
 CommitTableRequestBuilder &CommitTableRequestBuilder::SetUpdates(vector<TableUpdate> value) {
-	updates_ = std::move(value);
+	updates_.emplace(std::move(value));
 	has_updates_ = true;
 	return *this;
 }
 
 CommitTableRequestBuilder &CommitTableRequestBuilder::SetIdentifier(TableIdentifier value) {
-	identifier_ = std::move(value);
+	identifier_.emplace(std::move(value));
 	return *this;
 }
 
@@ -79,9 +80,9 @@ CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
 				requirements.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "CommitTableRequest property 'requirements' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(requirements_val));
+			    yyjson_get_type_desc(requirements_val)));
 		}
 		builder.SetRequirements(std::move(requirements));
 	}
@@ -98,17 +99,15 @@ CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
 				updates.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
-			    "CommitTableRequest property 'updates' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(updates_val));
+			throw InvalidInputException(
+			    StringUtil::Format("CommitTableRequest property 'updates' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(updates_val)));
 		}
 		builder.SetUpdates(std::move(updates));
 	}
 	auto identifier_val = yyjson_obj_get(obj, "identifier");
 	if (identifier_val) {
-		optional<TableIdentifier> identifier;
-		identifier = TableIdentifier::FromJSON(identifier_val);
-		builder.SetIdentifier(std::move(*identifier));
+		builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
 	}
 	return builder.Build();
 }
@@ -139,8 +138,7 @@ CommitTableRequest CommitTableRequest::Copy() const {
 	builder.SetUpdates(std::move(updates_tmp));
 	optional<TableIdentifier> identifier_tmp;
 	if (identifier.has_value()) {
-		identifier_tmp.emplace();
-		(*identifier_tmp) = (*identifier).Copy();
+		identifier_tmp.emplace((*identifier).Copy());
 	}
 	if (identifier_tmp.has_value()) {
 		builder.SetIdentifier(std::move(*identifier_tmp));

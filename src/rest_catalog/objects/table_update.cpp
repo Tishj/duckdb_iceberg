@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -55,107 +56,107 @@ TableUpdateBuilder::TableUpdateBuilder() {
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAssignUuidupdate(AssignUUIDUpdate value) {
-	assign_uuidupdate_ = std::move(value);
+	assign_uuidupdate_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value) {
-	upgrade_format_version_update_ = std::move(value);
+	upgrade_format_version_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddSchemaUpdate(AddSchemaUpdate value) {
-	add_schema_update_ = std::move(value);
+	add_schema_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate value) {
-	set_current_schema_update_ = std::move(value);
+	set_current_schema_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddPartitionSpecUpdate(AddPartitionSpecUpdate value) {
-	add_partition_spec_update_ = std::move(value);
+	add_partition_spec_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetDefaultSpecUpdate(SetDefaultSpecUpdate value) {
-	set_default_spec_update_ = std::move(value);
+	set_default_spec_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddSortOrderUpdate(AddSortOrderUpdate value) {
-	add_sort_order_update_ = std::move(value);
+	add_sort_order_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate value) {
-	set_default_sort_order_update_ = std::move(value);
+	set_default_sort_order_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddSnapshotUpdate(AddSnapshotUpdate value) {
-	add_snapshot_update_ = std::move(value);
+	add_snapshot_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetSnapshotRefUpdate(SetSnapshotRefUpdate value) {
-	set_snapshot_ref_update_ = std::move(value);
+	set_snapshot_ref_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate value) {
-	remove_snapshots_update_ = std::move(value);
+	remove_snapshots_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate value) {
-	remove_snapshot_ref_update_ = std::move(value);
+	remove_snapshot_ref_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetLocationUpdate(SetLocationUpdate value) {
-	set_location_update_ = std::move(value);
+	set_location_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetPropertiesUpdate(SetPropertiesUpdate value) {
-	set_properties_update_ = std::move(value);
+	set_properties_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemovePropertiesUpdate(RemovePropertiesUpdate value) {
-	remove_properties_update_ = std::move(value);
+	remove_properties_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetSetStatisticsUpdate(SetStatisticsUpdate value) {
-	set_statistics_update_ = std::move(value);
+	set_statistics_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveStatisticsUpdate(RemoveStatisticsUpdate value) {
-	remove_statistics_update_ = std::move(value);
+	remove_statistics_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate value) {
-	remove_partition_specs_update_ = std::move(value);
+	remove_partition_specs_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveSchemasUpdate(RemoveSchemasUpdate value) {
-	remove_schemas_update_ = std::move(value);
+	remove_schemas_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate value) {
-	add_encryption_key_update_ = std::move(value);
+	add_encryption_key_update_.emplace(std::move(value));
 	return *this;
 }
 
 TableUpdateBuilder &TableUpdateBuilder::SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate value) {
-	remove_encryption_key_update_ = std::move(value);
+	remove_encryption_key_update_.emplace(std::move(value));
 	return *this;
 }
 
@@ -315,168 +316,147 @@ TableUpdate TableUpdate::Copy() const {
 	TableUpdateBuilder builder;
 	optional<AssignUUIDUpdate> assign_uuidupdate_tmp;
 	if (assign_uuidupdate.has_value()) {
-		assign_uuidupdate_tmp.emplace();
-		(*assign_uuidupdate_tmp) = (*assign_uuidupdate).Copy();
+		assign_uuidupdate_tmp.emplace((*assign_uuidupdate).Copy());
 	}
 	if (assign_uuidupdate_tmp.has_value()) {
 		builder.SetAssignUuidupdate(std::move(*assign_uuidupdate_tmp));
 	}
 	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_tmp;
 	if (upgrade_format_version_update.has_value()) {
-		upgrade_format_version_update_tmp.emplace();
-		(*upgrade_format_version_update_tmp) = (*upgrade_format_version_update).Copy();
+		upgrade_format_version_update_tmp.emplace((*upgrade_format_version_update).Copy());
 	}
 	if (upgrade_format_version_update_tmp.has_value()) {
 		builder.SetUpgradeFormatVersionUpdate(std::move(*upgrade_format_version_update_tmp));
 	}
 	optional<AddSchemaUpdate> add_schema_update_tmp;
 	if (add_schema_update.has_value()) {
-		add_schema_update_tmp.emplace();
-		(*add_schema_update_tmp) = (*add_schema_update).Copy();
+		add_schema_update_tmp.emplace((*add_schema_update).Copy());
 	}
 	if (add_schema_update_tmp.has_value()) {
 		builder.SetAddSchemaUpdate(std::move(*add_schema_update_tmp));
 	}
 	optional<SetCurrentSchemaUpdate> set_current_schema_update_tmp;
 	if (set_current_schema_update.has_value()) {
-		set_current_schema_update_tmp.emplace();
-		(*set_current_schema_update_tmp) = (*set_current_schema_update).Copy();
+		set_current_schema_update_tmp.emplace((*set_current_schema_update).Copy());
 	}
 	if (set_current_schema_update_tmp.has_value()) {
 		builder.SetSetCurrentSchemaUpdate(std::move(*set_current_schema_update_tmp));
 	}
 	optional<AddPartitionSpecUpdate> add_partition_spec_update_tmp;
 	if (add_partition_spec_update.has_value()) {
-		add_partition_spec_update_tmp.emplace();
-		(*add_partition_spec_update_tmp) = (*add_partition_spec_update).Copy();
+		add_partition_spec_update_tmp.emplace((*add_partition_spec_update).Copy());
 	}
 	if (add_partition_spec_update_tmp.has_value()) {
 		builder.SetAddPartitionSpecUpdate(std::move(*add_partition_spec_update_tmp));
 	}
 	optional<SetDefaultSpecUpdate> set_default_spec_update_tmp;
 	if (set_default_spec_update.has_value()) {
-		set_default_spec_update_tmp.emplace();
-		(*set_default_spec_update_tmp) = (*set_default_spec_update).Copy();
+		set_default_spec_update_tmp.emplace((*set_default_spec_update).Copy());
 	}
 	if (set_default_spec_update_tmp.has_value()) {
 		builder.SetSetDefaultSpecUpdate(std::move(*set_default_spec_update_tmp));
 	}
 	optional<AddSortOrderUpdate> add_sort_order_update_tmp;
 	if (add_sort_order_update.has_value()) {
-		add_sort_order_update_tmp.emplace();
-		(*add_sort_order_update_tmp) = (*add_sort_order_update).Copy();
+		add_sort_order_update_tmp.emplace((*add_sort_order_update).Copy());
 	}
 	if (add_sort_order_update_tmp.has_value()) {
 		builder.SetAddSortOrderUpdate(std::move(*add_sort_order_update_tmp));
 	}
 	optional<SetDefaultSortOrderUpdate> set_default_sort_order_update_tmp;
 	if (set_default_sort_order_update.has_value()) {
-		set_default_sort_order_update_tmp.emplace();
-		(*set_default_sort_order_update_tmp) = (*set_default_sort_order_update).Copy();
+		set_default_sort_order_update_tmp.emplace((*set_default_sort_order_update).Copy());
 	}
 	if (set_default_sort_order_update_tmp.has_value()) {
 		builder.SetSetDefaultSortOrderUpdate(std::move(*set_default_sort_order_update_tmp));
 	}
 	optional<AddSnapshotUpdate> add_snapshot_update_tmp;
 	if (add_snapshot_update.has_value()) {
-		add_snapshot_update_tmp.emplace();
-		(*add_snapshot_update_tmp) = (*add_snapshot_update).Copy();
+		add_snapshot_update_tmp.emplace((*add_snapshot_update).Copy());
 	}
 	if (add_snapshot_update_tmp.has_value()) {
 		builder.SetAddSnapshotUpdate(std::move(*add_snapshot_update_tmp));
 	}
 	optional<SetSnapshotRefUpdate> set_snapshot_ref_update_tmp;
 	if (set_snapshot_ref_update.has_value()) {
-		set_snapshot_ref_update_tmp.emplace();
-		(*set_snapshot_ref_update_tmp) = (*set_snapshot_ref_update).Copy();
+		set_snapshot_ref_update_tmp.emplace((*set_snapshot_ref_update).Copy());
 	}
 	if (set_snapshot_ref_update_tmp.has_value()) {
 		builder.SetSetSnapshotRefUpdate(std::move(*set_snapshot_ref_update_tmp));
 	}
 	optional<RemoveSnapshotsUpdate> remove_snapshots_update_tmp;
 	if (remove_snapshots_update.has_value()) {
-		remove_snapshots_update_tmp.emplace();
-		(*remove_snapshots_update_tmp) = (*remove_snapshots_update).Copy();
+		remove_snapshots_update_tmp.emplace((*remove_snapshots_update).Copy());
 	}
 	if (remove_snapshots_update_tmp.has_value()) {
 		builder.SetRemoveSnapshotsUpdate(std::move(*remove_snapshots_update_tmp));
 	}
 	optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update_tmp;
 	if (remove_snapshot_ref_update.has_value()) {
-		remove_snapshot_ref_update_tmp.emplace();
-		(*remove_snapshot_ref_update_tmp) = (*remove_snapshot_ref_update).Copy();
+		remove_snapshot_ref_update_tmp.emplace((*remove_snapshot_ref_update).Copy());
 	}
 	if (remove_snapshot_ref_update_tmp.has_value()) {
 		builder.SetRemoveSnapshotRefUpdate(std::move(*remove_snapshot_ref_update_tmp));
 	}
 	optional<SetLocationUpdate> set_location_update_tmp;
 	if (set_location_update.has_value()) {
-		set_location_update_tmp.emplace();
-		(*set_location_update_tmp) = (*set_location_update).Copy();
+		set_location_update_tmp.emplace((*set_location_update).Copy());
 	}
 	if (set_location_update_tmp.has_value()) {
 		builder.SetSetLocationUpdate(std::move(*set_location_update_tmp));
 	}
 	optional<SetPropertiesUpdate> set_properties_update_tmp;
 	if (set_properties_update.has_value()) {
-		set_properties_update_tmp.emplace();
-		(*set_properties_update_tmp) = (*set_properties_update).Copy();
+		set_properties_update_tmp.emplace((*set_properties_update).Copy());
 	}
 	if (set_properties_update_tmp.has_value()) {
 		builder.SetSetPropertiesUpdate(std::move(*set_properties_update_tmp));
 	}
 	optional<RemovePropertiesUpdate> remove_properties_update_tmp;
 	if (remove_properties_update.has_value()) {
-		remove_properties_update_tmp.emplace();
-		(*remove_properties_update_tmp) = (*remove_properties_update).Copy();
+		remove_properties_update_tmp.emplace((*remove_properties_update).Copy());
 	}
 	if (remove_properties_update_tmp.has_value()) {
 		builder.SetRemovePropertiesUpdate(std::move(*remove_properties_update_tmp));
 	}
 	optional<SetStatisticsUpdate> set_statistics_update_tmp;
 	if (set_statistics_update.has_value()) {
-		set_statistics_update_tmp.emplace();
-		(*set_statistics_update_tmp) = (*set_statistics_update).Copy();
+		set_statistics_update_tmp.emplace((*set_statistics_update).Copy());
 	}
 	if (set_statistics_update_tmp.has_value()) {
 		builder.SetSetStatisticsUpdate(std::move(*set_statistics_update_tmp));
 	}
 	optional<RemoveStatisticsUpdate> remove_statistics_update_tmp;
 	if (remove_statistics_update.has_value()) {
-		remove_statistics_update_tmp.emplace();
-		(*remove_statistics_update_tmp) = (*remove_statistics_update).Copy();
+		remove_statistics_update_tmp.emplace((*remove_statistics_update).Copy());
 	}
 	if (remove_statistics_update_tmp.has_value()) {
 		builder.SetRemoveStatisticsUpdate(std::move(*remove_statistics_update_tmp));
 	}
 	optional<RemovePartitionSpecsUpdate> remove_partition_specs_update_tmp;
 	if (remove_partition_specs_update.has_value()) {
-		remove_partition_specs_update_tmp.emplace();
-		(*remove_partition_specs_update_tmp) = (*remove_partition_specs_update).Copy();
+		remove_partition_specs_update_tmp.emplace((*remove_partition_specs_update).Copy());
 	}
 	if (remove_partition_specs_update_tmp.has_value()) {
 		builder.SetRemovePartitionSpecsUpdate(std::move(*remove_partition_specs_update_tmp));
 	}
 	optional<RemoveSchemasUpdate> remove_schemas_update_tmp;
 	if (remove_schemas_update.has_value()) {
-		remove_schemas_update_tmp.emplace();
-		(*remove_schemas_update_tmp) = (*remove_schemas_update).Copy();
+		remove_schemas_update_tmp.emplace((*remove_schemas_update).Copy());
 	}
 	if (remove_schemas_update_tmp.has_value()) {
 		builder.SetRemoveSchemasUpdate(std::move(*remove_schemas_update_tmp));
 	}
 	optional<AddEncryptionKeyUpdate> add_encryption_key_update_tmp;
 	if (add_encryption_key_update.has_value()) {
-		add_encryption_key_update_tmp.emplace();
-		(*add_encryption_key_update_tmp) = (*add_encryption_key_update).Copy();
+		add_encryption_key_update_tmp.emplace((*add_encryption_key_update).Copy());
 	}
 	if (add_encryption_key_update_tmp.has_value()) {
 		builder.SetAddEncryptionKeyUpdate(std::move(*add_encryption_key_update_tmp));
 	}
 	optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update_tmp;
 	if (remove_encryption_key_update.has_value()) {
-		remove_encryption_key_update_tmp.emplace();
-		(*remove_encryption_key_update_tmp) = (*remove_encryption_key_update).Copy();
+		remove_encryption_key_update_tmp.emplace((*remove_encryption_key_update).Copy());
 	}
 	if (remove_encryption_key_update_tmp.has_value()) {
 		builder.SetRemoveEncryptionKeyUpdate(std::move(*remove_encryption_key_update_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,13 +22,13 @@ AssertViewUUIDBuilder::AssertViewUUIDBuilder() {
 }
 
 AssertViewUUIDBuilder &AssertViewUUIDBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertViewUUIDBuilder &AssertViewUUIDBuilder::SetUuid(string value) {
-	uuid_ = std::move(value);
+	uuid_.emplace(std::move(value));
 	has_uuid_ = true;
 	return *this;
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,25 +24,25 @@ SortFieldBuilder::SortFieldBuilder() {
 }
 
 SortFieldBuilder &SortFieldBuilder::SetSourceId(int32_t value) {
-	source_id_ = std::move(value);
+	source_id_.emplace(std::move(value));
 	has_source_id_ = true;
 	return *this;
 }
 
 SortFieldBuilder &SortFieldBuilder::SetTransform(Transform value) {
-	transform_ = std::move(value);
+	transform_.emplace(std::move(value));
 	has_transform_ = true;
 	return *this;
 }
 
 SortFieldBuilder &SortFieldBuilder::SetDirection(SortDirection value) {
-	direction_ = std::move(value);
+	direction_.emplace(std::move(value));
 	has_direction_ = true;
 	return *this;
 }
 
 SortFieldBuilder &SortFieldBuilder::SetNullOrder(NullOrder value) {
-	null_order_ = std::move(value);
+	null_order_.emplace(std::move(value));
 	has_null_order_ = true;
 	return *this;
 }
@@ -98,25 +99,19 @@ SortField SortField::FromJSON(yyjson_val *obj) {
 	if (!transform_val) {
 		throw InvalidInputException("SortField required property 'transform' is missing");
 	} else {
-		optional<Transform> transform;
-		transform = Transform::FromJSON(transform_val);
-		builder.SetTransform(std::move(*transform));
+		builder.SetTransform(Transform::FromJSON(transform_val));
 	}
 	auto direction_val = yyjson_obj_get(obj, "direction");
 	if (!direction_val) {
 		throw InvalidInputException("SortField required property 'direction' is missing");
 	} else {
-		optional<SortDirection> direction;
-		direction = SortDirection::FromJSON(direction_val);
-		builder.SetDirection(std::move(*direction));
+		builder.SetDirection(SortDirection::FromJSON(direction_val));
 	}
 	auto null_order_val = yyjson_obj_get(obj, "null-order");
 	if (!null_order_val) {
 		throw InvalidInputException("SortField required property 'null-order' is missing");
 	} else {
-		optional<NullOrder> null_order;
-		null_order = NullOrder::FromJSON(null_order_val);
-		builder.SetNullOrder(std::move(*null_order));
+		builder.SetNullOrder(NullOrder::FromJSON(null_order_val));
 	}
 	return builder.Build();
 }
@@ -136,15 +131,12 @@ SortField SortField::Copy() const {
 	int32_t source_id_tmp;
 	source_id_tmp = source_id;
 	builder.SetSourceId(std::move(source_id_tmp));
-	optional<Transform> transform_tmp;
-	transform_tmp = transform.Copy();
-	builder.SetTransform(std::move(*transform_tmp));
-	optional<SortDirection> direction_tmp;
-	direction_tmp = direction.Copy();
-	builder.SetDirection(std::move(*direction_tmp));
-	optional<NullOrder> null_order_tmp;
-	null_order_tmp = null_order.Copy();
-	builder.SetNullOrder(std::move(*null_order_tmp));
+	auto transform_tmp = transform.Copy();
+	builder.SetTransform(std::move(transform_tmp));
+	auto direction_tmp = direction.Copy();
+	builder.SetDirection(std::move(direction_tmp));
+	auto null_order_tmp = null_order.Copy();
+	builder.SetNullOrder(std::move(null_order_tmp));
 	return builder.Build();
 }
 

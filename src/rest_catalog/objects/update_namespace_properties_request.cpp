@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,13 +24,13 @@ UpdateNamespacePropertiesRequestBuilder::UpdateNamespacePropertiesRequestBuilder
 }
 
 UpdateNamespacePropertiesRequestBuilder &UpdateNamespacePropertiesRequestBuilder::SetRemovals(vector<string> value) {
-	removals_ = std::move(value);
+	removals_.emplace(std::move(value));
 	return *this;
 }
 
 UpdateNamespacePropertiesRequestBuilder &
 UpdateNamespacePropertiesRequestBuilder::SetUpdates(case_insensitive_map_t<string> value) {
-	updates_ = std::move(value);
+	updates_.emplace(std::move(value));
 	return *this;
 }
 
@@ -72,9 +73,9 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjs
 				removals.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "UpdateNamespacePropertiesRequest property 'removals' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(removals_val));
+			    yyjson_get_type_desc(removals_val)));
 		}
 		builder.SetRemovals(std::move(removals));
 	}
@@ -117,7 +118,7 @@ string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
 
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const {
 	UpdateNamespacePropertiesRequestBuilder builder;
-	vector<string> removals_tmp;
+	optional<vector<string>> removals_tmp;
 	if (removals.has_value()) {
 		removals_tmp.emplace();
 		(*removals_tmp).reserve((*removals).size());
@@ -126,9 +127,9 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const 
 		}
 	}
 	if (removals_tmp.has_value()) {
-		builder.SetRemovals(std::move(removals_tmp));
+		builder.SetRemovals(std::move((*removals_tmp)));
 	}
-	case_insensitive_map_t<string> updates_tmp;
+	optional<case_insensitive_map_t<string>> updates_tmp;
 	if (updates.has_value()) {
 		updates_tmp.emplace();
 		for (auto &entry : (*updates)) {
@@ -136,7 +137,7 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const 
 		}
 	}
 	if (updates_tmp.has_value()) {
-		builder.SetUpdates(std::move(updates_tmp));
+		builder.SetUpdates(std::move((*updates_tmp)));
 	}
 	return builder.Build();
 }

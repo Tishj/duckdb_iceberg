@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -29,40 +30,40 @@ OAuthTokenExchangeRequestBuilder::OAuthTokenExchangeRequestBuilder() {
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetGrantType(string value) {
-	grant_type_ = std::move(value);
+	grant_type_.emplace(std::move(value));
 	has_grant_type_ = true;
 	return *this;
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetSubjectToken(string value) {
-	subject_token_ = std::move(value);
+	subject_token_.emplace(std::move(value));
 	has_subject_token_ = true;
 	return *this;
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetSubjectTokenType(TokenType value) {
-	subject_token_type_ = std::move(value);
+	subject_token_type_.emplace(std::move(value));
 	has_subject_token_type_ = true;
 	return *this;
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetScope(string value) {
-	scope_ = std::move(value);
+	scope_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetRequestedTokenType(TokenType value) {
-	requested_token_type_ = std::move(value);
+	requested_token_type_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetActorToken(string value) {
-	actor_token_ = std::move(value);
+	actor_token_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenExchangeRequestBuilder &OAuthTokenExchangeRequestBuilder::SetActorTokenType(TokenType value) {
-	actor_token_type_ = std::move(value);
+	actor_token_type_.emplace(std::move(value));
 	return *this;
 }
 
@@ -130,9 +131,7 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::FromJSON(yyjson_val *obj) {
 	if (!subject_token_type_val) {
 		throw InvalidInputException("OAuthTokenExchangeRequest required property 'subject_token_type' is missing");
 	} else {
-		optional<TokenType> subject_token_type;
-		subject_token_type = TokenType::FromJSON(subject_token_type_val);
-		builder.SetSubjectTokenType(std::move(*subject_token_type));
+		builder.SetSubjectTokenType(TokenType::FromJSON(subject_token_type_val));
 	}
 	auto scope_val = yyjson_obj_get(obj, "scope");
 	if (scope_val) {
@@ -148,9 +147,7 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::FromJSON(yyjson_val *obj) {
 	}
 	auto requested_token_type_val = yyjson_obj_get(obj, "requested_token_type");
 	if (requested_token_type_val) {
-		optional<TokenType> requested_token_type;
-		requested_token_type = TokenType::FromJSON(requested_token_type_val);
-		builder.SetRequestedTokenType(std::move(*requested_token_type));
+		builder.SetRequestedTokenType(TokenType::FromJSON(requested_token_type_val));
 	}
 	auto actor_token_val = yyjson_obj_get(obj, "actor_token");
 	if (actor_token_val) {
@@ -166,9 +163,7 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::FromJSON(yyjson_val *obj) {
 	}
 	auto actor_token_type_val = yyjson_obj_get(obj, "actor_token_type");
 	if (actor_token_type_val) {
-		optional<TokenType> actor_token_type;
-		actor_token_type = TokenType::FromJSON(actor_token_type_val);
-		builder.SetActorTokenType(std::move(*actor_token_type));
+		builder.SetActorTokenType(TokenType::FromJSON(actor_token_type_val));
 	}
 	return builder.Build();
 }
@@ -191,37 +186,34 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::Copy() const {
 	string subject_token_tmp;
 	subject_token_tmp = subject_token;
 	builder.SetSubjectToken(std::move(subject_token_tmp));
-	optional<TokenType> subject_token_type_tmp;
-	subject_token_type_tmp = subject_token_type.Copy();
-	builder.SetSubjectTokenType(std::move(*subject_token_type_tmp));
-	string scope_tmp;
+	auto subject_token_type_tmp = subject_token_type.Copy();
+	builder.SetSubjectTokenType(std::move(subject_token_type_tmp));
+	optional<string> scope_tmp;
 	if (scope.has_value()) {
 		scope_tmp.emplace();
 		(*scope_tmp) = (*scope);
 	}
 	if (scope_tmp.has_value()) {
-		builder.SetScope(std::move(scope_tmp));
+		builder.SetScope(std::move((*scope_tmp)));
 	}
 	optional<TokenType> requested_token_type_tmp;
 	if (requested_token_type.has_value()) {
-		requested_token_type_tmp.emplace();
-		(*requested_token_type_tmp) = (*requested_token_type).Copy();
+		requested_token_type_tmp.emplace((*requested_token_type).Copy());
 	}
 	if (requested_token_type_tmp.has_value()) {
 		builder.SetRequestedTokenType(std::move(*requested_token_type_tmp));
 	}
-	string actor_token_tmp;
+	optional<string> actor_token_tmp;
 	if (actor_token.has_value()) {
 		actor_token_tmp.emplace();
 		(*actor_token_tmp) = (*actor_token);
 	}
 	if (actor_token_tmp.has_value()) {
-		builder.SetActorToken(std::move(actor_token_tmp));
+		builder.SetActorToken(std::move((*actor_token_tmp)));
 	}
 	optional<TokenType> actor_token_type_tmp;
 	if (actor_token_type.has_value()) {
-		actor_token_type_tmp.emplace();
-		(*actor_token_type_tmp) = (*actor_token_type).Copy();
+		actor_token_type_tmp.emplace((*actor_token_type).Copy());
 	}
 	if (actor_token_type_tmp.has_value()) {
 		builder.SetActorTokenType(std::move(*actor_token_type_tmp));

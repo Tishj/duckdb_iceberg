@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemovePartitionSpecsUpdateBuilder::RemovePartitionSpecsUpdateBuilder() {
 }
 
 RemovePartitionSpecsUpdateBuilder &RemovePartitionSpecsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemovePartitionSpecsUpdateBuilder &RemovePartitionSpecsUpdateBuilder::SetSpecIds(vector<int32_t> value) {
-	spec_ids_ = std::move(value);
+	spec_ids_.emplace(std::move(value));
 	has_spec_ids_ = true;
 	return *this;
 }
@@ -77,9 +78,9 @@ RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj)
 				spec_ids.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "RemovePartitionSpecsUpdate property 'spec_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(spec_ids_val));
+			    yyjson_get_type_desc(spec_ids_val)));
 		}
 		builder.SetSpecIds(std::move(spec_ids));
 	}
@@ -98,9 +99,8 @@ string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveP
 
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::Copy() const {
 	RemovePartitionSpecsUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	vector<int32_t> spec_ids_tmp;
 	spec_ids_tmp.reserve(spec_ids.size());
 	for (auto &item : spec_ids) {

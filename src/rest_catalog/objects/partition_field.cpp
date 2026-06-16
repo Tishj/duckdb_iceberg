@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,25 +24,25 @@ PartitionFieldBuilder::PartitionFieldBuilder() {
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetSourceId(int32_t value) {
-	source_id_ = std::move(value);
+	source_id_.emplace(std::move(value));
 	has_source_id_ = true;
 	return *this;
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetTransform(Transform value) {
-	transform_ = std::move(value);
+	transform_.emplace(std::move(value));
 	has_transform_ = true;
 	return *this;
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
 
 PartitionFieldBuilder &PartitionFieldBuilder::SetFieldId(int32_t value) {
-	field_id_ = std::move(value);
+	field_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -94,9 +95,7 @@ PartitionField PartitionField::FromJSON(yyjson_val *obj) {
 	if (!transform_val) {
 		throw InvalidInputException("PartitionField required property 'transform' is missing");
 	} else {
-		optional<Transform> transform;
-		transform = Transform::FromJSON(transform_val);
-		builder.SetTransform(std::move(*transform));
+		builder.SetTransform(Transform::FromJSON(transform_val));
 	}
 	auto name_val = yyjson_obj_get(obj, "name");
 	if (!name_val) {
@@ -142,19 +141,18 @@ PartitionField PartitionField::Copy() const {
 	int32_t source_id_tmp;
 	source_id_tmp = source_id;
 	builder.SetSourceId(std::move(source_id_tmp));
-	optional<Transform> transform_tmp;
-	transform_tmp = transform.Copy();
-	builder.SetTransform(std::move(*transform_tmp));
+	auto transform_tmp = transform.Copy();
+	builder.SetTransform(std::move(transform_tmp));
 	string name_tmp;
 	name_tmp = name;
 	builder.SetName(std::move(name_tmp));
-	int32_t field_id_tmp;
+	optional<int32_t> field_id_tmp;
 	if (field_id.has_value()) {
 		field_id_tmp.emplace();
 		(*field_id_tmp) = (*field_id);
 	}
 	if (field_id_tmp.has_value()) {
-		builder.SetFieldId(std::move(field_id_tmp));
+		builder.SetFieldId(std::move((*field_id_tmp)));
 	}
 	return builder.Build();
 }

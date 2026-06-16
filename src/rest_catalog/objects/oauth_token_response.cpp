@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -26,34 +27,34 @@ OAuthTokenResponseBuilder::OAuthTokenResponseBuilder() {
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetAccessToken(string value) {
-	access_token_ = std::move(value);
+	access_token_.emplace(std::move(value));
 	has_access_token_ = true;
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetTokenType(string value) {
-	token_type_ = std::move(value);
+	token_type_.emplace(std::move(value));
 	has_token_type_ = true;
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetExpiresIn(int32_t value) {
-	expires_in_ = std::move(value);
+	expires_in_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetIssuedTokenType(TokenType value) {
-	issued_token_type_ = std::move(value);
+	issued_token_type_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetRefreshToken(string value) {
-	refresh_token_ = std::move(value);
+	refresh_token_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenResponseBuilder &OAuthTokenResponseBuilder::SetScope(string value) {
-	scope_ = std::move(value);
+	scope_.emplace(std::move(value));
 	return *this;
 }
 
@@ -127,9 +128,7 @@ OAuthTokenResponse OAuthTokenResponse::FromJSON(yyjson_val *obj) {
 	}
 	auto issued_token_type_val = yyjson_obj_get(obj, "issued_token_type");
 	if (issued_token_type_val) {
-		optional<TokenType> issued_token_type;
-		issued_token_type = TokenType::FromJSON(issued_token_type_val);
-		builder.SetIssuedTokenType(std::move(*issued_token_type));
+		builder.SetIssuedTokenType(TokenType::FromJSON(issued_token_type_val));
 	}
 	auto refresh_token_val = yyjson_obj_get(obj, "refresh_token");
 	if (refresh_token_val) {
@@ -176,37 +175,36 @@ OAuthTokenResponse OAuthTokenResponse::Copy() const {
 	string token_type_tmp;
 	token_type_tmp = token_type;
 	builder.SetTokenType(std::move(token_type_tmp));
-	int32_t expires_in_tmp;
+	optional<int32_t> expires_in_tmp;
 	if (expires_in.has_value()) {
 		expires_in_tmp.emplace();
 		(*expires_in_tmp) = (*expires_in);
 	}
 	if (expires_in_tmp.has_value()) {
-		builder.SetExpiresIn(std::move(expires_in_tmp));
+		builder.SetExpiresIn(std::move((*expires_in_tmp)));
 	}
 	optional<TokenType> issued_token_type_tmp;
 	if (issued_token_type.has_value()) {
-		issued_token_type_tmp.emplace();
-		(*issued_token_type_tmp) = (*issued_token_type).Copy();
+		issued_token_type_tmp.emplace((*issued_token_type).Copy());
 	}
 	if (issued_token_type_tmp.has_value()) {
 		builder.SetIssuedTokenType(std::move(*issued_token_type_tmp));
 	}
-	string refresh_token_tmp;
+	optional<string> refresh_token_tmp;
 	if (refresh_token.has_value()) {
 		refresh_token_tmp.emplace();
 		(*refresh_token_tmp) = (*refresh_token);
 	}
 	if (refresh_token_tmp.has_value()) {
-		builder.SetRefreshToken(std::move(refresh_token_tmp));
+		builder.SetRefreshToken(std::move((*refresh_token_tmp)));
 	}
-	string scope_tmp;
+	optional<string> scope_tmp;
 	if (scope.has_value()) {
 		scope_tmp.emplace();
 		(*scope_tmp) = (*scope);
 	}
 	if (scope_tmp.has_value()) {
-		builder.SetScope(std::move(scope_tmp));
+		builder.SetScope(std::move((*scope_tmp)));
 	}
 	return builder.Build();
 }

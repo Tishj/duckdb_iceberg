@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -26,17 +27,17 @@ FetchPlanningResultBuilder::FetchPlanningResultBuilder() {
 }
 
 FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetCompletedPlanningResult(CompletedPlanningResult value) {
-	completed_planning_result_ = std::move(value);
+	completed_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
 FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetFailedPlanningResult(FailedPlanningResult value) {
-	failed_planning_result_ = std::move(value);
+	failed_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
 FetchPlanningResultBuilder &FetchPlanningResultBuilder::SetEmptyPlanningResult(EmptyPlanningResult value) {
-	empty_planning_result_ = std::move(value);
+	empty_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
@@ -97,24 +98,21 @@ FetchPlanningResult FetchPlanningResult::Copy() const {
 	FetchPlanningResultBuilder builder;
 	optional<CompletedPlanningResult> completed_planning_result_tmp;
 	if (completed_planning_result.has_value()) {
-		completed_planning_result_tmp.emplace();
-		(*completed_planning_result_tmp) = (*completed_planning_result).Copy();
+		completed_planning_result_tmp.emplace((*completed_planning_result).Copy());
 	}
 	if (completed_planning_result_tmp.has_value()) {
 		builder.SetCompletedPlanningResult(std::move(*completed_planning_result_tmp));
 	}
 	optional<FailedPlanningResult> failed_planning_result_tmp;
 	if (failed_planning_result.has_value()) {
-		failed_planning_result_tmp.emplace();
-		(*failed_planning_result_tmp) = (*failed_planning_result).Copy();
+		failed_planning_result_tmp.emplace((*failed_planning_result).Copy());
 	}
 	if (failed_planning_result_tmp.has_value()) {
 		builder.SetFailedPlanningResult(std::move(*failed_planning_result_tmp));
 	}
 	optional<EmptyPlanningResult> empty_planning_result_tmp;
 	if (empty_planning_result.has_value()) {
-		empty_planning_result_tmp.emplace();
-		(*empty_planning_result_tmp) = (*empty_planning_result).Copy();
+		empty_planning_result_tmp.emplace((*empty_planning_result).Copy());
 	}
 	if (empty_planning_result_tmp.has_value()) {
 		builder.SetEmptyPlanningResult(std::move(*empty_planning_result_tmp));

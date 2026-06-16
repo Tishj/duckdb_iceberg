@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemovePropertiesUpdateBuilder::RemovePropertiesUpdateBuilder() {
 }
 
 RemovePropertiesUpdateBuilder &RemovePropertiesUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemovePropertiesUpdateBuilder &RemovePropertiesUpdateBuilder::SetRemovals(vector<string> value) {
-	removals_ = std::move(value);
+	removals_.emplace(std::move(value));
 	has_removals_ = true;
 	return *this;
 }
@@ -77,9 +78,9 @@ RemovePropertiesUpdate RemovePropertiesUpdate::FromJSON(yyjson_val *obj) {
 				removals.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "RemovePropertiesUpdate property 'removals' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(removals_val));
+			    yyjson_get_type_desc(removals_val)));
 		}
 		builder.SetRemovals(std::move(removals));
 	}
@@ -98,9 +99,8 @@ string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, optional<RemovePrope
 
 RemovePropertiesUpdate RemovePropertiesUpdate::Copy() const {
 	RemovePropertiesUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	vector<string> removals_tmp;
 	removals_tmp.reserve(removals.size());
 	for (auto &item : removals) {

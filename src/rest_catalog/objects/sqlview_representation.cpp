@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ SQLViewRepresentationBuilder::SQLViewRepresentationBuilder() {
 }
 
 SQLViewRepresentationBuilder &SQLViewRepresentationBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 SQLViewRepresentationBuilder &SQLViewRepresentationBuilder::SetSql(string value) {
-	sql_ = std::move(value);
+	sql_.emplace(std::move(value));
 	has_sql_ = true;
 	return *this;
 }
 
 SQLViewRepresentationBuilder &SQLViewRepresentationBuilder::SetDialect(string value) {
-	dialect_ = std::move(value);
+	dialect_.emplace(std::move(value));
 	has_dialect_ = true;
 	return *this;
 }

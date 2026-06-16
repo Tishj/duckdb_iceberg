@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ PartitionSpecBuilder::PartitionSpecBuilder() {
 }
 
 PartitionSpecBuilder &PartitionSpecBuilder::SetFields(vector<PartitionField> value) {
-	fields_ = std::move(value);
+	fields_.emplace(std::move(value));
 	has_fields_ = true;
 	return *this;
 }
 
 PartitionSpecBuilder &PartitionSpecBuilder::SetSpecId(int32_t value) {
-	spec_id_ = std::move(value);
+	spec_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -69,8 +70,9 @@ PartitionSpec PartitionSpec::FromJSON(yyjson_val *obj) {
 				fields.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("PartitionSpec property 'fields' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(fields_val));
+			throw InvalidInputException(
+			    StringUtil::Format("PartitionSpec property 'fields' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(fields_val)));
 		}
 		builder.SetFields(std::move(fields));
 	}
@@ -107,13 +109,13 @@ PartitionSpec PartitionSpec::Copy() const {
 		fields_tmp.emplace_back(item.Copy());
 	}
 	builder.SetFields(std::move(fields_tmp));
-	int32_t spec_id_tmp;
+	optional<int32_t> spec_id_tmp;
 	if (spec_id.has_value()) {
 		spec_id_tmp.emplace();
 		(*spec_id_tmp) = (*spec_id);
 	}
 	if (spec_id_tmp.has_value()) {
-		builder.SetSpecId(std::move(spec_id_tmp));
+		builder.SetSpecId(std::move((*spec_id_tmp)));
 	}
 	return builder.Build();
 }

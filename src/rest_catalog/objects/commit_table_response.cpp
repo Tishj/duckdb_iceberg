@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ CommitTableResponseBuilder::CommitTableResponseBuilder() {
 }
 
 CommitTableResponseBuilder &CommitTableResponseBuilder::SetMetadataLocation(string value) {
-	metadata_location_ = std::move(value);
+	metadata_location_.emplace(std::move(value));
 	has_metadata_location_ = true;
 	return *this;
 }
 
 CommitTableResponseBuilder &CommitTableResponseBuilder::SetMetadata(TableMetadata value) {
-	metadata_ = std::move(value);
+	metadata_.emplace(std::move(value));
 	has_metadata_ = true;
 	return *this;
 }
@@ -78,9 +79,7 @@ CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
 	if (!metadata_val) {
 		throw InvalidInputException("CommitTableResponse required property 'metadata' is missing");
 	} else {
-		optional<TableMetadata> metadata;
-		metadata = TableMetadata::FromJSON(metadata_val);
-		builder.SetMetadata(std::move(*metadata));
+		builder.SetMetadata(TableMetadata::FromJSON(metadata_val));
 	}
 	return builder.Build();
 }
@@ -100,9 +99,8 @@ CommitTableResponse CommitTableResponse::Copy() const {
 	string metadata_location_tmp;
 	metadata_location_tmp = metadata_location;
 	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	optional<TableMetadata> metadata_tmp;
-	metadata_tmp = metadata.Copy();
-	builder.SetMetadata(std::move(*metadata_tmp));
+	auto metadata_tmp = metadata.Copy();
+	builder.SetMetadata(std::move(metadata_tmp));
 	return builder.Build();
 }
 

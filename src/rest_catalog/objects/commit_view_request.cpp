@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,18 +24,18 @@ CommitViewRequestBuilder::CommitViewRequestBuilder() {
 }
 
 CommitViewRequestBuilder &CommitViewRequestBuilder::SetUpdates(vector<ViewUpdate> value) {
-	updates_ = std::move(value);
+	updates_.emplace(std::move(value));
 	has_updates_ = true;
 	return *this;
 }
 
 CommitViewRequestBuilder &CommitViewRequestBuilder::SetIdentifier(TableIdentifier value) {
-	identifier_ = std::move(value);
+	identifier_.emplace(std::move(value));
 	return *this;
 }
 
 CommitViewRequestBuilder &CommitViewRequestBuilder::SetRequirements(vector<ViewRequirement> value) {
-	requirements_ = std::move(value);
+	requirements_.emplace(std::move(value));
 	return *this;
 }
 
@@ -75,16 +76,15 @@ CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
 				updates.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("CommitViewRequest property 'updates' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(updates_val));
+			throw InvalidInputException(
+			    StringUtil::Format("CommitViewRequest property 'updates' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(updates_val)));
 		}
 		builder.SetUpdates(std::move(updates));
 	}
 	auto identifier_val = yyjson_obj_get(obj, "identifier");
 	if (identifier_val) {
-		optional<TableIdentifier> identifier;
-		identifier = TableIdentifier::FromJSON(identifier_val);
-		builder.SetIdentifier(std::move(*identifier));
+		builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
 	}
 	auto requirements_val = yyjson_obj_get(obj, "requirements");
 	if (requirements_val) {
@@ -97,9 +97,9 @@ CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
 				requirements.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "CommitViewRequest property 'requirements' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(requirements_val));
+			    yyjson_get_type_desc(requirements_val)));
 		}
 		builder.SetRequirements(std::move(requirements));
 	}
@@ -126,13 +126,12 @@ CommitViewRequest CommitViewRequest::Copy() const {
 	builder.SetUpdates(std::move(updates_tmp));
 	optional<TableIdentifier> identifier_tmp;
 	if (identifier.has_value()) {
-		identifier_tmp.emplace();
-		(*identifier_tmp) = (*identifier).Copy();
+		identifier_tmp.emplace((*identifier).Copy());
 	}
 	if (identifier_tmp.has_value()) {
 		builder.SetIdentifier(std::move(*identifier_tmp));
 	}
-	vector<ViewRequirement> requirements_tmp;
+	optional<vector<ViewRequirement>> requirements_tmp;
 	if (requirements.has_value()) {
 		requirements_tmp.emplace();
 		(*requirements_tmp).reserve((*requirements).size());
@@ -141,7 +140,7 @@ CommitViewRequest CommitViewRequest::Copy() const {
 		}
 	}
 	if (requirements_tmp.has_value()) {
-		builder.SetRequirements(std::move(requirements_tmp));
+		builder.SetRequirements(std::move((*requirements_tmp)));
 	}
 	return builder.Build();
 }

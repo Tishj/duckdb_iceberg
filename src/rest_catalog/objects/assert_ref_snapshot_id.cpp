@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ AssertRefSnapshotIdBuilder::AssertRefSnapshotIdBuilder() {
 }
 
 AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetRef(string value) {
-	ref_ = std::move(value);
+	ref_.emplace(std::move(value));
 	has_ref_ = true;
 	return *this;
 }
 
 AssertRefSnapshotIdBuilder &AssertRefSnapshotIdBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -69,9 +70,7 @@ AssertRefSnapshotId AssertRefSnapshotId::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AssertRefSnapshotId required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	auto ref_val = yyjson_obj_get(obj, "ref");
 	if (!ref_val) {
@@ -120,19 +119,18 @@ string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj, optional<AssertRefSnaps
 
 AssertRefSnapshotId AssertRefSnapshotId::Copy() const {
 	AssertRefSnapshotIdBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	string ref_tmp;
 	ref_tmp = ref;
 	builder.SetRef(std::move(ref_tmp));
-	int64_t snapshot_id_tmp;
+	optional<int64_t> snapshot_id_tmp;
 	if (snapshot_id.has_value()) {
 		snapshot_id_tmp.emplace();
 		(*snapshot_id_tmp) = (*snapshot_id);
 	}
 	if (snapshot_id_tmp.has_value()) {
-		builder.SetSnapshotId(std::move(snapshot_id_tmp));
+		builder.SetSnapshotId(std::move((*snapshot_id_tmp)));
 	}
 	return builder.Build();
 }

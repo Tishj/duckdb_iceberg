@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,25 +23,25 @@ ErrorModelBuilder::ErrorModelBuilder() {
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetMessage(string value) {
-	message_ = std::move(value);
+	message_.emplace(std::move(value));
 	has_message_ = true;
 	return *this;
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetCode(int32_t value) {
-	code_ = std::move(value);
+	code_.emplace(std::move(value));
 	has_code_ = true;
 	return *this;
 }
 
 ErrorModelBuilder &ErrorModelBuilder::SetStack(vector<string> value) {
-	stack_ = std::move(value);
+	stack_.emplace(std::move(value));
 	return *this;
 }
 
@@ -134,8 +135,9 @@ ErrorModel ErrorModel::FromJSON(yyjson_val *obj) {
 				stack.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ErrorModel property 'stack' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(stack_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ErrorModel property 'stack' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(stack_val)));
 		}
 		builder.SetStack(std::move(stack));
 	}
@@ -163,7 +165,7 @@ ErrorModel ErrorModel::Copy() const {
 	int32_t code_tmp;
 	code_tmp = code;
 	builder.SetCode(std::move(code_tmp));
-	vector<string> stack_tmp;
+	optional<vector<string>> stack_tmp;
 	if (stack.has_value()) {
 		stack_tmp.emplace();
 		(*stack_tmp).reserve((*stack).size());
@@ -172,7 +174,7 @@ ErrorModel ErrorModel::Copy() const {
 		}
 	}
 	if (stack_tmp.has_value()) {
-		builder.SetStack(std::move(stack_tmp));
+		builder.SetStack(std::move((*stack_tmp)));
 	}
 	return builder.Build();
 }

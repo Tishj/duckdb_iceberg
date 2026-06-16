@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,7 +22,7 @@ FetchScanTasksRequestBuilder::FetchScanTasksRequestBuilder() {
 }
 
 FetchScanTasksRequestBuilder &FetchScanTasksRequestBuilder::SetPlanTask(PlanTask value) {
-	plan_task_ = std::move(value);
+	plan_task_.emplace(std::move(value));
 	has_plan_task_ = true;
 	return *this;
 }
@@ -54,9 +55,7 @@ FetchScanTasksRequest FetchScanTasksRequest::FromJSON(yyjson_val *obj) {
 	if (!plan_task_val) {
 		throw InvalidInputException("FetchScanTasksRequest required property 'plan-task' is missing");
 	} else {
-		optional<PlanTask> plan_task;
-		plan_task = PlanTask::FromJSON(plan_task_val);
-		builder.SetPlanTask(std::move(*plan_task));
+		builder.SetPlanTask(PlanTask::FromJSON(plan_task_val));
 	}
 	return builder.Build();
 }
@@ -73,9 +72,8 @@ string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj, optional<FetchScanTas
 
 FetchScanTasksRequest FetchScanTasksRequest::Copy() const {
 	FetchScanTasksRequestBuilder builder;
-	optional<PlanTask> plan_task_tmp;
-	plan_task_tmp = plan_task.Copy();
-	builder.SetPlanTask(std::move(*plan_task_tmp));
+	auto plan_task_tmp = plan_task.Copy();
+	builder.SetPlanTask(std::move(plan_task_tmp));
 	return builder.Build();
 }
 

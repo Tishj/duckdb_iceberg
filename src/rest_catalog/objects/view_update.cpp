@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -34,42 +35,42 @@ ViewUpdateBuilder::ViewUpdateBuilder() {
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetAssignUuidupdate(AssignUUIDUpdate value) {
-	assign_uuidupdate_ = std::move(value);
+	assign_uuidupdate_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate value) {
-	upgrade_format_version_update_ = std::move(value);
+	upgrade_format_version_update_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetAddSchemaUpdate(AddSchemaUpdate value) {
-	add_schema_update_ = std::move(value);
+	add_schema_update_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetSetLocationUpdate(SetLocationUpdate value) {
-	set_location_update_ = std::move(value);
+	set_location_update_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetSetPropertiesUpdate(SetPropertiesUpdate value) {
-	set_properties_update_ = std::move(value);
+	set_properties_update_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetRemovePropertiesUpdate(RemovePropertiesUpdate value) {
-	remove_properties_update_ = std::move(value);
+	remove_properties_update_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetAddViewVersionUpdate(AddViewVersionUpdate value) {
-	add_view_version_update_ = std::move(value);
+	add_view_version_update_.emplace(std::move(value));
 	return *this;
 }
 
 ViewUpdateBuilder &ViewUpdateBuilder::SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate value) {
-	set_current_view_version_update_ = std::move(value);
+	set_current_view_version_update_.emplace(std::move(value));
 	return *this;
 }
 
@@ -158,64 +159,56 @@ ViewUpdate ViewUpdate::Copy() const {
 	ViewUpdateBuilder builder;
 	optional<AssignUUIDUpdate> assign_uuidupdate_tmp;
 	if (assign_uuidupdate.has_value()) {
-		assign_uuidupdate_tmp.emplace();
-		(*assign_uuidupdate_tmp) = (*assign_uuidupdate).Copy();
+		assign_uuidupdate_tmp.emplace((*assign_uuidupdate).Copy());
 	}
 	if (assign_uuidupdate_tmp.has_value()) {
 		builder.SetAssignUuidupdate(std::move(*assign_uuidupdate_tmp));
 	}
 	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update_tmp;
 	if (upgrade_format_version_update.has_value()) {
-		upgrade_format_version_update_tmp.emplace();
-		(*upgrade_format_version_update_tmp) = (*upgrade_format_version_update).Copy();
+		upgrade_format_version_update_tmp.emplace((*upgrade_format_version_update).Copy());
 	}
 	if (upgrade_format_version_update_tmp.has_value()) {
 		builder.SetUpgradeFormatVersionUpdate(std::move(*upgrade_format_version_update_tmp));
 	}
 	optional<AddSchemaUpdate> add_schema_update_tmp;
 	if (add_schema_update.has_value()) {
-		add_schema_update_tmp.emplace();
-		(*add_schema_update_tmp) = (*add_schema_update).Copy();
+		add_schema_update_tmp.emplace((*add_schema_update).Copy());
 	}
 	if (add_schema_update_tmp.has_value()) {
 		builder.SetAddSchemaUpdate(std::move(*add_schema_update_tmp));
 	}
 	optional<SetLocationUpdate> set_location_update_tmp;
 	if (set_location_update.has_value()) {
-		set_location_update_tmp.emplace();
-		(*set_location_update_tmp) = (*set_location_update).Copy();
+		set_location_update_tmp.emplace((*set_location_update).Copy());
 	}
 	if (set_location_update_tmp.has_value()) {
 		builder.SetSetLocationUpdate(std::move(*set_location_update_tmp));
 	}
 	optional<SetPropertiesUpdate> set_properties_update_tmp;
 	if (set_properties_update.has_value()) {
-		set_properties_update_tmp.emplace();
-		(*set_properties_update_tmp) = (*set_properties_update).Copy();
+		set_properties_update_tmp.emplace((*set_properties_update).Copy());
 	}
 	if (set_properties_update_tmp.has_value()) {
 		builder.SetSetPropertiesUpdate(std::move(*set_properties_update_tmp));
 	}
 	optional<RemovePropertiesUpdate> remove_properties_update_tmp;
 	if (remove_properties_update.has_value()) {
-		remove_properties_update_tmp.emplace();
-		(*remove_properties_update_tmp) = (*remove_properties_update).Copy();
+		remove_properties_update_tmp.emplace((*remove_properties_update).Copy());
 	}
 	if (remove_properties_update_tmp.has_value()) {
 		builder.SetRemovePropertiesUpdate(std::move(*remove_properties_update_tmp));
 	}
 	optional<AddViewVersionUpdate> add_view_version_update_tmp;
 	if (add_view_version_update.has_value()) {
-		add_view_version_update_tmp.emplace();
-		(*add_view_version_update_tmp) = (*add_view_version_update).Copy();
+		add_view_version_update_tmp.emplace((*add_view_version_update).Copy());
 	}
 	if (add_view_version_update_tmp.has_value()) {
 		builder.SetAddViewVersionUpdate(std::move(*add_view_version_update_tmp));
 	}
 	optional<SetCurrentViewVersionUpdate> set_current_view_version_update_tmp;
 	if (set_current_view_version_update.has_value()) {
-		set_current_view_version_update_tmp.emplace();
-		(*set_current_view_version_update_tmp) = (*set_current_view_version_update).Copy();
+		set_current_view_version_update_tmp.emplace((*set_current_view_version_update).Copy());
 	}
 	if (set_current_view_version_update_tmp.has_value()) {
 		builder.SetSetCurrentViewVersionUpdate(std::move(*set_current_view_version_update_tmp));

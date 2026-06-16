@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -25,37 +26,37 @@ CommitReportBuilder::CommitReportBuilder() {
 }
 
 CommitReportBuilder &CommitReportBuilder::SetTableName(string value) {
-	table_name_ = std::move(value);
+	table_name_.emplace(std::move(value));
 	has_table_name_ = true;
 	return *this;
 }
 
 CommitReportBuilder &CommitReportBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 CommitReportBuilder &CommitReportBuilder::SetSequenceNumber(int64_t value) {
-	sequence_number_ = std::move(value);
+	sequence_number_.emplace(std::move(value));
 	has_sequence_number_ = true;
 	return *this;
 }
 
 CommitReportBuilder &CommitReportBuilder::SetOperation(string value) {
-	operation_ = std::move(value);
+	operation_.emplace(std::move(value));
 	has_operation_ = true;
 	return *this;
 }
 
 CommitReportBuilder &CommitReportBuilder::SetMetrics(Metrics value) {
-	metrics_ = std::move(value);
+	metrics_.emplace(std::move(value));
 	has_metrics_ = true;
 	return *this;
 }
 
 CommitReportBuilder &CommitReportBuilder::SetMetadata(case_insensitive_map_t<string> value) {
-	metadata_ = std::move(value);
+	metadata_.emplace(std::move(value));
 	return *this;
 }
 
@@ -160,9 +161,7 @@ CommitReport CommitReport::FromJSON(yyjson_val *obj) {
 	if (!metrics_val) {
 		throw InvalidInputException("CommitReport required property 'metrics' is missing");
 	} else {
-		optional<Metrics> metrics;
-		metrics = Metrics::FromJSON(metrics_val);
-		builder.SetMetrics(std::move(*metrics));
+		builder.SetMetrics(Metrics::FromJSON(metrics_val));
 	}
 	auto metadata_val = yyjson_obj_get(obj, "metadata");
 	if (metadata_val) {
@@ -214,10 +213,9 @@ CommitReport CommitReport::Copy() const {
 	string operation_tmp;
 	operation_tmp = operation;
 	builder.SetOperation(std::move(operation_tmp));
-	optional<Metrics> metrics_tmp;
-	metrics_tmp = metrics.Copy();
-	builder.SetMetrics(std::move(*metrics_tmp));
-	case_insensitive_map_t<string> metadata_tmp;
+	auto metrics_tmp = metrics.Copy();
+	builder.SetMetrics(std::move(metrics_tmp));
+	optional<case_insensitive_map_t<string>> metadata_tmp;
 	if (metadata.has_value()) {
 		metadata_tmp.emplace();
 		for (auto &entry : (*metadata)) {
@@ -225,7 +223,7 @@ CommitReport CommitReport::Copy() const {
 		}
 	}
 	if (metadata_tmp.has_value()) {
-		builder.SetMetadata(std::move(metadata_tmp));
+		builder.SetMetadata(std::move((*metadata_tmp)));
 	}
 	return builder.Build();
 }

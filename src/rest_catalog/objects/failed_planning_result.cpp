@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,7 +25,7 @@ FailedPlanningResult::Object7Builder::Object7Builder() {
 }
 
 FailedPlanningResult::Object7Builder &FailedPlanningResult::Object7Builder::SetStatus(PlanStatus value) {
-	status_ = std::move(value);
+	status_.emplace(std::move(value));
 	has_status_ = true;
 	return *this;
 }
@@ -57,9 +58,7 @@ FailedPlanningResult::Object7 FailedPlanningResult::Object7::FromJSON(yyjson_val
 	if (!status_val) {
 		throw InvalidInputException("Object7 required property 'status' is missing");
 	} else {
-		optional<PlanStatus> status;
-		status = PlanStatus::FromJSON(status_val);
-		builder.SetStatus(std::move(*status));
+		builder.SetStatus(PlanStatus::FromJSON(status_val));
 	}
 	return builder.Build();
 }
@@ -76,9 +75,8 @@ string FailedPlanningResult::Object7::TryFromJSON(yyjson_val *obj, optional<Fail
 
 FailedPlanningResult::Object7 FailedPlanningResult::Object7::Copy() const {
 	Object7Builder builder;
-	optional<PlanStatus> status_tmp;
-	status_tmp = status.Copy();
-	builder.SetStatus(std::move(*status_tmp));
+	auto status_tmp = status.Copy();
+	builder.SetStatus(std::move(status_tmp));
 	return builder.Build();
 }
 
@@ -114,12 +112,12 @@ FailedPlanningResultBuilder::FailedPlanningResultBuilder() {
 }
 
 FailedPlanningResultBuilder &FailedPlanningResultBuilder::SetIcebergErrorResponse(IcebergErrorResponse value) {
-	iceberg_error_response_ = std::move(value);
+	iceberg_error_response_.emplace(std::move(value));
 	return *this;
 }
 
 FailedPlanningResultBuilder &FailedPlanningResultBuilder::SetObject7(FailedPlanningResult::Object7 value) {
-	object_7_ = std::move(value);
+	object_7_.emplace(std::move(value));
 	return *this;
 }
 
@@ -161,12 +159,10 @@ string FailedPlanningResult::TryFromJSON(yyjson_val *obj, optional<FailedPlannin
 
 FailedPlanningResult FailedPlanningResult::Copy() const {
 	FailedPlanningResultBuilder builder;
-	optional<IcebergErrorResponse> iceberg_error_response_tmp;
-	iceberg_error_response_tmp = iceberg_error_response.Copy();
-	builder.SetIcebergErrorResponse(std::move(*iceberg_error_response_tmp));
-	optional<Object7> object_7_tmp;
-	object_7_tmp = object_7.Copy();
-	builder.SetObject7(std::move(*object_7_tmp));
+	auto iceberg_error_response_tmp = iceberg_error_response.Copy();
+	builder.SetIcebergErrorResponse(std::move(iceberg_error_response_tmp));
+	auto object_7_tmp = object_7.Copy();
+	builder.SetObject7(std::move(object_7_tmp));
 	return builder.Build();
 }
 

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ UnaryExpressionBuilder::UnaryExpressionBuilder() {
 }
 
 UnaryExpressionBuilder &UnaryExpressionBuilder::SetType(ExpressionType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 UnaryExpressionBuilder &UnaryExpressionBuilder::SetTerm(Term value) {
-	term_ = std::move(value);
+	term_.emplace(std::move(value));
 	has_term_ = true;
 	return *this;
 }
@@ -64,17 +65,13 @@ UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("UnaryExpression required property 'type' is missing");
 	} else {
-		optional<ExpressionType> type;
-		type = ExpressionType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(ExpressionType::FromJSON(type_val));
 	}
 	auto term_val = yyjson_obj_get(obj, "term");
 	if (!term_val) {
 		throw InvalidInputException("UnaryExpression required property 'term' is missing");
 	} else {
-		optional<Term> term;
-		term = Term::FromJSON(term_val);
-		builder.SetTerm(std::move(*term));
+		builder.SetTerm(Term::FromJSON(term_val));
 	}
 	return builder.Build();
 }
@@ -91,12 +88,10 @@ string UnaryExpression::TryFromJSON(yyjson_val *obj, optional<UnaryExpression> &
 
 UnaryExpression UnaryExpression::Copy() const {
 	UnaryExpressionBuilder builder;
-	optional<ExpressionType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
-	optional<Term> term_tmp;
-	term_tmp = term.Copy();
-	builder.SetTerm(std::move(*term_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
+	auto term_tmp = term.Copy();
+	builder.SetTerm(std::move(term_tmp));
 	return builder.Build();
 }
 

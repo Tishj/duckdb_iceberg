@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ RegisterTableRequestBuilder::RegisterTableRequestBuilder() {
 }
 
 RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
 
 RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetMetadataLocation(string value) {
-	metadata_location_ = std::move(value);
+	metadata_location_.emplace(std::move(value));
 	has_metadata_location_ = true;
 	return *this;
 }
 
 RegisterTableRequestBuilder &RegisterTableRequestBuilder::SetOverwrite(bool value) {
-	overwrite_ = std::move(value);
+	overwrite_.emplace(std::move(value));
 	return *this;
 }
 
@@ -126,13 +127,13 @@ RegisterTableRequest RegisterTableRequest::Copy() const {
 	string metadata_location_tmp;
 	metadata_location_tmp = metadata_location;
 	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	bool overwrite_tmp;
+	optional<bool> overwrite_tmp;
 	if (overwrite.has_value()) {
 		overwrite_tmp.emplace();
 		(*overwrite_tmp) = (*overwrite);
 	}
 	if (overwrite_tmp.has_value()) {
-		builder.SetOverwrite(std::move(overwrite_tmp));
+		builder.SetOverwrite(std::move((*overwrite_tmp)));
 	}
 	return builder.Build();
 }

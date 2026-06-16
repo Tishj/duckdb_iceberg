@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,17 +25,17 @@ ScanTasksBuilder::ScanTasksBuilder() {
 }
 
 ScanTasksBuilder &ScanTasksBuilder::SetDeleteFiles(vector<DeleteFile> value) {
-	delete_files_ = std::move(value);
+	delete_files_.emplace(std::move(value));
 	return *this;
 }
 
 ScanTasksBuilder &ScanTasksBuilder::SetFileScanTasks(vector<FileScanTask> value) {
-	file_scan_tasks_ = std::move(value);
+	file_scan_tasks_.emplace(std::move(value));
 	return *this;
 }
 
 ScanTasksBuilder &ScanTasksBuilder::SetPlanTasks(vector<PlanTask> value) {
-	plan_tasks_ = std::move(value);
+	plan_tasks_.emplace(std::move(value));
 	return *this;
 }
 
@@ -70,8 +71,9 @@ ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
 				delete_files.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ScanTasks property 'delete_files' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(delete_files_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ScanTasks property 'delete_files' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(delete_files_val)));
 		}
 		builder.SetDeleteFiles(std::move(delete_files));
 	}
@@ -86,8 +88,9 @@ ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
 				file_scan_tasks.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ScanTasks property 'file_scan_tasks' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(file_scan_tasks_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ScanTasks property 'file_scan_tasks' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(file_scan_tasks_val)));
 		}
 		builder.SetFileScanTasks(std::move(file_scan_tasks));
 	}
@@ -102,8 +105,9 @@ ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
 				plan_tasks.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ScanTasks property 'plan_tasks' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(plan_tasks_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ScanTasks property 'plan_tasks' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(plan_tasks_val)));
 		}
 		builder.SetPlanTasks(std::move(plan_tasks));
 	}
@@ -122,7 +126,7 @@ string ScanTasks::TryFromJSON(yyjson_val *obj, optional<ScanTasks> &result) {
 
 ScanTasks ScanTasks::Copy() const {
 	ScanTasksBuilder builder;
-	vector<DeleteFile> delete_files_tmp;
+	optional<vector<DeleteFile>> delete_files_tmp;
 	if (delete_files.has_value()) {
 		delete_files_tmp.emplace();
 		(*delete_files_tmp).reserve((*delete_files).size());
@@ -131,9 +135,9 @@ ScanTasks ScanTasks::Copy() const {
 		}
 	}
 	if (delete_files_tmp.has_value()) {
-		builder.SetDeleteFiles(std::move(delete_files_tmp));
+		builder.SetDeleteFiles(std::move((*delete_files_tmp)));
 	}
-	vector<FileScanTask> file_scan_tasks_tmp;
+	optional<vector<FileScanTask>> file_scan_tasks_tmp;
 	if (file_scan_tasks.has_value()) {
 		file_scan_tasks_tmp.emplace();
 		(*file_scan_tasks_tmp).reserve((*file_scan_tasks).size());
@@ -142,9 +146,9 @@ ScanTasks ScanTasks::Copy() const {
 		}
 	}
 	if (file_scan_tasks_tmp.has_value()) {
-		builder.SetFileScanTasks(std::move(file_scan_tasks_tmp));
+		builder.SetFileScanTasks(std::move((*file_scan_tasks_tmp)));
 	}
-	vector<PlanTask> plan_tasks_tmp;
+	optional<vector<PlanTask>> plan_tasks_tmp;
 	if (plan_tasks.has_value()) {
 		plan_tasks_tmp.emplace();
 		(*plan_tasks_tmp).reserve((*plan_tasks).size());
@@ -153,7 +157,7 @@ ScanTasks ScanTasks::Copy() const {
 		}
 	}
 	if (plan_tasks_tmp.has_value()) {
-		builder.SetPlanTasks(std::move(plan_tasks_tmp));
+		builder.SetPlanTasks(std::move((*plan_tasks_tmp)));
 	}
 	return builder.Build();
 }

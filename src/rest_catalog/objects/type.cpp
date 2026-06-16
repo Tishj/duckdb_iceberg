@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,22 +25,22 @@ TypeBuilder::TypeBuilder() {
 }
 
 TypeBuilder &TypeBuilder::SetPrimitiveType(PrimitiveType value) {
-	primitive_type_ = std::move(value);
+	primitive_type_.emplace(std::move(value));
 	return *this;
 }
 
 TypeBuilder &TypeBuilder::SetStructType(StructType value) {
-	struct_type_ = std::move(value);
+	struct_type_.emplace(std::move(value));
 	return *this;
 }
 
 TypeBuilder &TypeBuilder::SetListType(ListType value) {
-	list_type_ = std::move(value);
+	list_type_.emplace(std::move(value));
 	return *this;
 }
 
 TypeBuilder &TypeBuilder::SetMapType(MapType value) {
-	map_type_ = std::move(value);
+	map_type_.emplace(std::move(value));
 	return *this;
 }
 
@@ -105,32 +106,28 @@ Type Type::Copy() const {
 	TypeBuilder builder;
 	optional<PrimitiveType> primitive_type_tmp;
 	if (primitive_type.has_value()) {
-		primitive_type_tmp.emplace();
-		(*primitive_type_tmp) = (*primitive_type).Copy();
+		primitive_type_tmp.emplace((*primitive_type).Copy());
 	}
 	if (primitive_type_tmp.has_value()) {
 		builder.SetPrimitiveType(std::move(*primitive_type_tmp));
 	}
 	optional<StructType> struct_type_tmp;
 	if (struct_type.has_value()) {
-		struct_type_tmp.emplace();
-		(*struct_type_tmp) = (*struct_type).Copy();
+		struct_type_tmp.emplace((*struct_type).Copy());
 	}
 	if (struct_type_tmp.has_value()) {
 		builder.SetStructType(std::move(*struct_type_tmp));
 	}
 	optional<ListType> list_type_tmp;
 	if (list_type.has_value()) {
-		list_type_tmp.emplace();
-		(*list_type_tmp) = (*list_type).Copy();
+		list_type_tmp.emplace((*list_type).Copy());
 	}
 	if (list_type_tmp.has_value()) {
 		builder.SetListType(std::move(*list_type_tmp));
 	}
 	optional<MapType> map_type_tmp;
 	if (map_type.has_value()) {
-		map_type_tmp.emplace();
-		(*map_type_tmp) = (*map_type).Copy();
+		map_type_tmp.emplace((*map_type).Copy());
 	}
 	if (map_type_tmp.has_value()) {
 		builder.SetMapType(std::move(*map_type_tmp));

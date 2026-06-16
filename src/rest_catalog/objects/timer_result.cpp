@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ TimerResultBuilder::TimerResultBuilder() {
 }
 
 TimerResultBuilder &TimerResultBuilder::SetTimeUnit(string value) {
-	time_unit_ = std::move(value);
+	time_unit_.emplace(std::move(value));
 	has_time_unit_ = true;
 	return *this;
 }
 
 TimerResultBuilder &TimerResultBuilder::SetCount(int64_t value) {
-	count_ = std::move(value);
+	count_.emplace(std::move(value));
 	has_count_ = true;
 	return *this;
 }
 
 TimerResultBuilder &TimerResultBuilder::SetTotalDuration(int64_t value) {
-	total_duration_ = std::move(value);
+	total_duration_.emplace(std::move(value));
 	has_total_duration_ = true;
 	return *this;
 }

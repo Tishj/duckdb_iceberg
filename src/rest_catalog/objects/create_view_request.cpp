@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,31 +25,31 @@ CreateViewRequestBuilder::CreateViewRequestBuilder() {
 }
 
 CreateViewRequestBuilder &CreateViewRequestBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
 
 CreateViewRequestBuilder &CreateViewRequestBuilder::SetSchema(Schema value) {
-	schema_ = std::move(value);
+	schema_.emplace(std::move(value));
 	has_schema_ = true;
 	return *this;
 }
 
 CreateViewRequestBuilder &CreateViewRequestBuilder::SetViewVersion(ViewVersion value) {
-	view_version_ = std::move(value);
+	view_version_.emplace(std::move(value));
 	has_view_version_ = true;
 	return *this;
 }
 
 CreateViewRequestBuilder &CreateViewRequestBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	properties_ = std::move(value);
+	properties_.emplace(std::move(value));
 	has_properties_ = true;
 	return *this;
 }
 
 CreateViewRequestBuilder &CreateViewRequestBuilder::SetLocation(string value) {
-	location_ = std::move(value);
+	location_.emplace(std::move(value));
 	return *this;
 }
 
@@ -104,17 +105,13 @@ CreateViewRequest CreateViewRequest::FromJSON(yyjson_val *obj) {
 	if (!schema_val) {
 		throw InvalidInputException("CreateViewRequest required property 'schema' is missing");
 	} else {
-		optional<Schema> schema;
-		schema = Schema::FromJSON(schema_val);
-		builder.SetSchema(std::move(*schema));
+		builder.SetSchema(Schema::FromJSON(schema_val));
 	}
 	auto view_version_val = yyjson_obj_get(obj, "view-version");
 	if (!view_version_val) {
 		throw InvalidInputException("CreateViewRequest required property 'view-version' is missing");
 	} else {
-		optional<ViewVersion> view_version;
-		view_version = ViewVersion::FromJSON(view_version_val);
-		builder.SetViewVersion(std::move(*view_version));
+		builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
 	}
 	auto properties_val = yyjson_obj_get(obj, "properties");
 	if (!properties_val) {
@@ -171,24 +168,22 @@ CreateViewRequest CreateViewRequest::Copy() const {
 	string name_tmp;
 	name_tmp = name;
 	builder.SetName(std::move(name_tmp));
-	optional<Schema> schema_tmp;
-	schema_tmp = schema.Copy();
-	builder.SetSchema(std::move(*schema_tmp));
-	optional<ViewVersion> view_version_tmp;
-	view_version_tmp = view_version.Copy();
-	builder.SetViewVersion(std::move(*view_version_tmp));
+	auto schema_tmp = schema.Copy();
+	builder.SetSchema(std::move(schema_tmp));
+	auto view_version_tmp = view_version.Copy();
+	builder.SetViewVersion(std::move(view_version_tmp));
 	case_insensitive_map_t<string> properties_tmp;
 	for (auto &entry : properties) {
 		properties_tmp.emplace(entry.first, entry.second);
 	}
 	builder.SetProperties(std::move(properties_tmp));
-	string location_tmp;
+	optional<string> location_tmp;
 	if (location.has_value()) {
 		location_tmp.emplace();
 		(*location_tmp) = (*location);
 	}
 	if (location_tmp.has_value()) {
-		builder.SetLocation(std::move(location_tmp));
+		builder.SetLocation(std::move((*location_tmp)));
 	}
 	return builder.Build();
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ MetricResultBuilder::MetricResultBuilder() {
 }
 
 MetricResultBuilder &MetricResultBuilder::SetCounterResult(CounterResult value) {
-	counter_result_ = std::move(value);
+	counter_result_.emplace(std::move(value));
 	return *this;
 }
 
 MetricResultBuilder &MetricResultBuilder::SetTimerResult(TimerResult value) {
-	timer_result_ = std::move(value);
+	timer_result_.emplace(std::move(value));
 	return *this;
 }
 
@@ -83,16 +84,14 @@ MetricResult MetricResult::Copy() const {
 	MetricResultBuilder builder;
 	optional<CounterResult> counter_result_tmp;
 	if (counter_result.has_value()) {
-		counter_result_tmp.emplace();
-		(*counter_result_tmp) = (*counter_result).Copy();
+		counter_result_tmp.emplace((*counter_result).Copy());
 	}
 	if (counter_result_tmp.has_value()) {
 		builder.SetCounterResult(std::move(*counter_result_tmp));
 	}
 	optional<TimerResult> timer_result_tmp;
 	if (timer_result.has_value()) {
-		timer_result_tmp.emplace();
-		(*timer_result_tmp) = (*timer_result).Copy();
+		timer_result_tmp.emplace((*timer_result).Copy());
 	}
 	if (timer_result_tmp.has_value()) {
 		builder.SetTimerResult(std::move(*timer_result_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,7 +22,7 @@ FetchScanTasksResultBuilder::FetchScanTasksResultBuilder() {
 }
 
 FetchScanTasksResultBuilder &FetchScanTasksResultBuilder::SetScanTasks(ScanTasks value) {
-	scan_tasks_ = std::move(value);
+	scan_tasks_.emplace(std::move(value));
 	return *this;
 }
 
@@ -62,9 +63,8 @@ string FetchScanTasksResult::TryFromJSON(yyjson_val *obj, optional<FetchScanTask
 
 FetchScanTasksResult FetchScanTasksResult::Copy() const {
 	FetchScanTasksResultBuilder builder;
-	optional<ScanTasks> scan_tasks_tmp;
-	scan_tasks_tmp = scan_tasks.Copy();
-	builder.SetScanTasks(std::move(*scan_tasks_tmp));
+	auto scan_tasks_tmp = scan_tasks.Copy();
+	builder.SetScanTasks(std::move(scan_tasks_tmp));
 	return builder.Build();
 }
 

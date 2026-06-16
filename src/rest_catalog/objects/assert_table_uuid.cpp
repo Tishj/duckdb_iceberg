@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ AssertTableUUIDBuilder::AssertTableUUIDBuilder() {
 }
 
 AssertTableUUIDBuilder &AssertTableUUIDBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertTableUUIDBuilder &AssertTableUUIDBuilder::SetUuid(string value) {
-	uuid_ = std::move(value);
+	uuid_.emplace(std::move(value));
 	has_uuid_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AssertTableUUID required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	auto uuid_val = yyjson_obj_get(obj, "uuid");
 	if (!uuid_val) {
@@ -97,9 +96,8 @@ string AssertTableUUID::TryFromJSON(yyjson_val *obj, optional<AssertTableUUID> &
 
 AssertTableUUID AssertTableUUID::Copy() const {
 	AssertTableUUIDBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	string uuid_tmp;
 	uuid_tmp = uuid;
 	builder.SetUuid(std::move(uuid_tmp));

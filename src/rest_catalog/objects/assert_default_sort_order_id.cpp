@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ AssertDefaultSortOrderIdBuilder::AssertDefaultSortOrderIdBuilder() {
 }
 
 AssertDefaultSortOrderIdBuilder &AssertDefaultSortOrderIdBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertDefaultSortOrderIdBuilder &AssertDefaultSortOrderIdBuilder::SetDefaultSortOrderId(int32_t value) {
-	default_sort_order_id_ = std::move(value);
+	default_sort_order_id_.emplace(std::move(value));
 	has_default_sort_order_id_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ AssertDefaultSortOrderId AssertDefaultSortOrderId::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AssertDefaultSortOrderId required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	auto default_sort_order_id_val = yyjson_obj_get(obj, "default-sort-order-id");
 	if (!default_sort_order_id_val) {
@@ -97,9 +96,8 @@ string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj, optional<AssertDef
 
 AssertDefaultSortOrderId AssertDefaultSortOrderId::Copy() const {
 	AssertDefaultSortOrderIdBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	int32_t default_sort_order_id_tmp;
 	default_sort_order_id_tmp = default_sort_order_id;
 	builder.SetDefaultSortOrderId(std::move(default_sort_order_id_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ AsyncPlanningResultBuilder::AsyncPlanningResultBuilder() {
 }
 
 AsyncPlanningResultBuilder &AsyncPlanningResultBuilder::SetStatus(PlanStatus value) {
-	status_ = std::move(value);
+	status_.emplace(std::move(value));
 	has_status_ = true;
 	return *this;
 }
 
 AsyncPlanningResultBuilder &AsyncPlanningResultBuilder::SetPlanId(string value) {
-	plan_id_ = std::move(value);
+	plan_id_.emplace(std::move(value));
 	has_plan_id_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ AsyncPlanningResult AsyncPlanningResult::FromJSON(yyjson_val *obj) {
 	if (!status_val) {
 		throw InvalidInputException("AsyncPlanningResult required property 'status' is missing");
 	} else {
-		optional<PlanStatus> status;
-		status = PlanStatus::FromJSON(status_val);
-		builder.SetStatus(std::move(*status));
+		builder.SetStatus(PlanStatus::FromJSON(status_val));
 	}
 	auto plan_id_val = yyjson_obj_get(obj, "plan-id");
 	if (!plan_id_val) {
@@ -97,9 +96,8 @@ string AsyncPlanningResult::TryFromJSON(yyjson_val *obj, optional<AsyncPlanningR
 
 AsyncPlanningResult AsyncPlanningResult::Copy() const {
 	AsyncPlanningResultBuilder builder;
-	optional<PlanStatus> status_tmp;
-	status_tmp = status.Copy();
-	builder.SetStatus(std::move(*status_tmp));
+	auto status_tmp = status.Copy();
+	builder.SetStatus(std::move(status_tmp));
 	string plan_id_tmp;
 	plan_id_tmp = plan_id;
 	builder.SetPlanId(std::move(plan_id_tmp));

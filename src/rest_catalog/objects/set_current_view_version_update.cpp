@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ SetCurrentViewVersionUpdateBuilder::SetCurrentViewVersionUpdateBuilder() {
 }
 
 SetCurrentViewVersionUpdateBuilder &SetCurrentViewVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetCurrentViewVersionUpdateBuilder &SetCurrentViewVersionUpdateBuilder::SetViewVersionId(int32_t value) {
-	view_version_id_ = std::move(value);
+	view_version_id_.emplace(std::move(value));
 	has_view_version_id_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj, optional<SetCur
 
 SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::Copy() const {
 	SetCurrentViewVersionUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	int32_t view_version_id_tmp;
 	view_version_id_tmp = view_version_id;
 	builder.SetViewVersionId(std::move(view_version_id_tmp));

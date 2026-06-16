@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -25,7 +26,7 @@ CompletedPlanningWithIDResult::Object6Builder::Object6Builder() {
 }
 
 CompletedPlanningWithIDResult::Object6Builder &CompletedPlanningWithIDResult::Object6Builder::SetPlanId(string value) {
-	plan_id_ = std::move(value);
+	plan_id_.emplace(std::move(value));
 	has_plan_id_ = true;
 	return *this;
 }
@@ -116,13 +117,13 @@ CompletedPlanningWithIDResultBuilder::CompletedPlanningWithIDResultBuilder() {
 
 CompletedPlanningWithIDResultBuilder &
 CompletedPlanningWithIDResultBuilder::SetCompletedPlanningResult(CompletedPlanningResult value) {
-	completed_planning_result_ = std::move(value);
+	completed_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
 CompletedPlanningWithIDResultBuilder &
 CompletedPlanningWithIDResultBuilder::SetObject6(CompletedPlanningWithIDResult::Object6 value) {
-	object_6_ = std::move(value);
+	object_6_.emplace(std::move(value));
 	return *this;
 }
 
@@ -164,12 +165,10 @@ string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj, optional<Comp
 
 CompletedPlanningWithIDResult CompletedPlanningWithIDResult::Copy() const {
 	CompletedPlanningWithIDResultBuilder builder;
-	optional<CompletedPlanningResult> completed_planning_result_tmp;
-	completed_planning_result_tmp = completed_planning_result.Copy();
-	builder.SetCompletedPlanningResult(std::move(*completed_planning_result_tmp));
-	optional<Object6> object_6_tmp;
-	object_6_tmp = object_6.Copy();
-	builder.SetObject6(std::move(*object_6_tmp));
+	auto completed_planning_result_tmp = completed_planning_result.Copy();
+	builder.SetCompletedPlanningResult(std::move(completed_planning_result_tmp));
+	auto object_6_tmp = object_6.Copy();
+	builder.SetObject6(std::move(object_6_tmp));
 	return builder.Build();
 }
 

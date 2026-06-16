@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,18 +23,18 @@ AddSchemaUpdateBuilder::AddSchemaUpdateBuilder() {
 }
 
 AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetSchema(Schema value) {
-	schema_ = std::move(value);
+	schema_.emplace(std::move(value));
 	has_schema_ = true;
 	return *this;
 }
 
 AddSchemaUpdateBuilder &AddSchemaUpdateBuilder::SetLastColumnId(int32_t value) {
-	last_column_id_ = std::move(value);
+	last_column_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -66,9 +67,7 @@ AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
 	if (!schema_val) {
 		throw InvalidInputException("AddSchemaUpdate required property 'schema' is missing");
 	} else {
-		optional<Schema> schema;
-		schema = Schema::FromJSON(schema_val);
-		builder.SetSchema(std::move(*schema));
+		builder.SetSchema(Schema::FromJSON(schema_val));
 	}
 	auto last_column_id_val = yyjson_obj_get(obj, "last-column-id");
 	if (last_column_id_val) {
@@ -97,19 +96,17 @@ string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, optional<AddSchemaUpdate> &
 
 AddSchemaUpdate AddSchemaUpdate::Copy() const {
 	AddSchemaUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<Schema> schema_tmp;
-	schema_tmp = schema.Copy();
-	builder.SetSchema(std::move(*schema_tmp));
-	int32_t last_column_id_tmp;
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto schema_tmp = schema.Copy();
+	builder.SetSchema(std::move(schema_tmp));
+	optional<int32_t> last_column_id_tmp;
 	if (last_column_id.has_value()) {
 		last_column_id_tmp.emplace();
 		(*last_column_id_tmp) = (*last_column_id);
 	}
 	if (last_column_id_tmp.has_value()) {
-		builder.SetLastColumnId(std::move(last_column_id_tmp));
+		builder.SetLastColumnId(std::move((*last_column_id_tmp)));
 	}
 	return builder.Build();
 }

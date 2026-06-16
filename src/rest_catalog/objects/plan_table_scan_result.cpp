@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -29,22 +30,22 @@ PlanTableScanResultBuilder::PlanTableScanResultBuilder() {
 
 PlanTableScanResultBuilder &
 PlanTableScanResultBuilder::SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult value) {
-	completed_planning_with_idresult_ = std::move(value);
+	completed_planning_with_idresult_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetFailedPlanningResult(FailedPlanningResult value) {
-	failed_planning_result_ = std::move(value);
+	failed_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetAsyncPlanningResult(AsyncPlanningResult value) {
-	async_planning_result_ = std::move(value);
+	async_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanResultBuilder &PlanTableScanResultBuilder::SetEmptyPlanningResult(EmptyPlanningResult value) {
-	empty_planning_result_ = std::move(value);
+	empty_planning_result_.emplace(std::move(value));
 	return *this;
 }
 
@@ -110,32 +111,28 @@ PlanTableScanResult PlanTableScanResult::Copy() const {
 	PlanTableScanResultBuilder builder;
 	optional<CompletedPlanningWithIDResult> completed_planning_with_idresult_tmp;
 	if (completed_planning_with_idresult.has_value()) {
-		completed_planning_with_idresult_tmp.emplace();
-		(*completed_planning_with_idresult_tmp) = (*completed_planning_with_idresult).Copy();
+		completed_planning_with_idresult_tmp.emplace((*completed_planning_with_idresult).Copy());
 	}
 	if (completed_planning_with_idresult_tmp.has_value()) {
 		builder.SetCompletedPlanningWithIdresult(std::move(*completed_planning_with_idresult_tmp));
 	}
 	optional<FailedPlanningResult> failed_planning_result_tmp;
 	if (failed_planning_result.has_value()) {
-		failed_planning_result_tmp.emplace();
-		(*failed_planning_result_tmp) = (*failed_planning_result).Copy();
+		failed_planning_result_tmp.emplace((*failed_planning_result).Copy());
 	}
 	if (failed_planning_result_tmp.has_value()) {
 		builder.SetFailedPlanningResult(std::move(*failed_planning_result_tmp));
 	}
 	optional<AsyncPlanningResult> async_planning_result_tmp;
 	if (async_planning_result.has_value()) {
-		async_planning_result_tmp.emplace();
-		(*async_planning_result_tmp) = (*async_planning_result).Copy();
+		async_planning_result_tmp.emplace((*async_planning_result).Copy());
 	}
 	if (async_planning_result_tmp.has_value()) {
 		builder.SetAsyncPlanningResult(std::move(*async_planning_result_tmp));
 	}
 	optional<EmptyPlanningResult> empty_planning_result_tmp;
 	if (empty_planning_result.has_value()) {
-		empty_planning_result_tmp.emplace();
-		(*empty_planning_result_tmp) = (*empty_planning_result).Copy();
+		empty_planning_result_tmp.emplace((*empty_planning_result).Copy());
 	}
 	if (empty_planning_result_tmp.has_value()) {
 		builder.SetEmptyPlanningResult(std::move(*empty_planning_result_tmp));

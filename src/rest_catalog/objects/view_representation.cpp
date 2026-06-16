@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ ViewRepresentationBuilder::ViewRepresentationBuilder() {
 }
 
 ViewRepresentationBuilder &ViewRepresentationBuilder::SetSqlviewRepresentation(SQLViewRepresentation value) {
-	sqlview_representation_ = std::move(value);
+	sqlview_representation_.emplace(std::move(value));
 	return *this;
 }
 
@@ -72,8 +73,7 @@ ViewRepresentation ViewRepresentation::Copy() const {
 	ViewRepresentationBuilder builder;
 	optional<SQLViewRepresentation> sqlview_representation_tmp;
 	if (sqlview_representation.has_value()) {
-		sqlview_representation_tmp.emplace();
-		(*sqlview_representation_tmp) = (*sqlview_representation).Copy();
+		sqlview_representation_tmp.emplace((*sqlview_representation).Copy());
 	}
 	if (sqlview_representation_tmp.has_value()) {
 		builder.SetSqlviewRepresentation(std::move(*sqlview_representation_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,13 +22,13 @@ CounterResultBuilder::CounterResultBuilder() {
 }
 
 CounterResultBuilder &CounterResultBuilder::SetUnit(string value) {
-	unit_ = std::move(value);
+	unit_.emplace(std::move(value));
 	has_unit_ = true;
 	return *this;
 }
 
 CounterResultBuilder &CounterResultBuilder::SetValue(int64_t value) {
-	value_ = std::move(value);
+	value_.emplace(std::move(value));
 	has_value_ = true;
 	return *this;
 }

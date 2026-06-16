@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -25,12 +26,12 @@ OAuthTokenRequestBuilder::OAuthTokenRequestBuilder() {
 
 OAuthTokenRequestBuilder &
 OAuthTokenRequestBuilder::SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest value) {
-	oauth_client_credentials_request_ = std::move(value);
+	oauth_client_credentials_request_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthTokenRequestBuilder &OAuthTokenRequestBuilder::SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest value) {
-	oauth_token_exchange_request_ = std::move(value);
+	oauth_token_exchange_request_.emplace(std::move(value));
 	return *this;
 }
 
@@ -87,16 +88,14 @@ OAuthTokenRequest OAuthTokenRequest::Copy() const {
 	OAuthTokenRequestBuilder builder;
 	optional<OAuthClientCredentialsRequest> oauth_client_credentials_request_tmp;
 	if (oauth_client_credentials_request.has_value()) {
-		oauth_client_credentials_request_tmp.emplace();
-		(*oauth_client_credentials_request_tmp) = (*oauth_client_credentials_request).Copy();
+		oauth_client_credentials_request_tmp.emplace((*oauth_client_credentials_request).Copy());
 	}
 	if (oauth_client_credentials_request_tmp.has_value()) {
 		builder.SetOauthClientCredentialsRequest(std::move(*oauth_client_credentials_request_tmp));
 	}
 	optional<OAuthTokenExchangeRequest> oauth_token_exchange_request_tmp;
 	if (oauth_token_exchange_request.has_value()) {
-		oauth_token_exchange_request_tmp.emplace();
-		(*oauth_token_exchange_request_tmp) = (*oauth_token_exchange_request).Copy();
+		oauth_token_exchange_request_tmp.emplace((*oauth_token_exchange_request).Copy());
 	}
 	if (oauth_token_exchange_request_tmp.has_value()) {
 		builder.SetOauthTokenExchangeRequest(std::move(*oauth_token_exchange_request_tmp));

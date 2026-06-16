@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ AssertLastAssignedFieldIdBuilder::AssertLastAssignedFieldIdBuilder() {
 }
 
 AssertLastAssignedFieldIdBuilder &AssertLastAssignedFieldIdBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertLastAssignedFieldIdBuilder &AssertLastAssignedFieldIdBuilder::SetLastAssignedFieldId(int32_t value) {
-	last_assigned_field_id_ = std::move(value);
+	last_assigned_field_id_.emplace(std::move(value));
 	has_last_assigned_field_id_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ AssertLastAssignedFieldId AssertLastAssignedFieldId::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AssertLastAssignedFieldId required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	auto last_assigned_field_id_val = yyjson_obj_get(obj, "last-assigned-field-id");
 	if (!last_assigned_field_id_val) {
@@ -98,9 +97,8 @@ string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, optional<AssertLa
 
 AssertLastAssignedFieldId AssertLastAssignedFieldId::Copy() const {
 	AssertLastAssignedFieldIdBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	int32_t last_assigned_field_id_tmp;
 	last_assigned_field_id_tmp = last_assigned_field_id;
 	builder.SetLastAssignedFieldId(std::move(last_assigned_field_id_tmp));

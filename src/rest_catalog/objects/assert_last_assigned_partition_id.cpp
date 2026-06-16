@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,13 +24,13 @@ AssertLastAssignedPartitionIdBuilder::AssertLastAssignedPartitionIdBuilder() {
 }
 
 AssertLastAssignedPartitionIdBuilder &AssertLastAssignedPartitionIdBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertLastAssignedPartitionIdBuilder &AssertLastAssignedPartitionIdBuilder::SetLastAssignedPartitionId(int32_t value) {
-	last_assigned_partition_id_ = std::move(value);
+	last_assigned_partition_id_.emplace(std::move(value));
 	has_last_assigned_partition_id_ = true;
 	return *this;
 }
@@ -66,9 +67,7 @@ AssertLastAssignedPartitionId AssertLastAssignedPartitionId::FromJSON(yyjson_val
 	if (!type_val) {
 		throw InvalidInputException("AssertLastAssignedPartitionId required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	auto last_assigned_partition_id_val = yyjson_obj_get(obj, "last-assigned-partition-id");
 	if (!last_assigned_partition_id_val) {
@@ -101,9 +100,8 @@ string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj, optional<Asse
 
 AssertLastAssignedPartitionId AssertLastAssignedPartitionId::Copy() const {
 	AssertLastAssignedPartitionIdBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	int32_t last_assigned_partition_id_tmp;
 	last_assigned_partition_id_tmp = last_assigned_partition_id;
 	builder.SetLastAssignedPartitionId(std::move(last_assigned_partition_id_tmp));

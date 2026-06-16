@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -25,13 +26,13 @@ StructFieldBuilder::StructFieldBuilder() {
 }
 
 StructFieldBuilder &StructFieldBuilder::SetId(int32_t value) {
-	id_ = std::move(value);
+	id_.emplace(std::move(value));
 	has_id_ = true;
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
@@ -43,23 +44,23 @@ StructFieldBuilder &StructFieldBuilder::SetType(unique_ptr<Type> value) {
 }
 
 StructFieldBuilder &StructFieldBuilder::SetRequired(bool value) {
-	required_ = std::move(value);
+	required_.emplace(std::move(value));
 	has_required_ = true;
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetDoc(string value) {
-	_doc_ = std::move(value);
+	_doc_.emplace(std::move(value));
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetInitialDefault(PrimitiveTypeValue value) {
-	initial_default_ = std::move(value);
+	initial_default_.emplace(std::move(value));
 	return *this;
 }
 
 StructFieldBuilder &StructFieldBuilder::SetWriteDefault(PrimitiveTypeValue value) {
-	write_default_ = std::move(value);
+	write_default_.emplace(std::move(value));
 	return *this;
 }
 
@@ -161,15 +162,11 @@ StructField StructField::FromJSON(yyjson_val *obj) {
 	}
 	auto initial_default_val = yyjson_obj_get(obj, "initial-default");
 	if (initial_default_val) {
-		optional<PrimitiveTypeValue> initial_default;
-		initial_default = PrimitiveTypeValue::FromJSON(initial_default_val);
-		builder.SetInitialDefault(std::move(*initial_default));
+		builder.SetInitialDefault(PrimitiveTypeValue::FromJSON(initial_default_val));
 	}
 	auto write_default_val = yyjson_obj_get(obj, "write-default");
 	if (write_default_val) {
-		optional<PrimitiveTypeValue> write_default;
-		write_default = PrimitiveTypeValue::FromJSON(write_default_val);
-		builder.SetWriteDefault(std::move(*write_default));
+		builder.SetWriteDefault(PrimitiveTypeValue::FromJSON(write_default_val));
 	}
 	return builder.Build();
 }
@@ -198,26 +195,24 @@ StructField StructField::Copy() const {
 	bool required_tmp;
 	required_tmp = required;
 	builder.SetRequired(std::move(required_tmp));
-	string _doc_tmp;
+	optional<string> _doc_tmp;
 	if (_doc.has_value()) {
 		_doc_tmp.emplace();
 		(*_doc_tmp) = (*_doc);
 	}
 	if (_doc_tmp.has_value()) {
-		builder.SetDoc(std::move(_doc_tmp));
+		builder.SetDoc(std::move((*_doc_tmp)));
 	}
 	optional<PrimitiveTypeValue> initial_default_tmp;
 	if (initial_default.has_value()) {
-		initial_default_tmp.emplace();
-		(*initial_default_tmp) = (*initial_default).Copy();
+		initial_default_tmp.emplace((*initial_default).Copy());
 	}
 	if (initial_default_tmp.has_value()) {
 		builder.SetInitialDefault(std::move(*initial_default_tmp));
 	}
 	optional<PrimitiveTypeValue> write_default_tmp;
 	if (write_default.has_value()) {
-		write_default_tmp.emplace();
-		(*write_default_tmp) = (*write_default).Copy();
+		write_default_tmp.emplace((*write_default).Copy());
 	}
 	if (write_default_tmp.has_value()) {
 		builder.SetWriteDefault(std::move(*write_default_tmp));

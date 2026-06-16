@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemoveEncryptionKeyUpdateBuilder::RemoveEncryptionKeyUpdateBuilder() {
 }
 
 RemoveEncryptionKeyUpdateBuilder &RemoveEncryptionKeyUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemoveEncryptionKeyUpdateBuilder &RemoveEncryptionKeyUpdateBuilder::SetKeyId(string value) {
-	key_id_ = std::move(value);
+	key_id_.emplace(std::move(value));
 	has_key_id_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveEn
 
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::Copy() const {
 	RemoveEncryptionKeyUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	string key_id_tmp;
 	key_id_tmp = key_id;
 	builder.SetKeyId(std::move(key_id_tmp));

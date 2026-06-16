@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemoveSchemasUpdateBuilder::RemoveSchemasUpdateBuilder() {
 }
 
 RemoveSchemasUpdateBuilder &RemoveSchemasUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemoveSchemasUpdateBuilder &RemoveSchemasUpdateBuilder::SetSchemaIds(vector<int32_t> value) {
-	schema_ids_ = std::move(value);
+	schema_ids_.emplace(std::move(value));
 	has_schema_ids_ = true;
 	return *this;
 }
@@ -77,9 +78,9 @@ RemoveSchemasUpdate RemoveSchemasUpdate::FromJSON(yyjson_val *obj) {
 				schema_ids.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "RemoveSchemasUpdate property 'schema_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(schema_ids_val));
+			    yyjson_get_type_desc(schema_ids_val)));
 		}
 		builder.SetSchemaIds(std::move(schema_ids));
 	}
@@ -98,9 +99,8 @@ string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSchemasU
 
 RemoveSchemasUpdate RemoveSchemasUpdate::Copy() const {
 	RemoveSchemasUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	vector<int32_t> schema_ids_tmp;
 	schema_ids_tmp.reserve(schema_ids.size());
 	for (auto &item : schema_ids) {

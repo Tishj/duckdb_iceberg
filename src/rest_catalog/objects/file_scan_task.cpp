@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,13 +25,13 @@ FileScanTaskBuilder::FileScanTaskBuilder() {
 }
 
 FileScanTaskBuilder &FileScanTaskBuilder::SetDataFile(DataFile value) {
-	data_file_ = std::move(value);
+	data_file_.emplace(std::move(value));
 	has_data_file_ = true;
 	return *this;
 }
 
 FileScanTaskBuilder &FileScanTaskBuilder::SetDeleteFileReferences(vector<int32_t> value) {
-	delete_file_references_ = std::move(value);
+	delete_file_references_.emplace(std::move(value));
 	return *this;
 }
 
@@ -67,9 +68,7 @@ FileScanTask FileScanTask::FromJSON(yyjson_val *obj) {
 	if (!data_file_val) {
 		throw InvalidInputException("FileScanTask required property 'data-file' is missing");
 	} else {
-		optional<DataFile> data_file;
-		data_file = DataFile::FromJSON(data_file_val);
-		builder.SetDataFile(std::move(*data_file));
+		builder.SetDataFile(DataFile::FromJSON(data_file_val));
 	}
 	auto delete_file_references_val = yyjson_obj_get(obj, "delete-file-references");
 	if (delete_file_references_val) {
@@ -89,9 +88,9 @@ FileScanTask FileScanTask::FromJSON(yyjson_val *obj) {
 				delete_file_references.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "FileScanTask property 'delete_file_references' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(delete_file_references_val));
+			    yyjson_get_type_desc(delete_file_references_val)));
 		}
 		builder.SetDeleteFileReferences(std::move(delete_file_references));
 	}
@@ -116,10 +115,9 @@ string FileScanTask::TryFromJSON(yyjson_val *obj, optional<FileScanTask> &result
 
 FileScanTask FileScanTask::Copy() const {
 	FileScanTaskBuilder builder;
-	optional<DataFile> data_file_tmp;
-	data_file_tmp = data_file.Copy();
-	builder.SetDataFile(std::move(*data_file_tmp));
-	vector<int32_t> delete_file_references_tmp;
+	auto data_file_tmp = data_file.Copy();
+	builder.SetDataFile(std::move(data_file_tmp));
+	optional<vector<int32_t>> delete_file_references_tmp;
 	if (delete_file_references.has_value()) {
 		delete_file_references_tmp.emplace();
 		(*delete_file_references_tmp).reserve((*delete_file_references).size());
@@ -128,7 +126,7 @@ FileScanTask FileScanTask::Copy() const {
 		}
 	}
 	if (delete_file_references_tmp.has_value()) {
-		builder.SetDeleteFileReferences(std::move(delete_file_references_tmp));
+		builder.SetDeleteFileReferences(std::move((*delete_file_references_tmp)));
 	}
 	unique_ptr<Expression> residual_filter_tmp;
 	if (residual_filter != nullptr) {

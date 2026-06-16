@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,13 +25,13 @@ SnapshotLog::Object3Builder::Object3Builder() {
 }
 
 SnapshotLog::Object3Builder &SnapshotLog::Object3Builder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 SnapshotLog::Object3Builder &SnapshotLog::Object3Builder::SetTimestampMs(int64_t value) {
-	timestamp_ms_ = std::move(value);
+	timestamp_ms_.emplace(std::move(value));
 	has_timestamp_ms_ = true;
 	return *this;
 }
@@ -151,8 +152,8 @@ SnapshotLog SnapshotLog::FromJSON(yyjson_val *obj) {
 			value.emplace_back(std::move(tmp));
 		}
 	} else {
-		return StringUtil::Format("SnapshotLog property 'value' is not of type 'array', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
+		throw InvalidInputException(StringUtil::Format(
+		    "SnapshotLog property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
 	return SnapshotLog(std::move(value));
 }

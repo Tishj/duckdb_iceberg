@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ SortOrderBuilder::SortOrderBuilder() {
 }
 
 SortOrderBuilder &SortOrderBuilder::SetOrderId(int32_t value) {
-	order_id_ = std::move(value);
+	order_id_.emplace(std::move(value));
 	has_order_id_ = true;
 	return *this;
 }
 
 SortOrderBuilder &SortOrderBuilder::SetFields(vector<SortField> value) {
-	fields_ = std::move(value);
+	fields_.emplace(std::move(value));
 	has_fields_ = true;
 	return *this;
 }
@@ -87,8 +88,9 @@ SortOrder SortOrder::FromJSON(yyjson_val *obj) {
 				fields.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("SortOrder property 'fields' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(fields_val));
+			throw InvalidInputException(
+			    StringUtil::Format("SortOrder property 'fields' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(fields_val)));
 		}
 		builder.SetFields(std::move(fields));
 	}

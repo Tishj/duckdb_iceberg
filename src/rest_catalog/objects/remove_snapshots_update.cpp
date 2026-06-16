@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemoveSnapshotsUpdateBuilder::RemoveSnapshotsUpdateBuilder() {
 }
 
 RemoveSnapshotsUpdateBuilder &RemoveSnapshotsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemoveSnapshotsUpdateBuilder &RemoveSnapshotsUpdateBuilder::SetSnapshotIds(vector<int64_t> value) {
-	snapshot_ids_ = std::move(value);
+	snapshot_ids_.emplace(std::move(value));
 	has_snapshot_ids_ = true;
 	return *this;
 }
@@ -79,9 +80,9 @@ RemoveSnapshotsUpdate RemoveSnapshotsUpdate::FromJSON(yyjson_val *obj) {
 				snapshot_ids.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "RemoveSnapshotsUpdate property 'snapshot_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_ids_val));
+			    yyjson_get_type_desc(snapshot_ids_val)));
 		}
 		builder.SetSnapshotIds(std::move(snapshot_ids));
 	}
@@ -100,9 +101,8 @@ string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSnapsh
 
 RemoveSnapshotsUpdate RemoveSnapshotsUpdate::Copy() const {
 	RemoveSnapshotsUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	vector<int64_t> snapshot_ids_tmp;
 	snapshot_ids_tmp.reserve(snapshot_ids.size());
 	for (auto &item : snapshot_ids) {

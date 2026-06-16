@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,12 +24,12 @@ ListTablesResponseBuilder::ListTablesResponseBuilder() {
 }
 
 ListTablesResponseBuilder &ListTablesResponseBuilder::SetNextPageToken(PageToken value) {
-	next_page_token_ = std::move(value);
+	next_page_token_.emplace(std::move(value));
 	return *this;
 }
 
 ListTablesResponseBuilder &ListTablesResponseBuilder::SetIdentifiers(vector<TableIdentifier> value) {
-	identifiers_ = std::move(value);
+	identifiers_.emplace(std::move(value));
 	return *this;
 }
 
@@ -55,9 +56,7 @@ ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
 	ListTablesResponseBuilder builder;
 	auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
 	if (next_page_token_val) {
-		optional<PageToken> next_page_token;
-		next_page_token = PageToken::FromJSON(next_page_token_val);
-		builder.SetNextPageToken(std::move(*next_page_token));
+		builder.SetNextPageToken(PageToken::FromJSON(next_page_token_val));
 	}
 	auto identifiers_val = yyjson_obj_get(obj, "identifiers");
 	if (identifiers_val) {
@@ -70,9 +69,9 @@ ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
 				identifiers.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "ListTablesResponse property 'identifiers' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(identifiers_val));
+			    yyjson_get_type_desc(identifiers_val)));
 		}
 		builder.SetIdentifiers(std::move(identifiers));
 	}
@@ -93,13 +92,12 @@ ListTablesResponse ListTablesResponse::Copy() const {
 	ListTablesResponseBuilder builder;
 	optional<PageToken> next_page_token_tmp;
 	if (next_page_token.has_value()) {
-		next_page_token_tmp.emplace();
-		(*next_page_token_tmp) = (*next_page_token).Copy();
+		next_page_token_tmp.emplace((*next_page_token).Copy());
 	}
 	if (next_page_token_tmp.has_value()) {
 		builder.SetNextPageToken(std::move(*next_page_token_tmp));
 	}
-	vector<TableIdentifier> identifiers_tmp;
+	optional<vector<TableIdentifier>> identifiers_tmp;
 	if (identifiers.has_value()) {
 		identifiers_tmp.emplace();
 		(*identifiers_tmp).reserve((*identifiers).size());
@@ -108,7 +106,7 @@ ListTablesResponse ListTablesResponse::Copy() const {
 		}
 	}
 	if (identifiers_tmp.has_value()) {
-		builder.SetIdentifiers(std::move(identifiers_tmp));
+		builder.SetIdentifiers(std::move((*identifiers_tmp)));
 	}
 	return builder.Build();
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,13 +25,13 @@ MetadataLog::Object4Builder::Object4Builder() {
 }
 
 MetadataLog::Object4Builder &MetadataLog::Object4Builder::SetMetadataFile(string value) {
-	metadata_file_ = std::move(value);
+	metadata_file_.emplace(std::move(value));
 	has_metadata_file_ = true;
 	return *this;
 }
 
 MetadataLog::Object4Builder &MetadataLog::Object4Builder::SetTimestampMs(int64_t value) {
-	timestamp_ms_ = std::move(value);
+	timestamp_ms_.emplace(std::move(value));
 	has_timestamp_ms_ = true;
 	return *this;
 }
@@ -149,8 +150,8 @@ MetadataLog MetadataLog::FromJSON(yyjson_val *obj) {
 			value.emplace_back(std::move(tmp));
 		}
 	} else {
-		return StringUtil::Format("MetadataLog property 'value' is not of type 'array', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
+		throw InvalidInputException(StringUtil::Format(
+		    "MetadataLog property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
 	return MetadataLog(std::move(value));
 }

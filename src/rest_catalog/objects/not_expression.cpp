@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ NotExpressionBuilder::NotExpressionBuilder() {
 }
 
 NotExpressionBuilder &NotExpressionBuilder::SetType(ExpressionType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ NotExpression NotExpression::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("NotExpression required property 'type' is missing");
 	} else {
-		optional<ExpressionType> type;
-		type = ExpressionType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(ExpressionType::FromJSON(type_val));
 	}
 	auto child_val = yyjson_obj_get(obj, "child");
 	if (!child_val) {
@@ -91,9 +90,8 @@ string NotExpression::TryFromJSON(yyjson_val *obj, optional<NotExpression> &resu
 
 NotExpression NotExpression::Copy() const {
 	NotExpressionBuilder builder;
-	optional<ExpressionType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	unique_ptr<Expression> child_tmp;
 	child_tmp = child ? make_uniq<Expression>(child->Copy()) : nullptr;
 	builder.SetChild(std::move(child_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ AssignUUIDUpdateBuilder::AssignUUIDUpdateBuilder() {
 }
 
 AssignUUIDUpdateBuilder &AssignUUIDUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AssignUUIDUpdateBuilder &AssignUUIDUpdateBuilder::SetUuid(string value) {
-	uuid_ = std::move(value);
+	uuid_.emplace(std::move(value));
 	has_uuid_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, optional<AssignUUIDUpdate>
 
 AssignUUIDUpdate AssignUUIDUpdate::Copy() const {
 	AssignUUIDUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	string uuid_tmp;
 	uuid_tmp = uuid;
 	builder.SetUuid(std::move(uuid_tmp));

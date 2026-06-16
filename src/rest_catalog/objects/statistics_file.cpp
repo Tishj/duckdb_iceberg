@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -25,31 +26,31 @@ StatisticsFileBuilder::StatisticsFileBuilder() {
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetStatisticsPath(string value) {
-	statistics_path_ = std::move(value);
+	statistics_path_.emplace(std::move(value));
 	has_statistics_path_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetFileSizeInBytes(int64_t value) {
-	file_size_in_bytes_ = std::move(value);
+	file_size_in_bytes_.emplace(std::move(value));
 	has_file_size_in_bytes_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetFileFooterSizeInBytes(int64_t value) {
-	file_footer_size_in_bytes_ = std::move(value);
+	file_footer_size_in_bytes_.emplace(std::move(value));
 	has_file_footer_size_in_bytes_ = true;
 	return *this;
 }
 
 StatisticsFileBuilder &StatisticsFileBuilder::SetBlobMetadata(vector<BlobMetadata> value) {
-	blob_metadata_ = std::move(value);
+	blob_metadata_.emplace(std::move(value));
 	has_blob_metadata_ = true;
 	return *this;
 }
@@ -167,9 +168,9 @@ StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
 				blob_metadata.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
-			    "StatisticsFile property 'blob_metadata' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(blob_metadata_val));
+			throw InvalidInputException(
+			    StringUtil::Format("StatisticsFile property 'blob_metadata' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(blob_metadata_val)));
 		}
 		builder.SetBlobMetadata(std::move(blob_metadata));
 	}

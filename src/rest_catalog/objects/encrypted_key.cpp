@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,24 +25,24 @@ EncryptedKeyBuilder::EncryptedKeyBuilder() {
 }
 
 EncryptedKeyBuilder &EncryptedKeyBuilder::SetKeyId(string value) {
-	key_id_ = std::move(value);
+	key_id_.emplace(std::move(value));
 	has_key_id_ = true;
 	return *this;
 }
 
 EncryptedKeyBuilder &EncryptedKeyBuilder::SetEncryptedKeyMetadata(string value) {
-	encrypted_key_metadata_ = std::move(value);
+	encrypted_key_metadata_.emplace(std::move(value));
 	has_encrypted_key_metadata_ = true;
 	return *this;
 }
 
 EncryptedKeyBuilder &EncryptedKeyBuilder::SetEncryptedById(string value) {
-	encrypted_by_id_ = std::move(value);
+	encrypted_by_id_.emplace(std::move(value));
 	return *this;
 }
 
 EncryptedKeyBuilder &EncryptedKeyBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	properties_ = std::move(value);
+	properties_.emplace(std::move(value));
 	return *this;
 }
 
@@ -157,15 +158,15 @@ EncryptedKey EncryptedKey::Copy() const {
 	string encrypted_key_metadata_tmp;
 	encrypted_key_metadata_tmp = encrypted_key_metadata;
 	builder.SetEncryptedKeyMetadata(std::move(encrypted_key_metadata_tmp));
-	string encrypted_by_id_tmp;
+	optional<string> encrypted_by_id_tmp;
 	if (encrypted_by_id.has_value()) {
 		encrypted_by_id_tmp.emplace();
 		(*encrypted_by_id_tmp) = (*encrypted_by_id);
 	}
 	if (encrypted_by_id_tmp.has_value()) {
-		builder.SetEncryptedById(std::move(encrypted_by_id_tmp));
+		builder.SetEncryptedById(std::move((*encrypted_by_id_tmp)));
 	}
-	case_insensitive_map_t<string> properties_tmp;
+	optional<case_insensitive_map_t<string>> properties_tmp;
 	if (properties.has_value()) {
 		properties_tmp.emplace();
 		for (auto &entry : (*properties)) {
@@ -173,7 +174,7 @@ EncryptedKey EncryptedKey::Copy() const {
 		}
 	}
 	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move(properties_tmp));
+		builder.SetProperties(std::move((*properties_tmp)));
 	}
 	return builder.Build();
 }

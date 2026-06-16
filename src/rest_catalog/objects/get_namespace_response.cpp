@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,13 +24,13 @@ GetNamespaceResponseBuilder::GetNamespaceResponseBuilder() {
 }
 
 GetNamespaceResponseBuilder &GetNamespaceResponseBuilder::SetNamespace(Namespace value) {
-	_namespace_ = std::move(value);
+	_namespace_.emplace(std::move(value));
 	has__namespace_ = true;
 	return *this;
 }
 
 GetNamespaceResponseBuilder &GetNamespaceResponseBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	properties_ = std::move(value);
+	properties_.emplace(std::move(value));
 	return *this;
 }
 
@@ -61,9 +62,7 @@ GetNamespaceResponse GetNamespaceResponse::FromJSON(yyjson_val *obj) {
 	if (!_namespace_val) {
 		throw InvalidInputException("GetNamespaceResponse required property 'namespace' is missing");
 	} else {
-		optional<Namespace> _namespace;
-		_namespace = Namespace::FromJSON(_namespace_val);
-		builder.SetNamespace(std::move(*_namespace));
+		builder.SetNamespace(Namespace::FromJSON(_namespace_val));
 	}
 	auto properties_val = yyjson_obj_get(obj, "properties");
 	if (properties_val) {
@@ -107,10 +106,9 @@ string GetNamespaceResponse::TryFromJSON(yyjson_val *obj, optional<GetNamespaceR
 
 GetNamespaceResponse GetNamespaceResponse::Copy() const {
 	GetNamespaceResponseBuilder builder;
-	optional<Namespace> _namespace_tmp;
-	_namespace_tmp = _namespace.Copy();
-	builder.SetNamespace(std::move(*_namespace_tmp));
-	case_insensitive_map_t<string> properties_tmp;
+	auto _namespace_tmp = _namespace.Copy();
+	builder.SetNamespace(std::move(_namespace_tmp));
+	optional<case_insensitive_map_t<string>> properties_tmp;
 	if (properties.has_value()) {
 		properties_tmp.emplace();
 		for (auto &entry : (*properties)) {
@@ -118,7 +116,7 @@ GetNamespaceResponse GetNamespaceResponse::Copy() const {
 		}
 	}
 	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move(properties_tmp));
+		builder.SetProperties(std::move((*properties_tmp)));
 	}
 	return builder.Build();
 }

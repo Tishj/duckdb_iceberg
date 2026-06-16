@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ RenameTableRequestBuilder::RenameTableRequestBuilder() {
 }
 
 RenameTableRequestBuilder &RenameTableRequestBuilder::SetSource(TableIdentifier value) {
-	source_ = std::move(value);
+	source_.emplace(std::move(value));
 	has_source_ = true;
 	return *this;
 }
 
 RenameTableRequestBuilder &RenameTableRequestBuilder::SetDestination(TableIdentifier value) {
-	destination_ = std::move(value);
+	destination_.emplace(std::move(value));
 	has_destination_ = true;
 	return *this;
 }
@@ -64,17 +65,13 @@ RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
 	if (!source_val) {
 		throw InvalidInputException("RenameTableRequest required property 'source' is missing");
 	} else {
-		optional<TableIdentifier> source;
-		source = TableIdentifier::FromJSON(source_val);
-		builder.SetSource(std::move(*source));
+		builder.SetSource(TableIdentifier::FromJSON(source_val));
 	}
 	auto destination_val = yyjson_obj_get(obj, "destination");
 	if (!destination_val) {
 		throw InvalidInputException("RenameTableRequest required property 'destination' is missing");
 	} else {
-		optional<TableIdentifier> destination;
-		destination = TableIdentifier::FromJSON(destination_val);
-		builder.SetDestination(std::move(*destination));
+		builder.SetDestination(TableIdentifier::FromJSON(destination_val));
 	}
 	return builder.Build();
 }
@@ -91,12 +88,10 @@ string RenameTableRequest::TryFromJSON(yyjson_val *obj, optional<RenameTableRequ
 
 RenameTableRequest RenameTableRequest::Copy() const {
 	RenameTableRequestBuilder builder;
-	optional<TableIdentifier> source_tmp;
-	source_tmp = source.Copy();
-	builder.SetSource(std::move(*source_tmp));
-	optional<TableIdentifier> destination_tmp;
-	destination_tmp = destination.Copy();
-	builder.SetDestination(std::move(*destination_tmp));
+	auto source_tmp = source.Copy();
+	builder.SetSource(std::move(source_tmp));
+	auto destination_tmp = destination.Copy();
+	builder.SetDestination(std::move(destination_tmp));
 	return builder.Build();
 }
 

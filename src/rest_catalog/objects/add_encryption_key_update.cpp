@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ AddEncryptionKeyUpdateBuilder::AddEncryptionKeyUpdateBuilder() {
 }
 
 AddEncryptionKeyUpdateBuilder &AddEncryptionKeyUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AddEncryptionKeyUpdateBuilder &AddEncryptionKeyUpdateBuilder::SetEncryptionKey(EncryptedKey value) {
-	encryption_key_ = std::move(value);
+	encryption_key_.emplace(std::move(value));
 	has_encryption_key_ = true;
 	return *this;
 }
@@ -61,9 +62,7 @@ AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
 	if (!encryption_key_val) {
 		throw InvalidInputException("AddEncryptionKeyUpdate required property 'encryption-key' is missing");
 	} else {
-		optional<EncryptedKey> encryption_key;
-		encryption_key = EncryptedKey::FromJSON(encryption_key_val);
-		builder.SetEncryptionKey(std::move(*encryption_key));
+		builder.SetEncryptionKey(EncryptedKey::FromJSON(encryption_key_val));
 	}
 	return builder.Build();
 }
@@ -80,12 +79,10 @@ string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, optional<AddEncrypti
 
 AddEncryptionKeyUpdate AddEncryptionKeyUpdate::Copy() const {
 	AddEncryptionKeyUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<EncryptedKey> encryption_key_tmp;
-	encryption_key_tmp = encryption_key.Copy();
-	builder.SetEncryptionKey(std::move(*encryption_key_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto encryption_key_tmp = encryption_key.Copy();
+	builder.SetEncryptionKey(std::move(encryption_key_tmp));
 	return builder.Build();
 }
 

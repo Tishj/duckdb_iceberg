@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,13 +25,13 @@ MapTypeBuilder::MapTypeBuilder() {
 }
 
 MapTypeBuilder &MapTypeBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 MapTypeBuilder &MapTypeBuilder::SetKeyId(int32_t value) {
-	key_id_ = std::move(value);
+	key_id_.emplace(std::move(value));
 	has_key_id_ = true;
 	return *this;
 }
@@ -42,7 +43,7 @@ MapTypeBuilder &MapTypeBuilder::SetKey(unique_ptr<Type> value) {
 }
 
 MapTypeBuilder &MapTypeBuilder::SetValueId(int32_t value) {
-	value_id_ = std::move(value);
+	value_id_.emplace(std::move(value));
 	has_value_id_ = true;
 	return *this;
 }
@@ -54,7 +55,7 @@ MapTypeBuilder &MapTypeBuilder::SetValue(unique_ptr<Type> value) {
 }
 
 MapTypeBuilder &MapTypeBuilder::SetValueRequired(bool value) {
-	value_required_ = std::move(value);
+	value_required_.emplace(std::move(value));
 	has_value_required_ = true;
 	return *this;
 }

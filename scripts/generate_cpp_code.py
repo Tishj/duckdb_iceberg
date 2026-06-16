@@ -110,6 +110,7 @@ SOURCE_FORMAT = """
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -461,8 +462,17 @@ class CPPClass:
                 return f'std::move(*{variable_name})'
         return f'std::move({variable_name})'
 
+    def can_parse_directly_to_builder(self, schema: Property) -> bool:
+        return schema.type == Property.Type.SCHEMA_REFERENCE and cast(SchemaReferenceProperty, schema).ref not in self.parse_info.recursive_schemas
+
+    def direct_builder_parse_expression(self, schema: Property, source: str) -> str:
+        schema_property = cast(SchemaReferenceProperty, schema)
+        self.referenced_schemas.add(schema_property.ref)
+        return f'{schema_property.ref}::FromJSON({source})'
+
     def write_required_property(self, required_property: RequiredProperty) -> List[str]:
         res = []
+        setter_name = f'Set{to_pascal_case(required_property.variable_name)}'
         res.extend(
             [
                 f'auto {required_property.variable_name}_val = yyjson_obj_get(obj, "{required_property.property_name}");',
@@ -481,17 +491,22 @@ class CPPClass:
                 [f"""\tthrow InvalidInputException("{self.name} required property '{required_property.property_name}' is missing");"""]
             )
         res.extend(['} else {'])
-        res.append(f'\t{self.parse_local_declaration(required_property.schema, required_property.variable_name)}')
-        res.extend([f'\t{x}' for x in required_property.body])
-        setter_name = f'Set{to_pascal_case(required_property.variable_name)}'
-        res.append(
-            f'\tbuilder.{setter_name}({self.parse_local_value_expression(required_property.schema, required_property.variable_name)});'
-        )
+        if self.can_parse_directly_to_builder(required_property.schema):
+            res.append(
+                f'\tbuilder.{setter_name}({self.direct_builder_parse_expression(required_property.schema, f"{required_property.variable_name}_val")});'
+            )
+        else:
+            res.append(f'\t{self.parse_local_declaration(required_property.schema, required_property.variable_name)}')
+            res.extend([f'\t{x}' for x in required_property.body])
+            res.append(
+                f'\tbuilder.{setter_name}({self.parse_local_value_expression(required_property.schema, required_property.variable_name)});'
+            )
         res.append('}')
         return res
 
     def write_optional_property(self, optional_property: OptionalProperty) -> List[str]:
         res = []
+        setter_name = f'Set{to_pascal_case(optional_property.variable_name)}'
         res.extend(
             [
                 f'auto {optional_property.variable_name}_val = yyjson_obj_get(obj, "{optional_property.property_name}");',
@@ -506,20 +521,28 @@ class CPPClass:
                     '\t} else {',
                 ]
             )
-            res.append(f'\t\t{self.parse_local_declaration(optional_property.schema, optional_property.variable_name)}')
-            res.extend([f'\t\t{x}' for x in optional_property.body])
-            setter_name = f'Set{to_pascal_case(optional_property.variable_name)}'
-            res.append(
-                f'\t\tbuilder.{setter_name}({self.parse_local_value_expression(optional_property.schema, optional_property.variable_name)});'
-            )
+            if self.can_parse_directly_to_builder(optional_property.schema):
+                res.append(
+                    f'\t\tbuilder.{setter_name}({self.direct_builder_parse_expression(optional_property.schema, f"{optional_property.variable_name}_val")});'
+                )
+            else:
+                res.append(f'\t\t{self.parse_local_declaration(optional_property.schema, optional_property.variable_name)}')
+                res.extend([f'\t\t{x}' for x in optional_property.body])
+                res.append(
+                    f'\t\tbuilder.{setter_name}({self.parse_local_value_expression(optional_property.schema, optional_property.variable_name)});'
+                )
             res.append('\t}')
         else:
-            res.append(f'\t{self.parse_local_declaration(optional_property.schema, optional_property.variable_name)}')
-            res.extend([f'\t{x}' for x in optional_property.body])
-            setter_name = f'Set{to_pascal_case(optional_property.variable_name)}'
-            res.append(
-                f'\tbuilder.{setter_name}({self.parse_local_value_expression(optional_property.schema, optional_property.variable_name)});'
-            )
+            if self.can_parse_directly_to_builder(optional_property.schema):
+                res.append(
+                    f'\tbuilder.{setter_name}({self.direct_builder_parse_expression(optional_property.schema, f"{optional_property.variable_name}_val")});'
+                )
+            else:
+                res.append(f'\t{self.parse_local_declaration(optional_property.schema, optional_property.variable_name)}')
+                res.extend([f'\t{x}' for x in optional_property.body])
+                res.append(
+                    f'\tbuilder.{setter_name}({self.parse_local_value_expression(optional_property.schema, optional_property.variable_name)});'
+                )
         res.append('}')
         return res
 
@@ -751,7 +774,36 @@ class CPPClass:
         for member in self.members:
             local_name = self.parse_local_name(member.variable_name)
             if member.schema is not None:
-                res.append(f'\t{self.parse_local_declaration(member.schema, local_name)}')
+                if member.schema.type == Property.Type.SCHEMA_REFERENCE and not self.uses_pointer_storage(member.schema):
+                    schema_property = cast(SchemaReferenceProperty, member.schema)
+                    if member.copy_guard is not None:
+                        res.append(f'\toptional<{schema_property.ref}> {local_name};')
+                        res.append(f'\tif ({member.copy_guard}) {{')
+                        res.append(
+                            f'\t\t{local_name}.emplace({self.value_access_expression(member.variable_name, member.uses_optional_wrapper)}.Copy());'
+                        )
+                        res.append('\t}')
+                    else:
+                        res.append(f'\tauto {local_name} = {member.variable_name}.Copy();')
+                    if self.is_object_schema():
+                        setter_name = f'Set{to_pascal_case(member.variable_name)}'
+                        if member.copy_guard is not None:
+                            res.append(f'\tif ({local_name}.has_value()) {{')
+                            res.append(f'\t\tbuilder.{setter_name}(std::move(*{local_name}));')
+                            res.append('\t}')
+                        else:
+                            res.append(f'\tbuilder.{setter_name}(std::move({local_name}));')
+                    else:
+                        constructor_args.append(
+                            f'std::move(*{local_name})' if member.copy_guard is not None else f'std::move({local_name})'
+                        )
+                    continue
+                local_declaration_type = (
+                    self.optional_member_type(member.schema)
+                    if member.copy_guard is not None
+                    else self.parse_local_type(member.schema)
+                )
+                res.append(f'\t{local_declaration_type} {local_name};')
                 target = local_name if member.copy_guard is None else self.value_access_expression(local_name, member.uses_optional_wrapper)
                 source = member.variable_name if member.copy_guard is None else self.value_access_expression(member.variable_name, member.uses_optional_wrapper)
                 lines = self.write_copy_assignment_lines(target, source, member.schema)
@@ -766,10 +818,13 @@ class CPPClass:
                     setter_name = f'Set{to_pascal_case(member.variable_name)}'
                     if member.copy_guard is not None:
                         presence = self.presence_condition(local_name, member.uses_optional_wrapper)
+                        setter_value = self.value_access_expression(local_name, member.uses_optional_wrapper)
+                        if member.uses_optional_wrapper:
+                            setter_value = f'std::move({setter_value})'
+                        else:
+                            setter_value = f'std::move({local_name})'
                         res.append(f'\tif ({presence}) {{')
-                        res.append(
-                            f'\t\tbuilder.{setter_name}({self.parse_local_value_expression(member.schema, local_name)});'
-                        )
+                        res.append(f'\t\tbuilder.{setter_name}({setter_value});')
                         res.append('\t}')
                     else:
                         res.append(
@@ -1133,9 +1188,12 @@ class CPPClass:
                 [
                     '',
                     f'{builder_qualified_name} &{builder_qualified_name}::{setter_name}({parameter_type} value) {{',
-                    f'\t{self.member_storage_field_name(member)} = std::move(value);',
                 ]
             )
+            if self.uses_pointer_storage(member.schema):
+                lines.append(f'\t{self.member_storage_field_name(member)} = std::move(value);')
+            else:
+                lines.append(f'\t{self.member_storage_field_name(member)}.emplace(std::move(value));')
             if member.variable_name in [prop.variable_name for prop in self.required_properties.values()]:
                 lines.append(f'\t{self.builder_flag_name(member.variable_name)} = true;')
             lines.extend(['\treturn *this;', '}'])
@@ -1390,7 +1448,7 @@ class CPPClass:
         res.extend(
             [
                 '} else {',
-                f"""\treturn StringUtil::Format("{self.name} property '{destination_name}' is not of type 'array', found '%s' instead", yyjson_get_type_desc({array_name}));""",
+                f"""\tthrow InvalidInputException(StringUtil::Format("{self.name} property '{destination_name}' is not of type 'array', found '%s' instead", yyjson_get_type_desc({array_name})));""",
                 '}',
             ]
         )
@@ -1534,7 +1592,7 @@ class CPPClass:
             if schema_property.ref in self.parse_info.recursive_schemas:
                 result.append(f'{target} = make_uniq<{schema_property.ref}>({schema_property.ref}::FromJSON({source}));')
             else:
-                result.append(f'{target} = {schema_property.ref}::FromJSON({source});')
+                result.append(f'{target}.emplace({schema_property.ref}::FromJSON({source}));')
             return result
         else:
             return self.generate_item_parse(schema, source, target, is_required, handle_nullable=handle_nullable)

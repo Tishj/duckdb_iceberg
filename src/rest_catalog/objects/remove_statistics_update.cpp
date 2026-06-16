@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemoveStatisticsUpdateBuilder::RemoveStatisticsUpdateBuilder() {
 }
 
 RemoveStatisticsUpdateBuilder &RemoveStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemoveStatisticsUpdateBuilder &RemoveStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
@@ -88,9 +89,8 @@ string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveStati
 
 RemoveStatisticsUpdate RemoveStatisticsUpdate::Copy() const {
 	RemoveStatisticsUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	int64_t snapshot_id_tmp;
 	snapshot_id_tmp = snapshot_id;
 	builder.SetSnapshotId(std::move(snapshot_id_tmp));

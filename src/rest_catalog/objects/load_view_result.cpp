@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,19 +24,19 @@ LoadViewResultBuilder::LoadViewResultBuilder() {
 }
 
 LoadViewResultBuilder &LoadViewResultBuilder::SetMetadataLocation(string value) {
-	metadata_location_ = std::move(value);
+	metadata_location_.emplace(std::move(value));
 	has_metadata_location_ = true;
 	return *this;
 }
 
 LoadViewResultBuilder &LoadViewResultBuilder::SetMetadata(ViewMetadata value) {
-	metadata_ = std::move(value);
+	metadata_.emplace(std::move(value));
 	has_metadata_ = true;
 	return *this;
 }
 
 LoadViewResultBuilder &LoadViewResultBuilder::SetConfig(case_insensitive_map_t<string> value) {
-	config_ = std::move(value);
+	config_.emplace(std::move(value));
 	return *this;
 }
 
@@ -84,9 +85,7 @@ LoadViewResult LoadViewResult::FromJSON(yyjson_val *obj) {
 	if (!metadata_val) {
 		throw InvalidInputException("LoadViewResult required property 'metadata' is missing");
 	} else {
-		optional<ViewMetadata> metadata;
-		metadata = ViewMetadata::FromJSON(metadata_val);
-		builder.SetMetadata(std::move(*metadata));
+		builder.SetMetadata(ViewMetadata::FromJSON(metadata_val));
 	}
 	auto config_val = yyjson_obj_get(obj, "config");
 	if (config_val) {
@@ -129,10 +128,9 @@ LoadViewResult LoadViewResult::Copy() const {
 	string metadata_location_tmp;
 	metadata_location_tmp = metadata_location;
 	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	optional<ViewMetadata> metadata_tmp;
-	metadata_tmp = metadata.Copy();
-	builder.SetMetadata(std::move(*metadata_tmp));
-	case_insensitive_map_t<string> config_tmp;
+	auto metadata_tmp = metadata.Copy();
+	builder.SetMetadata(std::move(metadata_tmp));
+	optional<case_insensitive_map_t<string>> config_tmp;
 	if (config.has_value()) {
 		config_tmp.emplace();
 		for (auto &entry : (*config)) {
@@ -140,7 +138,7 @@ LoadViewResult LoadViewResult::Copy() const {
 		}
 	}
 	if (config_tmp.has_value()) {
-		builder.SetConfig(std::move(config_tmp));
+		builder.SetConfig(std::move((*config_tmp)));
 	}
 	return builder.Build();
 }

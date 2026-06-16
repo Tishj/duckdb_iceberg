@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ CommitTransactionRequestBuilder::CommitTransactionRequestBuilder() {
 }
 
 CommitTransactionRequestBuilder &CommitTransactionRequestBuilder::SetTableChanges(vector<CommitTableRequest> value) {
-	table_changes_ = std::move(value);
+	table_changes_.emplace(std::move(value));
 	has_table_changes_ = true;
 	return *this;
 }
@@ -64,9 +65,9 @@ CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
 				table_changes.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "CommitTransactionRequest property 'table_changes' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(table_changes_val));
+			    yyjson_get_type_desc(table_changes_val)));
 		}
 		builder.SetTableChanges(std::move(table_changes));
 	}

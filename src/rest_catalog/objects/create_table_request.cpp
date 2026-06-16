@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -27,39 +28,39 @@ CreateTableRequestBuilder::CreateTableRequestBuilder() {
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetSchema(Schema value) {
-	schema_ = std::move(value);
+	schema_.emplace(std::move(value));
 	has_schema_ = true;
 	return *this;
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetLocation(string value) {
-	location_ = std::move(value);
+	location_.emplace(std::move(value));
 	return *this;
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetPartitionSpec(PartitionSpec value) {
-	partition_spec_ = std::move(value);
+	partition_spec_.emplace(std::move(value));
 	return *this;
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetWriteOrder(SortOrder value) {
-	write_order_ = std::move(value);
+	write_order_.emplace(std::move(value));
 	return *this;
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetStageCreate(bool value) {
-	stage_create_ = std::move(value);
+	stage_create_.emplace(std::move(value));
 	return *this;
 }
 
 CreateTableRequestBuilder &CreateTableRequestBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	properties_ = std::move(value);
+	properties_.emplace(std::move(value));
 	return *this;
 }
 
@@ -110,9 +111,7 @@ CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
 	if (!schema_val) {
 		throw InvalidInputException("CreateTableRequest required property 'schema' is missing");
 	} else {
-		optional<Schema> schema;
-		schema = Schema::FromJSON(schema_val);
-		builder.SetSchema(std::move(*schema));
+		builder.SetSchema(Schema::FromJSON(schema_val));
 	}
 	auto location_val = yyjson_obj_get(obj, "location");
 	if (location_val) {
@@ -128,15 +127,11 @@ CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
 	}
 	auto partition_spec_val = yyjson_obj_get(obj, "partition-spec");
 	if (partition_spec_val) {
-		optional<PartitionSpec> partition_spec;
-		partition_spec = PartitionSpec::FromJSON(partition_spec_val);
-		builder.SetPartitionSpec(std::move(*partition_spec));
+		builder.SetPartitionSpec(PartitionSpec::FromJSON(partition_spec_val));
 	}
 	auto write_order_val = yyjson_obj_get(obj, "write-order");
 	if (write_order_val) {
-		optional<SortOrder> write_order;
-		write_order = SortOrder::FromJSON(write_order_val);
-		builder.SetWriteOrder(std::move(*write_order));
+		builder.SetWriteOrder(SortOrder::FromJSON(write_order_val));
 	}
 	auto stage_create_val = yyjson_obj_get(obj, "stage-create");
 	if (stage_create_val) {
@@ -191,42 +186,39 @@ CreateTableRequest CreateTableRequest::Copy() const {
 	string name_tmp;
 	name_tmp = name;
 	builder.SetName(std::move(name_tmp));
-	optional<Schema> schema_tmp;
-	schema_tmp = schema.Copy();
-	builder.SetSchema(std::move(*schema_tmp));
-	string location_tmp;
+	auto schema_tmp = schema.Copy();
+	builder.SetSchema(std::move(schema_tmp));
+	optional<string> location_tmp;
 	if (location.has_value()) {
 		location_tmp.emplace();
 		(*location_tmp) = (*location);
 	}
 	if (location_tmp.has_value()) {
-		builder.SetLocation(std::move(location_tmp));
+		builder.SetLocation(std::move((*location_tmp)));
 	}
 	optional<PartitionSpec> partition_spec_tmp;
 	if (partition_spec.has_value()) {
-		partition_spec_tmp.emplace();
-		(*partition_spec_tmp) = (*partition_spec).Copy();
+		partition_spec_tmp.emplace((*partition_spec).Copy());
 	}
 	if (partition_spec_tmp.has_value()) {
 		builder.SetPartitionSpec(std::move(*partition_spec_tmp));
 	}
 	optional<SortOrder> write_order_tmp;
 	if (write_order.has_value()) {
-		write_order_tmp.emplace();
-		(*write_order_tmp) = (*write_order).Copy();
+		write_order_tmp.emplace((*write_order).Copy());
 	}
 	if (write_order_tmp.has_value()) {
 		builder.SetWriteOrder(std::move(*write_order_tmp));
 	}
-	bool stage_create_tmp;
+	optional<bool> stage_create_tmp;
 	if (stage_create.has_value()) {
 		stage_create_tmp.emplace();
 		(*stage_create_tmp) = (*stage_create);
 	}
 	if (stage_create_tmp.has_value()) {
-		builder.SetStageCreate(std::move(stage_create_tmp));
+		builder.SetStageCreate(std::move((*stage_create_tmp)));
 	}
-	case_insensitive_map_t<string> properties_tmp;
+	optional<case_insensitive_map_t<string>> properties_tmp;
 	if (properties.has_value()) {
 		properties_tmp.emplace();
 		for (auto &entry : (*properties)) {
@@ -234,7 +226,7 @@ CreateTableRequest CreateTableRequest::Copy() const {
 		}
 	}
 	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move(properties_tmp));
+		builder.SetProperties(std::move((*properties_tmp)));
 	}
 	return builder.Build();
 }

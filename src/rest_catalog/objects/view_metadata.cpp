@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -27,49 +28,49 @@ ViewMetadataBuilder::ViewMetadataBuilder() {
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetViewUuid(string value) {
-	view_uuid_ = std::move(value);
+	view_uuid_.emplace(std::move(value));
 	has_view_uuid_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetFormatVersion(int32_t value) {
-	format_version_ = std::move(value);
+	format_version_.emplace(std::move(value));
 	has_format_version_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetLocation(string value) {
-	location_ = std::move(value);
+	location_.emplace(std::move(value));
 	has_location_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetCurrentVersionId(int32_t value) {
-	current_version_id_ = std::move(value);
+	current_version_id_.emplace(std::move(value));
 	has_current_version_id_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetVersions(vector<ViewVersion> value) {
-	versions_ = std::move(value);
+	versions_.emplace(std::move(value));
 	has_versions_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetVersionLog(vector<ViewHistoryEntry> value) {
-	version_log_ = std::move(value);
+	version_log_.emplace(std::move(value));
 	has_version_log_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetSchemas(vector<Schema> value) {
-	schemas_ = std::move(value);
+	schemas_.emplace(std::move(value));
 	has_schemas_ = true;
 	return *this;
 }
 
 ViewMetadataBuilder &ViewMetadataBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	properties_ = std::move(value);
+	properties_.emplace(std::move(value));
 	return *this;
 }
 
@@ -186,8 +187,9 @@ ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
 				versions.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ViewMetadata property 'versions' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(versions_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ViewMetadata property 'versions' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(versions_val)));
 		}
 		builder.SetVersions(std::move(versions));
 	}
@@ -204,8 +206,9 @@ ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
 				version_log.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ViewMetadata property 'version_log' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(version_log_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ViewMetadata property 'version_log' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(version_log_val)));
 		}
 		builder.SetVersionLog(std::move(version_log));
 	}
@@ -222,8 +225,9 @@ ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
 				schemas.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ViewMetadata property 'schemas' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(schemas_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ViewMetadata property 'schemas' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(schemas_val)));
 		}
 		builder.SetSchemas(std::move(schemas));
 	}
@@ -295,7 +299,7 @@ ViewMetadata ViewMetadata::Copy() const {
 		schemas_tmp.emplace_back(item.Copy());
 	}
 	builder.SetSchemas(std::move(schemas_tmp));
-	case_insensitive_map_t<string> properties_tmp;
+	optional<case_insensitive_map_t<string>> properties_tmp;
 	if (properties.has_value()) {
 		properties_tmp.emplace();
 		for (auto &entry : (*properties)) {
@@ -303,7 +307,7 @@ ViewMetadata ViewMetadata::Copy() const {
 		}
 	}
 	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move(properties_tmp));
+		builder.SetProperties(std::move((*properties_tmp)));
 	}
 	return builder.Build();
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -33,8 +34,8 @@ Namespace Namespace::FromJSON(yyjson_val *obj) {
 			value.emplace_back(std::move(tmp));
 		}
 	} else {
-		return StringUtil::Format("Namespace property 'value' is not of type 'array', found '%s' instead",
-		                          yyjson_get_type_desc(obj));
+		throw InvalidInputException(StringUtil::Format(
+		    "Namespace property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
 	}
 	return Namespace(std::move(value));
 }

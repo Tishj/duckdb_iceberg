@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ TableIdentifierBuilder::TableIdentifierBuilder() {
 }
 
 TableIdentifierBuilder &TableIdentifierBuilder::SetNamespace(Namespace value) {
-	_namespace_ = std::move(value);
+	_namespace_.emplace(std::move(value));
 	has__namespace_ = true;
 	return *this;
 }
 
 TableIdentifierBuilder &TableIdentifierBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
 	if (!_namespace_val) {
 		throw InvalidInputException("TableIdentifier required property 'namespace' is missing");
 	} else {
-		optional<Namespace> _namespace;
-		_namespace = Namespace::FromJSON(_namespace_val);
-		builder.SetNamespace(std::move(*_namespace));
+		builder.SetNamespace(Namespace::FromJSON(_namespace_val));
 	}
 	auto name_val = yyjson_obj_get(obj, "name");
 	if (!name_val) {
@@ -99,9 +98,8 @@ string TableIdentifier::TryFromJSON(yyjson_val *obj, optional<TableIdentifier> &
 
 TableIdentifier TableIdentifier::Copy() const {
 	TableIdentifierBuilder builder;
-	optional<Namespace> _namespace_tmp;
-	_namespace_tmp = _namespace.Copy();
-	builder.SetNamespace(std::move(*_namespace_tmp));
+	auto _namespace_tmp = _namespace.Copy();
+	builder.SetNamespace(std::move(_namespace_tmp));
 	string name_tmp;
 	name_tmp = name;
 	builder.SetName(std::move(name_tmp));

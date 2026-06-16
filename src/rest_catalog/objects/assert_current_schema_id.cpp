@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ AssertCurrentSchemaIdBuilder::AssertCurrentSchemaIdBuilder() {
 }
 
 AssertCurrentSchemaIdBuilder &AssertCurrentSchemaIdBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 AssertCurrentSchemaIdBuilder &AssertCurrentSchemaIdBuilder::SetCurrentSchemaId(int32_t value) {
-	current_schema_id_ = std::move(value);
+	current_schema_id_.emplace(std::move(value));
 	has_current_schema_id_ = true;
 	return *this;
 }
@@ -64,9 +65,7 @@ AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AssertCurrentSchemaId required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	auto current_schema_id_val = yyjson_obj_get(obj, "current-schema-id");
 	if (!current_schema_id_val) {
@@ -97,9 +96,8 @@ string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, optional<AssertCurren
 
 AssertCurrentSchemaId AssertCurrentSchemaId::Copy() const {
 	AssertCurrentSchemaIdBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	int32_t current_schema_id_tmp;
 	current_schema_id_tmp = current_schema_id;
 	builder.SetCurrentSchemaId(std::move(current_schema_id_tmp));

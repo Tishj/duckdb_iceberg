@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ SetLocationUpdateBuilder::SetLocationUpdateBuilder() {
 }
 
 SetLocationUpdateBuilder &SetLocationUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetLocationUpdateBuilder &SetLocationUpdateBuilder::SetLocation(string value) {
-	location_ = std::move(value);
+	location_.emplace(std::move(value));
 	has_location_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string SetLocationUpdate::TryFromJSON(yyjson_val *obj, optional<SetLocationUpdat
 
 SetLocationUpdate SetLocationUpdate::Copy() const {
 	SetLocationUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	string location_tmp;
 	location_tmp = location;
 	builder.SetLocation(std::move(location_tmp));

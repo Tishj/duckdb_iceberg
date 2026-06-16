@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ AddSortOrderUpdateBuilder::AddSortOrderUpdateBuilder() {
 }
 
 AddSortOrderUpdateBuilder &AddSortOrderUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AddSortOrderUpdateBuilder &AddSortOrderUpdateBuilder::SetSortOrder(SortOrder value) {
-	sort_order_ = std::move(value);
+	sort_order_.emplace(std::move(value));
 	has_sort_order_ = true;
 	return *this;
 }
@@ -61,9 +62,7 @@ AddSortOrderUpdate AddSortOrderUpdate::FromJSON(yyjson_val *obj) {
 	if (!sort_order_val) {
 		throw InvalidInputException("AddSortOrderUpdate required property 'sort-order' is missing");
 	} else {
-		optional<SortOrder> sort_order;
-		sort_order = SortOrder::FromJSON(sort_order_val);
-		builder.SetSortOrder(std::move(*sort_order));
+		builder.SetSortOrder(SortOrder::FromJSON(sort_order_val));
 	}
 	return builder.Build();
 }
@@ -80,12 +79,10 @@ string AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, optional<AddSortOrderUpd
 
 AddSortOrderUpdate AddSortOrderUpdate::Copy() const {
 	AddSortOrderUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<SortOrder> sort_order_tmp;
-	sort_order_tmp = sort_order.Copy();
-	builder.SetSortOrder(std::move(*sort_order_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto sort_order_tmp = sort_order.Copy();
+	builder.SetSortOrder(std::move(sort_order_tmp));
 	return builder.Build();
 }
 

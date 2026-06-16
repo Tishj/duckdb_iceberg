@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -29,59 +30,59 @@ ContentFileBuilder::ContentFileBuilder() {
 }
 
 ContentFileBuilder &ContentFileBuilder::SetSpecId(int32_t value) {
-	spec_id_ = std::move(value);
+	spec_id_.emplace(std::move(value));
 	has_spec_id_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetPartition(vector<PrimitiveTypeValue> value) {
-	partition_ = std::move(value);
+	partition_.emplace(std::move(value));
 	has_partition_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetContent(string value) {
-	content_ = std::move(value);
+	content_.emplace(std::move(value));
 	has_content_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetFilePath(string value) {
-	file_path_ = std::move(value);
+	file_path_.emplace(std::move(value));
 	has_file_path_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetFileFormat(FileFormat value) {
-	file_format_ = std::move(value);
+	file_format_.emplace(std::move(value));
 	has_file_format_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetFileSizeInBytes(int64_t value) {
-	file_size_in_bytes_ = std::move(value);
+	file_size_in_bytes_.emplace(std::move(value));
 	has_file_size_in_bytes_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetRecordCount(int64_t value) {
-	record_count_ = std::move(value);
+	record_count_.emplace(std::move(value));
 	has_record_count_ = true;
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetKeyMetadata(BinaryTypeValue value) {
-	key_metadata_ = std::move(value);
+	key_metadata_.emplace(std::move(value));
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetSplitOffsets(vector<int64_t> value) {
-	split_offsets_ = std::move(value);
+	split_offsets_.emplace(std::move(value));
 	return *this;
 }
 
 ContentFileBuilder &ContentFileBuilder::SetSortOrderId(int32_t value) {
-	sort_order_id_ = std::move(value);
+	sort_order_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -157,8 +158,9 @@ ContentFile ContentFile::FromJSON(yyjson_val *obj) {
 				partition.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ContentFile property 'partition' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(partition_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ContentFile property 'partition' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(partition_val)));
 		}
 		builder.SetPartition(std::move(partition));
 	}
@@ -194,9 +196,7 @@ ContentFile ContentFile::FromJSON(yyjson_val *obj) {
 	if (!file_format_val) {
 		throw InvalidInputException("ContentFile required property 'file-format' is missing");
 	} else {
-		optional<FileFormat> file_format;
-		file_format = FileFormat::FromJSON(file_format_val);
-		builder.SetFileFormat(std::move(*file_format));
+		builder.SetFileFormat(FileFormat::FromJSON(file_format_val));
 	}
 	auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
 	if (!file_size_in_bytes_val) {
@@ -232,9 +232,7 @@ ContentFile ContentFile::FromJSON(yyjson_val *obj) {
 	}
 	auto key_metadata_val = yyjson_obj_get(obj, "key-metadata");
 	if (key_metadata_val) {
-		optional<BinaryTypeValue> key_metadata;
-		key_metadata = BinaryTypeValue::FromJSON(key_metadata_val);
-		builder.SetKeyMetadata(std::move(*key_metadata));
+		builder.SetKeyMetadata(BinaryTypeValue::FromJSON(key_metadata_val));
 	}
 	auto split_offsets_val = yyjson_obj_get(obj, "split-offsets");
 	if (split_offsets_val) {
@@ -256,8 +254,9 @@ ContentFile ContentFile::FromJSON(yyjson_val *obj) {
 				split_offsets.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("ContentFile property 'split_offsets' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(split_offsets_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ContentFile property 'split_offsets' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(split_offsets_val)));
 		}
 		builder.SetSplitOffsets(std::move(split_offsets));
 	}
@@ -303,9 +302,8 @@ ContentFile ContentFile::Copy() const {
 	string file_path_tmp;
 	file_path_tmp = file_path;
 	builder.SetFilePath(std::move(file_path_tmp));
-	optional<FileFormat> file_format_tmp;
-	file_format_tmp = file_format.Copy();
-	builder.SetFileFormat(std::move(*file_format_tmp));
+	auto file_format_tmp = file_format.Copy();
+	builder.SetFileFormat(std::move(file_format_tmp));
 	int64_t file_size_in_bytes_tmp;
 	file_size_in_bytes_tmp = file_size_in_bytes;
 	builder.SetFileSizeInBytes(std::move(file_size_in_bytes_tmp));
@@ -314,13 +312,12 @@ ContentFile ContentFile::Copy() const {
 	builder.SetRecordCount(std::move(record_count_tmp));
 	optional<BinaryTypeValue> key_metadata_tmp;
 	if (key_metadata.has_value()) {
-		key_metadata_tmp.emplace();
-		(*key_metadata_tmp) = (*key_metadata).Copy();
+		key_metadata_tmp.emplace((*key_metadata).Copy());
 	}
 	if (key_metadata_tmp.has_value()) {
 		builder.SetKeyMetadata(std::move(*key_metadata_tmp));
 	}
-	vector<int64_t> split_offsets_tmp;
+	optional<vector<int64_t>> split_offsets_tmp;
 	if (split_offsets.has_value()) {
 		split_offsets_tmp.emplace();
 		(*split_offsets_tmp).reserve((*split_offsets).size());
@@ -329,15 +326,15 @@ ContentFile ContentFile::Copy() const {
 		}
 	}
 	if (split_offsets_tmp.has_value()) {
-		builder.SetSplitOffsets(std::move(split_offsets_tmp));
+		builder.SetSplitOffsets(std::move((*split_offsets_tmp)));
 	}
-	int32_t sort_order_id_tmp;
+	optional<int32_t> sort_order_id_tmp;
 	if (sort_order_id.has_value()) {
 		sort_order_id_tmp.emplace();
 		(*sort_order_id_tmp) = (*sort_order_id);
 	}
 	if (sort_order_id_tmp.has_value()) {
-		builder.SetSortOrderId(std::move(sort_order_id_tmp));
+		builder.SetSortOrderId(std::move((*sort_order_id_tmp)));
 	}
 	return builder.Build();
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ AndOrExpressionBuilder::AndOrExpressionBuilder() {
 }
 
 AndOrExpressionBuilder &AndOrExpressionBuilder::SetType(ExpressionType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
@@ -73,9 +74,7 @@ AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AndOrExpression required property 'type' is missing");
 	} else {
-		optional<ExpressionType> type;
-		type = ExpressionType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(ExpressionType::FromJSON(type_val));
 	}
 	auto left_val = yyjson_obj_get(obj, "left");
 	if (!left_val) {
@@ -108,9 +107,8 @@ string AndOrExpression::TryFromJSON(yyjson_val *obj, optional<AndOrExpression> &
 
 AndOrExpression AndOrExpression::Copy() const {
 	AndOrExpressionBuilder builder;
-	optional<ExpressionType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	unique_ptr<Expression> left_tmp;
 	left_tmp = left ? make_uniq<Expression>(left->Copy()) : nullptr;
 	builder.SetLeft(std::move(left_tmp));

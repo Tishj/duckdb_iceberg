@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -25,12 +26,12 @@ Schema::Object1Builder::Object1Builder() {
 }
 
 Schema::Object1Builder &Schema::Object1Builder::SetSchemaId(int32_t value) {
-	schema_id_ = std::move(value);
+	schema_id_.emplace(std::move(value));
 	return *this;
 }
 
 Schema::Object1Builder &Schema::Object1Builder::SetIdentifierFieldIds(vector<int32_t> value) {
-	identifier_field_ids_ = std::move(value);
+	identifier_field_ids_.emplace(std::move(value));
 	return *this;
 }
 
@@ -85,9 +86,9 @@ Schema::Object1 Schema::Object1::FromJSON(yyjson_val *obj) {
 				identifier_field_ids.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
-			    "Object1 property 'identifier_field_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(identifier_field_ids_val));
+			throw InvalidInputException(
+			    StringUtil::Format("Object1 property 'identifier_field_ids' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(identifier_field_ids_val)));
 		}
 		builder.SetIdentifierFieldIds(std::move(identifier_field_ids));
 	}
@@ -106,15 +107,15 @@ string Schema::Object1::TryFromJSON(yyjson_val *obj, optional<Schema::Object1> &
 
 Schema::Object1 Schema::Object1::Copy() const {
 	Object1Builder builder;
-	int32_t schema_id_tmp;
+	optional<int32_t> schema_id_tmp;
 	if (schema_id.has_value()) {
 		schema_id_tmp.emplace();
 		(*schema_id_tmp) = (*schema_id);
 	}
 	if (schema_id_tmp.has_value()) {
-		builder.SetSchemaId(std::move(schema_id_tmp));
+		builder.SetSchemaId(std::move((*schema_id_tmp)));
 	}
-	vector<int32_t> identifier_field_ids_tmp;
+	optional<vector<int32_t>> identifier_field_ids_tmp;
 	if (identifier_field_ids.has_value()) {
 		identifier_field_ids_tmp.emplace();
 		(*identifier_field_ids_tmp).reserve((*identifier_field_ids).size());
@@ -123,7 +124,7 @@ Schema::Object1 Schema::Object1::Copy() const {
 		}
 	}
 	if (identifier_field_ids_tmp.has_value()) {
-		builder.SetIdentifierFieldIds(std::move(identifier_field_ids_tmp));
+		builder.SetIdentifierFieldIds(std::move((*identifier_field_ids_tmp)));
 	}
 	return builder.Build();
 }
@@ -166,12 +167,12 @@ SchemaBuilder::SchemaBuilder() {
 }
 
 SchemaBuilder &SchemaBuilder::SetStructType(StructType value) {
-	struct_type_ = std::move(value);
+	struct_type_.emplace(std::move(value));
 	return *this;
 }
 
 SchemaBuilder &SchemaBuilder::SetObject1(Schema::Object1 value) {
-	object_1_ = std::move(value);
+	object_1_.emplace(std::move(value));
 	return *this;
 }
 
@@ -213,12 +214,10 @@ string Schema::TryFromJSON(yyjson_val *obj, optional<Schema> &result) {
 
 Schema Schema::Copy() const {
 	SchemaBuilder builder;
-	optional<StructType> struct_type_tmp;
-	struct_type_tmp = struct_type.Copy();
-	builder.SetStructType(std::move(*struct_type_tmp));
-	optional<Object1> object_1_tmp;
-	object_1_tmp = object_1.Copy();
-	builder.SetObject1(std::move(*object_1_tmp));
+	auto struct_type_tmp = struct_type.Copy();
+	builder.SetStructType(std::move(struct_type_tmp));
+	auto object_1_tmp = object_1.Copy();
+	builder.SetObject1(std::move(object_1_tmp));
 	return builder.Build();
 }
 

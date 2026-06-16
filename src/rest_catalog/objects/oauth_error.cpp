@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,18 +24,18 @@ OAuthErrorBuilder::OAuthErrorBuilder() {
 }
 
 OAuthErrorBuilder &OAuthErrorBuilder::SetError(string value) {
-	_error_ = std::move(value);
+	_error_.emplace(std::move(value));
 	has__error_ = true;
 	return *this;
 }
 
 OAuthErrorBuilder &OAuthErrorBuilder::SetErrorDescription(string value) {
-	error_description_ = std::move(value);
+	error_description_.emplace(std::move(value));
 	return *this;
 }
 
 OAuthErrorBuilder &OAuthErrorBuilder::SetErrorUri(string value) {
-	error_uri_ = std::move(value);
+	error_uri_.emplace(std::move(value));
 	return *this;
 }
 
@@ -118,21 +119,21 @@ OAuthError OAuthError::Copy() const {
 	string _error_tmp;
 	_error_tmp = _error;
 	builder.SetError(std::move(_error_tmp));
-	string error_description_tmp;
+	optional<string> error_description_tmp;
 	if (error_description.has_value()) {
 		error_description_tmp.emplace();
 		(*error_description_tmp) = (*error_description);
 	}
 	if (error_description_tmp.has_value()) {
-		builder.SetErrorDescription(std::move(error_description_tmp));
+		builder.SetErrorDescription(std::move((*error_description_tmp)));
 	}
-	string error_uri_tmp;
+	optional<string> error_uri_tmp;
 	if (error_uri.has_value()) {
 		error_uri_tmp.emplace();
 		(*error_uri_tmp) = (*error_uri);
 	}
 	if (error_uri_tmp.has_value()) {
-		builder.SetErrorUri(std::move(error_uri_tmp));
+		builder.SetErrorUri(std::move((*error_uri_tmp)));
 	}
 	return builder.Build();
 }

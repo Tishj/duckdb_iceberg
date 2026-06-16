@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ SetDefaultSortOrderUpdateBuilder::SetDefaultSortOrderUpdateBuilder() {
 }
 
 SetDefaultSortOrderUpdateBuilder &SetDefaultSortOrderUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetDefaultSortOrderUpdateBuilder &SetDefaultSortOrderUpdateBuilder::SetSortOrderId(int32_t value) {
-	sort_order_id_ = std::move(value);
+	sort_order_id_.emplace(std::move(value));
 	has_sort_order_id_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj, optional<SetDefau
 
 SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::Copy() const {
 	SetDefaultSortOrderUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	int32_t sort_order_id_tmp;
 	sort_order_id_tmp = sort_order_id;
 	builder.SetSortOrderId(std::move(sort_order_id_tmp));

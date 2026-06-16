@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,7 +22,7 @@ EmptyPlanningResultBuilder::EmptyPlanningResultBuilder() {
 }
 
 EmptyPlanningResultBuilder &EmptyPlanningResultBuilder::SetStatus(PlanStatus value) {
-	status_ = std::move(value);
+	status_.emplace(std::move(value));
 	has_status_ = true;
 	return *this;
 }
@@ -54,9 +55,7 @@ EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
 	if (!status_val) {
 		throw InvalidInputException("EmptyPlanningResult required property 'status' is missing");
 	} else {
-		optional<PlanStatus> status;
-		status = PlanStatus::FromJSON(status_val);
-		builder.SetStatus(std::move(*status));
+		builder.SetStatus(PlanStatus::FromJSON(status_val));
 	}
 	return builder.Build();
 }
@@ -73,9 +72,8 @@ string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, optional<EmptyPlanningR
 
 EmptyPlanningResult EmptyPlanningResult::Copy() const {
 	EmptyPlanningResultBuilder builder;
-	optional<PlanStatus> status_tmp;
-	status_tmp = status.Copy();
-	builder.SetStatus(std::move(*status_tmp));
+	auto status_tmp = status.Copy();
+	builder.SetStatus(std::move(status_tmp));
 	return builder.Build();
 }
 

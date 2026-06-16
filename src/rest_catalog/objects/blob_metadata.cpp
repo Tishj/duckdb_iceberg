@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,31 +25,31 @@ BlobMetadataBuilder::BlobMetadataBuilder() {
 }
 
 BlobMetadataBuilder &BlobMetadataBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 BlobMetadataBuilder &BlobMetadataBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 BlobMetadataBuilder &BlobMetadataBuilder::SetSequenceNumber(int64_t value) {
-	sequence_number_ = std::move(value);
+	sequence_number_.emplace(std::move(value));
 	has_sequence_number_ = true;
 	return *this;
 }
 
 BlobMetadataBuilder &BlobMetadataBuilder::SetFields(vector<int32_t> value) {
-	fields_ = std::move(value);
+	fields_.emplace(std::move(value));
 	has_fields_ = true;
 	return *this;
 }
 
 BlobMetadataBuilder &BlobMetadataBuilder::SetProperties(case_insensitive_map_t<string> value) {
-	properties_ = std::move(value);
+	properties_.emplace(std::move(value));
 	return *this;
 }
 
@@ -152,8 +153,9 @@ BlobMetadata BlobMetadata::FromJSON(yyjson_val *obj) {
 				fields.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("BlobMetadata property 'fields' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(fields_val));
+			throw InvalidInputException(
+			    StringUtil::Format("BlobMetadata property 'fields' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(fields_val)));
 		}
 		builder.SetFields(std::move(fields));
 	}
@@ -210,7 +212,7 @@ BlobMetadata BlobMetadata::Copy() const {
 		fields_tmp.emplace_back(item);
 	}
 	builder.SetFields(std::move(fields_tmp));
-	case_insensitive_map_t<string> properties_tmp;
+	optional<case_insensitive_map_t<string>> properties_tmp;
 	if (properties.has_value()) {
 		properties_tmp.emplace();
 		for (auto &entry : (*properties)) {
@@ -218,7 +220,7 @@ BlobMetadata BlobMetadata::Copy() const {
 		}
 	}
 	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move(properties_tmp));
+		builder.SetProperties(std::move((*properties_tmp)));
 	}
 	return builder.Build();
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ LiteralExpressionBuilder::LiteralExpressionBuilder() {
 }
 
 LiteralExpressionBuilder &LiteralExpressionBuilder::SetType(ExpressionType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 LiteralExpressionBuilder &LiteralExpressionBuilder::SetTerm(Term value) {
-	term_ = std::move(value);
+	term_.emplace(std::move(value));
 	has_term_ = true;
 	return *this;
 }
 
 LiteralExpressionBuilder &LiteralExpressionBuilder::SetValue(PrimitiveTypeValue value) {
-	value_ = std::move(value);
+	value_.emplace(std::move(value));
 	has_value_ = true;
 	return *this;
 }
@@ -73,25 +74,19 @@ LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("LiteralExpression required property 'type' is missing");
 	} else {
-		optional<ExpressionType> type;
-		type = ExpressionType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(ExpressionType::FromJSON(type_val));
 	}
 	auto term_val = yyjson_obj_get(obj, "term");
 	if (!term_val) {
 		throw InvalidInputException("LiteralExpression required property 'term' is missing");
 	} else {
-		optional<Term> term;
-		term = Term::FromJSON(term_val);
-		builder.SetTerm(std::move(*term));
+		builder.SetTerm(Term::FromJSON(term_val));
 	}
 	auto value_val = yyjson_obj_get(obj, "value");
 	if (!value_val) {
 		throw InvalidInputException("LiteralExpression required property 'value' is missing");
 	} else {
-		optional<PrimitiveTypeValue> value;
-		value = PrimitiveTypeValue::FromJSON(value_val);
-		builder.SetValue(std::move(*value));
+		builder.SetValue(PrimitiveTypeValue::FromJSON(value_val));
 	}
 	return builder.Build();
 }
@@ -108,15 +103,12 @@ string LiteralExpression::TryFromJSON(yyjson_val *obj, optional<LiteralExpressio
 
 LiteralExpression LiteralExpression::Copy() const {
 	LiteralExpressionBuilder builder;
-	optional<ExpressionType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
-	optional<Term> term_tmp;
-	term_tmp = term.Copy();
-	builder.SetTerm(std::move(*term_tmp));
-	optional<PrimitiveTypeValue> value_tmp;
-	value_tmp = value.Copy();
-	builder.SetValue(std::move(*value_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
+	auto term_tmp = term.Copy();
+	builder.SetTerm(std::move(term_tmp));
+	auto value_tmp = value.Copy();
+	builder.SetValue(std::move(value_tmp));
 	return builder.Build();
 }
 

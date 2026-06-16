@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ ViewHistoryEntryBuilder::ViewHistoryEntryBuilder() {
 }
 
 ViewHistoryEntryBuilder &ViewHistoryEntryBuilder::SetVersionId(int32_t value) {
-	version_id_ = std::move(value);
+	version_id_.emplace(std::move(value));
 	has_version_id_ = true;
 	return *this;
 }
 
 ViewHistoryEntryBuilder &ViewHistoryEntryBuilder::SetTimestampMs(int64_t value) {
-	timestamp_ms_ = std::move(value);
+	timestamp_ms_.emplace(std::move(value));
 	has_timestamp_ms_ = true;
 	return *this;
 }

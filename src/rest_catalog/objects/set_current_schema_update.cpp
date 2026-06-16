@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ SetCurrentSchemaUpdateBuilder::SetCurrentSchemaUpdateBuilder() {
 }
 
 SetCurrentSchemaUpdateBuilder &SetCurrentSchemaUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetCurrentSchemaUpdateBuilder &SetCurrentSchemaUpdateBuilder::SetSchemaId(int32_t value) {
-	schema_id_ = std::move(value);
+	schema_id_.emplace(std::move(value));
 	has_schema_id_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, optional<SetCurrentS
 
 SetCurrentSchemaUpdate SetCurrentSchemaUpdate::Copy() const {
 	SetCurrentSchemaUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	int32_t schema_id_tmp;
 	schema_id_tmp = schema_id;
 	builder.SetSchemaId(std::move(schema_id_tmp));

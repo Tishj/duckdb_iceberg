@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ UpgradeFormatVersionUpdateBuilder::UpgradeFormatVersionUpdateBuilder() {
 }
 
 UpgradeFormatVersionUpdateBuilder &UpgradeFormatVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 UpgradeFormatVersionUpdateBuilder &UpgradeFormatVersionUpdateBuilder::SetFormatVersion(int32_t value) {
-	format_version_ = std::move(value);
+	format_version_.emplace(std::move(value));
 	has_format_version_ = true;
 	return *this;
 }
@@ -86,9 +87,8 @@ string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj, optional<Upgrade
 
 UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::Copy() const {
 	UpgradeFormatVersionUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	int32_t format_version_tmp;
 	format_version_tmp = format_version;
 	builder.SetFormatVersion(std::move(format_version_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,29 +25,29 @@ SnapshotReferenceBuilder::SnapshotReferenceBuilder() {
 }
 
 SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetMaxRefAgeMs(int64_t value) {
-	max_ref_age_ms_ = std::move(value);
+	max_ref_age_ms_.emplace(std::move(value));
 	return *this;
 }
 
 SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetMaxSnapshotAgeMs(int64_t value) {
-	max_snapshot_age_ms_ = std::move(value);
+	max_snapshot_age_ms_.emplace(std::move(value));
 	return *this;
 }
 
 SnapshotReferenceBuilder &SnapshotReferenceBuilder::SetMinSnapshotsToKeep(int32_t value) {
-	min_snapshots_to_keep_ = std::move(value);
+	min_snapshots_to_keep_.emplace(std::move(value));
 	return *this;
 }
 
@@ -169,29 +170,29 @@ SnapshotReference SnapshotReference::Copy() const {
 	int64_t snapshot_id_tmp;
 	snapshot_id_tmp = snapshot_id;
 	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	int64_t max_ref_age_ms_tmp;
+	optional<int64_t> max_ref_age_ms_tmp;
 	if (max_ref_age_ms.has_value()) {
 		max_ref_age_ms_tmp.emplace();
 		(*max_ref_age_ms_tmp) = (*max_ref_age_ms);
 	}
 	if (max_ref_age_ms_tmp.has_value()) {
-		builder.SetMaxRefAgeMs(std::move(max_ref_age_ms_tmp));
+		builder.SetMaxRefAgeMs(std::move((*max_ref_age_ms_tmp)));
 	}
-	int64_t max_snapshot_age_ms_tmp;
+	optional<int64_t> max_snapshot_age_ms_tmp;
 	if (max_snapshot_age_ms.has_value()) {
 		max_snapshot_age_ms_tmp.emplace();
 		(*max_snapshot_age_ms_tmp) = (*max_snapshot_age_ms);
 	}
 	if (max_snapshot_age_ms_tmp.has_value()) {
-		builder.SetMaxSnapshotAgeMs(std::move(max_snapshot_age_ms_tmp));
+		builder.SetMaxSnapshotAgeMs(std::move((*max_snapshot_age_ms_tmp)));
 	}
-	int32_t min_snapshots_to_keep_tmp;
+	optional<int32_t> min_snapshots_to_keep_tmp;
 	if (min_snapshots_to_keep.has_value()) {
 		min_snapshots_to_keep_tmp.emplace();
 		(*min_snapshots_to_keep_tmp) = (*min_snapshots_to_keep);
 	}
 	if (min_snapshots_to_keep_tmp.has_value()) {
-		builder.SetMinSnapshotsToKeep(std::move(min_snapshots_to_keep_tmp));
+		builder.SetMinSnapshotsToKeep(std::move((*min_snapshots_to_keep_tmp)));
 	}
 	return builder.Build();
 }

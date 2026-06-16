@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,17 +25,17 @@ ReportMetricsRequestBuilder::ReportMetricsRequestBuilder() {
 }
 
 ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetScanReport(ScanReport value) {
-	scan_report_ = std::move(value);
+	scan_report_.emplace(std::move(value));
 	return *this;
 }
 
 ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetCommitReport(CommitReport value) {
-	commit_report_ = std::move(value);
+	commit_report_.emplace(std::move(value));
 	return *this;
 }
 
 ReportMetricsRequestBuilder &ReportMetricsRequestBuilder::SetReportType(string value) {
-	report_type_ = std::move(value);
+	report_type_.emplace(std::move(value));
 	has_report_type_ = true;
 	return *this;
 }
@@ -108,16 +109,14 @@ ReportMetricsRequest ReportMetricsRequest::Copy() const {
 	ReportMetricsRequestBuilder builder;
 	optional<ScanReport> scan_report_tmp;
 	if (scan_report.has_value()) {
-		scan_report_tmp.emplace();
-		(*scan_report_tmp) = (*scan_report).Copy();
+		scan_report_tmp.emplace((*scan_report).Copy());
 	}
 	if (scan_report_tmp.has_value()) {
 		builder.SetScanReport(std::move(*scan_report_tmp));
 	}
 	optional<CommitReport> commit_report_tmp;
 	if (commit_report.has_value()) {
-		commit_report_tmp.emplace();
-		(*commit_report_tmp) = (*commit_report).Copy();
+		commit_report_tmp.emplace((*commit_report).Copy());
 	}
 	if (commit_report_tmp.has_value()) {
 		builder.SetCommitReport(std::move(*commit_report_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,25 +25,25 @@ OAuthClientCredentialsRequestBuilder::OAuthClientCredentialsRequestBuilder() {
 }
 
 OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetGrantType(string value) {
-	grant_type_ = std::move(value);
+	grant_type_.emplace(std::move(value));
 	has_grant_type_ = true;
 	return *this;
 }
 
 OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetClientId(string value) {
-	client_id_ = std::move(value);
+	client_id_.emplace(std::move(value));
 	has_client_id_ = true;
 	return *this;
 }
 
 OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetClientSecret(string value) {
-	client_secret_ = std::move(value);
+	client_secret_.emplace(std::move(value));
 	has_client_secret_ = true;
 	return *this;
 }
 
 OAuthClientCredentialsRequestBuilder &OAuthClientCredentialsRequestBuilder::SetScope(string value) {
-	scope_ = std::move(value);
+	scope_.emplace(std::move(value));
 	return *this;
 }
 
@@ -155,13 +156,13 @@ OAuthClientCredentialsRequest OAuthClientCredentialsRequest::Copy() const {
 	string client_secret_tmp;
 	client_secret_tmp = client_secret;
 	builder.SetClientSecret(std::move(client_secret_tmp));
-	string scope_tmp;
+	optional<string> scope_tmp;
 	if (scope.has_value()) {
 		scope_tmp.emplace();
 		(*scope_tmp) = (*scope);
 	}
 	if (scope_tmp.has_value()) {
-		builder.SetScope(std::move(scope_tmp));
+		builder.SetScope(std::move((*scope_tmp)));
 	}
 	return builder.Build();
 }

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ RegisterViewRequestBuilder::RegisterViewRequestBuilder() {
 }
 
 RegisterViewRequestBuilder &RegisterViewRequestBuilder::SetName(string value) {
-	name_ = std::move(value);
+	name_.emplace(std::move(value));
 	has_name_ = true;
 	return *this;
 }
 
 RegisterViewRequestBuilder &RegisterViewRequestBuilder::SetMetadataLocation(string value) {
-	metadata_location_ = std::move(value);
+	metadata_location_.emplace(std::move(value));
 	has_metadata_location_ = true;
 	return *this;
 }

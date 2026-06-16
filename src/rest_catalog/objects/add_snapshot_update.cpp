@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ AddSnapshotUpdateBuilder::AddSnapshotUpdateBuilder() {
 }
 
 AddSnapshotUpdateBuilder &AddSnapshotUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AddSnapshotUpdateBuilder &AddSnapshotUpdateBuilder::SetSnapshot(Snapshot value) {
-	snapshot_ = std::move(value);
+	snapshot_.emplace(std::move(value));
 	has_snapshot_ = true;
 	return *this;
 }
@@ -61,9 +62,7 @@ AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
 	if (!snapshot_val) {
 		throw InvalidInputException("AddSnapshotUpdate required property 'snapshot' is missing");
 	} else {
-		optional<Snapshot> snapshot;
-		snapshot = Snapshot::FromJSON(snapshot_val);
-		builder.SetSnapshot(std::move(*snapshot));
+		builder.SetSnapshot(Snapshot::FromJSON(snapshot_val));
 	}
 	return builder.Build();
 }
@@ -80,12 +79,10 @@ string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, optional<AddSnapshotUpdat
 
 AddSnapshotUpdate AddSnapshotUpdate::Copy() const {
 	AddSnapshotUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<Snapshot> snapshot_tmp;
-	snapshot_tmp = snapshot.Copy();
-	builder.SetSnapshot(std::move(*snapshot_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto snapshot_tmp = snapshot.Copy();
+	builder.SetSnapshot(std::move(snapshot_tmp));
 	return builder.Build();
 }
 

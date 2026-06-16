@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,19 +23,19 @@ SetExpressionBuilder::SetExpressionBuilder() {
 }
 
 SetExpressionBuilder &SetExpressionBuilder::SetType(ExpressionType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 SetExpressionBuilder &SetExpressionBuilder::SetTerm(Term value) {
-	term_ = std::move(value);
+	term_.emplace(std::move(value));
 	has_term_ = true;
 	return *this;
 }
 
 SetExpressionBuilder &SetExpressionBuilder::SetValues(vector<PrimitiveTypeValue> value) {
-	values_ = std::move(value);
+	values_.emplace(std::move(value));
 	has_values_ = true;
 	return *this;
 }
@@ -73,17 +74,13 @@ SetExpression SetExpression::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("SetExpression required property 'type' is missing");
 	} else {
-		optional<ExpressionType> type;
-		type = ExpressionType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(ExpressionType::FromJSON(type_val));
 	}
 	auto term_val = yyjson_obj_get(obj, "term");
 	if (!term_val) {
 		throw InvalidInputException("SetExpression required property 'term' is missing");
 	} else {
-		optional<Term> term;
-		term = Term::FromJSON(term_val);
-		builder.SetTerm(std::move(*term));
+		builder.SetTerm(Term::FromJSON(term_val));
 	}
 	auto values_val = yyjson_obj_get(obj, "values");
 	if (!values_val) {
@@ -98,8 +95,9 @@ SetExpression SetExpression::FromJSON(yyjson_val *obj) {
 				values.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("SetExpression property 'values' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(values_val));
+			throw InvalidInputException(
+			    StringUtil::Format("SetExpression property 'values' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(values_val)));
 		}
 		builder.SetValues(std::move(values));
 	}
@@ -118,12 +116,10 @@ string SetExpression::TryFromJSON(yyjson_val *obj, optional<SetExpression> &resu
 
 SetExpression SetExpression::Copy() const {
 	SetExpressionBuilder builder;
-	optional<ExpressionType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
-	optional<Term> term_tmp;
-	term_tmp = term.Copy();
-	builder.SetTerm(std::move(*term_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
+	auto term_tmp = term.Copy();
+	builder.SetTerm(std::move(term_tmp));
 	vector<PrimitiveTypeValue> values_tmp;
 	values_tmp.reserve(values.size());
 	for (auto &item : values) {

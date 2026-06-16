@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,7 +23,7 @@ ViewRequirementBuilder::ViewRequirementBuilder() {
 }
 
 ViewRequirementBuilder &ViewRequirementBuilder::SetAssertViewUuid(AssertViewUUID value) {
-	assert_view_uuid_ = std::move(value);
+	assert_view_uuid_.emplace(std::move(value));
 	return *this;
 }
 
@@ -72,8 +73,7 @@ ViewRequirement ViewRequirement::Copy() const {
 	ViewRequirementBuilder builder;
 	optional<AssertViewUUID> assert_view_uuid_tmp;
 	if (assert_view_uuid.has_value()) {
-		assert_view_uuid_tmp.emplace();
-		(*assert_view_uuid_tmp) = (*assert_view_uuid).Copy();
+		assert_view_uuid_tmp.emplace((*assert_view_uuid).Copy());
 	}
 	if (assert_view_uuid_tmp.has_value()) {
 		builder.SetAssertViewUuid(std::move(*assert_view_uuid_tmp));

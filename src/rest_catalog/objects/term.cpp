@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ TermBuilder::TermBuilder() {
 }
 
 TermBuilder &TermBuilder::SetReference(Reference value) {
-	reference_ = std::move(value);
+	reference_.emplace(std::move(value));
 	return *this;
 }
 
 TermBuilder &TermBuilder::SetTransformTerm(TransformTerm value) {
-	transform_term_ = std::move(value);
+	transform_term_.emplace(std::move(value));
 	return *this;
 }
 
@@ -82,16 +83,14 @@ Term Term::Copy() const {
 	TermBuilder builder;
 	optional<Reference> reference_tmp;
 	if (reference.has_value()) {
-		reference_tmp.emplace();
-		(*reference_tmp) = (*reference).Copy();
+		reference_tmp.emplace((*reference).Copy());
 	}
 	if (reference_tmp.has_value()) {
 		builder.SetReference(std::move(*reference_tmp));
 	}
 	optional<TransformTerm> transform_term_tmp;
 	if (transform_term.has_value()) {
-		transform_term_tmp.emplace();
-		(*transform_term_tmp) = (*transform_term).Copy();
+		transform_term_tmp.emplace((*transform_term).Copy());
 	}
 	if (transform_term_tmp.has_value()) {
 		builder.SetTransformTerm(std::move(*transform_term_tmp));

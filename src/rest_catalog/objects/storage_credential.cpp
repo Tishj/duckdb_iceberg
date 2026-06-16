@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,13 +23,13 @@ StorageCredentialBuilder::StorageCredentialBuilder() {
 }
 
 StorageCredentialBuilder &StorageCredentialBuilder::SetPrefix(string value) {
-	prefix_ = std::move(value);
+	prefix_.emplace(std::move(value));
 	has_prefix_ = true;
 	return *this;
 }
 
 StorageCredentialBuilder &StorageCredentialBuilder::SetConfig(case_insensitive_map_t<string> value) {
-	config_ = std::move(value);
+	config_.emplace(std::move(value));
 	has_config_ = true;
 	return *this;
 }

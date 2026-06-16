@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ SetPropertiesUpdateBuilder::SetPropertiesUpdateBuilder() {
 }
 
 SetPropertiesUpdateBuilder &SetPropertiesUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetPropertiesUpdateBuilder &SetPropertiesUpdateBuilder::SetUpdates(case_insensitive_map_t<string> value) {
-	updates_ = std::move(value);
+	updates_.emplace(std::move(value));
 	has_updates_ = true;
 	return *this;
 }
@@ -97,9 +98,8 @@ string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, optional<SetPropertiesU
 
 SetPropertiesUpdate SetPropertiesUpdate::Copy() const {
 	SetPropertiesUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	case_insensitive_map_t<string> updates_tmp;
 	for (auto &entry : updates) {
 		updates_tmp.emplace(entry.first, entry.second);

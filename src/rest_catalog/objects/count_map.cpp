@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ CountMapBuilder::CountMapBuilder() {
 }
 
 CountMapBuilder &CountMapBuilder::SetKeys(vector<IntegerTypeValue> value) {
-	keys_ = std::move(value);
+	keys_.emplace(std::move(value));
 	return *this;
 }
 
 CountMapBuilder &CountMapBuilder::SetValues(vector<LongTypeValue> value) {
-	values_ = std::move(value);
+	values_.emplace(std::move(value));
 	return *this;
 }
 
@@ -63,8 +64,8 @@ CountMap CountMap::FromJSON(yyjson_val *obj) {
 				keys.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("CountMap property 'keys' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(keys_val));
+			throw InvalidInputException(StringUtil::Format(
+			    "CountMap property 'keys' is not of type 'array', found '%s' instead", yyjson_get_type_desc(keys_val)));
 		}
 		builder.SetKeys(std::move(keys));
 	}
@@ -79,8 +80,9 @@ CountMap CountMap::FromJSON(yyjson_val *obj) {
 				values.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("CountMap property 'values' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(values_val));
+			throw InvalidInputException(
+			    StringUtil::Format("CountMap property 'values' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(values_val)));
 		}
 		builder.SetValues(std::move(values));
 	}
@@ -99,7 +101,7 @@ string CountMap::TryFromJSON(yyjson_val *obj, optional<CountMap> &result) {
 
 CountMap CountMap::Copy() const {
 	CountMapBuilder builder;
-	vector<IntegerTypeValue> keys_tmp;
+	optional<vector<IntegerTypeValue>> keys_tmp;
 	if (keys.has_value()) {
 		keys_tmp.emplace();
 		(*keys_tmp).reserve((*keys).size());
@@ -108,9 +110,9 @@ CountMap CountMap::Copy() const {
 		}
 	}
 	if (keys_tmp.has_value()) {
-		builder.SetKeys(std::move(keys_tmp));
+		builder.SetKeys(std::move((*keys_tmp)));
 	}
-	vector<LongTypeValue> values_tmp;
+	optional<vector<LongTypeValue>> values_tmp;
 	if (values.has_value()) {
 		values_tmp.emplace();
 		(*values_tmp).reserve((*values).size());
@@ -119,7 +121,7 @@ CountMap CountMap::Copy() const {
 		}
 	}
 	if (values_tmp.has_value()) {
-		builder.SetValues(std::move(values_tmp));
+		builder.SetValues(std::move((*values_tmp)));
 	}
 	return builder.Build();
 }

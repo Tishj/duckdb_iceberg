@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -28,37 +29,37 @@ ExpressionBuilder::ExpressionBuilder() {
 }
 
 ExpressionBuilder &ExpressionBuilder::SetTrueExpression(TrueExpression value) {
-	true_expression_ = std::move(value);
+	true_expression_.emplace(std::move(value));
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetFalseExpression(FalseExpression value) {
-	false_expression_ = std::move(value);
+	false_expression_.emplace(std::move(value));
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetAndOrExpression(AndOrExpression value) {
-	and_or_expression_ = std::move(value);
+	and_or_expression_.emplace(std::move(value));
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetNotExpression(NotExpression value) {
-	not_expression_ = std::move(value);
+	not_expression_.emplace(std::move(value));
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetSetExpression(SetExpression value) {
-	set_expression_ = std::move(value);
+	set_expression_.emplace(std::move(value));
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetLiteralExpression(LiteralExpression value) {
-	literal_expression_ = std::move(value);
+	literal_expression_.emplace(std::move(value));
 	return *this;
 }
 
 ExpressionBuilder &ExpressionBuilder::SetUnaryExpression(UnaryExpression value) {
-	unary_expression_ = std::move(value);
+	unary_expression_.emplace(std::move(value));
 	return *this;
 }
 
@@ -140,56 +141,49 @@ Expression Expression::Copy() const {
 	ExpressionBuilder builder;
 	optional<TrueExpression> true_expression_tmp;
 	if (true_expression.has_value()) {
-		true_expression_tmp.emplace();
-		(*true_expression_tmp) = (*true_expression).Copy();
+		true_expression_tmp.emplace((*true_expression).Copy());
 	}
 	if (true_expression_tmp.has_value()) {
 		builder.SetTrueExpression(std::move(*true_expression_tmp));
 	}
 	optional<FalseExpression> false_expression_tmp;
 	if (false_expression.has_value()) {
-		false_expression_tmp.emplace();
-		(*false_expression_tmp) = (*false_expression).Copy();
+		false_expression_tmp.emplace((*false_expression).Copy());
 	}
 	if (false_expression_tmp.has_value()) {
 		builder.SetFalseExpression(std::move(*false_expression_tmp));
 	}
 	optional<AndOrExpression> and_or_expression_tmp;
 	if (and_or_expression.has_value()) {
-		and_or_expression_tmp.emplace();
-		(*and_or_expression_tmp) = (*and_or_expression).Copy();
+		and_or_expression_tmp.emplace((*and_or_expression).Copy());
 	}
 	if (and_or_expression_tmp.has_value()) {
 		builder.SetAndOrExpression(std::move(*and_or_expression_tmp));
 	}
 	optional<NotExpression> not_expression_tmp;
 	if (not_expression.has_value()) {
-		not_expression_tmp.emplace();
-		(*not_expression_tmp) = (*not_expression).Copy();
+		not_expression_tmp.emplace((*not_expression).Copy());
 	}
 	if (not_expression_tmp.has_value()) {
 		builder.SetNotExpression(std::move(*not_expression_tmp));
 	}
 	optional<SetExpression> set_expression_tmp;
 	if (set_expression.has_value()) {
-		set_expression_tmp.emplace();
-		(*set_expression_tmp) = (*set_expression).Copy();
+		set_expression_tmp.emplace((*set_expression).Copy());
 	}
 	if (set_expression_tmp.has_value()) {
 		builder.SetSetExpression(std::move(*set_expression_tmp));
 	}
 	optional<LiteralExpression> literal_expression_tmp;
 	if (literal_expression.has_value()) {
-		literal_expression_tmp.emplace();
-		(*literal_expression_tmp) = (*literal_expression).Copy();
+		literal_expression_tmp.emplace((*literal_expression).Copy());
 	}
 	if (literal_expression_tmp.has_value()) {
 		builder.SetLiteralExpression(std::move(*literal_expression_tmp));
 	}
 	optional<UnaryExpression> unary_expression_tmp;
 	if (unary_expression.has_value()) {
-		unary_expression_tmp.emplace();
-		(*unary_expression_tmp) = (*unary_expression).Copy();
+		unary_expression_tmp.emplace((*unary_expression).Copy());
 	}
 	if (unary_expression_tmp.has_value()) {
 		builder.SetUnaryExpression(std::move(*unary_expression_tmp));

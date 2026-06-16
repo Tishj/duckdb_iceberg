@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,7 +22,7 @@ AssertCreateBuilder::AssertCreateBuilder() {
 }
 
 AssertCreateBuilder &AssertCreateBuilder::SetType(TableRequirementType value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
@@ -54,9 +55,7 @@ AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
 	if (!type_val) {
 		throw InvalidInputException("AssertCreate required property 'type' is missing");
 	} else {
-		optional<TableRequirementType> type;
-		type = TableRequirementType::FromJSON(type_val);
-		builder.SetType(std::move(*type));
+		builder.SetType(TableRequirementType::FromJSON(type_val));
 	}
 	return builder.Build();
 }
@@ -73,9 +72,8 @@ string AssertCreate::TryFromJSON(yyjson_val *obj, optional<AssertCreate> &result
 
 AssertCreate AssertCreate::Copy() const {
 	AssertCreateBuilder builder;
-	optional<TableRequirementType> type_tmp;
-	type_tmp = type.Copy();
-	builder.SetType(std::move(*type_tmp));
+	auto type_tmp = type.Copy();
+	builder.SetType(std::move(type_tmp));
 	return builder.Build();
 }
 

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,12 +24,12 @@ DeleteFileBuilder::DeleteFileBuilder() {
 }
 
 DeleteFileBuilder &DeleteFileBuilder::SetPositionDeleteFile(PositionDeleteFile value) {
-	position_delete_file_ = std::move(value);
+	position_delete_file_.emplace(std::move(value));
 	return *this;
 }
 
 DeleteFileBuilder &DeleteFileBuilder::SetEqualityDeleteFile(EqualityDeleteFile value) {
-	equality_delete_file_ = std::move(value);
+	equality_delete_file_.emplace(std::move(value));
 	return *this;
 }
 
@@ -83,16 +84,14 @@ DeleteFile DeleteFile::Copy() const {
 	DeleteFileBuilder builder;
 	optional<PositionDeleteFile> position_delete_file_tmp;
 	if (position_delete_file.has_value()) {
-		position_delete_file_tmp.emplace();
-		(*position_delete_file_tmp) = (*position_delete_file).Copy();
+		position_delete_file_tmp.emplace((*position_delete_file).Copy());
 	}
 	if (position_delete_file_tmp.has_value()) {
 		builder.SetPositionDeleteFile(std::move(*position_delete_file_tmp));
 	}
 	optional<EqualityDeleteFile> equality_delete_file_tmp;
 	if (equality_delete_file.has_value()) {
-		equality_delete_file_tmp.emplace();
-		(*equality_delete_file_tmp) = (*equality_delete_file).Copy();
+		equality_delete_file_tmp.emplace((*equality_delete_file).Copy());
 	}
 	if (equality_delete_file_tmp.has_value()) {
 		builder.SetEqualityDeleteFile(std::move(*equality_delete_file_tmp));

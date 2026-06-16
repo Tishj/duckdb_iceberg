@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -26,43 +27,43 @@ ViewVersionBuilder::ViewVersionBuilder() {
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetVersionId(int32_t value) {
-	version_id_ = std::move(value);
+	version_id_.emplace(std::move(value));
 	has_version_id_ = true;
 	return *this;
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetTimestampMs(int64_t value) {
-	timestamp_ms_ = std::move(value);
+	timestamp_ms_.emplace(std::move(value));
 	has_timestamp_ms_ = true;
 	return *this;
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetSchemaId(int32_t value) {
-	schema_id_ = std::move(value);
+	schema_id_.emplace(std::move(value));
 	has_schema_id_ = true;
 	return *this;
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetSummary(case_insensitive_map_t<string> value) {
-	summary_ = std::move(value);
+	summary_.emplace(std::move(value));
 	has_summary_ = true;
 	return *this;
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetRepresentations(vector<ViewRepresentation> value) {
-	representations_ = std::move(value);
+	representations_.emplace(std::move(value));
 	has_representations_ = true;
 	return *this;
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetDefaultNamespace(Namespace value) {
-	default_namespace_ = std::move(value);
+	default_namespace_.emplace(std::move(value));
 	has_default_namespace_ = true;
 	return *this;
 }
 
 ViewVersionBuilder &ViewVersionBuilder::SetDefaultCatalog(string value) {
-	default_catalog_ = std::move(value);
+	default_catalog_.emplace(std::move(value));
 	return *this;
 }
 
@@ -189,9 +190,9 @@ ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
 				representations.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
-			    "ViewVersion property 'representations' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(representations_val));
+			throw InvalidInputException(
+			    StringUtil::Format("ViewVersion property 'representations' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(representations_val)));
 		}
 		builder.SetRepresentations(std::move(representations));
 	}
@@ -199,9 +200,7 @@ ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
 	if (!default_namespace_val) {
 		throw InvalidInputException("ViewVersion required property 'default-namespace' is missing");
 	} else {
-		optional<Namespace> default_namespace;
-		default_namespace = Namespace::FromJSON(default_namespace_val);
-		builder.SetDefaultNamespace(std::move(*default_namespace));
+		builder.SetDefaultNamespace(Namespace::FromJSON(default_namespace_val));
 	}
 	auto default_catalog_val = yyjson_obj_get(obj, "default-catalog");
 	if (default_catalog_val) {
@@ -250,16 +249,15 @@ ViewVersion ViewVersion::Copy() const {
 		representations_tmp.emplace_back(item.Copy());
 	}
 	builder.SetRepresentations(std::move(representations_tmp));
-	optional<Namespace> default_namespace_tmp;
-	default_namespace_tmp = default_namespace.Copy();
-	builder.SetDefaultNamespace(std::move(*default_namespace_tmp));
-	string default_catalog_tmp;
+	auto default_namespace_tmp = default_namespace.Copy();
+	builder.SetDefaultNamespace(std::move(default_namespace_tmp));
+	optional<string> default_catalog_tmp;
 	if (default_catalog.has_value()) {
 		default_catalog_tmp.emplace();
 		(*default_catalog_tmp) = (*default_catalog);
 	}
 	if (default_catalog_tmp.has_value()) {
-		builder.SetDefaultCatalog(std::move(default_catalog_tmp));
+		builder.SetDefaultCatalog(std::move((*default_catalog_tmp)));
 	}
 	return builder.Build();
 }

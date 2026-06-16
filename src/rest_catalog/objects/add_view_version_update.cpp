@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ AddViewVersionUpdateBuilder::AddViewVersionUpdateBuilder() {
 }
 
 AddViewVersionUpdateBuilder &AddViewVersionUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 AddViewVersionUpdateBuilder &AddViewVersionUpdateBuilder::SetViewVersion(ViewVersion value) {
-	view_version_ = std::move(value);
+	view_version_.emplace(std::move(value));
 	has_view_version_ = true;
 	return *this;
 }
@@ -61,9 +62,7 @@ AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
 	if (!view_version_val) {
 		throw InvalidInputException("AddViewVersionUpdate required property 'view-version' is missing");
 	} else {
-		optional<ViewVersion> view_version;
-		view_version = ViewVersion::FromJSON(view_version_val);
-		builder.SetViewVersion(std::move(*view_version));
+		builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
 	}
 	return builder.Build();
 }
@@ -80,12 +79,10 @@ string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, optional<AddViewVersio
 
 AddViewVersionUpdate AddViewVersionUpdate::Copy() const {
 	AddViewVersionUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<ViewVersion> view_version_tmp;
-	view_version_tmp = view_version.Copy();
-	builder.SetViewVersion(std::move(*view_version_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto view_version_tmp = view_version.Copy();
+	builder.SetViewVersion(std::move(view_version_tmp));
 	return builder.Build();
 }
 

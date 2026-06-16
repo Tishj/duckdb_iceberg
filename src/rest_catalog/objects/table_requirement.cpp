@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -35,43 +36,43 @@ TableRequirementBuilder::TableRequirementBuilder() {
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertCreate(AssertCreate value) {
-	assert_create_ = std::move(value);
+	assert_create_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertTableUuid(AssertTableUUID value) {
-	assert_table_uuid_ = std::move(value);
+	assert_table_uuid_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertRefSnapshotId(AssertRefSnapshotId value) {
-	assert_ref_snapshot_id_ = std::move(value);
+	assert_ref_snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertLastAssignedFieldId(AssertLastAssignedFieldId value) {
-	assert_last_assigned_field_id_ = std::move(value);
+	assert_last_assigned_field_id_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertCurrentSchemaId(AssertCurrentSchemaId value) {
-	assert_current_schema_id_ = std::move(value);
+	assert_current_schema_id_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &
 TableRequirementBuilder::SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId value) {
-	assert_last_assigned_partition_id_ = std::move(value);
+	assert_last_assigned_partition_id_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertDefaultSpecId(AssertDefaultSpecId value) {
-	assert_default_spec_id_ = std::move(value);
+	assert_default_spec_id_.emplace(std::move(value));
 	return *this;
 }
 
 TableRequirementBuilder &TableRequirementBuilder::SetAssertDefaultSortOrderId(AssertDefaultSortOrderId value) {
-	assert_default_sort_order_id_ = std::move(value);
+	assert_default_sort_order_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -159,64 +160,56 @@ TableRequirement TableRequirement::Copy() const {
 	TableRequirementBuilder builder;
 	optional<AssertCreate> assert_create_tmp;
 	if (assert_create.has_value()) {
-		assert_create_tmp.emplace();
-		(*assert_create_tmp) = (*assert_create).Copy();
+		assert_create_tmp.emplace((*assert_create).Copy());
 	}
 	if (assert_create_tmp.has_value()) {
 		builder.SetAssertCreate(std::move(*assert_create_tmp));
 	}
 	optional<AssertTableUUID> assert_table_uuid_tmp;
 	if (assert_table_uuid.has_value()) {
-		assert_table_uuid_tmp.emplace();
-		(*assert_table_uuid_tmp) = (*assert_table_uuid).Copy();
+		assert_table_uuid_tmp.emplace((*assert_table_uuid).Copy());
 	}
 	if (assert_table_uuid_tmp.has_value()) {
 		builder.SetAssertTableUuid(std::move(*assert_table_uuid_tmp));
 	}
 	optional<AssertRefSnapshotId> assert_ref_snapshot_id_tmp;
 	if (assert_ref_snapshot_id.has_value()) {
-		assert_ref_snapshot_id_tmp.emplace();
-		(*assert_ref_snapshot_id_tmp) = (*assert_ref_snapshot_id).Copy();
+		assert_ref_snapshot_id_tmp.emplace((*assert_ref_snapshot_id).Copy());
 	}
 	if (assert_ref_snapshot_id_tmp.has_value()) {
 		builder.SetAssertRefSnapshotId(std::move(*assert_ref_snapshot_id_tmp));
 	}
 	optional<AssertLastAssignedFieldId> assert_last_assigned_field_id_tmp;
 	if (assert_last_assigned_field_id.has_value()) {
-		assert_last_assigned_field_id_tmp.emplace();
-		(*assert_last_assigned_field_id_tmp) = (*assert_last_assigned_field_id).Copy();
+		assert_last_assigned_field_id_tmp.emplace((*assert_last_assigned_field_id).Copy());
 	}
 	if (assert_last_assigned_field_id_tmp.has_value()) {
 		builder.SetAssertLastAssignedFieldId(std::move(*assert_last_assigned_field_id_tmp));
 	}
 	optional<AssertCurrentSchemaId> assert_current_schema_id_tmp;
 	if (assert_current_schema_id.has_value()) {
-		assert_current_schema_id_tmp.emplace();
-		(*assert_current_schema_id_tmp) = (*assert_current_schema_id).Copy();
+		assert_current_schema_id_tmp.emplace((*assert_current_schema_id).Copy());
 	}
 	if (assert_current_schema_id_tmp.has_value()) {
 		builder.SetAssertCurrentSchemaId(std::move(*assert_current_schema_id_tmp));
 	}
 	optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id_tmp;
 	if (assert_last_assigned_partition_id.has_value()) {
-		assert_last_assigned_partition_id_tmp.emplace();
-		(*assert_last_assigned_partition_id_tmp) = (*assert_last_assigned_partition_id).Copy();
+		assert_last_assigned_partition_id_tmp.emplace((*assert_last_assigned_partition_id).Copy());
 	}
 	if (assert_last_assigned_partition_id_tmp.has_value()) {
 		builder.SetAssertLastAssignedPartitionId(std::move(*assert_last_assigned_partition_id_tmp));
 	}
 	optional<AssertDefaultSpecId> assert_default_spec_id_tmp;
 	if (assert_default_spec_id.has_value()) {
-		assert_default_spec_id_tmp.emplace();
-		(*assert_default_spec_id_tmp) = (*assert_default_spec_id).Copy();
+		assert_default_spec_id_tmp.emplace((*assert_default_spec_id).Copy());
 	}
 	if (assert_default_spec_id_tmp.has_value()) {
 		builder.SetAssertDefaultSpecId(std::move(*assert_default_spec_id_tmp));
 	}
 	optional<AssertDefaultSortOrderId> assert_default_sort_order_id_tmp;
 	if (assert_default_sort_order_id.has_value()) {
-		assert_default_sort_order_id_tmp.emplace();
-		(*assert_default_sort_order_id_tmp) = (*assert_default_sort_order_id).Copy();
+		assert_default_sort_order_id_tmp.emplace((*assert_default_sort_order_id).Copy());
 	}
 	if (assert_default_sort_order_id_tmp.has_value()) {
 		builder.SetAssertDefaultSortOrderId(std::move(*assert_default_sort_order_id_tmp));

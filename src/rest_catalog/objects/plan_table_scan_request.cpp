@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -29,12 +30,12 @@ PlanTableScanRequestBuilder::PlanTableScanRequestBuilder() {
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetSelect(vector<FieldName> value) {
-	select_ = std::move(value);
+	select_.emplace(std::move(value));
 	return *this;
 }
 
@@ -44,32 +45,32 @@ PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetFilter(unique_ptr<E
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetMinRowsRequested(int64_t value) {
-	min_rows_requested_ = std::move(value);
+	min_rows_requested_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetCaseSensitive(bool value) {
-	case_sensitive_ = std::move(value);
+	case_sensitive_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetUseSnapshotSchema(bool value) {
-	use_snapshot_schema_ = std::move(value);
+	use_snapshot_schema_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetStartSnapshotId(int64_t value) {
-	start_snapshot_id_ = std::move(value);
+	start_snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetEndSnapshotId(int64_t value) {
-	end_snapshot_id_ = std::move(value);
+	end_snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
 PlanTableScanRequestBuilder &PlanTableScanRequestBuilder::SetStatsFields(vector<FieldName> value) {
-	stats_fields_ = std::move(value);
+	stats_fields_.emplace(std::move(value));
 	return *this;
 }
 
@@ -122,9 +123,9 @@ PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
 				select.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
-			    "PlanTableScanRequest property 'select' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(select_val));
+			throw InvalidInputException(
+			    StringUtil::Format("PlanTableScanRequest property 'select' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(select_val)));
 		}
 		builder.SetSelect(std::move(select));
 	}
@@ -211,9 +212,9 @@ PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
 				stats_fields.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "PlanTableScanRequest property 'stats_fields' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(stats_fields_val));
+			    yyjson_get_type_desc(stats_fields_val)));
 		}
 		builder.SetStatsFields(std::move(stats_fields));
 	}
@@ -232,15 +233,15 @@ string PlanTableScanRequest::TryFromJSON(yyjson_val *obj, optional<PlanTableScan
 
 PlanTableScanRequest PlanTableScanRequest::Copy() const {
 	PlanTableScanRequestBuilder builder;
-	int64_t snapshot_id_tmp;
+	optional<int64_t> snapshot_id_tmp;
 	if (snapshot_id.has_value()) {
 		snapshot_id_tmp.emplace();
 		(*snapshot_id_tmp) = (*snapshot_id);
 	}
 	if (snapshot_id_tmp.has_value()) {
-		builder.SetSnapshotId(std::move(snapshot_id_tmp));
+		builder.SetSnapshotId(std::move((*snapshot_id_tmp)));
 	}
-	vector<FieldName> select_tmp;
+	optional<vector<FieldName>> select_tmp;
 	if (select.has_value()) {
 		select_tmp.emplace();
 		(*select_tmp).reserve((*select).size());
@@ -249,7 +250,7 @@ PlanTableScanRequest PlanTableScanRequest::Copy() const {
 		}
 	}
 	if (select_tmp.has_value()) {
-		builder.SetSelect(std::move(select_tmp));
+		builder.SetSelect(std::move((*select_tmp)));
 	}
 	unique_ptr<Expression> filter_tmp;
 	if (filter != nullptr) {
@@ -259,47 +260,47 @@ PlanTableScanRequest PlanTableScanRequest::Copy() const {
 	if (filter_tmp != nullptr) {
 		builder.SetFilter(std::move(filter_tmp));
 	}
-	int64_t min_rows_requested_tmp;
+	optional<int64_t> min_rows_requested_tmp;
 	if (min_rows_requested.has_value()) {
 		min_rows_requested_tmp.emplace();
 		(*min_rows_requested_tmp) = (*min_rows_requested);
 	}
 	if (min_rows_requested_tmp.has_value()) {
-		builder.SetMinRowsRequested(std::move(min_rows_requested_tmp));
+		builder.SetMinRowsRequested(std::move((*min_rows_requested_tmp)));
 	}
-	bool case_sensitive_tmp;
+	optional<bool> case_sensitive_tmp;
 	if (case_sensitive.has_value()) {
 		case_sensitive_tmp.emplace();
 		(*case_sensitive_tmp) = (*case_sensitive);
 	}
 	if (case_sensitive_tmp.has_value()) {
-		builder.SetCaseSensitive(std::move(case_sensitive_tmp));
+		builder.SetCaseSensitive(std::move((*case_sensitive_tmp)));
 	}
-	bool use_snapshot_schema_tmp;
+	optional<bool> use_snapshot_schema_tmp;
 	if (use_snapshot_schema.has_value()) {
 		use_snapshot_schema_tmp.emplace();
 		(*use_snapshot_schema_tmp) = (*use_snapshot_schema);
 	}
 	if (use_snapshot_schema_tmp.has_value()) {
-		builder.SetUseSnapshotSchema(std::move(use_snapshot_schema_tmp));
+		builder.SetUseSnapshotSchema(std::move((*use_snapshot_schema_tmp)));
 	}
-	int64_t start_snapshot_id_tmp;
+	optional<int64_t> start_snapshot_id_tmp;
 	if (start_snapshot_id.has_value()) {
 		start_snapshot_id_tmp.emplace();
 		(*start_snapshot_id_tmp) = (*start_snapshot_id);
 	}
 	if (start_snapshot_id_tmp.has_value()) {
-		builder.SetStartSnapshotId(std::move(start_snapshot_id_tmp));
+		builder.SetStartSnapshotId(std::move((*start_snapshot_id_tmp)));
 	}
-	int64_t end_snapshot_id_tmp;
+	optional<int64_t> end_snapshot_id_tmp;
 	if (end_snapshot_id.has_value()) {
 		end_snapshot_id_tmp.emplace();
 		(*end_snapshot_id_tmp) = (*end_snapshot_id);
 	}
 	if (end_snapshot_id_tmp.has_value()) {
-		builder.SetEndSnapshotId(std::move(end_snapshot_id_tmp));
+		builder.SetEndSnapshotId(std::move((*end_snapshot_id_tmp)));
 	}
-	vector<FieldName> stats_fields_tmp;
+	optional<vector<FieldName>> stats_fields_tmp;
 	if (stats_fields.has_value()) {
 		stats_fields_tmp.emplace();
 		(*stats_fields_tmp).reserve((*stats_fields).size());
@@ -308,7 +309,7 @@ PlanTableScanRequest PlanTableScanRequest::Copy() const {
 		}
 	}
 	if (stats_fields_tmp.has_value()) {
-		builder.SetStatsFields(std::move(stats_fields_tmp));
+		builder.SetStatsFields(std::move((*stats_fields_tmp)));
 	}
 	return builder.Build();
 }

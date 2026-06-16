@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,19 +24,19 @@ UpdateNamespacePropertiesResponseBuilder::UpdateNamespacePropertiesResponseBuild
 }
 
 UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetUpdated(vector<string> value) {
-	updated_ = std::move(value);
+	updated_.emplace(std::move(value));
 	has_updated_ = true;
 	return *this;
 }
 
 UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetRemoved(vector<string> value) {
-	removed_ = std::move(value);
+	removed_.emplace(std::move(value));
 	has_removed_ = true;
 	return *this;
 }
 
 UpdateNamespacePropertiesResponseBuilder &UpdateNamespacePropertiesResponseBuilder::SetMissing(vector<string> value) {
-	missing_ = std::move(value);
+	missing_.emplace(std::move(value));
 	return *this;
 }
 
@@ -86,9 +87,9 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yy
 				updated.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "UpdateNamespacePropertiesResponse property 'updated' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(updated_val));
+			    yyjson_get_type_desc(updated_val)));
 		}
 		builder.SetUpdated(std::move(updated));
 	}
@@ -112,9 +113,9 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yy
 				removed.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "UpdateNamespacePropertiesResponse property 'removed' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(removed_val));
+			    yyjson_get_type_desc(removed_val)));
 		}
 		builder.SetRemoved(std::move(removed));
 	}
@@ -140,9 +141,9 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yy
 					missing.emplace_back(std::move(tmp));
 				}
 			} else {
-				return StringUtil::Format(
+				throw InvalidInputException(StringUtil::Format(
 				    "UpdateNamespacePropertiesResponse property 'missing' is not of type 'array', found '%s' instead",
-				    yyjson_get_type_desc(missing_val));
+				    yyjson_get_type_desc(missing_val)));
 			}
 			builder.SetMissing(std::move(missing));
 		}
@@ -175,7 +176,7 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() cons
 		removed_tmp.emplace_back(item);
 	}
 	builder.SetRemoved(std::move(removed_tmp));
-	vector<string> missing_tmp;
+	optional<vector<string>> missing_tmp;
 	if (missing.has_value()) {
 		missing_tmp.emplace();
 		(*missing_tmp).reserve((*missing).size());
@@ -184,7 +185,7 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() cons
 		}
 	}
 	if (missing_tmp.has_value()) {
-		builder.SetMissing(std::move(missing_tmp));
+		builder.SetMissing(std::move((*missing_tmp)));
 	}
 	return builder.Build();
 }

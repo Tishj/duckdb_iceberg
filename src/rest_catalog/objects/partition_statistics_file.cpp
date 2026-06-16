@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,19 +25,19 @@ PartitionStatisticsFileBuilder::PartitionStatisticsFileBuilder() {
 }
 
 PartitionStatisticsFileBuilder &PartitionStatisticsFileBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
 
 PartitionStatisticsFileBuilder &PartitionStatisticsFileBuilder::SetStatisticsPath(string value) {
-	statistics_path_ = std::move(value);
+	statistics_path_.emplace(std::move(value));
 	has_statistics_path_ = true;
 	return *this;
 }
 
 PartitionStatisticsFileBuilder &PartitionStatisticsFileBuilder::SetFileSizeInBytes(int64_t value) {
-	file_size_in_bytes_ = std::move(value);
+	file_size_in_bytes_.emplace(std::move(value));
 	has_file_size_in_bytes_ = true;
 	return *this;
 }

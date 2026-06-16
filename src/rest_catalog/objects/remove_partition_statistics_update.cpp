@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ RemovePartitionStatisticsUpdateBuilder::RemovePartitionStatisticsUpdateBuilder()
 }
 
 RemovePartitionStatisticsUpdateBuilder &RemovePartitionStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 RemovePartitionStatisticsUpdateBuilder &RemovePartitionStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
@@ -89,9 +90,8 @@ string RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj,
 
 RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::Copy() const {
 	RemovePartitionStatisticsUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
 	int64_t snapshot_id_tmp;
 	snapshot_id_tmp = snapshot_id;
 	builder.SetSnapshotId(std::move(snapshot_id_tmp));

@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -26,14 +27,14 @@ CompletedPlanningResult::Object5Builder::Object5Builder() {
 }
 
 CompletedPlanningResult::Object5Builder &CompletedPlanningResult::Object5Builder::SetStatus(PlanStatus value) {
-	status_ = std::move(value);
+	status_.emplace(std::move(value));
 	has_status_ = true;
 	return *this;
 }
 
 CompletedPlanningResult::Object5Builder &
 CompletedPlanningResult::Object5Builder::SetStorageCredentials(vector<StorageCredential> value) {
-	storage_credentials_ = std::move(value);
+	storage_credentials_.emplace(std::move(value));
 	return *this;
 }
 
@@ -65,9 +66,7 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjs
 	if (!status_val) {
 		throw InvalidInputException("Object5 required property 'status' is missing");
 	} else {
-		optional<PlanStatus> status;
-		status = PlanStatus::FromJSON(status_val);
-		builder.SetStatus(std::move(*status));
+		builder.SetStatus(PlanStatus::FromJSON(status_val));
 	}
 	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
 	if (storage_credentials_val) {
@@ -80,9 +79,9 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjs
 				storage_credentials.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
-			    "Object5 property 'storage_credentials' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(storage_credentials_val));
+			throw InvalidInputException(
+			    StringUtil::Format("Object5 property 'storage_credentials' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(storage_credentials_val)));
 		}
 		builder.SetStorageCredentials(std::move(storage_credentials));
 	}
@@ -102,10 +101,9 @@ string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj,
 
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const {
 	Object5Builder builder;
-	optional<PlanStatus> status_tmp;
-	status_tmp = status.Copy();
-	builder.SetStatus(std::move(*status_tmp));
-	vector<StorageCredential> storage_credentials_tmp;
+	auto status_tmp = status.Copy();
+	builder.SetStatus(std::move(status_tmp));
+	optional<vector<StorageCredential>> storage_credentials_tmp;
 	if (storage_credentials.has_value()) {
 		storage_credentials_tmp.emplace();
 		(*storage_credentials_tmp).reserve((*storage_credentials).size());
@@ -114,7 +112,7 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const 
 		}
 	}
 	if (storage_credentials_tmp.has_value()) {
-		builder.SetStorageCredentials(std::move(storage_credentials_tmp));
+		builder.SetStorageCredentials(std::move((*storage_credentials_tmp)));
 	}
 	return builder.Build();
 }
@@ -170,12 +168,12 @@ CompletedPlanningResultBuilder::CompletedPlanningResultBuilder() {
 }
 
 CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetScanTasks(ScanTasks value) {
-	scan_tasks_ = std::move(value);
+	scan_tasks_.emplace(std::move(value));
 	return *this;
 }
 
 CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetObject5(CompletedPlanningResult::Object5 value) {
-	object_5_ = std::move(value);
+	object_5_.emplace(std::move(value));
 	return *this;
 }
 
@@ -217,12 +215,10 @@ string CompletedPlanningResult::TryFromJSON(yyjson_val *obj, optional<CompletedP
 
 CompletedPlanningResult CompletedPlanningResult::Copy() const {
 	CompletedPlanningResultBuilder builder;
-	optional<ScanTasks> scan_tasks_tmp;
-	scan_tasks_tmp = scan_tasks.Copy();
-	builder.SetScanTasks(std::move(*scan_tasks_tmp));
-	optional<Object5> object_5_tmp;
-	object_5_tmp = object_5.Copy();
-	builder.SetObject5(std::move(*object_5_tmp));
+	auto scan_tasks_tmp = scan_tasks.Copy();
+	builder.SetScanTasks(std::move(scan_tasks_tmp));
+	auto object_5_tmp = object_5.Copy();
+	builder.SetObject5(std::move(object_5_tmp));
 	return builder.Build();
 }
 

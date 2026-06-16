@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,18 +25,18 @@ SetStatisticsUpdateBuilder::SetStatisticsUpdateBuilder() {
 }
 
 SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetStatistics(StatisticsFile value) {
-	statistics_ = std::move(value);
+	statistics_.emplace(std::move(value));
 	has_statistics_ = true;
 	return *this;
 }
 
 SetStatisticsUpdateBuilder &SetStatisticsUpdateBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	return *this;
 }
 
@@ -68,9 +69,7 @@ SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
 	if (!statistics_val) {
 		throw InvalidInputException("SetStatisticsUpdate required property 'statistics' is missing");
 	} else {
-		optional<StatisticsFile> statistics;
-		statistics = StatisticsFile::FromJSON(statistics_val);
-		builder.SetStatistics(std::move(*statistics));
+		builder.SetStatistics(StatisticsFile::FromJSON(statistics_val));
 	}
 	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
 	if (snapshot_id_val) {
@@ -101,19 +100,17 @@ string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<SetStatisticsU
 
 SetStatisticsUpdate SetStatisticsUpdate::Copy() const {
 	SetStatisticsUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<StatisticsFile> statistics_tmp;
-	statistics_tmp = statistics.Copy();
-	builder.SetStatistics(std::move(*statistics_tmp));
-	int64_t snapshot_id_tmp;
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto statistics_tmp = statistics.Copy();
+	builder.SetStatistics(std::move(statistics_tmp));
+	optional<int64_t> snapshot_id_tmp;
 	if (snapshot_id.has_value()) {
 		snapshot_id_tmp.emplace();
 		(*snapshot_id_tmp) = (*snapshot_id);
 	}
 	if (snapshot_id_tmp.has_value()) {
-		builder.SetSnapshotId(std::move(snapshot_id_tmp));
+		builder.SetSnapshotId(std::move((*snapshot_id_tmp)));
 	}
 	return builder.Build();
 }

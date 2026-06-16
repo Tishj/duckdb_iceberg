@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,24 +25,24 @@ CatalogConfigBuilder::CatalogConfigBuilder() {
 }
 
 CatalogConfigBuilder &CatalogConfigBuilder::SetDefaults(case_insensitive_map_t<string> value) {
-	defaults_ = std::move(value);
+	defaults_.emplace(std::move(value));
 	has_defaults_ = true;
 	return *this;
 }
 
 CatalogConfigBuilder &CatalogConfigBuilder::SetOverrides(case_insensitive_map_t<string> value) {
-	overrides_ = std::move(value);
+	overrides_.emplace(std::move(value));
 	has_overrides_ = true;
 	return *this;
 }
 
 CatalogConfigBuilder &CatalogConfigBuilder::SetEndpoints(vector<string> value) {
-	endpoints_ = std::move(value);
+	endpoints_.emplace(std::move(value));
 	return *this;
 }
 
 CatalogConfigBuilder &CatalogConfigBuilder::SetIdempotencyKeyLifetime(string value) {
-	idempotency_key_lifetime_ = std::move(value);
+	idempotency_key_lifetime_.emplace(std::move(value));
 	return *this;
 }
 
@@ -141,8 +142,9 @@ CatalogConfig CatalogConfig::FromJSON(yyjson_val *obj) {
 				endpoints.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format("CatalogConfig property 'endpoints' is not of type 'array', found '%s' instead",
-			                          yyjson_get_type_desc(endpoints_val));
+			throw InvalidInputException(
+			    StringUtil::Format("CatalogConfig property 'endpoints' is not of type 'array', found '%s' instead",
+			                       yyjson_get_type_desc(endpoints_val)));
 		}
 		builder.SetEndpoints(std::move(endpoints));
 	}
@@ -183,7 +185,7 @@ CatalogConfig CatalogConfig::Copy() const {
 		overrides_tmp.emplace(entry.first, entry.second);
 	}
 	builder.SetOverrides(std::move(overrides_tmp));
-	vector<string> endpoints_tmp;
+	optional<vector<string>> endpoints_tmp;
 	if (endpoints.has_value()) {
 		endpoints_tmp.emplace();
 		(*endpoints_tmp).reserve((*endpoints).size());
@@ -192,15 +194,15 @@ CatalogConfig CatalogConfig::Copy() const {
 		}
 	}
 	if (endpoints_tmp.has_value()) {
-		builder.SetEndpoints(std::move(endpoints_tmp));
+		builder.SetEndpoints(std::move((*endpoints_tmp)));
 	}
-	string idempotency_key_lifetime_tmp;
+	optional<string> idempotency_key_lifetime_tmp;
 	if (idempotency_key_lifetime.has_value()) {
 		idempotency_key_lifetime_tmp.emplace();
 		(*idempotency_key_lifetime_tmp) = (*idempotency_key_lifetime);
 	}
 	if (idempotency_key_lifetime_tmp.has_value()) {
-		builder.SetIdempotencyKeyLifetime(std::move(idempotency_key_lifetime_tmp));
+		builder.SetIdempotencyKeyLifetime(std::move((*idempotency_key_lifetime_tmp)));
 	}
 	return builder.Build();
 }

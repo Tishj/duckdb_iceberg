@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,12 +24,12 @@ ListNamespacesResponseBuilder::ListNamespacesResponseBuilder() {
 }
 
 ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNextPageToken(PageToken value) {
-	next_page_token_ = std::move(value);
+	next_page_token_.emplace(std::move(value));
 	return *this;
 }
 
 ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNamespaces(vector<Namespace> value) {
-	namespaces_ = std::move(value);
+	namespaces_.emplace(std::move(value));
 	return *this;
 }
 
@@ -55,9 +56,7 @@ ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
 	ListNamespacesResponseBuilder builder;
 	auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
 	if (next_page_token_val) {
-		optional<PageToken> next_page_token;
-		next_page_token = PageToken::FromJSON(next_page_token_val);
-		builder.SetNextPageToken(std::move(*next_page_token));
+		builder.SetNextPageToken(PageToken::FromJSON(next_page_token_val));
 	}
 	auto namespaces_val = yyjson_obj_get(obj, "namespaces");
 	if (namespaces_val) {
@@ -70,9 +69,9 @@ ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
 				namespaces.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "ListNamespacesResponse property 'namespaces' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(namespaces_val));
+			    yyjson_get_type_desc(namespaces_val)));
 		}
 		builder.SetNamespaces(std::move(namespaces));
 	}
@@ -93,13 +92,12 @@ ListNamespacesResponse ListNamespacesResponse::Copy() const {
 	ListNamespacesResponseBuilder builder;
 	optional<PageToken> next_page_token_tmp;
 	if (next_page_token.has_value()) {
-		next_page_token_tmp.emplace();
-		(*next_page_token_tmp) = (*next_page_token).Copy();
+		next_page_token_tmp.emplace((*next_page_token).Copy());
 	}
 	if (next_page_token_tmp.has_value()) {
 		builder.SetNextPageToken(std::move(*next_page_token_tmp));
 	}
-	vector<Namespace> namespaces_tmp;
+	optional<vector<Namespace>> namespaces_tmp;
 	if (namespaces.has_value()) {
 		namespaces_tmp.emplace();
 		(*namespaces_tmp).reserve((*namespaces).size());
@@ -108,7 +106,7 @@ ListNamespacesResponse ListNamespacesResponse::Copy() const {
 		}
 	}
 	if (namespaces_tmp.has_value()) {
-		builder.SetNamespaces(std::move(namespaces_tmp));
+		builder.SetNamespaces(std::move((*namespaces_tmp)));
 	}
 	return builder.Build();
 }

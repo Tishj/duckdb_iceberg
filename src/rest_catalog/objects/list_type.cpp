@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -23,13 +24,13 @@ ListTypeBuilder::ListTypeBuilder() {
 }
 
 ListTypeBuilder &ListTypeBuilder::SetType(string value) {
-	type_ = std::move(value);
+	type_.emplace(std::move(value));
 	has_type_ = true;
 	return *this;
 }
 
 ListTypeBuilder &ListTypeBuilder::SetElementId(int32_t value) {
-	element_id_ = std::move(value);
+	element_id_.emplace(std::move(value));
 	has_element_id_ = true;
 	return *this;
 }
@@ -41,7 +42,7 @@ ListTypeBuilder &ListTypeBuilder::SetElement(unique_ptr<Type> value) {
 }
 
 ListTypeBuilder &ListTypeBuilder::SetElementRequired(bool value) {
-	element_required_ = std::move(value);
+	element_required_.emplace(std::move(value));
 	has_element_required_ = true;
 	return *this;
 }

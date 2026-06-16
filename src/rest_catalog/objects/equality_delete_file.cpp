@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -22,12 +23,12 @@ EqualityDeleteFileBuilder::EqualityDeleteFileBuilder() {
 }
 
 EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetContentFile(ContentFile value) {
-	content_file_ = std::move(value);
+	content_file_.emplace(std::move(value));
 	return *this;
 }
 
 EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetEqualityIds(vector<int32_t> value) {
-	equality_ids_ = std::move(value);
+	equality_ids_.emplace(std::move(value));
 	return *this;
 }
 
@@ -71,9 +72,9 @@ EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
 				equality_ids.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "EqualityDeleteFile property 'equality_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(equality_ids_val));
+			    yyjson_get_type_desc(equality_ids_val)));
 		}
 		builder.SetEqualityIds(std::move(equality_ids));
 	}
@@ -92,10 +93,9 @@ string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, optional<EqualityDeleteF
 
 EqualityDeleteFile EqualityDeleteFile::Copy() const {
 	EqualityDeleteFileBuilder builder;
-	optional<ContentFile> content_file_tmp;
-	content_file_tmp = content_file.Copy();
-	builder.SetContentFile(std::move(*content_file_tmp));
-	vector<int32_t> equality_ids_tmp;
+	auto content_file_tmp = content_file.Copy();
+	builder.SetContentFile(std::move(content_file_tmp));
+	optional<vector<int32_t>> equality_ids_tmp;
 	if (equality_ids.has_value()) {
 		equality_ids_tmp.emplace();
 		(*equality_ids_tmp).reserve((*equality_ids).size());
@@ -104,7 +104,7 @@ EqualityDeleteFile EqualityDeleteFile::Copy() const {
 		}
 	}
 	if (equality_ids_tmp.has_value()) {
-		builder.SetEqualityIds(std::move(equality_ids_tmp));
+		builder.SetEqualityIds(std::move((*equality_ids_tmp)));
 	}
 	return builder.Build();
 }

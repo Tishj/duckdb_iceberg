@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -21,7 +22,7 @@ IcebergErrorResponseBuilder::IcebergErrorResponseBuilder() {
 }
 
 IcebergErrorResponseBuilder &IcebergErrorResponseBuilder::SetError(ErrorModel value) {
-	_error_ = std::move(value);
+	_error_.emplace(std::move(value));
 	has__error_ = true;
 	return *this;
 }
@@ -54,9 +55,7 @@ IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
 	if (!_error_val) {
 		throw InvalidInputException("IcebergErrorResponse required property 'error' is missing");
 	} else {
-		optional<ErrorModel> _error;
-		_error = ErrorModel::FromJSON(_error_val);
-		builder.SetError(std::move(*_error));
+		builder.SetError(ErrorModel::FromJSON(_error_val));
 	}
 	return builder.Build();
 }
@@ -73,9 +72,8 @@ string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, optional<IcebergErrorR
 
 IcebergErrorResponse IcebergErrorResponse::Copy() const {
 	IcebergErrorResponseBuilder builder;
-	optional<ErrorModel> _error_tmp;
-	_error_tmp = _error.Copy();
-	builder.SetError(std::move(*_error_tmp));
+	auto _error_tmp = _error.Copy();
+	builder.SetError(std::move(_error_tmp));
 	return builder.Build();
 }
 

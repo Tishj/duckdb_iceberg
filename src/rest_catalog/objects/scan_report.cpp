@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -27,13 +28,13 @@ ScanReportBuilder::ScanReportBuilder() {
 }
 
 ScanReportBuilder &ScanReportBuilder::SetTableName(string value) {
-	table_name_ = std::move(value);
+	table_name_.emplace(std::move(value));
 	has_table_name_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetSnapshotId(int64_t value) {
-	snapshot_id_ = std::move(value);
+	snapshot_id_.emplace(std::move(value));
 	has_snapshot_id_ = true;
 	return *this;
 }
@@ -45,31 +46,31 @@ ScanReportBuilder &ScanReportBuilder::SetFilter(unique_ptr<Expression> value) {
 }
 
 ScanReportBuilder &ScanReportBuilder::SetSchemaId(int32_t value) {
-	schema_id_ = std::move(value);
+	schema_id_.emplace(std::move(value));
 	has_schema_id_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetProjectedFieldIds(vector<int32_t> value) {
-	projected_field_ids_ = std::move(value);
+	projected_field_ids_.emplace(std::move(value));
 	has_projected_field_ids_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetProjectedFieldNames(vector<string> value) {
-	projected_field_names_ = std::move(value);
+	projected_field_names_.emplace(std::move(value));
 	has_projected_field_names_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetMetrics(Metrics value) {
-	metrics_ = std::move(value);
+	metrics_.emplace(std::move(value));
 	has_metrics_ = true;
 	return *this;
 }
 
 ScanReportBuilder &ScanReportBuilder::SetMetadata(case_insensitive_map_t<string> value) {
-	metadata_ = std::move(value);
+	metadata_.emplace(std::move(value));
 	return *this;
 }
 
@@ -189,9 +190,9 @@ ScanReport ScanReport::FromJSON(yyjson_val *obj) {
 				projected_field_ids.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "ScanReport property 'projected_field_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(projected_field_ids_val));
+			    yyjson_get_type_desc(projected_field_ids_val)));
 		}
 		builder.SetProjectedFieldIds(std::move(projected_field_ids));
 	}
@@ -215,9 +216,9 @@ ScanReport ScanReport::FromJSON(yyjson_val *obj) {
 				projected_field_names.emplace_back(std::move(tmp));
 			}
 		} else {
-			return StringUtil::Format(
+			throw InvalidInputException(StringUtil::Format(
 			    "ScanReport property 'projected_field_names' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(projected_field_names_val));
+			    yyjson_get_type_desc(projected_field_names_val)));
 		}
 		builder.SetProjectedFieldNames(std::move(projected_field_names));
 	}
@@ -225,9 +226,7 @@ ScanReport ScanReport::FromJSON(yyjson_val *obj) {
 	if (!metrics_val) {
 		throw InvalidInputException("ScanReport required property 'metrics' is missing");
 	} else {
-		optional<Metrics> metrics;
-		metrics = Metrics::FromJSON(metrics_val);
-		builder.SetMetrics(std::move(*metrics));
+		builder.SetMetrics(Metrics::FromJSON(metrics_val));
 	}
 	auto metadata_val = yyjson_obj_get(obj, "metadata");
 	if (metadata_val) {
@@ -291,10 +290,9 @@ ScanReport ScanReport::Copy() const {
 		projected_field_names_tmp.emplace_back(item);
 	}
 	builder.SetProjectedFieldNames(std::move(projected_field_names_tmp));
-	optional<Metrics> metrics_tmp;
-	metrics_tmp = metrics.Copy();
-	builder.SetMetrics(std::move(*metrics_tmp));
-	case_insensitive_map_t<string> metadata_tmp;
+	auto metrics_tmp = metrics.Copy();
+	builder.SetMetrics(std::move(metrics_tmp));
+	optional<case_insensitive_map_t<string>> metadata_tmp;
 	if (metadata.has_value()) {
 		metadata_tmp.emplace();
 		for (auto &entry : (*metadata)) {
@@ -302,7 +300,7 @@ ScanReport ScanReport::Copy() const {
 		}
 	}
 	if (metadata_tmp.has_value()) {
-		builder.SetMetadata(std::move(metadata_tmp));
+		builder.SetMetadata(std::move((*metadata_tmp)));
 	}
 	return builder.Build();
 }

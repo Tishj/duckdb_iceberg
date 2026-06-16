@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "yyjson.hpp"
+#include "duckdb/common/error_data.hpp"
 #include "duckdb/common/string.hpp"
 #include "duckdb/common/vector.hpp"
 #include "duckdb/common/case_insensitive_map.hpp"
@@ -24,17 +25,17 @@ SetSnapshotRefUpdateBuilder::SetSnapshotRefUpdateBuilder() {
 }
 
 SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetBaseUpdate(BaseUpdate value) {
-	base_update_ = std::move(value);
+	base_update_.emplace(std::move(value));
 	return *this;
 }
 
 SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetSnapshotReference(SnapshotReference value) {
-	snapshot_reference_ = std::move(value);
+	snapshot_reference_.emplace(std::move(value));
 	return *this;
 }
 
 SetSnapshotRefUpdateBuilder &SetSnapshotRefUpdateBuilder::SetRefName(string value) {
-	ref_name_ = std::move(value);
+	ref_name_.emplace(std::move(value));
 	has_ref_name_ = true;
 	return *this;
 }
@@ -95,12 +96,10 @@ string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, optional<SetSnapshotRe
 
 SetSnapshotRefUpdate SetSnapshotRefUpdate::Copy() const {
 	SetSnapshotRefUpdateBuilder builder;
-	optional<BaseUpdate> base_update_tmp;
-	base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(*base_update_tmp));
-	optional<SnapshotReference> snapshot_reference_tmp;
-	snapshot_reference_tmp = snapshot_reference.Copy();
-	builder.SetSnapshotReference(std::move(*snapshot_reference_tmp));
+	auto base_update_tmp = base_update.Copy();
+	builder.SetBaseUpdate(std::move(base_update_tmp));
+	auto snapshot_reference_tmp = snapshot_reference.Copy();
+	builder.SetSnapshotReference(std::move(snapshot_reference_tmp));
 	string ref_name_tmp;
 	ref_name_tmp = ref_name;
 	builder.SetRefName(std::move(ref_name_tmp));
