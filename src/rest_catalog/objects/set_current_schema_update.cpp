@@ -55,34 +55,37 @@ string SetCurrentSchemaUpdateBuilder::TryBuild(optional<SetCurrentSchemaUpdate> 
 	}
 }
 
-SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
-	SetCurrentSchemaUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
-	if (!schema_id_val) {
-		throw InvalidInputException("SetCurrentSchemaUpdate required property 'schema-id' is missing");
-	} else {
-		int32_t schema_id;
-		if (yyjson_is_int(schema_id_val)) {
-			schema_id = yyjson_get_int(schema_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SetCurrentSchemaUpdate property 'schema_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(schema_id_val)));
-		}
-		builder.SetSchemaId(std::move(schema_id));
-	}
-	return builder.Build();
-}
-
-string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, optional<SetCurrentSchemaUpdate> &result) {
+string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, SetCurrentSchemaUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto schema_id_val = yyjson_obj_get(obj, "schema-id");
+		if (!schema_id_val) {
+			throw InvalidInputException("SetCurrentSchemaUpdate required property 'schema-id' is missing");
+		} else {
+			int32_t schema_id;
+			if (yyjson_is_int(schema_id_val)) {
+				schema_id = yyjson_get_int(schema_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SetCurrentSchemaUpdate property 'schema_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(schema_id_val)));
+			}
+			builder.SetSchemaId(std::move(schema_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
+	SetCurrentSchemaUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetCurrentSchemaUpdate SetCurrentSchemaUpdate::Copy() const {

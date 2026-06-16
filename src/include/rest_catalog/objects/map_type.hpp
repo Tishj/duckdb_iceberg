@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static MapType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<MapType> &result);
+	static string TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder);
 	string Validate() const;
 
 	// Copy

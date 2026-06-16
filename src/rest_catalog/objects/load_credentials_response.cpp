@@ -50,38 +50,41 @@ string LoadCredentialsResponseBuilder::TryBuild(optional<LoadCredentialsResponse
 	}
 }
 
-LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
-	LoadCredentialsResponseBuilder builder;
-	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
-	if (!storage_credentials_val) {
-		throw InvalidInputException("LoadCredentialsResponse required property 'storage-credentials' is missing");
-	} else {
-		vector<StorageCredential> storage_credentials;
-		if (yyjson_is_arr(storage_credentials_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				auto tmp = StorageCredential::FromJSON(val);
-				storage_credentials.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "LoadCredentialsResponse property 'storage_credentials' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(storage_credentials_val)));
-		}
-		builder.SetStorageCredentials(std::move(storage_credentials));
-	}
-	return builder.Build();
-}
-
-string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, optional<LoadCredentialsResponse> &result) {
+string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, LoadCredentialsResponseBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
+		if (!storage_credentials_val) {
+			throw InvalidInputException("LoadCredentialsResponse required property 'storage-credentials' is missing");
+		} else {
+			vector<StorageCredential> storage_credentials;
+			if (yyjson_is_arr(storage_credentials_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
+					auto tmp = StorageCredential::FromJSON(val);
+					storage_credentials.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "LoadCredentialsResponse property 'storage_credentials' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(storage_credentials_val)));
+			}
+			builder.SetStorageCredentials(std::move(storage_credentials));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
+	LoadCredentialsResponseBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 LoadCredentialsResponse LoadCredentialsResponse::Copy() const {

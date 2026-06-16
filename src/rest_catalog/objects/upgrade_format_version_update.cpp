@@ -55,34 +55,37 @@ string UpgradeFormatVersionUpdateBuilder::TryBuild(optional<UpgradeFormatVersion
 	}
 }
 
-UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::FromJSON(yyjson_val *obj) {
-	UpgradeFormatVersionUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto format_version_val = yyjson_obj_get(obj, "format-version");
-	if (!format_version_val) {
-		throw InvalidInputException("UpgradeFormatVersionUpdate required property 'format-version' is missing");
-	} else {
-		int32_t format_version;
-		if (yyjson_is_int(format_version_val)) {
-			format_version = yyjson_get_int(format_version_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "UpgradeFormatVersionUpdate property 'format_version' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(format_version_val)));
-		}
-		builder.SetFormatVersion(std::move(format_version));
-	}
-	return builder.Build();
-}
-
-string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj, optional<UpgradeFormatVersionUpdate> &result) {
+string UpgradeFormatVersionUpdate::TryFromJSON(yyjson_val *obj, UpgradeFormatVersionUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto format_version_val = yyjson_obj_get(obj, "format-version");
+		if (!format_version_val) {
+			throw InvalidInputException("UpgradeFormatVersionUpdate required property 'format-version' is missing");
+		} else {
+			int32_t format_version;
+			if (yyjson_is_int(format_version_val)) {
+				format_version = yyjson_get_int(format_version_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "UpgradeFormatVersionUpdate property 'format_version' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(format_version_val)));
+			}
+			builder.SetFormatVersion(std::move(format_version));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::FromJSON(yyjson_val *obj) {
+	UpgradeFormatVersionUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::Copy() const {

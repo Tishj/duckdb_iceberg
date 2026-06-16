@@ -55,26 +55,29 @@ string AddEncryptionKeyUpdateBuilder::TryBuild(optional<AddEncryptionKeyUpdate> 
 	}
 }
 
-AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
-	AddEncryptionKeyUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto encryption_key_val = yyjson_obj_get(obj, "encryption-key");
-	if (!encryption_key_val) {
-		throw InvalidInputException("AddEncryptionKeyUpdate required property 'encryption-key' is missing");
-	} else {
-		builder.SetEncryptionKey(EncryptedKey::FromJSON(encryption_key_val));
-	}
-	return builder.Build();
-}
-
-string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, optional<AddEncryptionKeyUpdate> &result) {
+string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto encryption_key_val = yyjson_obj_get(obj, "encryption-key");
+		if (!encryption_key_val) {
+			throw InvalidInputException("AddEncryptionKeyUpdate required property 'encryption-key' is missing");
+		} else {
+			builder.SetEncryptionKey(EncryptedKey::FromJSON(encryption_key_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
+	AddEncryptionKeyUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AddEncryptionKeyUpdate AddEncryptionKeyUpdate::Copy() const {

@@ -55,33 +55,36 @@ string OAuthTokenRequestBuilder::TryBuild(optional<OAuthTokenRequest> &result) {
 	}
 }
 
-OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
-	OAuthTokenRequestBuilder builder;
-	int matched_any_of_variants = 0;
+string OAuthTokenRequest::TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder &builder) {
 	try {
-		builder.SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	if (matched_any_of_variants == 0) {
-		throw InvalidInputException("OAuthTokenRequest failed to parse, none of the anyOf candidates matched");
-	}
-	return builder.Build();
-}
-
-string OAuthTokenRequest::TryFromJSON(yyjson_val *obj, optional<OAuthTokenRequest> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		int matched_any_of_variants = 0;
+		try {
+			builder.SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		if (matched_any_of_variants == 0) {
+			throw InvalidInputException("OAuthTokenRequest failed to parse, none of the anyOf candidates matched");
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
+	OAuthTokenRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 OAuthTokenRequest OAuthTokenRequest::Copy() const {

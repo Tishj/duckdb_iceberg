@@ -98,62 +98,65 @@ string TableRequirementBuilder::TryBuild(optional<TableRequirement> &result) {
 	}
 }
 
-TableRequirement TableRequirement::FromJSON(yyjson_val *obj) {
-	TableRequirementBuilder builder;
-	do {
-		try {
-			builder.SetAssertCreate(AssertCreate::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertTableUuid(AssertTableUUID::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertRefSnapshotId(AssertRefSnapshotId::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertLastAssignedFieldId(AssertLastAssignedFieldId::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertCurrentSchemaId(AssertCurrentSchemaId::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertDefaultSpecId(AssertDefaultSpecId::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAssertDefaultSortOrderId(AssertDefaultSortOrderId::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("TableRequirement failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string TableRequirement::TryFromJSON(yyjson_val *obj, optional<TableRequirement> &result) {
+string TableRequirement::TryFromJSON(yyjson_val *obj, TableRequirementBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetAssertCreate(AssertCreate::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertTableUuid(AssertTableUUID::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertRefSnapshotId(AssertRefSnapshotId::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertLastAssignedFieldId(AssertLastAssignedFieldId::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertCurrentSchemaId(AssertCurrentSchemaId::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertDefaultSpecId(AssertDefaultSpecId::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAssertDefaultSortOrderId(AssertDefaultSortOrderId::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("TableRequirement failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TableRequirement TableRequirement::FromJSON(yyjson_val *obj) {
+	TableRequirementBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 TableRequirement TableRequirement::Copy() const {

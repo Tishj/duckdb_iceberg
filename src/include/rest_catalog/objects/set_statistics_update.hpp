@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static SetStatisticsUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetStatisticsUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, SetStatisticsUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

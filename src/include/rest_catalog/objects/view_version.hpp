@@ -33,7 +33,7 @@ private:
 public:
 	// Deserialization
 	static ViewVersion FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ViewVersion> &result);
+	static string TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder);
 	string Validate() const;
 
 	// Copy

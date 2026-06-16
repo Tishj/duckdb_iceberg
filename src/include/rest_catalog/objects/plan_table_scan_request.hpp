@@ -36,7 +36,7 @@ private:
 public:
 	// Deserialization
 	static PlanTableScanRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<PlanTableScanRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, PlanTableScanRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

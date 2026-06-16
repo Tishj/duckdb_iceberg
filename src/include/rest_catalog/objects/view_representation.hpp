@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static ViewRepresentation FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ViewRepresentation> &result);
+	static string TryFromJSON(yyjson_val *obj, ViewRepresentationBuilder &builder);
 	string Validate() const;
 
 	// Copy

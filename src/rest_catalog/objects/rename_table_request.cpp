@@ -59,31 +59,34 @@ string RenameTableRequestBuilder::TryBuild(optional<RenameTableRequest> &result)
 	}
 }
 
-RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
-	RenameTableRequestBuilder builder;
-	auto source_val = yyjson_obj_get(obj, "source");
-	if (!source_val) {
-		throw InvalidInputException("RenameTableRequest required property 'source' is missing");
-	} else {
-		builder.SetSource(TableIdentifier::FromJSON(source_val));
-	}
-	auto destination_val = yyjson_obj_get(obj, "destination");
-	if (!destination_val) {
-		throw InvalidInputException("RenameTableRequest required property 'destination' is missing");
-	} else {
-		builder.SetDestination(TableIdentifier::FromJSON(destination_val));
-	}
-	return builder.Build();
-}
-
-string RenameTableRequest::TryFromJSON(yyjson_val *obj, optional<RenameTableRequest> &result) {
+string RenameTableRequest::TryFromJSON(yyjson_val *obj, RenameTableRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto source_val = yyjson_obj_get(obj, "source");
+		if (!source_val) {
+			throw InvalidInputException("RenameTableRequest required property 'source' is missing");
+		} else {
+			builder.SetSource(TableIdentifier::FromJSON(source_val));
+		}
+		auto destination_val = yyjson_obj_get(obj, "destination");
+		if (!destination_val) {
+			throw InvalidInputException("RenameTableRequest required property 'destination' is missing");
+		} else {
+			builder.SetDestination(TableIdentifier::FromJSON(destination_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
+	RenameTableRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RenameTableRequest RenameTableRequest::Copy() const {

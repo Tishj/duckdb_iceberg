@@ -95,108 +95,111 @@ string CommitReportBuilder::TryBuild(optional<CommitReport> &result) {
 	}
 }
 
-CommitReport CommitReport::FromJSON(yyjson_val *obj) {
-	CommitReportBuilder builder;
-	auto table_name_val = yyjson_obj_get(obj, "table-name");
-	if (!table_name_val) {
-		throw InvalidInputException("CommitReport required property 'table-name' is missing");
-	} else {
-		string table_name;
-		if (yyjson_is_str(table_name_val)) {
-			table_name = yyjson_get_str(table_name_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CommitReport property 'table_name' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(table_name_val)));
-		}
-		builder.SetTableName(std::move(table_name));
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("CommitReport required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CommitReport property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	auto sequence_number_val = yyjson_obj_get(obj, "sequence-number");
-	if (!sequence_number_val) {
-		throw InvalidInputException("CommitReport required property 'sequence-number' is missing");
-	} else {
-		int64_t sequence_number;
-		if (yyjson_is_sint(sequence_number_val)) {
-			sequence_number = yyjson_get_sint(sequence_number_val);
-		} else if (yyjson_is_uint(sequence_number_val)) {
-			sequence_number = yyjson_get_uint(sequence_number_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CommitReport property 'sequence_number' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(sequence_number_val)));
-		}
-		builder.SetSequenceNumber(std::move(sequence_number));
-	}
-	auto operation_val = yyjson_obj_get(obj, "operation");
-	if (!operation_val) {
-		throw InvalidInputException("CommitReport required property 'operation' is missing");
-	} else {
-		string operation;
-		if (yyjson_is_str(operation_val)) {
-			operation = yyjson_get_str(operation_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CommitReport property 'operation' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(operation_val)));
-		}
-		builder.SetOperation(std::move(operation));
-	}
-	auto metrics_val = yyjson_obj_get(obj, "metrics");
-	if (!metrics_val) {
-		throw InvalidInputException("CommitReport required property 'metrics' is missing");
-	} else {
-		builder.SetMetrics(Metrics::FromJSON(metrics_val));
-	}
-	auto metadata_val = yyjson_obj_get(obj, "metadata");
-	if (metadata_val) {
-		case_insensitive_map_t<string> metadata;
-		if (yyjson_is_obj(metadata_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(metadata_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("CommitReport property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				metadata.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("CommitReport property 'metadata' is not of type 'object'");
-		}
-		builder.SetMetadata(std::move(metadata));
-	}
-	return builder.Build();
-}
-
-string CommitReport::TryFromJSON(yyjson_val *obj, optional<CommitReport> &result) {
+string CommitReport::TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto table_name_val = yyjson_obj_get(obj, "table-name");
+		if (!table_name_val) {
+			throw InvalidInputException("CommitReport required property 'table-name' is missing");
+		} else {
+			string table_name;
+			if (yyjson_is_str(table_name_val)) {
+				table_name = yyjson_get_str(table_name_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CommitReport property 'table_name' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(table_name_val)));
+			}
+			builder.SetTableName(std::move(table_name));
+		}
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("CommitReport required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitReport property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+		auto sequence_number_val = yyjson_obj_get(obj, "sequence-number");
+		if (!sequence_number_val) {
+			throw InvalidInputException("CommitReport required property 'sequence-number' is missing");
+		} else {
+			int64_t sequence_number;
+			if (yyjson_is_sint(sequence_number_val)) {
+				sequence_number = yyjson_get_sint(sequence_number_val);
+			} else if (yyjson_is_uint(sequence_number_val)) {
+				sequence_number = yyjson_get_uint(sequence_number_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitReport property 'sequence_number' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(sequence_number_val)));
+			}
+			builder.SetSequenceNumber(std::move(sequence_number));
+		}
+		auto operation_val = yyjson_obj_get(obj, "operation");
+		if (!operation_val) {
+			throw InvalidInputException("CommitReport required property 'operation' is missing");
+		} else {
+			string operation;
+			if (yyjson_is_str(operation_val)) {
+				operation = yyjson_get_str(operation_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CommitReport property 'operation' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(operation_val)));
+			}
+			builder.SetOperation(std::move(operation));
+		}
+		auto metrics_val = yyjson_obj_get(obj, "metrics");
+		if (!metrics_val) {
+			throw InvalidInputException("CommitReport required property 'metrics' is missing");
+		} else {
+			builder.SetMetrics(Metrics::FromJSON(metrics_val));
+		}
+		auto metadata_val = yyjson_obj_get(obj, "metadata");
+		if (metadata_val) {
+			case_insensitive_map_t<string> metadata;
+			if (yyjson_is_obj(metadata_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(metadata_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "CommitReport property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					metadata.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("CommitReport property 'metadata' is not of type 'object'");
+			}
+			builder.SetMetadata(std::move(metadata));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CommitReport CommitReport::FromJSON(yyjson_val *obj) {
+	CommitReportBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CommitReport CommitReport::Copy() const {

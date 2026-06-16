@@ -98,90 +98,94 @@ string MapTypeBuilder::TryBuild(optional<MapType> &result) {
 	}
 }
 
-MapType MapType::FromJSON(yyjson_val *obj) {
-	MapTypeBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("MapType required property 'type' is missing");
-	} else {
-		string type;
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "MapType property 'type' is not of type 'string', found '%s' instead", yyjson_get_type_desc(type_val)));
-		}
-		builder.SetType(std::move(type));
-	}
-	auto key_id_val = yyjson_obj_get(obj, "key-id");
-	if (!key_id_val) {
-		throw InvalidInputException("MapType required property 'key-id' is missing");
-	} else {
-		int32_t key_id;
-		if (yyjson_is_int(key_id_val)) {
-			key_id = yyjson_get_int(key_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("MapType property 'key_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(key_id_val)));
-		}
-		builder.SetKeyId(std::move(key_id));
-	}
-	auto key_val = yyjson_obj_get(obj, "key");
-	if (!key_val) {
-		throw InvalidInputException("MapType required property 'key' is missing");
-	} else {
-		unique_ptr<Type> key;
-		key = make_uniq<Type>(Type::FromJSON(key_val));
-		builder.SetKey(std::move(key));
-	}
-	auto value_id_val = yyjson_obj_get(obj, "value-id");
-	if (!value_id_val) {
-		throw InvalidInputException("MapType required property 'value-id' is missing");
-	} else {
-		int32_t value_id;
-		if (yyjson_is_int(value_id_val)) {
-			value_id = yyjson_get_int(value_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("MapType property 'value_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(value_id_val)));
-		}
-		builder.SetValueId(std::move(value_id));
-	}
-	auto value_val = yyjson_obj_get(obj, "value");
-	if (!value_val) {
-		throw InvalidInputException("MapType required property 'value' is missing");
-	} else {
-		unique_ptr<Type> value;
-		value = make_uniq<Type>(Type::FromJSON(value_val));
-		builder.SetValue(std::move(value));
-	}
-	auto value_required_val = yyjson_obj_get(obj, "value-required");
-	if (!value_required_val) {
-		throw InvalidInputException("MapType required property 'value-required' is missing");
-	} else {
-		bool value_required;
-		if (yyjson_is_bool(value_required_val)) {
-			value_required = yyjson_get_bool(value_required_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("MapType property 'value_required' is not of type 'boolean', found '%s' instead",
-			                       yyjson_get_type_desc(value_required_val)));
-		}
-		builder.SetValueRequired(std::move(value_required));
-	}
-	return builder.Build();
-}
-
-string MapType::TryFromJSON(yyjson_val *obj, optional<MapType> &result) {
+string MapType::TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("MapType required property 'type' is missing");
+		} else {
+			string type;
+			if (yyjson_is_str(type_val)) {
+				type = yyjson_get_str(type_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("MapType property 'type' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(type_val)));
+			}
+			builder.SetType(std::move(type));
+		}
+		auto key_id_val = yyjson_obj_get(obj, "key-id");
+		if (!key_id_val) {
+			throw InvalidInputException("MapType required property 'key-id' is missing");
+		} else {
+			int32_t key_id;
+			if (yyjson_is_int(key_id_val)) {
+				key_id = yyjson_get_int(key_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("MapType property 'key_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(key_id_val)));
+			}
+			builder.SetKeyId(std::move(key_id));
+		}
+		auto key_val = yyjson_obj_get(obj, "key");
+		if (!key_val) {
+			throw InvalidInputException("MapType required property 'key' is missing");
+		} else {
+			unique_ptr<Type> key;
+			key = make_uniq<Type>(Type::FromJSON(key_val));
+			builder.SetKey(std::move(key));
+		}
+		auto value_id_val = yyjson_obj_get(obj, "value-id");
+		if (!value_id_val) {
+			throw InvalidInputException("MapType required property 'value-id' is missing");
+		} else {
+			int32_t value_id;
+			if (yyjson_is_int(value_id_val)) {
+				value_id = yyjson_get_int(value_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("MapType property 'value_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(value_id_val)));
+			}
+			builder.SetValueId(std::move(value_id));
+		}
+		auto value_val = yyjson_obj_get(obj, "value");
+		if (!value_val) {
+			throw InvalidInputException("MapType required property 'value' is missing");
+		} else {
+			unique_ptr<Type> value;
+			value = make_uniq<Type>(Type::FromJSON(value_val));
+			builder.SetValue(std::move(value));
+		}
+		auto value_required_val = yyjson_obj_get(obj, "value-required");
+		if (!value_required_val) {
+			throw InvalidInputException("MapType required property 'value-required' is missing");
+		} else {
+			bool value_required;
+			if (yyjson_is_bool(value_required_val)) {
+				value_required = yyjson_get_bool(value_required_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("MapType property 'value_required' is not of type 'boolean', found '%s' instead",
+				                       yyjson_get_type_desc(value_required_val)));
+			}
+			builder.SetValueRequired(std::move(value_required));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+MapType MapType::FromJSON(yyjson_val *obj) {
+	MapTypeBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 MapType MapType::Copy() const {

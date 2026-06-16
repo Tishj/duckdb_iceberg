@@ -55,34 +55,37 @@ string RemoveSnapshotRefUpdateBuilder::TryBuild(optional<RemoveSnapshotRefUpdate
 	}
 }
 
-RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
-	RemoveSnapshotRefUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto ref_name_val = yyjson_obj_get(obj, "ref-name");
-	if (!ref_name_val) {
-		throw InvalidInputException("RemoveSnapshotRefUpdate required property 'ref-name' is missing");
-	} else {
-		string ref_name;
-		if (yyjson_is_str(ref_name_val)) {
-			ref_name = yyjson_get_str(ref_name_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemoveSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(ref_name_val)));
-		}
-		builder.SetRefName(std::move(ref_name));
-	}
-	return builder.Build();
-}
-
-string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotRefUpdate> &result) {
+string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto ref_name_val = yyjson_obj_get(obj, "ref-name");
+		if (!ref_name_val) {
+			throw InvalidInputException("RemoveSnapshotRefUpdate required property 'ref-name' is missing");
+		} else {
+			string ref_name;
+			if (yyjson_is_str(ref_name_val)) {
+				ref_name = yyjson_get_str(ref_name_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemoveSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(ref_name_val)));
+			}
+			builder.SetRefName(std::move(ref_name));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
+	RemoveSnapshotRefUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::Copy() const {

@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssertRefSnapshotId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssertRefSnapshotId> &result);
+	static string TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuilder &builder);
 	string Validate() const;
 
 	// Copy

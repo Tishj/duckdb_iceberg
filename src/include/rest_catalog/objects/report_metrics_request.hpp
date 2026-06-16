@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static ReportMetricsRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ReportMetricsRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, ReportMetricsRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

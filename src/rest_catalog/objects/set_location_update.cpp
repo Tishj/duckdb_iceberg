@@ -55,34 +55,37 @@ string SetLocationUpdateBuilder::TryBuild(optional<SetLocationUpdate> &result) {
 	}
 }
 
-SetLocationUpdate SetLocationUpdate::FromJSON(yyjson_val *obj) {
-	SetLocationUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto location_val = yyjson_obj_get(obj, "location");
-	if (!location_val) {
-		throw InvalidInputException("SetLocationUpdate required property 'location' is missing");
-	} else {
-		string location;
-		if (yyjson_is_str(location_val)) {
-			location = yyjson_get_str(location_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SetLocationUpdate property 'location' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(location_val)));
-		}
-		builder.SetLocation(std::move(location));
-	}
-	return builder.Build();
-}
-
-string SetLocationUpdate::TryFromJSON(yyjson_val *obj, optional<SetLocationUpdate> &result) {
+string SetLocationUpdate::TryFromJSON(yyjson_val *obj, SetLocationUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto location_val = yyjson_obj_get(obj, "location");
+		if (!location_val) {
+			throw InvalidInputException("SetLocationUpdate required property 'location' is missing");
+		} else {
+			string location;
+			if (yyjson_is_str(location_val)) {
+				location = yyjson_get_str(location_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SetLocationUpdate property 'location' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(location_val)));
+			}
+			builder.SetLocation(std::move(location));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetLocationUpdate SetLocationUpdate::FromJSON(yyjson_val *obj) {
+	SetLocationUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetLocationUpdate SetLocationUpdate::Copy() const {

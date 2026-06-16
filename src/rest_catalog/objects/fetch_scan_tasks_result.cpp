@@ -45,20 +45,23 @@ string FetchScanTasksResultBuilder::TryBuild(optional<FetchScanTasksResult> &res
 	}
 }
 
-FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
-	FetchScanTasksResultBuilder builder;
-	builder.SetScanTasks(ScanTasks::FromJSON(obj));
-	return builder.Build();
-}
-
-string FetchScanTasksResult::TryFromJSON(yyjson_val *obj, optional<FetchScanTasksResult> &result) {
+string FetchScanTasksResult::TryFromJSON(yyjson_val *obj, FetchScanTasksResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetScanTasks(ScanTasks::FromJSON(obj));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
+	FetchScanTasksResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 FetchScanTasksResult FetchScanTasksResult::Copy() const {

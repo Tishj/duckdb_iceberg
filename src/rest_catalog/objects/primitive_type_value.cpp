@@ -145,103 +145,106 @@ string PrimitiveTypeValueBuilder::TryBuild(optional<PrimitiveTypeValue> &result)
 	}
 }
 
-PrimitiveTypeValue PrimitiveTypeValue::FromJSON(yyjson_val *obj) {
-	PrimitiveTypeValueBuilder builder;
-	int matched_any_of_variants = 0;
+string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilder &builder) {
 	try {
-		builder.SetBooleanTypeValue(BooleanTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetIntegerTypeValue(IntegerTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetLongTypeValue(LongTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetFloatTypeValue(FloatTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetDoubleTypeValue(DoubleTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetDecimalTypeValue(DecimalTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetStringTypeValue(StringTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetUuidtypeValue(UUIDTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetDateTypeValue(DateTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetTimeTypeValue(TimeTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetTimestampTypeValue(TimestampTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetTimestampTzTypeValue(TimestampTzTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetTimestampNanoTypeValue(TimestampNanoTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetFixedTypeValue(FixedTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetBinaryTypeValue(BinaryTypeValue::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	if (matched_any_of_variants == 0) {
-		throw InvalidInputException("PrimitiveTypeValue failed to parse, none of the anyOf candidates matched");
-	}
-	return builder.Build();
-}
-
-string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, optional<PrimitiveTypeValue> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		int matched_any_of_variants = 0;
+		try {
+			builder.SetBooleanTypeValue(BooleanTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetIntegerTypeValue(IntegerTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetLongTypeValue(LongTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetFloatTypeValue(FloatTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetDoubleTypeValue(DoubleTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetDecimalTypeValue(DecimalTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetStringTypeValue(StringTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetUuidtypeValue(UUIDTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetDateTypeValue(DateTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTimeTypeValue(TimeTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTimestampTypeValue(TimestampTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTimestampTzTypeValue(TimestampTzTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTimestampNanoTypeValue(TimestampNanoTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetFixedTypeValue(FixedTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetBinaryTypeValue(BinaryTypeValue::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		if (matched_any_of_variants == 0) {
+			throw InvalidInputException("PrimitiveTypeValue failed to parse, none of the anyOf candidates matched");
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+PrimitiveTypeValue PrimitiveTypeValue::FromJSON(yyjson_val *obj) {
+	PrimitiveTypeValueBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 PrimitiveTypeValue PrimitiveTypeValue::Copy() const {

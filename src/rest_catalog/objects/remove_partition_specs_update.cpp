@@ -55,46 +55,49 @@ string RemovePartitionSpecsUpdateBuilder::TryBuild(optional<RemovePartitionSpecs
 	}
 }
 
-RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj) {
-	RemovePartitionSpecsUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto spec_ids_val = yyjson_obj_get(obj, "spec-ids");
-	if (!spec_ids_val) {
-		throw InvalidInputException("RemovePartitionSpecsUpdate required property 'spec-ids' is missing");
-	} else {
-		vector<int32_t> spec_ids;
-		if (yyjson_is_arr(spec_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(spec_ids_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "RemovePartitionSpecsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				spec_ids.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemovePartitionSpecsUpdate property 'spec_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(spec_ids_val)));
-		}
-		builder.SetSpecIds(std::move(spec_ids));
-	}
-	return builder.Build();
-}
-
-string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, optional<RemovePartitionSpecsUpdate> &result) {
+string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, RemovePartitionSpecsUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto spec_ids_val = yyjson_obj_get(obj, "spec-ids");
+		if (!spec_ids_val) {
+			throw InvalidInputException("RemovePartitionSpecsUpdate required property 'spec-ids' is missing");
+		} else {
+			vector<int32_t> spec_ids;
+			if (yyjson_is_arr(spec_ids_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(spec_ids_val, idx, max, val) {
+					int32_t tmp;
+					if (yyjson_is_int(val)) {
+						tmp = yyjson_get_int(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "RemovePartitionSpecsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					spec_ids.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemovePartitionSpecsUpdate property 'spec_ids' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(spec_ids_val)));
+			}
+			builder.SetSpecIds(std::move(spec_ids));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj) {
+	RemovePartitionSpecsUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::Copy() const {

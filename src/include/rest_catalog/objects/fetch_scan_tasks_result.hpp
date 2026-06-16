@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static FetchScanTasksResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<FetchScanTasksResult> &result);
+	static string TryFromJSON(yyjson_val *obj, FetchScanTasksResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

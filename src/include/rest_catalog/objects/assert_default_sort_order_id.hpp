@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssertDefaultSortOrderId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssertDefaultSortOrderId> &result);
+	static string TryFromJSON(yyjson_val *obj, AssertDefaultSortOrderIdBuilder &builder);
 	string Validate() const;
 
 	// Copy

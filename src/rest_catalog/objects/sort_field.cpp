@@ -79,51 +79,54 @@ string SortFieldBuilder::TryBuild(optional<SortField> &result) {
 	}
 }
 
-SortField SortField::FromJSON(yyjson_val *obj) {
-	SortFieldBuilder builder;
-	auto source_id_val = yyjson_obj_get(obj, "source-id");
-	if (!source_id_val) {
-		throw InvalidInputException("SortField required property 'source-id' is missing");
-	} else {
-		int32_t source_id;
-		if (yyjson_is_int(source_id_val)) {
-			source_id = yyjson_get_int(source_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SortField property 'source_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(source_id_val)));
-		}
-		builder.SetSourceId(std::move(source_id));
-	}
-	auto transform_val = yyjson_obj_get(obj, "transform");
-	if (!transform_val) {
-		throw InvalidInputException("SortField required property 'transform' is missing");
-	} else {
-		builder.SetTransform(Transform::FromJSON(transform_val));
-	}
-	auto direction_val = yyjson_obj_get(obj, "direction");
-	if (!direction_val) {
-		throw InvalidInputException("SortField required property 'direction' is missing");
-	} else {
-		builder.SetDirection(SortDirection::FromJSON(direction_val));
-	}
-	auto null_order_val = yyjson_obj_get(obj, "null-order");
-	if (!null_order_val) {
-		throw InvalidInputException("SortField required property 'null-order' is missing");
-	} else {
-		builder.SetNullOrder(NullOrder::FromJSON(null_order_val));
-	}
-	return builder.Build();
-}
-
-string SortField::TryFromJSON(yyjson_val *obj, optional<SortField> &result) {
+string SortField::TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto source_id_val = yyjson_obj_get(obj, "source-id");
+		if (!source_id_val) {
+			throw InvalidInputException("SortField required property 'source-id' is missing");
+		} else {
+			int32_t source_id;
+			if (yyjson_is_int(source_id_val)) {
+				source_id = yyjson_get_int(source_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("SortField property 'source_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(source_id_val)));
+			}
+			builder.SetSourceId(std::move(source_id));
+		}
+		auto transform_val = yyjson_obj_get(obj, "transform");
+		if (!transform_val) {
+			throw InvalidInputException("SortField required property 'transform' is missing");
+		} else {
+			builder.SetTransform(Transform::FromJSON(transform_val));
+		}
+		auto direction_val = yyjson_obj_get(obj, "direction");
+		if (!direction_val) {
+			throw InvalidInputException("SortField required property 'direction' is missing");
+		} else {
+			builder.SetDirection(SortDirection::FromJSON(direction_val));
+		}
+		auto null_order_val = yyjson_obj_get(obj, "null-order");
+		if (!null_order_val) {
+			throw InvalidInputException("SortField required property 'null-order' is missing");
+		} else {
+			builder.SetNullOrder(NullOrder::FromJSON(null_order_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SortField SortField::FromJSON(yyjson_val *obj) {
+	SortFieldBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SortField SortField::Copy() const {

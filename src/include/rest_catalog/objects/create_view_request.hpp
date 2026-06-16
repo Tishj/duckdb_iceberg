@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static CreateViewRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CreateViewRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

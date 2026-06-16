@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static TransformTerm FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TransformTerm> &result);
+	static string TryFromJSON(yyjson_val *obj, TransformTermBuilder &builder);
 	string Validate() const;
 
 	// Copy

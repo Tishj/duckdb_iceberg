@@ -51,52 +51,56 @@ string ValueMapBuilder::TryBuild(optional<ValueMap> &result) {
 	}
 }
 
-ValueMap ValueMap::FromJSON(yyjson_val *obj) {
-	ValueMapBuilder builder;
-	auto keys_val = yyjson_obj_get(obj, "keys");
-	if (keys_val) {
-		vector<IntegerTypeValue> keys;
-		if (yyjson_is_arr(keys_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(keys_val, idx, max, val) {
-				auto tmp = IntegerTypeValue::FromJSON(val);
-				keys.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ValueMap property 'keys' is not of type 'array', found '%s' instead", yyjson_get_type_desc(keys_val)));
-		}
-		builder.SetKeys(std::move(keys));
-	}
-	auto values_val = yyjson_obj_get(obj, "values");
-	if (values_val) {
-		vector<PrimitiveTypeValue> values;
-		if (yyjson_is_arr(values_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(values_val, idx, max, val) {
-				auto tmp = PrimitiveTypeValue::FromJSON(val);
-				values.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ValueMap property 'values' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(values_val)));
-		}
-		builder.SetValues(std::move(values));
-	}
-	return builder.Build();
-}
-
-string ValueMap::TryFromJSON(yyjson_val *obj, optional<ValueMap> &result) {
+string ValueMap::TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto keys_val = yyjson_obj_get(obj, "keys");
+		if (keys_val) {
+			vector<IntegerTypeValue> keys;
+			if (yyjson_is_arr(keys_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(keys_val, idx, max, val) {
+					auto tmp = IntegerTypeValue::FromJSON(val);
+					keys.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ValueMap property 'keys' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(keys_val)));
+			}
+			builder.SetKeys(std::move(keys));
+		}
+		auto values_val = yyjson_obj_get(obj, "values");
+		if (values_val) {
+			vector<PrimitiveTypeValue> values;
+			if (yyjson_is_arr(values_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(values_val, idx, max, val) {
+					auto tmp = PrimitiveTypeValue::FromJSON(val);
+					values.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ValueMap property 'values' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(values_val)));
+			}
+			builder.SetValues(std::move(values));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ValueMap ValueMap::FromJSON(yyjson_val *obj) {
+	ValueMapBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ValueMap ValueMap::Copy() const {

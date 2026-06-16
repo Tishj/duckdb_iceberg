@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static PartitionStatisticsFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<PartitionStatisticsFile> &result);
+	static string TryFromJSON(yyjson_val *obj, PartitionStatisticsFileBuilder &builder);
 	string Validate() const;
 
 	// Copy

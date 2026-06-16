@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static IcebergErrorResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<IcebergErrorResponse> &result);
+	static string TryFromJSON(yyjson_val *obj, IcebergErrorResponseBuilder &builder);
 	string Validate() const;
 
 	// Copy

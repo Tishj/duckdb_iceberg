@@ -61,49 +61,52 @@ string MetadataLog::Object4Builder::TryBuild(optional<MetadataLog::Object4> &res
 	}
 }
 
-MetadataLog::Object4 MetadataLog::Object4::FromJSON(yyjson_val *obj) {
-	Object4Builder builder;
-	auto metadata_file_val = yyjson_obj_get(obj, "metadata-file");
-	if (!metadata_file_val) {
-		throw InvalidInputException("Object4 required property 'metadata-file' is missing");
-	} else {
-		string metadata_file;
-		if (yyjson_is_str(metadata_file_val)) {
-			metadata_file = yyjson_get_str(metadata_file_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Object4 property 'metadata_file' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(metadata_file_val)));
-		}
-		builder.SetMetadataFile(std::move(metadata_file));
-	}
-	auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
-	if (!timestamp_ms_val) {
-		throw InvalidInputException("Object4 required property 'timestamp-ms' is missing");
-	} else {
-		int64_t timestamp_ms;
-		if (yyjson_is_sint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_sint(timestamp_ms_val);
-		} else if (yyjson_is_uint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_uint(timestamp_ms_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Object4 property 'timestamp_ms' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(timestamp_ms_val)));
-		}
-		builder.SetTimestampMs(std::move(timestamp_ms));
-	}
-	return builder.Build();
-}
-
-string MetadataLog::Object4::TryFromJSON(yyjson_val *obj, optional<MetadataLog::Object4> &result) {
+string MetadataLog::Object4::TryFromJSON(yyjson_val *obj, Object4Builder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto metadata_file_val = yyjson_obj_get(obj, "metadata-file");
+		if (!metadata_file_val) {
+			throw InvalidInputException("Object4 required property 'metadata-file' is missing");
+		} else {
+			string metadata_file;
+			if (yyjson_is_str(metadata_file_val)) {
+				metadata_file = yyjson_get_str(metadata_file_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Object4 property 'metadata_file' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(metadata_file_val)));
+			}
+			builder.SetMetadataFile(std::move(metadata_file));
+		}
+		auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
+		if (!timestamp_ms_val) {
+			throw InvalidInputException("Object4 required property 'timestamp-ms' is missing");
+		} else {
+			int64_t timestamp_ms;
+			if (yyjson_is_sint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_sint(timestamp_ms_val);
+			} else if (yyjson_is_uint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_uint(timestamp_ms_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Object4 property 'timestamp_ms' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(timestamp_ms_val)));
+			}
+			builder.SetTimestampMs(std::move(timestamp_ms));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+MetadataLog::Object4 MetadataLog::Object4::FromJSON(yyjson_val *obj) {
+	Object4Builder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 MetadataLog::Object4 MetadataLog::Object4::Copy() const {
@@ -140,30 +143,38 @@ yyjson_mut_val *MetadataLog::Object4::ToJSON(yyjson_mut_doc *doc) const {
 	return obj;
 }
 
-MetadataLog MetadataLog::FromJSON(yyjson_val *obj) {
-	vector<Object4> value;
-	if (yyjson_is_arr(obj)) {
-		size_t idx, max;
-		yyjson_val *val;
-		yyjson_arr_foreach(obj, idx, max, val) {
-			auto tmp = Object4::FromJSON(val);
-			value.emplace_back(std::move(tmp));
-		}
-	} else {
-		throw InvalidInputException(StringUtil::Format(
-		    "MetadataLog property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
-	}
-	return MetadataLog(std::move(value));
-}
-
 string MetadataLog::TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		vector<Object4> value;
+		if (yyjson_is_arr(obj)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(obj, idx, max, val) {
+				auto tmp = Object4::FromJSON(val);
+				value.emplace_back(std::move(tmp));
+			}
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "MetadataLog property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
+		}
+		result.emplace(MetadataLog(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+MetadataLog MetadataLog::FromJSON(yyjson_val *obj) {
+	optional<MetadataLog> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 MetadataLog MetadataLog::Copy() const {

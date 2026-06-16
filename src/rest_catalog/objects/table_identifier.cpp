@@ -59,41 +59,44 @@ string TableIdentifierBuilder::TryBuild(optional<TableIdentifier> &result) {
 	}
 }
 
-TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
-	TableIdentifierBuilder builder;
-	auto _namespace_val = yyjson_obj_get(obj, "namespace");
-	if (!_namespace_val) {
-		throw InvalidInputException("TableIdentifier required property 'namespace' is missing");
-	} else {
-		builder.SetNamespace(Namespace::FromJSON(_namespace_val));
-	}
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		throw InvalidInputException("TableIdentifier required property 'name' is missing");
-	} else {
-		string name;
-		if (yyjson_is_null(name_val)) {
-			throw InvalidInputException("TableIdentifier property 'name' is not nullable, but is 'null'");
-		} else if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("TableIdentifier property 'name' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(name_val)));
-		}
-		builder.SetName(std::move(name));
-	}
-	return builder.Build();
-}
-
-string TableIdentifier::TryFromJSON(yyjson_val *obj, optional<TableIdentifier> &result) {
+string TableIdentifier::TryFromJSON(yyjson_val *obj, TableIdentifierBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto _namespace_val = yyjson_obj_get(obj, "namespace");
+		if (!_namespace_val) {
+			throw InvalidInputException("TableIdentifier required property 'namespace' is missing");
+		} else {
+			builder.SetNamespace(Namespace::FromJSON(_namespace_val));
+		}
+		auto name_val = yyjson_obj_get(obj, "name");
+		if (!name_val) {
+			throw InvalidInputException("TableIdentifier required property 'name' is missing");
+		} else {
+			string name;
+			if (yyjson_is_null(name_val)) {
+				throw InvalidInputException("TableIdentifier property 'name' is not nullable, but is 'null'");
+			} else if (yyjson_is_str(name_val)) {
+				name = yyjson_get_str(name_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("TableIdentifier property 'name' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(name_val)));
+			}
+			builder.SetName(std::move(name));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
+	TableIdentifierBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 TableIdentifier TableIdentifier::Copy() const {

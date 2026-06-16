@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static UpdateNamespacePropertiesResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<UpdateNamespacePropertiesResponse> &result);
+	static string TryFromJSON(yyjson_val *obj, UpdateNamespacePropertiesResponseBuilder &builder);
 	string Validate() const;
 
 	// Copy

@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static OAuthError FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<OAuthError> &result);
+	static string TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder);
 	string Validate() const;
 
 	// Copy

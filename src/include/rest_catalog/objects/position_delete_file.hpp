@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static PositionDeleteFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<PositionDeleteFile> &result);
+	static string TryFromJSON(yyjson_val *obj, PositionDeleteFileBuilder &builder);
 	string Validate() const;
 
 	// Copy

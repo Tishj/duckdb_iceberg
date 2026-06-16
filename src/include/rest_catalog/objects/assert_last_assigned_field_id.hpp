@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssertLastAssignedFieldId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssertLastAssignedFieldId> &result);
+	static string TryFromJSON(yyjson_val *obj, AssertLastAssignedFieldIdBuilder &builder);
 	string Validate() const;
 
 	// Copy

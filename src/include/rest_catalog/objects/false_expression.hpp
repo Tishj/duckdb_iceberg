@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static FalseExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<FalseExpression> &result);
+	static string TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &builder);
 	string Validate() const;
 
 	// Copy

@@ -1245,33 +1245,69 @@ class CPPClass:
         res.extend(self.write_builder_source(base, qualified_name))
 
         # Deserialization method
-        res.extend(['', f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{'])
         if self.is_object_schema():
-            res.append(f'\t{self.builder_class_name()} builder;')
-            res.extend([f'\t{x}' for x in self.write_all_of()])
-            res.extend([f'\t{x}' for x in self.write_one_of()])
-            res.extend([f'\t{x}' for x in self.write_any_of()])
-            res.extend(self.try_from_json_body)
-            res.extend(['\treturn builder.Build();', '}'])
+            res.extend(['', f'string {qualified_name}::TryFromJSON(yyjson_val *obj, {self.builder_class_name()} &builder) {{'])
+            res.append('\ttry {')
+            res.extend([f'\t\t{x}' for x in self.write_all_of()])
+            res.extend([f'\t\t{x}' for x in self.write_one_of()])
+            res.extend([f'\t\t{x}' for x in self.write_any_of()])
+            res.extend([f'\t\t{x}' for x in self.try_from_json_body])
+            res.extend(
+                [
+                    '\t\treturn "";',
+                    '\t} catch (const Exception &ex) {',
+                    '\t\tauto error = ErrorData(ex);',
+                    '\t\treturn error.RawMessage();',
+                    '\t}',
+                    '}',
+                ]
+            )
+            res.extend(
+                [
+                    '',
+                    f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{',
+                    f'\t{self.builder_class_name()} builder;',
+                    '\tauto error = TryFromJSON(obj, builder);',
+                    '\tif (!error.empty()) {',
+                    '\t\tthrow InvalidInputException(error);',
+                    '\t}',
+                    '\treturn builder.Build();',
+                    '}',
+                ]
+            )
         else:
+            res.extend(['', f'string {qualified_name}::TryFromJSON(yyjson_val *obj, optional<{qualified_name}> &result) {{'])
+            res.append('\ttry {')
             root_type = self.generate_variable_type(self.root_schema())
-            res.append(f'\t{root_type} value;')
-            res.extend([f'\t{x}' for x in self.try_from_json_body])
-            res.extend([f'\treturn {qualified_name}(std::move(value));', '}'])
-        res.extend(
-            [
-                '',
-                f'string {qualified_name}::TryFromJSON(yyjson_val *obj, optional<{qualified_name}> &result) {{',
-                '\ttry {',
-                '\t\tresult.emplace(FromJSON(obj));',
-                '\t\treturn "";',
-                '\t} catch (const Exception &ex) {',
-                '\t\tauto error = ErrorData(ex);',
-                '\t\treturn error.RawMessage();',
-                '\t}',
-                '}',
-            ]
-        )
+            res.append(f'\t\t{root_type} value;')
+            res.extend([f'\t\t{x}' for x in self.try_from_json_body])
+            res.extend(
+                [
+                    f'\t\tresult.emplace({qualified_name}(std::move(value)));',
+                    '\t\treturn "";',
+                    '\t} catch (const Exception &ex) {',
+                    '\t\tauto error = ErrorData(ex);',
+                    '\t\treturn error.RawMessage();',
+                    '\t}',
+                    '}',
+                ]
+            )
+            res.extend(
+                [
+                    '',
+                    f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{',
+                    f'\toptional<{qualified_name}> result;',
+                    '\tauto error = TryFromJSON(obj, result);',
+                    '\tif (!error.empty()) {',
+                    '\t\tthrow InvalidInputException(error);',
+                    '\t}',
+                    '\tif (!result.has_value()) {',
+                    '\t\tthrow InternalException("TryFromJSON succeeded without producing a result");',
+                    '\t}',
+                    '\treturn std::move(*result);',
+                    '}',
+                ]
+            )
         res.extend(self.write_copy_method_source(base))
         res.extend(self.write_validation_method_source(qualified_name))
         res.extend([''])
@@ -1327,7 +1363,11 @@ class CPPClass:
                 'public:',
                 '\t// Deserialization',
                 f'\tstatic {self.name} FromJSON(yyjson_val *obj);',
-                f'\tstatic string TryFromJSON(yyjson_val *obj, optional<{self.name}> &result);',
+                (
+                    f'\tstatic string TryFromJSON(yyjson_val *obj, {self.builder_class_name()} &builder);'
+                    if self.is_object_schema()
+                    else f'\tstatic string TryFromJSON(yyjson_val *obj, optional<{self.name}> &result);'
+                ),
                 '\tstring Validate() const;',
                 '',
                 '\t// Copy',

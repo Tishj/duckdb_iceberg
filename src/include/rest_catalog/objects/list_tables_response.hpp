@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static ListTablesResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ListTablesResponse> &result);
+	static string TryFromJSON(yyjson_val *obj, ListTablesResponseBuilder &builder);
 	string Validate() const;
 
 	// Copy

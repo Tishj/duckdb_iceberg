@@ -59,39 +59,42 @@ string AssertTableUUIDBuilder::TryBuild(optional<AssertTableUUID> &result) {
 	}
 }
 
-AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
-	AssertTableUUIDBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertTableUUID required property 'type' is missing");
-	} else {
-		builder.SetType(TableRequirementType::FromJSON(type_val));
-	}
-	auto uuid_val = yyjson_obj_get(obj, "uuid");
-	if (!uuid_val) {
-		throw InvalidInputException("AssertTableUUID required property 'uuid' is missing");
-	} else {
-		string uuid;
-		if (yyjson_is_str(uuid_val)) {
-			uuid = yyjson_get_str(uuid_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AssertTableUUID property 'uuid' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(uuid_val)));
-		}
-		builder.SetUuid(std::move(uuid));
-	}
-	return builder.Build();
-}
-
-string AssertTableUUID::TryFromJSON(yyjson_val *obj, optional<AssertTableUUID> &result) {
+string AssertTableUUID::TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertTableUUID required property 'type' is missing");
+		} else {
+			builder.SetType(TableRequirementType::FromJSON(type_val));
+		}
+		auto uuid_val = yyjson_obj_get(obj, "uuid");
+		if (!uuid_val) {
+			throw InvalidInputException("AssertTableUUID required property 'uuid' is missing");
+		} else {
+			string uuid;
+			if (yyjson_is_str(uuid_val)) {
+				uuid = yyjson_get_str(uuid_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("AssertTableUUID property 'uuid' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(uuid_val)));
+			}
+			builder.SetUuid(std::move(uuid));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
+	AssertTableUUIDBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertTableUUID AssertTableUUID::Copy() const {

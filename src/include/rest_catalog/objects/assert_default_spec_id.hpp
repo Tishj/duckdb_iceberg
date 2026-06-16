@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssertDefaultSpecId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssertDefaultSpecId> &result);
+	static string TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuilder &builder);
 	string Validate() const;
 
 	// Copy

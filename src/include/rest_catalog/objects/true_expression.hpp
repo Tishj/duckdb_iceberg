@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static TrueExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TrueExpression> &result);
+	static string TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &builder);
 	string Validate() const;
 
 	// Copy

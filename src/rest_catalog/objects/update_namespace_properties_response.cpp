@@ -65,70 +65,18 @@ string UpdateNamespacePropertiesResponseBuilder::TryBuild(optional<UpdateNamespa
 	}
 }
 
-UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yyjson_val *obj) {
-	UpdateNamespacePropertiesResponseBuilder builder;
-	auto updated_val = yyjson_obj_get(obj, "updated");
-	if (!updated_val) {
-		throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'updated' is missing");
-	} else {
-		vector<string> updated;
-		if (yyjson_is_arr(updated_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(updated_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "UpdateNamespacePropertiesResponse property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				updated.emplace_back(std::move(tmp));
-			}
+string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj,
+                                                      UpdateNamespacePropertiesResponseBuilder &builder) {
+	try {
+		auto updated_val = yyjson_obj_get(obj, "updated");
+		if (!updated_val) {
+			throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'updated' is missing");
 		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "UpdateNamespacePropertiesResponse property 'updated' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(updated_val)));
-		}
-		builder.SetUpdated(std::move(updated));
-	}
-	auto removed_val = yyjson_obj_get(obj, "removed");
-	if (!removed_val) {
-		throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'removed' is missing");
-	} else {
-		vector<string> removed;
-		if (yyjson_is_arr(removed_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(removed_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "UpdateNamespacePropertiesResponse property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				removed.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "UpdateNamespacePropertiesResponse property 'removed' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(removed_val)));
-		}
-		builder.SetRemoved(std::move(removed));
-	}
-	auto missing_val = yyjson_obj_get(obj, "missing");
-	if (missing_val) {
-		if (yyjson_is_null(missing_val)) {
-			//! do nothing, property is explicitly nullable
-		} else {
-			vector<string> missing;
-			if (yyjson_is_arr(missing_val)) {
+			vector<string> updated;
+			if (yyjson_is_arr(updated_val)) {
 				size_t idx, max;
 				yyjson_val *val;
-				yyjson_arr_foreach(missing_val, idx, max, val) {
+				yyjson_arr_foreach(updated_val, idx, max, val) {
 					string tmp;
 					if (yyjson_is_str(val)) {
 						tmp = yyjson_get_str(val);
@@ -138,28 +86,86 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yy
 						                       "'string', found '%s' instead",
 						                       yyjson_get_type_desc(val)));
 					}
-					missing.emplace_back(std::move(tmp));
+					updated.emplace_back(std::move(tmp));
 				}
 			} else {
 				throw InvalidInputException(StringUtil::Format(
-				    "UpdateNamespacePropertiesResponse property 'missing' is not of type 'array', found '%s' instead",
-				    yyjson_get_type_desc(missing_val)));
+				    "UpdateNamespacePropertiesResponse property 'updated' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(updated_val)));
 			}
-			builder.SetMissing(std::move(missing));
+			builder.SetUpdated(std::move(updated));
 		}
-	}
-	return builder.Build();
-}
-
-string UpdateNamespacePropertiesResponse::TryFromJSON(yyjson_val *obj,
-                                                      optional<UpdateNamespacePropertiesResponse> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		auto removed_val = yyjson_obj_get(obj, "removed");
+		if (!removed_val) {
+			throw InvalidInputException("UpdateNamespacePropertiesResponse required property 'removed' is missing");
+		} else {
+			vector<string> removed;
+			if (yyjson_is_arr(removed_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(removed_val, idx, max, val) {
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(
+						    StringUtil::Format("UpdateNamespacePropertiesResponse property 'tmp' is not of type "
+						                       "'string', found '%s' instead",
+						                       yyjson_get_type_desc(val)));
+					}
+					removed.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "UpdateNamespacePropertiesResponse property 'removed' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(removed_val)));
+			}
+			builder.SetRemoved(std::move(removed));
+		}
+		auto missing_val = yyjson_obj_get(obj, "missing");
+		if (missing_val) {
+			if (yyjson_is_null(missing_val)) {
+				//! do nothing, property is explicitly nullable
+			} else {
+				vector<string> missing;
+				if (yyjson_is_arr(missing_val)) {
+					size_t idx, max;
+					yyjson_val *val;
+					yyjson_arr_foreach(missing_val, idx, max, val) {
+						string tmp;
+						if (yyjson_is_str(val)) {
+							tmp = yyjson_get_str(val);
+						} else {
+							throw InvalidInputException(
+							    StringUtil::Format("UpdateNamespacePropertiesResponse property 'tmp' is not of type "
+							                       "'string', found '%s' instead",
+							                       yyjson_get_type_desc(val)));
+						}
+						missing.emplace_back(std::move(tmp));
+					}
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("UpdateNamespacePropertiesResponse property 'missing' is not of type "
+					                       "'array', found '%s' instead",
+					                       yyjson_get_type_desc(missing_val)));
+				}
+				builder.SetMissing(std::move(missing));
+			}
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yyjson_val *obj) {
+	UpdateNamespacePropertiesResponseBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() const {

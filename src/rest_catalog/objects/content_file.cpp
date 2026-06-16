@@ -129,160 +129,163 @@ string ContentFileBuilder::TryBuild(optional<ContentFile> &result) {
 	}
 }
 
-ContentFile ContentFile::FromJSON(yyjson_val *obj) {
-	ContentFileBuilder builder;
-	auto spec_id_val = yyjson_obj_get(obj, "spec-id");
-	if (!spec_id_val) {
-		throw InvalidInputException("ContentFile required property 'spec-id' is missing");
-	} else {
-		int32_t spec_id;
-		if (yyjson_is_int(spec_id_val)) {
-			spec_id = yyjson_get_int(spec_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'spec_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(spec_id_val)));
-		}
-		builder.SetSpecId(std::move(spec_id));
-	}
-	auto partition_val = yyjson_obj_get(obj, "partition");
-	if (!partition_val) {
-		throw InvalidInputException("ContentFile required property 'partition' is missing");
-	} else {
-		vector<PrimitiveTypeValue> partition;
-		if (yyjson_is_arr(partition_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(partition_val, idx, max, val) {
-				auto tmp = PrimitiveTypeValue::FromJSON(val);
-				partition.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'partition' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(partition_val)));
-		}
-		builder.SetPartition(std::move(partition));
-	}
-	auto content_val = yyjson_obj_get(obj, "content");
-	if (!content_val) {
-		throw InvalidInputException("ContentFile required property 'content' is missing");
-	} else {
-		string content;
-		if (yyjson_is_str(content_val)) {
-			content = yyjson_get_str(content_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'content' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(content_val)));
-		}
-		builder.SetContent(std::move(content));
-	}
-	auto file_path_val = yyjson_obj_get(obj, "file-path");
-	if (!file_path_val) {
-		throw InvalidInputException("ContentFile required property 'file-path' is missing");
-	} else {
-		string file_path;
-		if (yyjson_is_str(file_path_val)) {
-			file_path = yyjson_get_str(file_path_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'file_path' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(file_path_val)));
-		}
-		builder.SetFilePath(std::move(file_path));
-	}
-	auto file_format_val = yyjson_obj_get(obj, "file-format");
-	if (!file_format_val) {
-		throw InvalidInputException("ContentFile required property 'file-format' is missing");
-	} else {
-		builder.SetFileFormat(FileFormat::FromJSON(file_format_val));
-	}
-	auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
-	if (!file_size_in_bytes_val) {
-		throw InvalidInputException("ContentFile required property 'file-size-in-bytes' is missing");
-	} else {
-		int64_t file_size_in_bytes;
-		if (yyjson_is_sint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
-		} else if (yyjson_is_uint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ContentFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(file_size_in_bytes_val)));
-		}
-		builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
-	}
-	auto record_count_val = yyjson_obj_get(obj, "record-count");
-	if (!record_count_val) {
-		throw InvalidInputException("ContentFile required property 'record-count' is missing");
-	} else {
-		int64_t record_count;
-		if (yyjson_is_sint(record_count_val)) {
-			record_count = yyjson_get_sint(record_count_val);
-		} else if (yyjson_is_uint(record_count_val)) {
-			record_count = yyjson_get_uint(record_count_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'record_count' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(record_count_val)));
-		}
-		builder.SetRecordCount(std::move(record_count));
-	}
-	auto key_metadata_val = yyjson_obj_get(obj, "key-metadata");
-	if (key_metadata_val) {
-		builder.SetKeyMetadata(BinaryTypeValue::FromJSON(key_metadata_val));
-	}
-	auto split_offsets_val = yyjson_obj_get(obj, "split-offsets");
-	if (split_offsets_val) {
-		vector<int64_t> split_offsets;
-		if (yyjson_is_arr(split_offsets_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(split_offsets_val, idx, max, val) {
-				int64_t tmp;
-				if (yyjson_is_sint(val)) {
-					tmp = yyjson_get_sint(val);
-				} else if (yyjson_is_uint(val)) {
-					tmp = yyjson_get_uint(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("ContentFile property 'tmp' is not of type 'integer', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				split_offsets.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'split_offsets' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(split_offsets_val)));
-		}
-		builder.SetSplitOffsets(std::move(split_offsets));
-	}
-	auto sort_order_id_val = yyjson_obj_get(obj, "sort-order-id");
-	if (sort_order_id_val) {
-		int32_t sort_order_id;
-		if (yyjson_is_int(sort_order_id_val)) {
-			sort_order_id = yyjson_get_int(sort_order_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ContentFile property 'sort_order_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(sort_order_id_val)));
-		}
-		builder.SetSortOrderId(std::move(sort_order_id));
-	}
-	return builder.Build();
-}
-
-string ContentFile::TryFromJSON(yyjson_val *obj, optional<ContentFile> &result) {
+string ContentFile::TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto spec_id_val = yyjson_obj_get(obj, "spec-id");
+		if (!spec_id_val) {
+			throw InvalidInputException("ContentFile required property 'spec-id' is missing");
+		} else {
+			int32_t spec_id;
+			if (yyjson_is_int(spec_id_val)) {
+				spec_id = yyjson_get_int(spec_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ContentFile property 'spec_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(spec_id_val)));
+			}
+			builder.SetSpecId(std::move(spec_id));
+		}
+		auto partition_val = yyjson_obj_get(obj, "partition");
+		if (!partition_val) {
+			throw InvalidInputException("ContentFile required property 'partition' is missing");
+		} else {
+			vector<PrimitiveTypeValue> partition;
+			if (yyjson_is_arr(partition_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(partition_val, idx, max, val) {
+					auto tmp = PrimitiveTypeValue::FromJSON(val);
+					partition.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ContentFile property 'partition' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(partition_val)));
+			}
+			builder.SetPartition(std::move(partition));
+		}
+		auto content_val = yyjson_obj_get(obj, "content");
+		if (!content_val) {
+			throw InvalidInputException("ContentFile required property 'content' is missing");
+		} else {
+			string content;
+			if (yyjson_is_str(content_val)) {
+				content = yyjson_get_str(content_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ContentFile property 'content' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(content_val)));
+			}
+			builder.SetContent(std::move(content));
+		}
+		auto file_path_val = yyjson_obj_get(obj, "file-path");
+		if (!file_path_val) {
+			throw InvalidInputException("ContentFile required property 'file-path' is missing");
+		} else {
+			string file_path;
+			if (yyjson_is_str(file_path_val)) {
+				file_path = yyjson_get_str(file_path_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ContentFile property 'file_path' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(file_path_val)));
+			}
+			builder.SetFilePath(std::move(file_path));
+		}
+		auto file_format_val = yyjson_obj_get(obj, "file-format");
+		if (!file_format_val) {
+			throw InvalidInputException("ContentFile required property 'file-format' is missing");
+		} else {
+			builder.SetFileFormat(FileFormat::FromJSON(file_format_val));
+		}
+		auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
+		if (!file_size_in_bytes_val) {
+			throw InvalidInputException("ContentFile required property 'file-size-in-bytes' is missing");
+		} else {
+			int64_t file_size_in_bytes;
+			if (yyjson_is_sint(file_size_in_bytes_val)) {
+				file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
+			} else if (yyjson_is_uint(file_size_in_bytes_val)) {
+				file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ContentFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(file_size_in_bytes_val)));
+			}
+			builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
+		}
+		auto record_count_val = yyjson_obj_get(obj, "record-count");
+		if (!record_count_val) {
+			throw InvalidInputException("ContentFile required property 'record-count' is missing");
+		} else {
+			int64_t record_count;
+			if (yyjson_is_sint(record_count_val)) {
+				record_count = yyjson_get_sint(record_count_val);
+			} else if (yyjson_is_uint(record_count_val)) {
+				record_count = yyjson_get_uint(record_count_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ContentFile property 'record_count' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(record_count_val)));
+			}
+			builder.SetRecordCount(std::move(record_count));
+		}
+		auto key_metadata_val = yyjson_obj_get(obj, "key-metadata");
+		if (key_metadata_val) {
+			builder.SetKeyMetadata(BinaryTypeValue::FromJSON(key_metadata_val));
+		}
+		auto split_offsets_val = yyjson_obj_get(obj, "split-offsets");
+		if (split_offsets_val) {
+			vector<int64_t> split_offsets;
+			if (yyjson_is_arr(split_offsets_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(split_offsets_val, idx, max, val) {
+					int64_t tmp;
+					if (yyjson_is_sint(val)) {
+						tmp = yyjson_get_sint(val);
+					} else if (yyjson_is_uint(val)) {
+						tmp = yyjson_get_uint(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "ContentFile property 'tmp' is not of type 'integer', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					split_offsets.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ContentFile property 'split_offsets' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(split_offsets_val)));
+			}
+			builder.SetSplitOffsets(std::move(split_offsets));
+		}
+		auto sort_order_id_val = yyjson_obj_get(obj, "sort-order-id");
+		if (sort_order_id_val) {
+			int32_t sort_order_id;
+			if (yyjson_is_int(sort_order_id_val)) {
+				sort_order_id = yyjson_get_int(sort_order_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ContentFile property 'sort_order_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(sort_order_id_val)));
+			}
+			builder.SetSortOrderId(std::move(sort_order_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ContentFile ContentFile::FromJSON(yyjson_val *obj) {
+	ContentFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ContentFile ContentFile::Copy() const {

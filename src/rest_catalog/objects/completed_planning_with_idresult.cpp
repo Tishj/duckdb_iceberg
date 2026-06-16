@@ -54,34 +54,36 @@ CompletedPlanningWithIDResult::Object6Builder::TryBuild(optional<CompletedPlanni
 	}
 }
 
-CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::FromJSON(yyjson_val *obj) {
-	Object6Builder builder;
-	auto plan_id_val = yyjson_obj_get(obj, "plan-id");
-	if (!plan_id_val) {
-		throw InvalidInputException("Object6 required property 'plan-id' is missing");
-	} else {
-		string plan_id;
-		if (yyjson_is_str(plan_id_val)) {
-			plan_id = yyjson_get_str(plan_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Object6 property 'plan_id' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(plan_id_val)));
-		}
-		builder.SetPlanId(std::move(plan_id));
-	}
-	return builder.Build();
-}
-
-string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj,
-                                                           optional<CompletedPlanningWithIDResult::Object6> &result) {
+string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj, Object6Builder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto plan_id_val = yyjson_obj_get(obj, "plan-id");
+		if (!plan_id_val) {
+			throw InvalidInputException("Object6 required property 'plan-id' is missing");
+		} else {
+			string plan_id;
+			if (yyjson_is_str(plan_id_val)) {
+				plan_id = yyjson_get_str(plan_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Object6 property 'plan_id' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(plan_id_val)));
+			}
+			builder.SetPlanId(std::move(plan_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::FromJSON(yyjson_val *obj) {
+	Object6Builder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::Copy() const {
@@ -146,21 +148,24 @@ string CompletedPlanningWithIDResultBuilder::TryBuild(optional<CompletedPlanning
 	}
 }
 
-CompletedPlanningWithIDResult CompletedPlanningWithIDResult::FromJSON(yyjson_val *obj) {
-	CompletedPlanningWithIDResultBuilder builder;
-	builder.SetCompletedPlanningResult(CompletedPlanningResult::FromJSON(obj));
-	builder.SetObject6(Object6::FromJSON(obj));
-	return builder.Build();
-}
-
-string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj, optional<CompletedPlanningWithIDResult> &result) {
+string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj, CompletedPlanningWithIDResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetCompletedPlanningResult(CompletedPlanningResult::FromJSON(obj));
+		builder.SetObject6(Object6::FromJSON(obj));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CompletedPlanningWithIDResult CompletedPlanningWithIDResult::FromJSON(yyjson_val *obj) {
+	CompletedPlanningWithIDResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CompletedPlanningWithIDResult CompletedPlanningWithIDResult::Copy() const {

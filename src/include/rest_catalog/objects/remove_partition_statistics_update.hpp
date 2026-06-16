@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static RemovePartitionStatisticsUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<RemovePartitionStatisticsUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, RemovePartitionStatisticsUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

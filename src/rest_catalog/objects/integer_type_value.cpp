@@ -18,26 +18,34 @@ namespace rest_api_objects {
 IntegerTypeValue::IntegerTypeValue(int32_t value_p) : value(std::move(value_p)) {
 }
 
-IntegerTypeValue IntegerTypeValue::FromJSON(yyjson_val *obj) {
-	int32_t value;
-	if (yyjson_is_int(obj)) {
-		value = yyjson_get_int(obj);
-	} else {
-		throw InvalidInputException(
-		    StringUtil::Format("IntegerTypeValue property 'value' is not of type 'integer', found '%s' instead",
-		                       yyjson_get_type_desc(obj)));
-	}
-	return IntegerTypeValue(std::move(value));
-}
-
 string IntegerTypeValue::TryFromJSON(yyjson_val *obj, optional<IntegerTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		int32_t value;
+		if (yyjson_is_int(obj)) {
+			value = yyjson_get_int(obj);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("IntegerTypeValue property 'value' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(obj)));
+		}
+		result.emplace(IntegerTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+IntegerTypeValue IntegerTypeValue::FromJSON(yyjson_val *obj) {
+	optional<IntegerTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 IntegerTypeValue IntegerTypeValue::Copy() const {

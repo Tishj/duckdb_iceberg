@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssertCurrentSchemaId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssertCurrentSchemaId> &result);
+	static string TryFromJSON(yyjson_val *obj, AssertCurrentSchemaIdBuilder &builder);
 	string Validate() const;
 
 	// Copy

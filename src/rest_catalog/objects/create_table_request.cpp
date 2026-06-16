@@ -91,94 +91,97 @@ string CreateTableRequestBuilder::TryBuild(optional<CreateTableRequest> &result)
 	}
 }
 
-CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
-	CreateTableRequestBuilder builder;
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		throw InvalidInputException("CreateTableRequest required property 'name' is missing");
-	} else {
-		string name;
-		if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CreateTableRequest property 'name' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(name_val)));
-		}
-		builder.SetName(std::move(name));
-	}
-	auto schema_val = yyjson_obj_get(obj, "schema");
-	if (!schema_val) {
-		throw InvalidInputException("CreateTableRequest required property 'schema' is missing");
-	} else {
-		builder.SetSchema(Schema::FromJSON(schema_val));
-	}
-	auto location_val = yyjson_obj_get(obj, "location");
-	if (location_val) {
-		string location;
-		if (yyjson_is_str(location_val)) {
-			location = yyjson_get_str(location_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CreateTableRequest property 'location' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(location_val)));
-		}
-		builder.SetLocation(std::move(location));
-	}
-	auto partition_spec_val = yyjson_obj_get(obj, "partition-spec");
-	if (partition_spec_val) {
-		builder.SetPartitionSpec(PartitionSpec::FromJSON(partition_spec_val));
-	}
-	auto write_order_val = yyjson_obj_get(obj, "write-order");
-	if (write_order_val) {
-		builder.SetWriteOrder(SortOrder::FromJSON(write_order_val));
-	}
-	auto stage_create_val = yyjson_obj_get(obj, "stage-create");
-	if (stage_create_val) {
-		bool stage_create;
-		if (yyjson_is_bool(stage_create_val)) {
-			stage_create = yyjson_get_bool(stage_create_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CreateTableRequest property 'stage_create' is not of type 'boolean', found '%s' instead",
-			    yyjson_get_type_desc(stage_create_val)));
-		}
-		builder.SetStageCreate(std::move(stage_create));
-	}
-	auto properties_val = yyjson_obj_get(obj, "properties");
-	if (properties_val) {
-		case_insensitive_map_t<string> properties;
-		if (yyjson_is_obj(properties_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(properties_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "CreateTableRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				properties.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("CreateTableRequest property 'properties' is not of type 'object'");
-		}
-		builder.SetProperties(std::move(properties));
-	}
-	return builder.Build();
-}
-
-string CreateTableRequest::TryFromJSON(yyjson_val *obj, optional<CreateTableRequest> &result) {
+string CreateTableRequest::TryFromJSON(yyjson_val *obj, CreateTableRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto name_val = yyjson_obj_get(obj, "name");
+		if (!name_val) {
+			throw InvalidInputException("CreateTableRequest required property 'name' is missing");
+		} else {
+			string name;
+			if (yyjson_is_str(name_val)) {
+				name = yyjson_get_str(name_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CreateTableRequest property 'name' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(name_val)));
+			}
+			builder.SetName(std::move(name));
+		}
+		auto schema_val = yyjson_obj_get(obj, "schema");
+		if (!schema_val) {
+			throw InvalidInputException("CreateTableRequest required property 'schema' is missing");
+		} else {
+			builder.SetSchema(Schema::FromJSON(schema_val));
+		}
+		auto location_val = yyjson_obj_get(obj, "location");
+		if (location_val) {
+			string location;
+			if (yyjson_is_str(location_val)) {
+				location = yyjson_get_str(location_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CreateTableRequest property 'location' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(location_val)));
+			}
+			builder.SetLocation(std::move(location));
+		}
+		auto partition_spec_val = yyjson_obj_get(obj, "partition-spec");
+		if (partition_spec_val) {
+			builder.SetPartitionSpec(PartitionSpec::FromJSON(partition_spec_val));
+		}
+		auto write_order_val = yyjson_obj_get(obj, "write-order");
+		if (write_order_val) {
+			builder.SetWriteOrder(SortOrder::FromJSON(write_order_val));
+		}
+		auto stage_create_val = yyjson_obj_get(obj, "stage-create");
+		if (stage_create_val) {
+			bool stage_create;
+			if (yyjson_is_bool(stage_create_val)) {
+				stage_create = yyjson_get_bool(stage_create_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CreateTableRequest property 'stage_create' is not of type 'boolean', found '%s' instead",
+				    yyjson_get_type_desc(stage_create_val)));
+			}
+			builder.SetStageCreate(std::move(stage_create));
+		}
+		auto properties_val = yyjson_obj_get(obj, "properties");
+		if (properties_val) {
+			case_insensitive_map_t<string> properties;
+			if (yyjson_is_obj(properties_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(properties_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "CreateTableRequest property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					properties.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("CreateTableRequest property 'properties' is not of type 'object'");
+			}
+			builder.SetProperties(std::move(properties));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
+	CreateTableRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CreateTableRequest CreateTableRequest::Copy() const {

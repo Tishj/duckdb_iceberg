@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static SortField FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SortField> &result);
+	static string TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder);
 	string Validate() const;
 
 	// Copy

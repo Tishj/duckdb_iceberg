@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static TableIdentifier FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TableIdentifier> &result);
+	static string TryFromJSON(yyjson_val *obj, TableIdentifierBuilder &builder);
 	string Validate() const;
 
 	// Copy

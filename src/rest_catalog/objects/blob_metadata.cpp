@@ -85,114 +85,117 @@ string BlobMetadataBuilder::TryBuild(optional<BlobMetadata> &result) {
 	}
 }
 
-BlobMetadata BlobMetadata::FromJSON(yyjson_val *obj) {
-	BlobMetadataBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("BlobMetadata required property 'type' is missing");
-	} else {
-		string type;
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("BlobMetadata property 'type' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(type_val)));
-		}
-		builder.SetType(std::move(type));
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("BlobMetadata required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("BlobMetadata property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	auto sequence_number_val = yyjson_obj_get(obj, "sequence-number");
-	if (!sequence_number_val) {
-		throw InvalidInputException("BlobMetadata required property 'sequence-number' is missing");
-	} else {
-		int64_t sequence_number;
-		if (yyjson_is_sint(sequence_number_val)) {
-			sequence_number = yyjson_get_sint(sequence_number_val);
-		} else if (yyjson_is_uint(sequence_number_val)) {
-			sequence_number = yyjson_get_uint(sequence_number_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "BlobMetadata property 'sequence_number' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(sequence_number_val)));
-		}
-		builder.SetSequenceNumber(std::move(sequence_number));
-	}
-	auto fields_val = yyjson_obj_get(obj, "fields");
-	if (!fields_val) {
-		throw InvalidInputException("BlobMetadata required property 'fields' is missing");
-	} else {
-		vector<int32_t> fields;
-		if (yyjson_is_arr(fields_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(fields_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("BlobMetadata property 'tmp' is not of type 'integer', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				fields.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("BlobMetadata property 'fields' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(fields_val)));
-		}
-		builder.SetFields(std::move(fields));
-	}
-	auto properties_val = yyjson_obj_get(obj, "properties");
-	if (properties_val) {
-		case_insensitive_map_t<string> properties;
-		if (yyjson_is_obj(properties_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(properties_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("BlobMetadata property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				properties.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("BlobMetadata property 'properties' is not of type 'object'");
-		}
-		builder.SetProperties(std::move(properties));
-	}
-	return builder.Build();
-}
-
-string BlobMetadata::TryFromJSON(yyjson_val *obj, optional<BlobMetadata> &result) {
+string BlobMetadata::TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("BlobMetadata required property 'type' is missing");
+		} else {
+			string type;
+			if (yyjson_is_str(type_val)) {
+				type = yyjson_get_str(type_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("BlobMetadata property 'type' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(type_val)));
+			}
+			builder.SetType(std::move(type));
+		}
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("BlobMetadata required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "BlobMetadata property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+		auto sequence_number_val = yyjson_obj_get(obj, "sequence-number");
+		if (!sequence_number_val) {
+			throw InvalidInputException("BlobMetadata required property 'sequence-number' is missing");
+		} else {
+			int64_t sequence_number;
+			if (yyjson_is_sint(sequence_number_val)) {
+				sequence_number = yyjson_get_sint(sequence_number_val);
+			} else if (yyjson_is_uint(sequence_number_val)) {
+				sequence_number = yyjson_get_uint(sequence_number_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "BlobMetadata property 'sequence_number' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(sequence_number_val)));
+			}
+			builder.SetSequenceNumber(std::move(sequence_number));
+		}
+		auto fields_val = yyjson_obj_get(obj, "fields");
+		if (!fields_val) {
+			throw InvalidInputException("BlobMetadata required property 'fields' is missing");
+		} else {
+			vector<int32_t> fields;
+			if (yyjson_is_arr(fields_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(fields_val, idx, max, val) {
+					int32_t tmp;
+					if (yyjson_is_int(val)) {
+						tmp = yyjson_get_int(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "BlobMetadata property 'tmp' is not of type 'integer', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					fields.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("BlobMetadata property 'fields' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(fields_val)));
+			}
+			builder.SetFields(std::move(fields));
+		}
+		auto properties_val = yyjson_obj_get(obj, "properties");
+		if (properties_val) {
+			case_insensitive_map_t<string> properties;
+			if (yyjson_is_obj(properties_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(properties_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "BlobMetadata property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					properties.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("BlobMetadata property 'properties' is not of type 'object'");
+			}
+			builder.SetProperties(std::move(properties));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+BlobMetadata BlobMetadata::FromJSON(yyjson_val *obj) {
+	BlobMetadataBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 BlobMetadata BlobMetadata::Copy() const {

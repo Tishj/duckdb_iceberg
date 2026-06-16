@@ -18,25 +18,34 @@ namespace rest_api_objects {
 DoubleTypeValue::DoubleTypeValue(double value_p) : value(std::move(value_p)) {
 }
 
-DoubleTypeValue DoubleTypeValue::FromJSON(yyjson_val *obj) {
-	double value;
-	if (yyjson_is_num(obj)) {
-		value = yyjson_get_num(obj);
-	} else {
-		throw InvalidInputException(StringUtil::Format(
-		    "DoubleTypeValue property 'value' is not of type 'number', found '%s' instead", yyjson_get_type_desc(obj)));
-	}
-	return DoubleTypeValue(std::move(value));
-}
-
 string DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		double value;
+		if (yyjson_is_num(obj)) {
+			value = yyjson_get_num(obj);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("DoubleTypeValue property 'value' is not of type 'number', found '%s' instead",
+			                       yyjson_get_type_desc(obj)));
+		}
+		result.emplace(DoubleTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+DoubleTypeValue DoubleTypeValue::FromJSON(yyjson_val *obj) {
+	optional<DoubleTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 DoubleTypeValue DoubleTypeValue::Copy() const {

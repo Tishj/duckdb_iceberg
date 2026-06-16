@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static ViewHistoryEntry FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ViewHistoryEntry> &result);
+	static string TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &builder);
 	string Validate() const;
 
 	// Copy

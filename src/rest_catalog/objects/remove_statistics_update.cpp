@@ -55,36 +55,39 @@ string RemoveStatisticsUpdateBuilder::TryBuild(optional<RemoveStatisticsUpdate> 
 	}
 }
 
-RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	RemoveStatisticsUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("RemoveStatisticsUpdate required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemoveStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	return builder.Build();
-}
-
-string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveStatisticsUpdate> &result) {
+string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveStatisticsUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("RemoveStatisticsUpdate required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemoveStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	RemoveStatisticsUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemoveStatisticsUpdate RemoveStatisticsUpdate::Copy() const {

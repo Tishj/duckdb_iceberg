@@ -58,49 +58,52 @@ string CounterResultBuilder::TryBuild(optional<CounterResult> &result) {
 	}
 }
 
-CounterResult CounterResult::FromJSON(yyjson_val *obj) {
-	CounterResultBuilder builder;
-	auto unit_val = yyjson_obj_get(obj, "unit");
-	if (!unit_val) {
-		throw InvalidInputException("CounterResult required property 'unit' is missing");
-	} else {
-		string unit;
-		if (yyjson_is_str(unit_val)) {
-			unit = yyjson_get_str(unit_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CounterResult property 'unit' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(unit_val)));
-		}
-		builder.SetUnit(std::move(unit));
-	}
-	auto value_val = yyjson_obj_get(obj, "value");
-	if (!value_val) {
-		throw InvalidInputException("CounterResult required property 'value' is missing");
-	} else {
-		int64_t value;
-		if (yyjson_is_sint(value_val)) {
-			value = yyjson_get_sint(value_val);
-		} else if (yyjson_is_uint(value_val)) {
-			value = yyjson_get_uint(value_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CounterResult property 'value' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(value_val)));
-		}
-		builder.SetValue(std::move(value));
-	}
-	return builder.Build();
-}
-
-string CounterResult::TryFromJSON(yyjson_val *obj, optional<CounterResult> &result) {
+string CounterResult::TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto unit_val = yyjson_obj_get(obj, "unit");
+		if (!unit_val) {
+			throw InvalidInputException("CounterResult required property 'unit' is missing");
+		} else {
+			string unit;
+			if (yyjson_is_str(unit_val)) {
+				unit = yyjson_get_str(unit_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CounterResult property 'unit' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(unit_val)));
+			}
+			builder.SetUnit(std::move(unit));
+		}
+		auto value_val = yyjson_obj_get(obj, "value");
+		if (!value_val) {
+			throw InvalidInputException("CounterResult required property 'value' is missing");
+		} else {
+			int64_t value;
+			if (yyjson_is_sint(value_val)) {
+				value = yyjson_get_sint(value_val);
+			} else if (yyjson_is_uint(value_val)) {
+				value = yyjson_get_uint(value_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CounterResult property 'value' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(value_val)));
+			}
+			builder.SetValue(std::move(value));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CounterResult CounterResult::FromJSON(yyjson_val *obj) {
+	CounterResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CounterResult CounterResult::Copy() const {

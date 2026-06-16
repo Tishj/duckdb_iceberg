@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static Term FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<Term> &result);
+	static string TryFromJSON(yyjson_val *obj, TermBuilder &builder);
 	string Validate() const;
 
 	// Copy

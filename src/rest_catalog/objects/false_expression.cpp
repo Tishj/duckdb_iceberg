@@ -49,25 +49,28 @@ string FalseExpressionBuilder::TryBuild(optional<FalseExpression> &result) {
 	}
 }
 
-FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
-	FalseExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("FalseExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	return builder.Build();
-}
-
-string FalseExpression::TryFromJSON(yyjson_val *obj, optional<FalseExpression> &result) {
+string FalseExpression::TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("FalseExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
+	FalseExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 FalseExpression FalseExpression::Copy() const {

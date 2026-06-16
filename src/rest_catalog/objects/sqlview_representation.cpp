@@ -68,61 +68,64 @@ string SQLViewRepresentationBuilder::TryBuild(optional<SQLViewRepresentation> &r
 	}
 }
 
-SQLViewRepresentation SQLViewRepresentation::FromJSON(yyjson_val *obj) {
-	SQLViewRepresentationBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("SQLViewRepresentation required property 'type' is missing");
-	} else {
-		string type;
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SQLViewRepresentation property 'type' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(type_val)));
-		}
-		builder.SetType(std::move(type));
-	}
-	auto sql_val = yyjson_obj_get(obj, "sql");
-	if (!sql_val) {
-		throw InvalidInputException("SQLViewRepresentation required property 'sql' is missing");
-	} else {
-		string sql;
-		if (yyjson_is_str(sql_val)) {
-			sql = yyjson_get_str(sql_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SQLViewRepresentation property 'sql' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(sql_val)));
-		}
-		builder.SetSql(std::move(sql));
-	}
-	auto dialect_val = yyjson_obj_get(obj, "dialect");
-	if (!dialect_val) {
-		throw InvalidInputException("SQLViewRepresentation required property 'dialect' is missing");
-	} else {
-		string dialect;
-		if (yyjson_is_str(dialect_val)) {
-			dialect = yyjson_get_str(dialect_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SQLViewRepresentation property 'dialect' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(dialect_val)));
-		}
-		builder.SetDialect(std::move(dialect));
-	}
-	return builder.Build();
-}
-
-string SQLViewRepresentation::TryFromJSON(yyjson_val *obj, optional<SQLViewRepresentation> &result) {
+string SQLViewRepresentation::TryFromJSON(yyjson_val *obj, SQLViewRepresentationBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("SQLViewRepresentation required property 'type' is missing");
+		} else {
+			string type;
+			if (yyjson_is_str(type_val)) {
+				type = yyjson_get_str(type_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SQLViewRepresentation property 'type' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(type_val)));
+			}
+			builder.SetType(std::move(type));
+		}
+		auto sql_val = yyjson_obj_get(obj, "sql");
+		if (!sql_val) {
+			throw InvalidInputException("SQLViewRepresentation required property 'sql' is missing");
+		} else {
+			string sql;
+			if (yyjson_is_str(sql_val)) {
+				sql = yyjson_get_str(sql_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SQLViewRepresentation property 'sql' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(sql_val)));
+			}
+			builder.SetSql(std::move(sql));
+		}
+		auto dialect_val = yyjson_obj_get(obj, "dialect");
+		if (!dialect_val) {
+			throw InvalidInputException("SQLViewRepresentation required property 'dialect' is missing");
+		} else {
+			string dialect;
+			if (yyjson_is_str(dialect_val)) {
+				dialect = yyjson_get_str(dialect_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SQLViewRepresentation property 'dialect' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(dialect_val)));
+			}
+			builder.SetDialect(std::move(dialect));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SQLViewRepresentation SQLViewRepresentation::FromJSON(yyjson_val *obj) {
+	SQLViewRepresentationBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SQLViewRepresentation SQLViewRepresentation::Copy() const {

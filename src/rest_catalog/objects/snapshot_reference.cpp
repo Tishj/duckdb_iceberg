@@ -77,89 +77,92 @@ string SnapshotReferenceBuilder::TryBuild(optional<SnapshotReference> &result) {
 	}
 }
 
-SnapshotReference SnapshotReference::FromJSON(yyjson_val *obj) {
-	SnapshotReferenceBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("SnapshotReference required property 'type' is missing");
-	} else {
-		string type;
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SnapshotReference property 'type' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(type_val)));
-		}
-		builder.SetType(std::move(type));
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("SnapshotReference required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SnapshotReference property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	auto max_ref_age_ms_val = yyjson_obj_get(obj, "max-ref-age-ms");
-	if (max_ref_age_ms_val) {
-		int64_t max_ref_age_ms;
-		if (yyjson_is_sint(max_ref_age_ms_val)) {
-			max_ref_age_ms = yyjson_get_sint(max_ref_age_ms_val);
-		} else if (yyjson_is_uint(max_ref_age_ms_val)) {
-			max_ref_age_ms = yyjson_get_uint(max_ref_age_ms_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SnapshotReference property 'max_ref_age_ms' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(max_ref_age_ms_val)));
-		}
-		builder.SetMaxRefAgeMs(std::move(max_ref_age_ms));
-	}
-	auto max_snapshot_age_ms_val = yyjson_obj_get(obj, "max-snapshot-age-ms");
-	if (max_snapshot_age_ms_val) {
-		int64_t max_snapshot_age_ms;
-		if (yyjson_is_sint(max_snapshot_age_ms_val)) {
-			max_snapshot_age_ms = yyjson_get_sint(max_snapshot_age_ms_val);
-		} else if (yyjson_is_uint(max_snapshot_age_ms_val)) {
-			max_snapshot_age_ms = yyjson_get_uint(max_snapshot_age_ms_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SnapshotReference property 'max_snapshot_age_ms' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(max_snapshot_age_ms_val)));
-		}
-		builder.SetMaxSnapshotAgeMs(std::move(max_snapshot_age_ms));
-	}
-	auto min_snapshots_to_keep_val = yyjson_obj_get(obj, "min-snapshots-to-keep");
-	if (min_snapshots_to_keep_val) {
-		int32_t min_snapshots_to_keep;
-		if (yyjson_is_int(min_snapshots_to_keep_val)) {
-			min_snapshots_to_keep = yyjson_get_int(min_snapshots_to_keep_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SnapshotReference property 'min_snapshots_to_keep' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(min_snapshots_to_keep_val)));
-		}
-		builder.SetMinSnapshotsToKeep(std::move(min_snapshots_to_keep));
-	}
-	return builder.Build();
-}
-
-string SnapshotReference::TryFromJSON(yyjson_val *obj, optional<SnapshotReference> &result) {
+string SnapshotReference::TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("SnapshotReference required property 'type' is missing");
+		} else {
+			string type;
+			if (yyjson_is_str(type_val)) {
+				type = yyjson_get_str(type_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("SnapshotReference property 'type' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(type_val)));
+			}
+			builder.SetType(std::move(type));
+		}
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("SnapshotReference required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SnapshotReference property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+		auto max_ref_age_ms_val = yyjson_obj_get(obj, "max-ref-age-ms");
+		if (max_ref_age_ms_val) {
+			int64_t max_ref_age_ms;
+			if (yyjson_is_sint(max_ref_age_ms_val)) {
+				max_ref_age_ms = yyjson_get_sint(max_ref_age_ms_val);
+			} else if (yyjson_is_uint(max_ref_age_ms_val)) {
+				max_ref_age_ms = yyjson_get_uint(max_ref_age_ms_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SnapshotReference property 'max_ref_age_ms' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(max_ref_age_ms_val)));
+			}
+			builder.SetMaxRefAgeMs(std::move(max_ref_age_ms));
+		}
+		auto max_snapshot_age_ms_val = yyjson_obj_get(obj, "max-snapshot-age-ms");
+		if (max_snapshot_age_ms_val) {
+			int64_t max_snapshot_age_ms;
+			if (yyjson_is_sint(max_snapshot_age_ms_val)) {
+				max_snapshot_age_ms = yyjson_get_sint(max_snapshot_age_ms_val);
+			} else if (yyjson_is_uint(max_snapshot_age_ms_val)) {
+				max_snapshot_age_ms = yyjson_get_uint(max_snapshot_age_ms_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SnapshotReference property 'max_snapshot_age_ms' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(max_snapshot_age_ms_val)));
+			}
+			builder.SetMaxSnapshotAgeMs(std::move(max_snapshot_age_ms));
+		}
+		auto min_snapshots_to_keep_val = yyjson_obj_get(obj, "min-snapshots-to-keep");
+		if (min_snapshots_to_keep_val) {
+			int32_t min_snapshots_to_keep;
+			if (yyjson_is_int(min_snapshots_to_keep_val)) {
+				min_snapshots_to_keep = yyjson_get_int(min_snapshots_to_keep_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SnapshotReference property 'min_snapshots_to_keep' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(min_snapshots_to_keep_val)));
+			}
+			builder.SetMinSnapshotsToKeep(std::move(min_snapshots_to_keep));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SnapshotReference SnapshotReference::FromJSON(yyjson_val *obj) {
+	SnapshotReferenceBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SnapshotReference SnapshotReference::Copy() const {

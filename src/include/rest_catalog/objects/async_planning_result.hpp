@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AsyncPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AsyncPlanningResult> &result);
+	static string TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

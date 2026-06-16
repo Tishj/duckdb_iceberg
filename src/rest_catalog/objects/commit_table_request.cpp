@@ -65,61 +65,64 @@ string CommitTableRequestBuilder::TryBuild(optional<CommitTableRequest> &result)
 	}
 }
 
-CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
-	CommitTableRequestBuilder builder;
-	auto requirements_val = yyjson_obj_get(obj, "requirements");
-	if (!requirements_val) {
-		throw InvalidInputException("CommitTableRequest required property 'requirements' is missing");
-	} else {
-		vector<TableRequirement> requirements;
-		if (yyjson_is_arr(requirements_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(requirements_val, idx, max, val) {
-				auto tmp = TableRequirement::FromJSON(val);
-				requirements.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CommitTableRequest property 'requirements' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(requirements_val)));
-		}
-		builder.SetRequirements(std::move(requirements));
-	}
-	auto updates_val = yyjson_obj_get(obj, "updates");
-	if (!updates_val) {
-		throw InvalidInputException("CommitTableRequest required property 'updates' is missing");
-	} else {
-		vector<TableUpdate> updates;
-		if (yyjson_is_arr(updates_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(updates_val, idx, max, val) {
-				auto tmp = TableUpdate::FromJSON(val);
-				updates.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CommitTableRequest property 'updates' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(updates_val)));
-		}
-		builder.SetUpdates(std::move(updates));
-	}
-	auto identifier_val = yyjson_obj_get(obj, "identifier");
-	if (identifier_val) {
-		builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
-	}
-	return builder.Build();
-}
-
-string CommitTableRequest::TryFromJSON(yyjson_val *obj, optional<CommitTableRequest> &result) {
+string CommitTableRequest::TryFromJSON(yyjson_val *obj, CommitTableRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto requirements_val = yyjson_obj_get(obj, "requirements");
+		if (!requirements_val) {
+			throw InvalidInputException("CommitTableRequest required property 'requirements' is missing");
+		} else {
+			vector<TableRequirement> requirements;
+			if (yyjson_is_arr(requirements_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(requirements_val, idx, max, val) {
+					auto tmp = TableRequirement::FromJSON(val);
+					requirements.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitTableRequest property 'requirements' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(requirements_val)));
+			}
+			builder.SetRequirements(std::move(requirements));
+		}
+		auto updates_val = yyjson_obj_get(obj, "updates");
+		if (!updates_val) {
+			throw InvalidInputException("CommitTableRequest required property 'updates' is missing");
+		} else {
+			vector<TableUpdate> updates;
+			if (yyjson_is_arr(updates_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(updates_val, idx, max, val) {
+					auto tmp = TableUpdate::FromJSON(val);
+					updates.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitTableRequest property 'updates' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(updates_val)));
+			}
+			builder.SetUpdates(std::move(updates));
+		}
+		auto identifier_val = yyjson_obj_get(obj, "identifier");
+		if (identifier_val) {
+			builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
+	CommitTableRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CommitTableRequest CommitTableRequest::Copy() const {

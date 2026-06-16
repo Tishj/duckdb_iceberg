@@ -63,35 +63,38 @@ string SetSnapshotRefUpdateBuilder::TryBuild(optional<SetSnapshotRefUpdate> &res
 	}
 }
 
-SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
-	SetSnapshotRefUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	builder.SetSnapshotReference(SnapshotReference::FromJSON(obj));
-	auto ref_name_val = yyjson_obj_get(obj, "ref-name");
-	if (!ref_name_val) {
-		throw InvalidInputException("SetSnapshotRefUpdate required property 'ref-name' is missing");
-	} else {
-		string ref_name;
-		if (yyjson_is_str(ref_name_val)) {
-			ref_name = yyjson_get_str(ref_name_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SetSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(ref_name_val)));
-		}
-		builder.SetRefName(std::move(ref_name));
-	}
-	return builder.Build();
-}
-
-string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, optional<SetSnapshotRefUpdate> &result) {
+string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		builder.SetSnapshotReference(SnapshotReference::FromJSON(obj));
+		auto ref_name_val = yyjson_obj_get(obj, "ref-name");
+		if (!ref_name_val) {
+			throw InvalidInputException("SetSnapshotRefUpdate required property 'ref-name' is missing");
+		} else {
+			string ref_name;
+			if (yyjson_is_str(ref_name_val)) {
+				ref_name = yyjson_get_str(ref_name_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SetSnapshotRefUpdate property 'ref_name' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(ref_name_val)));
+			}
+			builder.SetRefName(std::move(ref_name));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
+	SetSnapshotRefUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetSnapshotRefUpdate SetSnapshotRefUpdate::Copy() const {

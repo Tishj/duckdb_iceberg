@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static AndOrExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AndOrExpression> &result);
+	static string TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &builder);
 	string Validate() const;
 
 	// Copy

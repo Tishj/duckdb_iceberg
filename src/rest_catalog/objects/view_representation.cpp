@@ -46,27 +46,30 @@ string ViewRepresentationBuilder::TryBuild(optional<ViewRepresentation> &result)
 	}
 }
 
-ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
-	ViewRepresentationBuilder builder;
-	do {
-		try {
-			builder.SetSqlviewRepresentation(SQLViewRepresentation::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("ViewRepresentation failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string ViewRepresentation::TryFromJSON(yyjson_val *obj, optional<ViewRepresentation> &result) {
+string ViewRepresentation::TryFromJSON(yyjson_val *obj, ViewRepresentationBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetSqlviewRepresentation(SQLViewRepresentation::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("ViewRepresentation failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
+	ViewRepresentationBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ViewRepresentation ViewRepresentation::Copy() const {

@@ -59,39 +59,42 @@ string CommitTableResponseBuilder::TryBuild(optional<CommitTableResponse> &resul
 	}
 }
 
-CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
-	CommitTableResponseBuilder builder;
-	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
-	if (!metadata_location_val) {
-		throw InvalidInputException("CommitTableResponse required property 'metadata-location' is missing");
-	} else {
-		string metadata_location;
-		if (yyjson_is_str(metadata_location_val)) {
-			metadata_location = yyjson_get_str(metadata_location_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CommitTableResponse property 'metadata_location' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(metadata_location_val)));
-		}
-		builder.SetMetadataLocation(std::move(metadata_location));
-	}
-	auto metadata_val = yyjson_obj_get(obj, "metadata");
-	if (!metadata_val) {
-		throw InvalidInputException("CommitTableResponse required property 'metadata' is missing");
-	} else {
-		builder.SetMetadata(TableMetadata::FromJSON(metadata_val));
-	}
-	return builder.Build();
-}
-
-string CommitTableResponse::TryFromJSON(yyjson_val *obj, optional<CommitTableResponse> &result) {
+string CommitTableResponse::TryFromJSON(yyjson_val *obj, CommitTableResponseBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
+		if (!metadata_location_val) {
+			throw InvalidInputException("CommitTableResponse required property 'metadata-location' is missing");
+		} else {
+			string metadata_location;
+			if (yyjson_is_str(metadata_location_val)) {
+				metadata_location = yyjson_get_str(metadata_location_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitTableResponse property 'metadata_location' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(metadata_location_val)));
+			}
+			builder.SetMetadataLocation(std::move(metadata_location));
+		}
+		auto metadata_val = yyjson_obj_get(obj, "metadata");
+		if (!metadata_val) {
+			throw InvalidInputException("CommitTableResponse required property 'metadata' is missing");
+		} else {
+			builder.SetMetadata(TableMetadata::FromJSON(metadata_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
+	CommitTableResponseBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CommitTableResponse CommitTableResponse::Copy() const {

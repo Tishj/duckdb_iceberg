@@ -96,63 +96,66 @@ string ViewUpdateBuilder::TryBuild(optional<ViewUpdate> &result) {
 	}
 }
 
-ViewUpdate ViewUpdate::FromJSON(yyjson_val *obj) {
-	ViewUpdateBuilder builder;
-	int matched_any_of_variants = 0;
+string ViewUpdate::TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder) {
 	try {
-		builder.SetAssignUuidupdate(AssignUUIDUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddSchemaUpdate(AddSchemaUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetLocationUpdate(SetLocationUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetPropertiesUpdate(SetPropertiesUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemovePropertiesUpdate(RemovePropertiesUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddViewVersionUpdate(AddViewVersionUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	if (matched_any_of_variants == 0) {
-		throw InvalidInputException("ViewUpdate failed to parse, none of the anyOf candidates matched");
-	}
-	return builder.Build();
-}
-
-string ViewUpdate::TryFromJSON(yyjson_val *obj, optional<ViewUpdate> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		int matched_any_of_variants = 0;
+		try {
+			builder.SetAssignUuidupdate(AssignUUIDUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddSchemaUpdate(AddSchemaUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetLocationUpdate(SetLocationUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetPropertiesUpdate(SetPropertiesUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemovePropertiesUpdate(RemovePropertiesUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddViewVersionUpdate(AddViewVersionUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		if (matched_any_of_variants == 0) {
+			throw InvalidInputException("ViewUpdate failed to parse, none of the anyOf candidates matched");
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ViewUpdate ViewUpdate::FromJSON(yyjson_val *obj) {
+	ViewUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ViewUpdate ViewUpdate::Copy() const {

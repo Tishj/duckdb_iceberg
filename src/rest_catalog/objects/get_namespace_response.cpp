@@ -56,52 +56,55 @@ string GetNamespaceResponseBuilder::TryBuild(optional<GetNamespaceResponse> &res
 	}
 }
 
-GetNamespaceResponse GetNamespaceResponse::FromJSON(yyjson_val *obj) {
-	GetNamespaceResponseBuilder builder;
-	auto _namespace_val = yyjson_obj_get(obj, "namespace");
-	if (!_namespace_val) {
-		throw InvalidInputException("GetNamespaceResponse required property 'namespace' is missing");
-	} else {
-		builder.SetNamespace(Namespace::FromJSON(_namespace_val));
-	}
-	auto properties_val = yyjson_obj_get(obj, "properties");
-	if (properties_val) {
-		if (yyjson_is_null(properties_val)) {
-			//! do nothing, property is explicitly nullable
-		} else {
-			case_insensitive_map_t<string> properties;
-			if (yyjson_is_obj(properties_val)) {
-				size_t idx, max;
-				yyjson_val *key, *val;
-				yyjson_obj_foreach(properties_val, idx, max, key, val) {
-					auto key_str = yyjson_get_str(key);
-					string tmp;
-					if (yyjson_is_str(val)) {
-						tmp = yyjson_get_str(val);
-					} else {
-						throw InvalidInputException(StringUtil::Format(
-						    "GetNamespaceResponse property 'tmp' is not of type 'string', found '%s' instead",
-						    yyjson_get_type_desc(val)));
-					}
-					properties.emplace(key_str, std::move(tmp));
-				}
-			} else {
-				throw InvalidInputException("GetNamespaceResponse property 'properties' is not of type 'object'");
-			}
-			builder.SetProperties(std::move(properties));
-		}
-	}
-	return builder.Build();
-}
-
-string GetNamespaceResponse::TryFromJSON(yyjson_val *obj, optional<GetNamespaceResponse> &result) {
+string GetNamespaceResponse::TryFromJSON(yyjson_val *obj, GetNamespaceResponseBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto _namespace_val = yyjson_obj_get(obj, "namespace");
+		if (!_namespace_val) {
+			throw InvalidInputException("GetNamespaceResponse required property 'namespace' is missing");
+		} else {
+			builder.SetNamespace(Namespace::FromJSON(_namespace_val));
+		}
+		auto properties_val = yyjson_obj_get(obj, "properties");
+		if (properties_val) {
+			if (yyjson_is_null(properties_val)) {
+				//! do nothing, property is explicitly nullable
+			} else {
+				case_insensitive_map_t<string> properties;
+				if (yyjson_is_obj(properties_val)) {
+					size_t idx, max;
+					yyjson_val *key, *val;
+					yyjson_obj_foreach(properties_val, idx, max, key, val) {
+						auto key_str = yyjson_get_str(key);
+						string tmp;
+						if (yyjson_is_str(val)) {
+							tmp = yyjson_get_str(val);
+						} else {
+							throw InvalidInputException(StringUtil::Format(
+							    "GetNamespaceResponse property 'tmp' is not of type 'string', found '%s' instead",
+							    yyjson_get_type_desc(val)));
+						}
+						properties.emplace(key_str, std::move(tmp));
+					}
+				} else {
+					throw InvalidInputException("GetNamespaceResponse property 'properties' is not of type 'object'");
+				}
+				builder.SetProperties(std::move(properties));
+			}
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+GetNamespaceResponse GetNamespaceResponse::FromJSON(yyjson_val *obj) {
+	GetNamespaceResponseBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 GetNamespaceResponse GetNamespaceResponse::Copy() const {

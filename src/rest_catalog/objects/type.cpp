@@ -64,42 +64,45 @@ string TypeBuilder::TryBuild(optional<Type> &result) {
 	}
 }
 
-Type Type::FromJSON(yyjson_val *obj) {
-	TypeBuilder builder;
-	do {
-		try {
-			builder.SetPrimitiveType(PrimitiveType::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetStructType(StructType::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetListType(ListType::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetMapType(MapType::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("Type failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string Type::TryFromJSON(yyjson_val *obj, optional<Type> &result) {
+string Type::TryFromJSON(yyjson_val *obj, TypeBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetPrimitiveType(PrimitiveType::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetStructType(StructType::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetListType(ListType::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetMapType(MapType::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("Type failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Type Type::FromJSON(yyjson_val *obj) {
+	TypeBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 Type Type::Copy() const {

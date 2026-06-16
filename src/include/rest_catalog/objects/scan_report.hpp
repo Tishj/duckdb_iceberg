@@ -34,7 +34,7 @@ private:
 public:
 	// Deserialization
 	static ScanReport FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ScanReport> &result);
+	static string TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder);
 	string Validate() const;
 
 	// Copy

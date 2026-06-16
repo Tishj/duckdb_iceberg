@@ -55,34 +55,37 @@ string SetDefaultSpecUpdateBuilder::TryBuild(optional<SetDefaultSpecUpdate> &res
 	}
 }
 
-SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
-	SetDefaultSpecUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto spec_id_val = yyjson_obj_get(obj, "spec-id");
-	if (!spec_id_val) {
-		throw InvalidInputException("SetDefaultSpecUpdate required property 'spec-id' is missing");
-	} else {
-		int32_t spec_id;
-		if (yyjson_is_int(spec_id_val)) {
-			spec_id = yyjson_get_int(spec_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SetDefaultSpecUpdate property 'spec_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(spec_id_val)));
-		}
-		builder.SetSpecId(std::move(spec_id));
-	}
-	return builder.Build();
-}
-
-string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, optional<SetDefaultSpecUpdate> &result) {
+string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto spec_id_val = yyjson_obj_get(obj, "spec-id");
+		if (!spec_id_val) {
+			throw InvalidInputException("SetDefaultSpecUpdate required property 'spec-id' is missing");
+		} else {
+			int32_t spec_id;
+			if (yyjson_is_int(spec_id_val)) {
+				spec_id = yyjson_get_int(spec_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SetDefaultSpecUpdate property 'spec_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(spec_id_val)));
+			}
+			builder.SetSpecId(std::move(spec_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
+	SetDefaultSpecUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetDefaultSpecUpdate SetDefaultSpecUpdate::Copy() const {

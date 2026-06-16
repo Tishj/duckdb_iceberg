@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static SetDefaultSpecUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetDefaultSpecUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

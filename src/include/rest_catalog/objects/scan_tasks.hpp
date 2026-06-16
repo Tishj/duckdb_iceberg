@@ -33,7 +33,7 @@ private:
 public:
 	// Deserialization
 	static ScanTasks FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ScanTasks> &result);
+	static string TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder);
 	string Validate() const;
 
 	// Copy

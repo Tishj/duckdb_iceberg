@@ -33,7 +33,7 @@ private:
 public:
 	// Deserialization
 	static LoadTableResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<LoadTableResult> &result);
+	static string TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

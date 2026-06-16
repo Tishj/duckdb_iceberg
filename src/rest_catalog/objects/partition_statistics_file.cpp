@@ -71,65 +71,68 @@ string PartitionStatisticsFileBuilder::TryBuild(optional<PartitionStatisticsFile
 	}
 }
 
-PartitionStatisticsFile PartitionStatisticsFile::FromJSON(yyjson_val *obj) {
-	PartitionStatisticsFileBuilder builder;
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("PartitionStatisticsFile required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "PartitionStatisticsFile property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	auto statistics_path_val = yyjson_obj_get(obj, "statistics-path");
-	if (!statistics_path_val) {
-		throw InvalidInputException("PartitionStatisticsFile required property 'statistics-path' is missing");
-	} else {
-		string statistics_path;
-		if (yyjson_is_str(statistics_path_val)) {
-			statistics_path = yyjson_get_str(statistics_path_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "PartitionStatisticsFile property 'statistics_path' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(statistics_path_val)));
-		}
-		builder.SetStatisticsPath(std::move(statistics_path));
-	}
-	auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
-	if (!file_size_in_bytes_val) {
-		throw InvalidInputException("PartitionStatisticsFile required property 'file-size-in-bytes' is missing");
-	} else {
-		int64_t file_size_in_bytes;
-		if (yyjson_is_sint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
-		} else if (yyjson_is_uint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "PartitionStatisticsFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(file_size_in_bytes_val)));
-		}
-		builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
-	}
-	return builder.Build();
-}
-
-string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj, optional<PartitionStatisticsFile> &result) {
+string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj, PartitionStatisticsFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("PartitionStatisticsFile required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "PartitionStatisticsFile property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+		auto statistics_path_val = yyjson_obj_get(obj, "statistics-path");
+		if (!statistics_path_val) {
+			throw InvalidInputException("PartitionStatisticsFile required property 'statistics-path' is missing");
+		} else {
+			string statistics_path;
+			if (yyjson_is_str(statistics_path_val)) {
+				statistics_path = yyjson_get_str(statistics_path_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "PartitionStatisticsFile property 'statistics_path' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(statistics_path_val)));
+			}
+			builder.SetStatisticsPath(std::move(statistics_path));
+		}
+		auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
+		if (!file_size_in_bytes_val) {
+			throw InvalidInputException("PartitionStatisticsFile required property 'file-size-in-bytes' is missing");
+		} else {
+			int64_t file_size_in_bytes;
+			if (yyjson_is_sint(file_size_in_bytes_val)) {
+				file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
+			} else if (yyjson_is_uint(file_size_in_bytes_val)) {
+				file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format("PartitionStatisticsFile property 'file_size_in_bytes' "
+				                                               "is not of type 'integer', found '%s' instead",
+				                                               yyjson_get_type_desc(file_size_in_bytes_val)));
+			}
+			builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+PartitionStatisticsFile PartitionStatisticsFile::FromJSON(yyjson_val *obj) {
+	PartitionStatisticsFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 PartitionStatisticsFile PartitionStatisticsFile::Copy() const {

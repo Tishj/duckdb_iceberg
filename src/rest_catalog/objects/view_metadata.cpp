@@ -116,155 +116,158 @@ string ViewMetadataBuilder::TryBuild(optional<ViewMetadata> &result) {
 	}
 }
 
-ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
-	ViewMetadataBuilder builder;
-	auto view_uuid_val = yyjson_obj_get(obj, "view-uuid");
-	if (!view_uuid_val) {
-		throw InvalidInputException("ViewMetadata required property 'view-uuid' is missing");
-	} else {
-		string view_uuid;
-		if (yyjson_is_str(view_uuid_val)) {
-			view_uuid = yyjson_get_str(view_uuid_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewMetadata property 'view_uuid' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(view_uuid_val)));
-		}
-		builder.SetViewUuid(std::move(view_uuid));
-	}
-	auto format_version_val = yyjson_obj_get(obj, "format-version");
-	if (!format_version_val) {
-		throw InvalidInputException("ViewMetadata required property 'format-version' is missing");
-	} else {
-		int32_t format_version;
-		if (yyjson_is_int(format_version_val)) {
-			format_version = yyjson_get_int(format_version_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ViewMetadata property 'format_version' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(format_version_val)));
-		}
-		builder.SetFormatVersion(std::move(format_version));
-	}
-	auto location_val = yyjson_obj_get(obj, "location");
-	if (!location_val) {
-		throw InvalidInputException("ViewMetadata required property 'location' is missing");
-	} else {
-		string location;
-		if (yyjson_is_str(location_val)) {
-			location = yyjson_get_str(location_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewMetadata property 'location' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(location_val)));
-		}
-		builder.SetLocation(std::move(location));
-	}
-	auto current_version_id_val = yyjson_obj_get(obj, "current-version-id");
-	if (!current_version_id_val) {
-		throw InvalidInputException("ViewMetadata required property 'current-version-id' is missing");
-	} else {
-		int32_t current_version_id;
-		if (yyjson_is_int(current_version_id_val)) {
-			current_version_id = yyjson_get_int(current_version_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ViewMetadata property 'current_version_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(current_version_id_val)));
-		}
-		builder.SetCurrentVersionId(std::move(current_version_id));
-	}
-	auto versions_val = yyjson_obj_get(obj, "versions");
-	if (!versions_val) {
-		throw InvalidInputException("ViewMetadata required property 'versions' is missing");
-	} else {
-		vector<ViewVersion> versions;
-		if (yyjson_is_arr(versions_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(versions_val, idx, max, val) {
-				auto tmp = ViewVersion::FromJSON(val);
-				versions.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewMetadata property 'versions' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(versions_val)));
-		}
-		builder.SetVersions(std::move(versions));
-	}
-	auto version_log_val = yyjson_obj_get(obj, "version-log");
-	if (!version_log_val) {
-		throw InvalidInputException("ViewMetadata required property 'version-log' is missing");
-	} else {
-		vector<ViewHistoryEntry> version_log;
-		if (yyjson_is_arr(version_log_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(version_log_val, idx, max, val) {
-				auto tmp = ViewHistoryEntry::FromJSON(val);
-				version_log.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewMetadata property 'version_log' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(version_log_val)));
-		}
-		builder.SetVersionLog(std::move(version_log));
-	}
-	auto schemas_val = yyjson_obj_get(obj, "schemas");
-	if (!schemas_val) {
-		throw InvalidInputException("ViewMetadata required property 'schemas' is missing");
-	} else {
-		vector<Schema> schemas;
-		if (yyjson_is_arr(schemas_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(schemas_val, idx, max, val) {
-				auto tmp = Schema::FromJSON(val);
-				schemas.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewMetadata property 'schemas' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(schemas_val)));
-		}
-		builder.SetSchemas(std::move(schemas));
-	}
-	auto properties_val = yyjson_obj_get(obj, "properties");
-	if (properties_val) {
-		case_insensitive_map_t<string> properties;
-		if (yyjson_is_obj(properties_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(properties_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("ViewMetadata property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				properties.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("ViewMetadata property 'properties' is not of type 'object'");
-		}
-		builder.SetProperties(std::move(properties));
-	}
-	return builder.Build();
-}
-
-string ViewMetadata::TryFromJSON(yyjson_val *obj, optional<ViewMetadata> &result) {
+string ViewMetadata::TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto view_uuid_val = yyjson_obj_get(obj, "view-uuid");
+		if (!view_uuid_val) {
+			throw InvalidInputException("ViewMetadata required property 'view-uuid' is missing");
+		} else {
+			string view_uuid;
+			if (yyjson_is_str(view_uuid_val)) {
+				view_uuid = yyjson_get_str(view_uuid_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewMetadata property 'view_uuid' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(view_uuid_val)));
+			}
+			builder.SetViewUuid(std::move(view_uuid));
+		}
+		auto format_version_val = yyjson_obj_get(obj, "format-version");
+		if (!format_version_val) {
+			throw InvalidInputException("ViewMetadata required property 'format-version' is missing");
+		} else {
+			int32_t format_version;
+			if (yyjson_is_int(format_version_val)) {
+				format_version = yyjson_get_int(format_version_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewMetadata property 'format_version' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(format_version_val)));
+			}
+			builder.SetFormatVersion(std::move(format_version));
+		}
+		auto location_val = yyjson_obj_get(obj, "location");
+		if (!location_val) {
+			throw InvalidInputException("ViewMetadata required property 'location' is missing");
+		} else {
+			string location;
+			if (yyjson_is_str(location_val)) {
+				location = yyjson_get_str(location_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewMetadata property 'location' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(location_val)));
+			}
+			builder.SetLocation(std::move(location));
+		}
+		auto current_version_id_val = yyjson_obj_get(obj, "current-version-id");
+		if (!current_version_id_val) {
+			throw InvalidInputException("ViewMetadata required property 'current-version-id' is missing");
+		} else {
+			int32_t current_version_id;
+			if (yyjson_is_int(current_version_id_val)) {
+				current_version_id = yyjson_get_int(current_version_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewMetadata property 'current_version_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(current_version_id_val)));
+			}
+			builder.SetCurrentVersionId(std::move(current_version_id));
+		}
+		auto versions_val = yyjson_obj_get(obj, "versions");
+		if (!versions_val) {
+			throw InvalidInputException("ViewMetadata required property 'versions' is missing");
+		} else {
+			vector<ViewVersion> versions;
+			if (yyjson_is_arr(versions_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(versions_val, idx, max, val) {
+					auto tmp = ViewVersion::FromJSON(val);
+					versions.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewMetadata property 'versions' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(versions_val)));
+			}
+			builder.SetVersions(std::move(versions));
+		}
+		auto version_log_val = yyjson_obj_get(obj, "version-log");
+		if (!version_log_val) {
+			throw InvalidInputException("ViewMetadata required property 'version-log' is missing");
+		} else {
+			vector<ViewHistoryEntry> version_log;
+			if (yyjson_is_arr(version_log_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(version_log_val, idx, max, val) {
+					auto tmp = ViewHistoryEntry::FromJSON(val);
+					version_log.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewMetadata property 'version_log' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(version_log_val)));
+			}
+			builder.SetVersionLog(std::move(version_log));
+		}
+		auto schemas_val = yyjson_obj_get(obj, "schemas");
+		if (!schemas_val) {
+			throw InvalidInputException("ViewMetadata required property 'schemas' is missing");
+		} else {
+			vector<Schema> schemas;
+			if (yyjson_is_arr(schemas_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(schemas_val, idx, max, val) {
+					auto tmp = Schema::FromJSON(val);
+					schemas.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewMetadata property 'schemas' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(schemas_val)));
+			}
+			builder.SetSchemas(std::move(schemas));
+		}
+		auto properties_val = yyjson_obj_get(obj, "properties");
+		if (properties_val) {
+			case_insensitive_map_t<string> properties;
+			if (yyjson_is_obj(properties_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(properties_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "ViewMetadata property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					properties.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("ViewMetadata property 'properties' is not of type 'object'");
+			}
+			builder.SetProperties(std::move(properties));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
+	ViewMetadataBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ViewMetadata ViewMetadata::Copy() const {

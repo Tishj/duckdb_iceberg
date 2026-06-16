@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static BaseUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<BaseUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

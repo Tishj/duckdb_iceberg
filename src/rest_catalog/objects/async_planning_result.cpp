@@ -59,39 +59,42 @@ string AsyncPlanningResultBuilder::TryBuild(optional<AsyncPlanningResult> &resul
 	}
 }
 
-AsyncPlanningResult AsyncPlanningResult::FromJSON(yyjson_val *obj) {
-	AsyncPlanningResultBuilder builder;
-	auto status_val = yyjson_obj_get(obj, "status");
-	if (!status_val) {
-		throw InvalidInputException("AsyncPlanningResult required property 'status' is missing");
-	} else {
-		builder.SetStatus(PlanStatus::FromJSON(status_val));
-	}
-	auto plan_id_val = yyjson_obj_get(obj, "plan-id");
-	if (!plan_id_val) {
-		throw InvalidInputException("AsyncPlanningResult required property 'plan-id' is missing");
-	} else {
-		string plan_id;
-		if (yyjson_is_str(plan_id_val)) {
-			plan_id = yyjson_get_str(plan_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AsyncPlanningResult property 'plan_id' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(plan_id_val)));
-		}
-		builder.SetPlanId(std::move(plan_id));
-	}
-	return builder.Build();
-}
-
-string AsyncPlanningResult::TryFromJSON(yyjson_val *obj, optional<AsyncPlanningResult> &result) {
+string AsyncPlanningResult::TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto status_val = yyjson_obj_get(obj, "status");
+		if (!status_val) {
+			throw InvalidInputException("AsyncPlanningResult required property 'status' is missing");
+		} else {
+			builder.SetStatus(PlanStatus::FromJSON(status_val));
+		}
+		auto plan_id_val = yyjson_obj_get(obj, "plan-id");
+		if (!plan_id_val) {
+			throw InvalidInputException("AsyncPlanningResult required property 'plan-id' is missing");
+		} else {
+			string plan_id;
+			if (yyjson_is_str(plan_id_val)) {
+				plan_id = yyjson_get_str(plan_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "AsyncPlanningResult property 'plan_id' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(plan_id_val)));
+			}
+			builder.SetPlanId(std::move(plan_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AsyncPlanningResult AsyncPlanningResult::FromJSON(yyjson_val *obj) {
+	AsyncPlanningResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AsyncPlanningResult AsyncPlanningResult::Copy() const {

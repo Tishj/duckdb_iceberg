@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static UnaryExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<UnaryExpression> &result);
+	static string TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &builder);
 	string Validate() const;
 
 	// Copy

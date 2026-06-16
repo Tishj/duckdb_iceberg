@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static StructType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<StructType> &result);
+	static string TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder);
 	string Validate() const;
 
 	// Copy

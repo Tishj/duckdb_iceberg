@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static NotExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<NotExpression> &result);
+	static string TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder);
 	string Validate() const;
 
 	// Copy

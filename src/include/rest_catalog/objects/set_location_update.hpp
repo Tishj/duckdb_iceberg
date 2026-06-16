@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static SetLocationUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetLocationUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, SetLocationUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

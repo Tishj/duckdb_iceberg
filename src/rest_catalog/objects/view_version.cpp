@@ -106,125 +106,128 @@ string ViewVersionBuilder::TryBuild(optional<ViewVersion> &result) {
 	}
 }
 
-ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
-	ViewVersionBuilder builder;
-	auto version_id_val = yyjson_obj_get(obj, "version-id");
-	if (!version_id_val) {
-		throw InvalidInputException("ViewVersion required property 'version-id' is missing");
-	} else {
-		int32_t version_id;
-		if (yyjson_is_int(version_id_val)) {
-			version_id = yyjson_get_int(version_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewVersion property 'version_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(version_id_val)));
-		}
-		builder.SetVersionId(std::move(version_id));
-	}
-	auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
-	if (!timestamp_ms_val) {
-		throw InvalidInputException("ViewVersion required property 'timestamp-ms' is missing");
-	} else {
-		int64_t timestamp_ms;
-		if (yyjson_is_sint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_sint(timestamp_ms_val);
-		} else if (yyjson_is_uint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_uint(timestamp_ms_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewVersion property 'timestamp_ms' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(timestamp_ms_val)));
-		}
-		builder.SetTimestampMs(std::move(timestamp_ms));
-	}
-	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
-	if (!schema_id_val) {
-		throw InvalidInputException("ViewVersion required property 'schema-id' is missing");
-	} else {
-		int32_t schema_id;
-		if (yyjson_is_int(schema_id_val)) {
-			schema_id = yyjson_get_int(schema_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewVersion property 'schema_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(schema_id_val)));
-		}
-		builder.SetSchemaId(std::move(schema_id));
-	}
-	auto summary_val = yyjson_obj_get(obj, "summary");
-	if (!summary_val) {
-		throw InvalidInputException("ViewVersion required property 'summary' is missing");
-	} else {
-		case_insensitive_map_t<string> summary;
-		if (yyjson_is_obj(summary_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(summary_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("ViewVersion property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				summary.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("ViewVersion property 'summary' is not of type 'object'");
-		}
-		builder.SetSummary(std::move(summary));
-	}
-	auto representations_val = yyjson_obj_get(obj, "representations");
-	if (!representations_val) {
-		throw InvalidInputException("ViewVersion required property 'representations' is missing");
-	} else {
-		vector<ViewRepresentation> representations;
-		if (yyjson_is_arr(representations_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(representations_val, idx, max, val) {
-				auto tmp = ViewRepresentation::FromJSON(val);
-				representations.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewVersion property 'representations' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(representations_val)));
-		}
-		builder.SetRepresentations(std::move(representations));
-	}
-	auto default_namespace_val = yyjson_obj_get(obj, "default-namespace");
-	if (!default_namespace_val) {
-		throw InvalidInputException("ViewVersion required property 'default-namespace' is missing");
-	} else {
-		builder.SetDefaultNamespace(Namespace::FromJSON(default_namespace_val));
-	}
-	auto default_catalog_val = yyjson_obj_get(obj, "default-catalog");
-	if (default_catalog_val) {
-		string default_catalog;
-		if (yyjson_is_str(default_catalog_val)) {
-			default_catalog = yyjson_get_str(default_catalog_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ViewVersion property 'default_catalog' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(default_catalog_val)));
-		}
-		builder.SetDefaultCatalog(std::move(default_catalog));
-	}
-	return builder.Build();
-}
-
-string ViewVersion::TryFromJSON(yyjson_val *obj, optional<ViewVersion> &result) {
+string ViewVersion::TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto version_id_val = yyjson_obj_get(obj, "version-id");
+		if (!version_id_val) {
+			throw InvalidInputException("ViewVersion required property 'version-id' is missing");
+		} else {
+			int32_t version_id;
+			if (yyjson_is_int(version_id_val)) {
+				version_id = yyjson_get_int(version_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewVersion property 'version_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(version_id_val)));
+			}
+			builder.SetVersionId(std::move(version_id));
+		}
+		auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
+		if (!timestamp_ms_val) {
+			throw InvalidInputException("ViewVersion required property 'timestamp-ms' is missing");
+		} else {
+			int64_t timestamp_ms;
+			if (yyjson_is_sint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_sint(timestamp_ms_val);
+			} else if (yyjson_is_uint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_uint(timestamp_ms_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewVersion property 'timestamp_ms' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(timestamp_ms_val)));
+			}
+			builder.SetTimestampMs(std::move(timestamp_ms));
+		}
+		auto schema_id_val = yyjson_obj_get(obj, "schema-id");
+		if (!schema_id_val) {
+			throw InvalidInputException("ViewVersion required property 'schema-id' is missing");
+		} else {
+			int32_t schema_id;
+			if (yyjson_is_int(schema_id_val)) {
+				schema_id = yyjson_get_int(schema_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ViewVersion property 'schema_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(schema_id_val)));
+			}
+			builder.SetSchemaId(std::move(schema_id));
+		}
+		auto summary_val = yyjson_obj_get(obj, "summary");
+		if (!summary_val) {
+			throw InvalidInputException("ViewVersion required property 'summary' is missing");
+		} else {
+			case_insensitive_map_t<string> summary;
+			if (yyjson_is_obj(summary_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(summary_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(
+						    StringUtil::Format("ViewVersion property 'tmp' is not of type 'string', found '%s' instead",
+						                       yyjson_get_type_desc(val)));
+					}
+					summary.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("ViewVersion property 'summary' is not of type 'object'");
+			}
+			builder.SetSummary(std::move(summary));
+		}
+		auto representations_val = yyjson_obj_get(obj, "representations");
+		if (!representations_val) {
+			throw InvalidInputException("ViewVersion required property 'representations' is missing");
+		} else {
+			vector<ViewRepresentation> representations;
+			if (yyjson_is_arr(representations_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(representations_val, idx, max, val) {
+					auto tmp = ViewRepresentation::FromJSON(val);
+					representations.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewVersion property 'representations' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(representations_val)));
+			}
+			builder.SetRepresentations(std::move(representations));
+		}
+		auto default_namespace_val = yyjson_obj_get(obj, "default-namespace");
+		if (!default_namespace_val) {
+			throw InvalidInputException("ViewVersion required property 'default-namespace' is missing");
+		} else {
+			builder.SetDefaultNamespace(Namespace::FromJSON(default_namespace_val));
+		}
+		auto default_catalog_val = yyjson_obj_get(obj, "default-catalog");
+		if (default_catalog_val) {
+			string default_catalog;
+			if (yyjson_is_str(default_catalog_val)) {
+				default_catalog = yyjson_get_str(default_catalog_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewVersion property 'default_catalog' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(default_catalog_val)));
+			}
+			builder.SetDefaultCatalog(std::move(default_catalog));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
+	ViewVersionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ViewVersion ViewVersion::Copy() const {

@@ -48,28 +48,31 @@ string SnapshotReferencesBuilder::TryBuild(optional<SnapshotReferences> &result)
 	}
 }
 
-SnapshotReferences SnapshotReferences::FromJSON(yyjson_val *obj) {
-	SnapshotReferencesBuilder builder;
-	case_insensitive_map_t<SnapshotReference> additional_properties;
-	size_t idx, max;
-	yyjson_val *key, *val;
-	yyjson_obj_foreach(obj, idx, max, key, val) {
-		auto key_str = yyjson_get_str(key);
-		auto tmp = SnapshotReference::FromJSON(val);
-		additional_properties.emplace(key_str, std::move(tmp));
-	}
-	builder.SetAdditionalProperties(std::move(additional_properties));
-	return builder.Build();
-}
-
-string SnapshotReferences::TryFromJSON(yyjson_val *obj, optional<SnapshotReferences> &result) {
+string SnapshotReferences::TryFromJSON(yyjson_val *obj, SnapshotReferencesBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		case_insensitive_map_t<SnapshotReference> additional_properties;
+		size_t idx, max;
+		yyjson_val *key, *val;
+		yyjson_obj_foreach(obj, idx, max, key, val) {
+			auto key_str = yyjson_get_str(key);
+			auto tmp = SnapshotReference::FromJSON(val);
+			additional_properties.emplace(key_str, std::move(tmp));
+		}
+		builder.SetAdditionalProperties(std::move(additional_properties));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SnapshotReferences SnapshotReferences::FromJSON(yyjson_val *obj) {
+	SnapshotReferencesBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SnapshotReferences SnapshotReferences::Copy() const {

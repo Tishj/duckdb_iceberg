@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssignUUIDUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssignUUIDUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

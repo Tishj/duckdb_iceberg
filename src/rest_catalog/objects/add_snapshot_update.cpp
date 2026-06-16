@@ -55,26 +55,29 @@ string AddSnapshotUpdateBuilder::TryBuild(optional<AddSnapshotUpdate> &result) {
 	}
 }
 
-AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
-	AddSnapshotUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto snapshot_val = yyjson_obj_get(obj, "snapshot");
-	if (!snapshot_val) {
-		throw InvalidInputException("AddSnapshotUpdate required property 'snapshot' is missing");
-	} else {
-		builder.SetSnapshot(Snapshot::FromJSON(snapshot_val));
-	}
-	return builder.Build();
-}
-
-string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, optional<AddSnapshotUpdate> &result) {
+string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, AddSnapshotUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto snapshot_val = yyjson_obj_get(obj, "snapshot");
+		if (!snapshot_val) {
+			throw InvalidInputException("AddSnapshotUpdate required property 'snapshot' is missing");
+		} else {
+			builder.SetSnapshot(Snapshot::FromJSON(snapshot_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
+	AddSnapshotUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AddSnapshotUpdate AddSnapshotUpdate::Copy() const {

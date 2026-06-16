@@ -55,34 +55,37 @@ string RemoveEncryptionKeyUpdateBuilder::TryBuild(optional<RemoveEncryptionKeyUp
 	}
 }
 
-RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
-	RemoveEncryptionKeyUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto key_id_val = yyjson_obj_get(obj, "key-id");
-	if (!key_id_val) {
-		throw InvalidInputException("RemoveEncryptionKeyUpdate required property 'key-id' is missing");
-	} else {
-		string key_id;
-		if (yyjson_is_str(key_id_val)) {
-			key_id = yyjson_get_str(key_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemoveEncryptionKeyUpdate property 'key_id' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(key_id_val)));
-		}
-		builder.SetKeyId(std::move(key_id));
-	}
-	return builder.Build();
-}
-
-string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveEncryptionKeyUpdate> &result) {
+string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, RemoveEncryptionKeyUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto key_id_val = yyjson_obj_get(obj, "key-id");
+		if (!key_id_val) {
+			throw InvalidInputException("RemoveEncryptionKeyUpdate required property 'key-id' is missing");
+		} else {
+			string key_id;
+			if (yyjson_is_str(key_id_val)) {
+				key_id = yyjson_get_str(key_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemoveEncryptionKeyUpdate property 'key_id' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(key_id_val)));
+			}
+			builder.SetKeyId(std::move(key_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
+	RemoveEncryptionKeyUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::Copy() const {

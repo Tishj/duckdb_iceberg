@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static OAuthClientCredentialsRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<OAuthClientCredentialsRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, OAuthClientCredentialsRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

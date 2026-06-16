@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static UpgradeFormatVersionUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<UpgradeFormatVersionUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, UpgradeFormatVersionUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

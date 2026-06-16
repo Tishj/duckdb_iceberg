@@ -33,7 +33,7 @@ private:
 public:
 	// Deserialization
 	static CommitViewRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CommitViewRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

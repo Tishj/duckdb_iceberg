@@ -55,46 +55,49 @@ string RemoveSchemasUpdateBuilder::TryBuild(optional<RemoveSchemasUpdate> &resul
 	}
 }
 
-RemoveSchemasUpdate RemoveSchemasUpdate::FromJSON(yyjson_val *obj) {
-	RemoveSchemasUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto schema_ids_val = yyjson_obj_get(obj, "schema-ids");
-	if (!schema_ids_val) {
-		throw InvalidInputException("RemoveSchemasUpdate required property 'schema-ids' is missing");
-	} else {
-		vector<int32_t> schema_ids;
-		if (yyjson_is_arr(schema_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(schema_ids_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "RemoveSchemasUpdate property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				schema_ids.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemoveSchemasUpdate property 'schema_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(schema_ids_val)));
-		}
-		builder.SetSchemaIds(std::move(schema_ids));
-	}
-	return builder.Build();
-}
-
-string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSchemasUpdate> &result) {
+string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto schema_ids_val = yyjson_obj_get(obj, "schema-ids");
+		if (!schema_ids_val) {
+			throw InvalidInputException("RemoveSchemasUpdate required property 'schema-ids' is missing");
+		} else {
+			vector<int32_t> schema_ids;
+			if (yyjson_is_arr(schema_ids_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(schema_ids_val, idx, max, val) {
+					int32_t tmp;
+					if (yyjson_is_int(val)) {
+						tmp = yyjson_get_int(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "RemoveSchemasUpdate property 'tmp' is not of type 'integer', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					schema_ids.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemoveSchemasUpdate property 'schema_ids' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(schema_ids_val)));
+			}
+			builder.SetSchemaIds(std::move(schema_ids));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemoveSchemasUpdate RemoveSchemasUpdate::FromJSON(yyjson_val *obj) {
+	RemoveSchemasUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemoveSchemasUpdate RemoveSchemasUpdate::Copy() const {

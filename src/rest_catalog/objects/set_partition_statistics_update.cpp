@@ -57,26 +57,30 @@ string SetPartitionStatisticsUpdateBuilder::TryBuild(optional<SetPartitionStatis
 	}
 }
 
-SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	SetPartitionStatisticsUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto partition_statistics_val = yyjson_obj_get(obj, "partition-statistics");
-	if (!partition_statistics_val) {
-		throw InvalidInputException("SetPartitionStatisticsUpdate required property 'partition-statistics' is missing");
-	} else {
-		builder.SetPartitionStatistics(PartitionStatisticsFile::FromJSON(partition_statistics_val));
-	}
-	return builder.Build();
-}
-
-string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<SetPartitionStatisticsUpdate> &result) {
+string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetPartitionStatisticsUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto partition_statistics_val = yyjson_obj_get(obj, "partition-statistics");
+		if (!partition_statistics_val) {
+			throw InvalidInputException(
+			    "SetPartitionStatisticsUpdate required property 'partition-statistics' is missing");
+		} else {
+			builder.SetPartitionStatistics(PartitionStatisticsFile::FromJSON(partition_statistics_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	SetPartitionStatisticsUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::Copy() const {

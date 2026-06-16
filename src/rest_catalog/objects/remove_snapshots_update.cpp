@@ -55,48 +55,51 @@ string RemoveSnapshotsUpdateBuilder::TryBuild(optional<RemoveSnapshotsUpdate> &r
 	}
 }
 
-RemoveSnapshotsUpdate RemoveSnapshotsUpdate::FromJSON(yyjson_val *obj) {
-	RemoveSnapshotsUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto snapshot_ids_val = yyjson_obj_get(obj, "snapshot-ids");
-	if (!snapshot_ids_val) {
-		throw InvalidInputException("RemoveSnapshotsUpdate required property 'snapshot-ids' is missing");
-	} else {
-		vector<int64_t> snapshot_ids;
-		if (yyjson_is_arr(snapshot_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(snapshot_ids_val, idx, max, val) {
-				int64_t tmp;
-				if (yyjson_is_sint(val)) {
-					tmp = yyjson_get_sint(val);
-				} else if (yyjson_is_uint(val)) {
-					tmp = yyjson_get_uint(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "RemoveSnapshotsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				snapshot_ids.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemoveSnapshotsUpdate property 'snapshot_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_ids_val)));
-		}
-		builder.SetSnapshotIds(std::move(snapshot_ids));
-	}
-	return builder.Build();
-}
-
-string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotsUpdate> &result) {
+string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotsUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto snapshot_ids_val = yyjson_obj_get(obj, "snapshot-ids");
+		if (!snapshot_ids_val) {
+			throw InvalidInputException("RemoveSnapshotsUpdate required property 'snapshot-ids' is missing");
+		} else {
+			vector<int64_t> snapshot_ids;
+			if (yyjson_is_arr(snapshot_ids_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(snapshot_ids_val, idx, max, val) {
+					int64_t tmp;
+					if (yyjson_is_sint(val)) {
+						tmp = yyjson_get_sint(val);
+					} else if (yyjson_is_uint(val)) {
+						tmp = yyjson_get_uint(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "RemoveSnapshotsUpdate property 'tmp' is not of type 'integer', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					snapshot_ids.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemoveSnapshotsUpdate property 'snapshot_ids' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_ids_val)));
+			}
+			builder.SetSnapshotIds(std::move(snapshot_ids));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemoveSnapshotsUpdate RemoveSnapshotsUpdate::FromJSON(yyjson_val *obj) {
+	RemoveSnapshotsUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemoveSnapshotsUpdate RemoveSnapshotsUpdate::Copy() const {

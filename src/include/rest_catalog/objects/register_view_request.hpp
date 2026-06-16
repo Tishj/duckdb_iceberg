@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static RegisterViewRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<RegisterViewRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, RegisterViewRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

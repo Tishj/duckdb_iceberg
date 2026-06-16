@@ -46,27 +46,30 @@ string ViewRequirementBuilder::TryBuild(optional<ViewRequirement> &result) {
 	}
 }
 
-ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
-	ViewRequirementBuilder builder;
-	do {
-		try {
-			builder.SetAssertViewUuid(AssertViewUUID::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("ViewRequirement failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string ViewRequirement::TryFromJSON(yyjson_val *obj, optional<ViewRequirement> &result) {
+string ViewRequirement::TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetAssertViewUuid(AssertViewUUID::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("ViewRequirement failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
+	ViewRequirementBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ViewRequirement ViewRequirement::Copy() const {

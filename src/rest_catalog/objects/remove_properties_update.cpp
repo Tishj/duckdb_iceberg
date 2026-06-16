@@ -55,46 +55,49 @@ string RemovePropertiesUpdateBuilder::TryBuild(optional<RemovePropertiesUpdate> 
 	}
 }
 
-RemovePropertiesUpdate RemovePropertiesUpdate::FromJSON(yyjson_val *obj) {
-	RemovePropertiesUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto removals_val = yyjson_obj_get(obj, "removals");
-	if (!removals_val) {
-		throw InvalidInputException("RemovePropertiesUpdate required property 'removals' is missing");
-	} else {
-		vector<string> removals;
-		if (yyjson_is_arr(removals_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(removals_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "RemovePropertiesUpdate property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				removals.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "RemovePropertiesUpdate property 'removals' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(removals_val)));
-		}
-		builder.SetRemovals(std::move(removals));
-	}
-	return builder.Build();
-}
-
-string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, optional<RemovePropertiesUpdate> &result) {
+string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, RemovePropertiesUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto removals_val = yyjson_obj_get(obj, "removals");
+		if (!removals_val) {
+			throw InvalidInputException("RemovePropertiesUpdate required property 'removals' is missing");
+		} else {
+			vector<string> removals;
+			if (yyjson_is_arr(removals_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(removals_val, idx, max, val) {
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "RemovePropertiesUpdate property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					removals.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "RemovePropertiesUpdate property 'removals' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(removals_val)));
+			}
+			builder.SetRemovals(std::move(removals));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+RemovePropertiesUpdate RemovePropertiesUpdate::FromJSON(yyjson_val *obj) {
+	RemovePropertiesUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 RemovePropertiesUpdate RemovePropertiesUpdate::Copy() const {

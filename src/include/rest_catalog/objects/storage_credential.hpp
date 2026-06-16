@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static StorageCredential FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<StorageCredential> &result);
+	static string TryFromJSON(yyjson_val *obj, StorageCredentialBuilder &builder);
 	string Validate() const;
 
 	// Copy

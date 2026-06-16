@@ -18,25 +18,34 @@ namespace rest_api_objects {
 FloatTypeValue::FloatTypeValue(double value_p) : value(std::move(value_p)) {
 }
 
-FloatTypeValue FloatTypeValue::FromJSON(yyjson_val *obj) {
-	double value;
-	if (yyjson_is_num(obj)) {
-		value = yyjson_get_num(obj);
-	} else {
-		throw InvalidInputException(StringUtil::Format(
-		    "FloatTypeValue property 'value' is not of type 'number', found '%s' instead", yyjson_get_type_desc(obj)));
-	}
-	return FloatTypeValue(std::move(value));
-}
-
 string FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		double value;
+		if (yyjson_is_num(obj)) {
+			value = yyjson_get_num(obj);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("FloatTypeValue property 'value' is not of type 'number', found '%s' instead",
+			                       yyjson_get_type_desc(obj)));
+		}
+		result.emplace(FloatTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+FloatTypeValue FloatTypeValue::FromJSON(yyjson_val *obj) {
+	optional<FloatTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 FloatTypeValue FloatTypeValue::Copy() const {

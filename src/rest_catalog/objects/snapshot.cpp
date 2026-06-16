@@ -65,52 +65,55 @@ string Snapshot::Object2Builder::TryBuild(optional<Snapshot::Object2> &result) {
 	}
 }
 
-Snapshot::Object2 Snapshot::Object2::FromJSON(yyjson_val *obj) {
-	Object2Builder builder;
-	auto operation_val = yyjson_obj_get(obj, "operation");
-	if (!operation_val) {
-		throw InvalidInputException("Object2 required property 'operation' is missing");
-	} else {
-		string operation;
-		if (yyjson_is_str(operation_val)) {
-			operation = yyjson_get_str(operation_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Object2 property 'operation' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(operation_val)));
-		}
-		builder.SetOperation(std::move(operation));
-	}
-	case_insensitive_map_t<string> additional_properties;
-	case_insensitive_set_t handled_properties {"operation"};
-	size_t idx, max;
-	yyjson_val *key, *val;
-	yyjson_obj_foreach(obj, idx, max, key, val) {
-		auto key_str = yyjson_get_str(key);
-		if (handled_properties.count(key_str)) {
-			continue;
-		}
-		string tmp;
-		if (yyjson_is_str(val)) {
-			tmp = yyjson_get_str(val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "Object2 property 'tmp' is not of type 'string', found '%s' instead", yyjson_get_type_desc(val)));
-		}
-		additional_properties.emplace(key_str, std::move(tmp));
-	}
-	builder.SetAdditionalProperties(std::move(additional_properties));
-	return builder.Build();
-}
-
-string Snapshot::Object2::TryFromJSON(yyjson_val *obj, optional<Snapshot::Object2> &result) {
+string Snapshot::Object2::TryFromJSON(yyjson_val *obj, Object2Builder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto operation_val = yyjson_obj_get(obj, "operation");
+		if (!operation_val) {
+			throw InvalidInputException("Object2 required property 'operation' is missing");
+		} else {
+			string operation;
+			if (yyjson_is_str(operation_val)) {
+				operation = yyjson_get_str(operation_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Object2 property 'operation' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(operation_val)));
+			}
+			builder.SetOperation(std::move(operation));
+		}
+		case_insensitive_map_t<string> additional_properties;
+		case_insensitive_set_t handled_properties {"operation"};
+		size_t idx, max;
+		yyjson_val *key, *val;
+		yyjson_obj_foreach(obj, idx, max, key, val) {
+			auto key_str = yyjson_get_str(key);
+			if (handled_properties.count(key_str)) {
+				continue;
+			}
+			string tmp;
+			if (yyjson_is_str(val)) {
+				tmp = yyjson_get_str(val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "Object2 property 'tmp' is not of type 'string', found '%s' instead", yyjson_get_type_desc(val)));
+			}
+			additional_properties.emplace(key_str, std::move(tmp));
+		}
+		builder.SetAdditionalProperties(std::move(additional_properties));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Snapshot::Object2 Snapshot::Object2::FromJSON(yyjson_val *obj) {
+	Object2Builder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 Snapshot::Object2 Snapshot::Object2::Copy() const {
@@ -244,139 +247,142 @@ string SnapshotBuilder::TryBuild(optional<Snapshot> &result) {
 	}
 }
 
-Snapshot Snapshot::FromJSON(yyjson_val *obj) {
-	SnapshotBuilder builder;
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("Snapshot required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
-	if (!timestamp_ms_val) {
-		throw InvalidInputException("Snapshot required property 'timestamp-ms' is missing");
-	} else {
-		int64_t timestamp_ms;
-		if (yyjson_is_sint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_sint(timestamp_ms_val);
-		} else if (yyjson_is_uint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_uint(timestamp_ms_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'timestamp_ms' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(timestamp_ms_val)));
-		}
-		builder.SetTimestampMs(std::move(timestamp_ms));
-	}
-	auto manifest_list_val = yyjson_obj_get(obj, "manifest-list");
-	if (!manifest_list_val) {
-		throw InvalidInputException("Snapshot required property 'manifest-list' is missing");
-	} else {
-		string manifest_list;
-		if (yyjson_is_str(manifest_list_val)) {
-			manifest_list = yyjson_get_str(manifest_list_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'manifest_list' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(manifest_list_val)));
-		}
-		builder.SetManifestList(std::move(manifest_list));
-	}
-	auto summary_val = yyjson_obj_get(obj, "summary");
-	if (!summary_val) {
-		throw InvalidInputException("Snapshot required property 'summary' is missing");
-	} else {
-		builder.SetSummary(Object2::FromJSON(summary_val));
-	}
-	auto parent_snapshot_id_val = yyjson_obj_get(obj, "parent-snapshot-id");
-	if (parent_snapshot_id_val) {
-		int64_t parent_snapshot_id;
-		if (yyjson_is_sint(parent_snapshot_id_val)) {
-			parent_snapshot_id = yyjson_get_sint(parent_snapshot_id_val);
-		} else if (yyjson_is_uint(parent_snapshot_id_val)) {
-			parent_snapshot_id = yyjson_get_uint(parent_snapshot_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "Snapshot property 'parent_snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(parent_snapshot_id_val)));
-		}
-		builder.SetParentSnapshotId(std::move(parent_snapshot_id));
-	}
-	auto sequence_number_val = yyjson_obj_get(obj, "sequence-number");
-	if (sequence_number_val) {
-		int64_t sequence_number;
-		if (yyjson_is_sint(sequence_number_val)) {
-			sequence_number = yyjson_get_sint(sequence_number_val);
-		} else if (yyjson_is_uint(sequence_number_val)) {
-			sequence_number = yyjson_get_uint(sequence_number_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'sequence_number' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(sequence_number_val)));
-		}
-		builder.SetSequenceNumber(std::move(sequence_number));
-	}
-	auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
-	if (first_row_id_val) {
-		int64_t first_row_id;
-		if (yyjson_is_sint(first_row_id_val)) {
-			first_row_id = yyjson_get_sint(first_row_id_val);
-		} else if (yyjson_is_uint(first_row_id_val)) {
-			first_row_id = yyjson_get_uint(first_row_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'first_row_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(first_row_id_val)));
-		}
-		builder.SetFirstRowId(std::move(first_row_id));
-	}
-	auto added_rows_val = yyjson_obj_get(obj, "added-rows");
-	if (added_rows_val) {
-		int64_t added_rows;
-		if (yyjson_is_sint(added_rows_val)) {
-			added_rows = yyjson_get_sint(added_rows_val);
-		} else if (yyjson_is_uint(added_rows_val)) {
-			added_rows = yyjson_get_uint(added_rows_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'added_rows' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(added_rows_val)));
-		}
-		builder.SetAddedRows(std::move(added_rows));
-	}
-	auto schema_id_val = yyjson_obj_get(obj, "schema-id");
-	if (schema_id_val) {
-		int32_t schema_id;
-		if (yyjson_is_int(schema_id_val)) {
-			schema_id = yyjson_get_int(schema_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Snapshot property 'schema_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(schema_id_val)));
-		}
-		builder.SetSchemaId(std::move(schema_id));
-	}
-	return builder.Build();
-}
-
-string Snapshot::TryFromJSON(yyjson_val *obj, optional<Snapshot> &result) {
+string Snapshot::TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("Snapshot required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Snapshot property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+		auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
+		if (!timestamp_ms_val) {
+			throw InvalidInputException("Snapshot required property 'timestamp-ms' is missing");
+		} else {
+			int64_t timestamp_ms;
+			if (yyjson_is_sint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_sint(timestamp_ms_val);
+			} else if (yyjson_is_uint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_uint(timestamp_ms_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Snapshot property 'timestamp_ms' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(timestamp_ms_val)));
+			}
+			builder.SetTimestampMs(std::move(timestamp_ms));
+		}
+		auto manifest_list_val = yyjson_obj_get(obj, "manifest-list");
+		if (!manifest_list_val) {
+			throw InvalidInputException("Snapshot required property 'manifest-list' is missing");
+		} else {
+			string manifest_list;
+			if (yyjson_is_str(manifest_list_val)) {
+				manifest_list = yyjson_get_str(manifest_list_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Snapshot property 'manifest_list' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(manifest_list_val)));
+			}
+			builder.SetManifestList(std::move(manifest_list));
+		}
+		auto summary_val = yyjson_obj_get(obj, "summary");
+		if (!summary_val) {
+			throw InvalidInputException("Snapshot required property 'summary' is missing");
+		} else {
+			builder.SetSummary(Object2::FromJSON(summary_val));
+		}
+		auto parent_snapshot_id_val = yyjson_obj_get(obj, "parent-snapshot-id");
+		if (parent_snapshot_id_val) {
+			int64_t parent_snapshot_id;
+			if (yyjson_is_sint(parent_snapshot_id_val)) {
+				parent_snapshot_id = yyjson_get_sint(parent_snapshot_id_val);
+			} else if (yyjson_is_uint(parent_snapshot_id_val)) {
+				parent_snapshot_id = yyjson_get_uint(parent_snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "Snapshot property 'parent_snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(parent_snapshot_id_val)));
+			}
+			builder.SetParentSnapshotId(std::move(parent_snapshot_id));
+		}
+		auto sequence_number_val = yyjson_obj_get(obj, "sequence-number");
+		if (sequence_number_val) {
+			int64_t sequence_number;
+			if (yyjson_is_sint(sequence_number_val)) {
+				sequence_number = yyjson_get_sint(sequence_number_val);
+			} else if (yyjson_is_uint(sequence_number_val)) {
+				sequence_number = yyjson_get_uint(sequence_number_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "Snapshot property 'sequence_number' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(sequence_number_val)));
+			}
+			builder.SetSequenceNumber(std::move(sequence_number));
+		}
+		auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
+		if (first_row_id_val) {
+			int64_t first_row_id;
+			if (yyjson_is_sint(first_row_id_val)) {
+				first_row_id = yyjson_get_sint(first_row_id_val);
+			} else if (yyjson_is_uint(first_row_id_val)) {
+				first_row_id = yyjson_get_uint(first_row_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Snapshot property 'first_row_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(first_row_id_val)));
+			}
+			builder.SetFirstRowId(std::move(first_row_id));
+		}
+		auto added_rows_val = yyjson_obj_get(obj, "added-rows");
+		if (added_rows_val) {
+			int64_t added_rows;
+			if (yyjson_is_sint(added_rows_val)) {
+				added_rows = yyjson_get_sint(added_rows_val);
+			} else if (yyjson_is_uint(added_rows_val)) {
+				added_rows = yyjson_get_uint(added_rows_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Snapshot property 'added_rows' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(added_rows_val)));
+			}
+			builder.SetAddedRows(std::move(added_rows));
+		}
+		auto schema_id_val = yyjson_obj_get(obj, "schema-id");
+		if (schema_id_val) {
+			int32_t schema_id;
+			if (yyjson_is_int(schema_id_val)) {
+				schema_id = yyjson_get_int(schema_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("Snapshot property 'schema_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(schema_id_val)));
+			}
+			builder.SetSchemaId(std::move(schema_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Snapshot Snapshot::FromJSON(yyjson_val *obj) {
+	SnapshotBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 Snapshot Snapshot::Copy() const {

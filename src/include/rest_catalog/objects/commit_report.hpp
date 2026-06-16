@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static CommitReport FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CommitReport> &result);
+	static string TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder);
 	string Validate() const;
 
 	// Copy

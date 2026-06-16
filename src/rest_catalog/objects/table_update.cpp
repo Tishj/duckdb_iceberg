@@ -188,128 +188,131 @@ string TableUpdateBuilder::TryBuild(optional<TableUpdate> &result) {
 	}
 }
 
-TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
-	TableUpdateBuilder builder;
-	int matched_any_of_variants = 0;
+string TableUpdate::TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder) {
 	try {
-		builder.SetAssignUuidupdate(AssignUUIDUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddSchemaUpdate(AddSchemaUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddPartitionSpecUpdate(AddPartitionSpecUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetDefaultSpecUpdate(SetDefaultSpecUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddSortOrderUpdate(AddSortOrderUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddSnapshotUpdate(AddSnapshotUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetSnapshotRefUpdate(SetSnapshotRefUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetLocationUpdate(SetLocationUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetPropertiesUpdate(SetPropertiesUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemovePropertiesUpdate(RemovePropertiesUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetSetStatisticsUpdate(SetStatisticsUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemoveStatisticsUpdate(RemoveStatisticsUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemoveSchemasUpdate(RemoveSchemasUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	if (matched_any_of_variants == 0) {
-		throw InvalidInputException("TableUpdate failed to parse, none of the anyOf candidates matched");
-	}
-	return builder.Build();
-}
-
-string TableUpdate::TryFromJSON(yyjson_val *obj, optional<TableUpdate> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		int matched_any_of_variants = 0;
+		try {
+			builder.SetAssignUuidupdate(AssignUUIDUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetUpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddSchemaUpdate(AddSchemaUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetCurrentSchemaUpdate(SetCurrentSchemaUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddPartitionSpecUpdate(AddPartitionSpecUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetDefaultSpecUpdate(SetDefaultSpecUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddSortOrderUpdate(AddSortOrderUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddSnapshotUpdate(AddSnapshotUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetSnapshotRefUpdate(SetSnapshotRefUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemoveSnapshotsUpdate(RemoveSnapshotsUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetLocationUpdate(SetLocationUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetPropertiesUpdate(SetPropertiesUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemovePropertiesUpdate(RemovePropertiesUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetSetStatisticsUpdate(SetStatisticsUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemoveStatisticsUpdate(RemoveStatisticsUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemoveSchemasUpdate(RemoveSchemasUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		if (matched_any_of_variants == 0) {
+			throw InvalidInputException("TableUpdate failed to parse, none of the anyOf candidates matched");
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
+	TableUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 TableUpdate TableUpdate::Copy() const {

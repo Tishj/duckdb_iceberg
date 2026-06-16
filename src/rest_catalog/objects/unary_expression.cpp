@@ -59,31 +59,34 @@ string UnaryExpressionBuilder::TryBuild(optional<UnaryExpression> &result) {
 	}
 }
 
-UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
-	UnaryExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("UnaryExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		throw InvalidInputException("UnaryExpression required property 'term' is missing");
-	} else {
-		builder.SetTerm(Term::FromJSON(term_val));
-	}
-	return builder.Build();
-}
-
-string UnaryExpression::TryFromJSON(yyjson_val *obj, optional<UnaryExpression> &result) {
+string UnaryExpression::TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("UnaryExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
+		auto term_val = yyjson_obj_get(obj, "term");
+		if (!term_val) {
+			throw InvalidInputException("UnaryExpression required property 'term' is missing");
+		} else {
+			builder.SetTerm(Term::FromJSON(term_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
+	UnaryExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 UnaryExpression UnaryExpression::Copy() const {

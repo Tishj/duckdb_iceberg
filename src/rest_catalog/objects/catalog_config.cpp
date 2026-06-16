@@ -72,105 +72,108 @@ string CatalogConfigBuilder::TryBuild(optional<CatalogConfig> &result) {
 	}
 }
 
-CatalogConfig CatalogConfig::FromJSON(yyjson_val *obj) {
-	CatalogConfigBuilder builder;
-	auto defaults_val = yyjson_obj_get(obj, "defaults");
-	if (!defaults_val) {
-		throw InvalidInputException("CatalogConfig required property 'defaults' is missing");
-	} else {
-		case_insensitive_map_t<string> defaults;
-		if (yyjson_is_obj(defaults_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(defaults_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("CatalogConfig property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				defaults.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("CatalogConfig property 'defaults' is not of type 'object'");
-		}
-		builder.SetDefaults(std::move(defaults));
-	}
-	auto overrides_val = yyjson_obj_get(obj, "overrides");
-	if (!overrides_val) {
-		throw InvalidInputException("CatalogConfig required property 'overrides' is missing");
-	} else {
-		case_insensitive_map_t<string> overrides;
-		if (yyjson_is_obj(overrides_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(overrides_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("CatalogConfig property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				overrides.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("CatalogConfig property 'overrides' is not of type 'object'");
-		}
-		builder.SetOverrides(std::move(overrides));
-	}
-	auto endpoints_val = yyjson_obj_get(obj, "endpoints");
-	if (endpoints_val) {
-		vector<string> endpoints;
-		if (yyjson_is_arr(endpoints_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(endpoints_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("CatalogConfig property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				endpoints.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CatalogConfig property 'endpoints' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(endpoints_val)));
-		}
-		builder.SetEndpoints(std::move(endpoints));
-	}
-	auto idempotency_key_lifetime_val = yyjson_obj_get(obj, "idempotency-key-lifetime");
-	if (idempotency_key_lifetime_val) {
-		string idempotency_key_lifetime;
-		if (yyjson_is_str(idempotency_key_lifetime_val)) {
-			idempotency_key_lifetime = yyjson_get_str(idempotency_key_lifetime_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CatalogConfig property 'idempotency_key_lifetime' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(idempotency_key_lifetime_val)));
-		}
-		builder.SetIdempotencyKeyLifetime(std::move(idempotency_key_lifetime));
-	}
-	return builder.Build();
-}
-
-string CatalogConfig::TryFromJSON(yyjson_val *obj, optional<CatalogConfig> &result) {
+string CatalogConfig::TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto defaults_val = yyjson_obj_get(obj, "defaults");
+		if (!defaults_val) {
+			throw InvalidInputException("CatalogConfig required property 'defaults' is missing");
+		} else {
+			case_insensitive_map_t<string> defaults;
+			if (yyjson_is_obj(defaults_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(defaults_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "CatalogConfig property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					defaults.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("CatalogConfig property 'defaults' is not of type 'object'");
+			}
+			builder.SetDefaults(std::move(defaults));
+		}
+		auto overrides_val = yyjson_obj_get(obj, "overrides");
+		if (!overrides_val) {
+			throw InvalidInputException("CatalogConfig required property 'overrides' is missing");
+		} else {
+			case_insensitive_map_t<string> overrides;
+			if (yyjson_is_obj(overrides_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(overrides_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "CatalogConfig property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					overrides.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("CatalogConfig property 'overrides' is not of type 'object'");
+			}
+			builder.SetOverrides(std::move(overrides));
+		}
+		auto endpoints_val = yyjson_obj_get(obj, "endpoints");
+		if (endpoints_val) {
+			vector<string> endpoints;
+			if (yyjson_is_arr(endpoints_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(endpoints_val, idx, max, val) {
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "CatalogConfig property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					endpoints.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CatalogConfig property 'endpoints' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(endpoints_val)));
+			}
+			builder.SetEndpoints(std::move(endpoints));
+		}
+		auto idempotency_key_lifetime_val = yyjson_obj_get(obj, "idempotency-key-lifetime");
+		if (idempotency_key_lifetime_val) {
+			string idempotency_key_lifetime;
+			if (yyjson_is_str(idempotency_key_lifetime_val)) {
+				idempotency_key_lifetime = yyjson_get_str(idempotency_key_lifetime_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CatalogConfig property 'idempotency_key_lifetime' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(idempotency_key_lifetime_val)));
+			}
+			builder.SetIdempotencyKeyLifetime(std::move(idempotency_key_lifetime));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CatalogConfig CatalogConfig::FromJSON(yyjson_val *obj) {
+	CatalogConfigBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CatalogConfig CatalogConfig::Copy() const {

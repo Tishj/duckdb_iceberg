@@ -49,25 +49,28 @@ string IcebergErrorResponseBuilder::TryBuild(optional<IcebergErrorResponse> &res
 	}
 }
 
-IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
-	IcebergErrorResponseBuilder builder;
-	auto _error_val = yyjson_obj_get(obj, "error");
-	if (!_error_val) {
-		throw InvalidInputException("IcebergErrorResponse required property 'error' is missing");
-	} else {
-		builder.SetError(ErrorModel::FromJSON(_error_val));
-	}
-	return builder.Build();
-}
-
-string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, optional<IcebergErrorResponse> &result) {
+string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, IcebergErrorResponseBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto _error_val = yyjson_obj_get(obj, "error");
+		if (!_error_val) {
+			throw InvalidInputException("IcebergErrorResponse required property 'error' is missing");
+		} else {
+			builder.SetError(ErrorModel::FromJSON(_error_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
+	IcebergErrorResponseBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 IcebergErrorResponse IcebergErrorResponse::Copy() const {

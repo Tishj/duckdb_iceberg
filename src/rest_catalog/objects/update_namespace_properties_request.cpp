@@ -53,67 +53,73 @@ string UpdateNamespacePropertiesRequestBuilder::TryBuild(optional<UpdateNamespac
 	}
 }
 
-UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjson_val *obj) {
-	UpdateNamespacePropertiesRequestBuilder builder;
-	auto removals_val = yyjson_obj_get(obj, "removals");
-	if (removals_val) {
-		vector<string> removals;
-		if (yyjson_is_arr(removals_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(removals_val, idx, max, val) {
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "UpdateNamespacePropertiesRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				removals.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "UpdateNamespacePropertiesRequest property 'removals' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(removals_val)));
-		}
-		builder.SetRemovals(std::move(removals));
-	}
-	auto updates_val = yyjson_obj_get(obj, "updates");
-	if (updates_val) {
-		case_insensitive_map_t<string> updates;
-		if (yyjson_is_obj(updates_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(updates_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "UpdateNamespacePropertiesRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				updates.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("UpdateNamespacePropertiesRequest property 'updates' is not of type 'object'");
-		}
-		builder.SetUpdates(std::move(updates));
-	}
-	return builder.Build();
-}
-
 string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
-                                                     optional<UpdateNamespacePropertiesRequest> &result) {
+                                                     UpdateNamespacePropertiesRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto removals_val = yyjson_obj_get(obj, "removals");
+		if (removals_val) {
+			vector<string> removals;
+			if (yyjson_is_arr(removals_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(removals_val, idx, max, val) {
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(
+						    StringUtil::Format("UpdateNamespacePropertiesRequest property 'tmp' is not of type "
+						                       "'string', found '%s' instead",
+						                       yyjson_get_type_desc(val)));
+					}
+					removals.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "UpdateNamespacePropertiesRequest property 'removals' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(removals_val)));
+			}
+			builder.SetRemovals(std::move(removals));
+		}
+		auto updates_val = yyjson_obj_get(obj, "updates");
+		if (updates_val) {
+			case_insensitive_map_t<string> updates;
+			if (yyjson_is_obj(updates_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(updates_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(
+						    StringUtil::Format("UpdateNamespacePropertiesRequest property 'tmp' is not of type "
+						                       "'string', found '%s' instead",
+						                       yyjson_get_type_desc(val)));
+					}
+					updates.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    "UpdateNamespacePropertiesRequest property 'updates' is not of type 'object'");
+			}
+			builder.SetUpdates(std::move(updates));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjson_val *obj) {
+	UpdateNamespacePropertiesRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const {

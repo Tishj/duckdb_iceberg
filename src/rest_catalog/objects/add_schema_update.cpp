@@ -60,38 +60,41 @@ string AddSchemaUpdateBuilder::TryBuild(optional<AddSchemaUpdate> &result) {
 	}
 }
 
-AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
-	AddSchemaUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto schema_val = yyjson_obj_get(obj, "schema");
-	if (!schema_val) {
-		throw InvalidInputException("AddSchemaUpdate required property 'schema' is missing");
-	} else {
-		builder.SetSchema(Schema::FromJSON(schema_val));
-	}
-	auto last_column_id_val = yyjson_obj_get(obj, "last-column-id");
-	if (last_column_id_val) {
-		int32_t last_column_id;
-		if (yyjson_is_int(last_column_id_val)) {
-			last_column_id = yyjson_get_int(last_column_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "AddSchemaUpdate property 'last_column_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(last_column_id_val)));
-		}
-		builder.SetLastColumnId(std::move(last_column_id));
-	}
-	return builder.Build();
-}
-
-string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, optional<AddSchemaUpdate> &result) {
+string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, AddSchemaUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto schema_val = yyjson_obj_get(obj, "schema");
+		if (!schema_val) {
+			throw InvalidInputException("AddSchemaUpdate required property 'schema' is missing");
+		} else {
+			builder.SetSchema(Schema::FromJSON(schema_val));
+		}
+		auto last_column_id_val = yyjson_obj_get(obj, "last-column-id");
+		if (last_column_id_val) {
+			int32_t last_column_id;
+			if (yyjson_is_int(last_column_id_val)) {
+				last_column_id = yyjson_get_int(last_column_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "AddSchemaUpdate property 'last_column_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(last_column_id_val)));
+			}
+			builder.SetLastColumnId(std::move(last_column_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
+	AddSchemaUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AddSchemaUpdate AddSchemaUpdate::Copy() const {

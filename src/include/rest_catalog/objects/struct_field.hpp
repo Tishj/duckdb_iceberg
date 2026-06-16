@@ -33,7 +33,7 @@ private:
 public:
 	// Deserialization
 	static StructField FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<StructField> &result);
+	static string TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder);
 	string Validate() const;
 
 	// Copy

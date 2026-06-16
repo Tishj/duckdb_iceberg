@@ -55,34 +55,37 @@ string AssignUUIDUpdateBuilder::TryBuild(optional<AssignUUIDUpdate> &result) {
 	}
 }
 
-AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
-	AssignUUIDUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto uuid_val = yyjson_obj_get(obj, "uuid");
-	if (!uuid_val) {
-		throw InvalidInputException("AssignUUIDUpdate required property 'uuid' is missing");
-	} else {
-		string uuid;
-		if (yyjson_is_str(uuid_val)) {
-			uuid = yyjson_get_str(uuid_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AssignUUIDUpdate property 'uuid' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(uuid_val)));
-		}
-		builder.SetUuid(std::move(uuid));
-	}
-	return builder.Build();
-}
-
-string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, optional<AssignUUIDUpdate> &result) {
+string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto uuid_val = yyjson_obj_get(obj, "uuid");
+		if (!uuid_val) {
+			throw InvalidInputException("AssignUUIDUpdate required property 'uuid' is missing");
+		} else {
+			string uuid;
+			if (yyjson_is_str(uuid_val)) {
+				uuid = yyjson_get_str(uuid_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("AssignUUIDUpdate property 'uuid' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(uuid_val)));
+			}
+			builder.SetUuid(std::move(uuid));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
+	AssignUUIDUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssignUUIDUpdate AssignUUIDUpdate::Copy() const {

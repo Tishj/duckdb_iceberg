@@ -18,26 +18,34 @@ namespace rest_api_objects {
 BooleanTypeValue::BooleanTypeValue(bool value_p) : value(std::move(value_p)) {
 }
 
-BooleanTypeValue BooleanTypeValue::FromJSON(yyjson_val *obj) {
-	bool value;
-	if (yyjson_is_bool(obj)) {
-		value = yyjson_get_bool(obj);
-	} else {
-		throw InvalidInputException(
-		    StringUtil::Format("BooleanTypeValue property 'value' is not of type 'boolean', found '%s' instead",
-		                       yyjson_get_type_desc(obj)));
-	}
-	return BooleanTypeValue(std::move(value));
-}
-
 string BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		bool value;
+		if (yyjson_is_bool(obj)) {
+			value = yyjson_get_bool(obj);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("BooleanTypeValue property 'value' is not of type 'boolean', found '%s' instead",
+			                       yyjson_get_type_desc(obj)));
+		}
+		result.emplace(BooleanTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+BooleanTypeValue BooleanTypeValue::FromJSON(yyjson_val *obj) {
+	optional<BooleanTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 BooleanTypeValue BooleanTypeValue::Copy() const {

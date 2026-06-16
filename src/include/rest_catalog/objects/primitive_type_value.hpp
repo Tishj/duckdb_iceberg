@@ -54,7 +54,7 @@ private:
 public:
 	// Deserialization
 	static PrimitiveTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<PrimitiveTypeValue> &result);
+	static string TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilder &builder);
 	string Validate() const;
 
 	// Copy

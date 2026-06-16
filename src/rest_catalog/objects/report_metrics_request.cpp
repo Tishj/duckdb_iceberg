@@ -62,47 +62,50 @@ string ReportMetricsRequestBuilder::TryBuild(optional<ReportMetricsRequest> &res
 	}
 }
 
-ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
-	ReportMetricsRequestBuilder builder;
-	int matched_any_of_variants = 0;
+string ReportMetricsRequest::TryFromJSON(yyjson_val *obj, ReportMetricsRequestBuilder &builder) {
 	try {
-		builder.SetScanReport(ScanReport::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetCommitReport(CommitReport::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	if (matched_any_of_variants == 0) {
-		throw InvalidInputException("ReportMetricsRequest failed to parse, none of the anyOf candidates matched");
-	}
-	auto report_type_val = yyjson_obj_get(obj, "report-type");
-	if (!report_type_val) {
-		throw InvalidInputException("ReportMetricsRequest required property 'report-type' is missing");
-	} else {
-		string report_type;
-		if (yyjson_is_str(report_type_val)) {
-			report_type = yyjson_get_str(report_type_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ReportMetricsRequest property 'report_type' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(report_type_val)));
+		int matched_any_of_variants = 0;
+		try {
+			builder.SetScanReport(ScanReport::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
 		}
-		builder.SetReportType(std::move(report_type));
-	}
-	return builder.Build();
-}
-
-string ReportMetricsRequest::TryFromJSON(yyjson_val *obj, optional<ReportMetricsRequest> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		try {
+			builder.SetCommitReport(CommitReport::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		if (matched_any_of_variants == 0) {
+			throw InvalidInputException("ReportMetricsRequest failed to parse, none of the anyOf candidates matched");
+		}
+		auto report_type_val = yyjson_obj_get(obj, "report-type");
+		if (!report_type_val) {
+			throw InvalidInputException("ReportMetricsRequest required property 'report-type' is missing");
+		} else {
+			string report_type;
+			if (yyjson_is_str(report_type_val)) {
+				report_type = yyjson_get_str(report_type_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ReportMetricsRequest property 'report_type' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(report_type_val)));
+			}
+			builder.SetReportType(std::move(report_type));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
+	ReportMetricsRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ReportMetricsRequest ReportMetricsRequest::Copy() const {

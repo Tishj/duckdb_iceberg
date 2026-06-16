@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static SetExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetExpression> &result);
+	static string TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder);
 	string Validate() const;
 
 	// Copy

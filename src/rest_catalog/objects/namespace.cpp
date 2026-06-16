@@ -18,36 +18,45 @@ namespace rest_api_objects {
 Namespace::Namespace(vector<string> value_p) : value(std::move(value_p)) {
 }
 
-Namespace Namespace::FromJSON(yyjson_val *obj) {
-	vector<string> value;
-	if (yyjson_is_arr(obj)) {
-		size_t idx, max;
-		yyjson_val *val;
-		yyjson_arr_foreach(obj, idx, max, val) {
-			string tmp;
-			if (yyjson_is_str(val)) {
-				tmp = yyjson_get_str(val);
-			} else {
-				throw InvalidInputException(StringUtil::Format(
-				    "Namespace property 'tmp' is not of type 'string', found '%s' instead", yyjson_get_type_desc(val)));
-			}
-			value.emplace_back(std::move(tmp));
-		}
-	} else {
-		throw InvalidInputException(StringUtil::Format(
-		    "Namespace property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
-	}
-	return Namespace(std::move(value));
-}
-
 string Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		vector<string> value;
+		if (yyjson_is_arr(obj)) {
+			size_t idx, max;
+			yyjson_val *val;
+			yyjson_arr_foreach(obj, idx, max, val) {
+				string tmp;
+				if (yyjson_is_str(val)) {
+					tmp = yyjson_get_str(val);
+				} else {
+					throw InvalidInputException(
+					    StringUtil::Format("Namespace property 'tmp' is not of type 'string', found '%s' instead",
+					                       yyjson_get_type_desc(val)));
+				}
+				value.emplace_back(std::move(tmp));
+			}
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "Namespace property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
+		}
+		result.emplace(Namespace(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Namespace Namespace::FromJSON(yyjson_val *obj) {
+	optional<Namespace> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 Namespace Namespace::Copy() const {

@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static SnapshotReference FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SnapshotReference> &result);
+	static string TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder &builder);
 	string Validate() const;
 
 	// Copy

@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static TimerResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TimerResult> &result);
+	static string TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

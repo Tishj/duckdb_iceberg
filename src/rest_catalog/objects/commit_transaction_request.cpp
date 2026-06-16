@@ -50,38 +50,41 @@ string CommitTransactionRequestBuilder::TryBuild(optional<CommitTransactionReque
 	}
 }
 
-CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
-	CommitTransactionRequestBuilder builder;
-	auto table_changes_val = yyjson_obj_get(obj, "table-changes");
-	if (!table_changes_val) {
-		throw InvalidInputException("CommitTransactionRequest required property 'table-changes' is missing");
-	} else {
-		vector<CommitTableRequest> table_changes;
-		if (yyjson_is_arr(table_changes_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(table_changes_val, idx, max, val) {
-				auto tmp = CommitTableRequest::FromJSON(val);
-				table_changes.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CommitTransactionRequest property 'table_changes' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(table_changes_val)));
-		}
-		builder.SetTableChanges(std::move(table_changes));
-	}
-	return builder.Build();
-}
-
-string CommitTransactionRequest::TryFromJSON(yyjson_val *obj, optional<CommitTransactionRequest> &result) {
+string CommitTransactionRequest::TryFromJSON(yyjson_val *obj, CommitTransactionRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto table_changes_val = yyjson_obj_get(obj, "table-changes");
+		if (!table_changes_val) {
+			throw InvalidInputException("CommitTransactionRequest required property 'table-changes' is missing");
+		} else {
+			vector<CommitTableRequest> table_changes;
+			if (yyjson_is_arr(table_changes_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(table_changes_val, idx, max, val) {
+					auto tmp = CommitTableRequest::FromJSON(val);
+					table_changes.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitTransactionRequest property 'table_changes' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(table_changes_val)));
+			}
+			builder.SetTableChanges(std::move(table_changes));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
+	CommitTransactionRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CommitTransactionRequest CommitTransactionRequest::Copy() const {

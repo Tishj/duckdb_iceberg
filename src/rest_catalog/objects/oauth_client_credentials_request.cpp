@@ -76,73 +76,76 @@ string OAuthClientCredentialsRequestBuilder::TryBuild(optional<OAuthClientCreden
 	}
 }
 
-OAuthClientCredentialsRequest OAuthClientCredentialsRequest::FromJSON(yyjson_val *obj) {
-	OAuthClientCredentialsRequestBuilder builder;
-	auto grant_type_val = yyjson_obj_get(obj, "grant_type");
-	if (!grant_type_val) {
-		throw InvalidInputException("OAuthClientCredentialsRequest required property 'grant_type' is missing");
-	} else {
-		string grant_type;
-		if (yyjson_is_str(grant_type_val)) {
-			grant_type = yyjson_get_str(grant_type_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "OAuthClientCredentialsRequest property 'grant_type' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(grant_type_val)));
-		}
-		builder.SetGrantType(std::move(grant_type));
-	}
-	auto client_id_val = yyjson_obj_get(obj, "client_id");
-	if (!client_id_val) {
-		throw InvalidInputException("OAuthClientCredentialsRequest required property 'client_id' is missing");
-	} else {
-		string client_id;
-		if (yyjson_is_str(client_id_val)) {
-			client_id = yyjson_get_str(client_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "OAuthClientCredentialsRequest property 'client_id' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(client_id_val)));
-		}
-		builder.SetClientId(std::move(client_id));
-	}
-	auto client_secret_val = yyjson_obj_get(obj, "client_secret");
-	if (!client_secret_val) {
-		throw InvalidInputException("OAuthClientCredentialsRequest required property 'client_secret' is missing");
-	} else {
-		string client_secret;
-		if (yyjson_is_str(client_secret_val)) {
-			client_secret = yyjson_get_str(client_secret_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "OAuthClientCredentialsRequest property 'client_secret' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(client_secret_val)));
-		}
-		builder.SetClientSecret(std::move(client_secret));
-	}
-	auto scope_val = yyjson_obj_get(obj, "scope");
-	if (scope_val) {
-		string scope;
-		if (yyjson_is_str(scope_val)) {
-			scope = yyjson_get_str(scope_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "OAuthClientCredentialsRequest property 'scope' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(scope_val)));
-		}
-		builder.SetScope(std::move(scope));
-	}
-	return builder.Build();
-}
-
-string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj, optional<OAuthClientCredentialsRequest> &result) {
+string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj, OAuthClientCredentialsRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto grant_type_val = yyjson_obj_get(obj, "grant_type");
+		if (!grant_type_val) {
+			throw InvalidInputException("OAuthClientCredentialsRequest required property 'grant_type' is missing");
+		} else {
+			string grant_type;
+			if (yyjson_is_str(grant_type_val)) {
+				grant_type = yyjson_get_str(grant_type_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "OAuthClientCredentialsRequest property 'grant_type' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(grant_type_val)));
+			}
+			builder.SetGrantType(std::move(grant_type));
+		}
+		auto client_id_val = yyjson_obj_get(obj, "client_id");
+		if (!client_id_val) {
+			throw InvalidInputException("OAuthClientCredentialsRequest required property 'client_id' is missing");
+		} else {
+			string client_id;
+			if (yyjson_is_str(client_id_val)) {
+				client_id = yyjson_get_str(client_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "OAuthClientCredentialsRequest property 'client_id' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(client_id_val)));
+			}
+			builder.SetClientId(std::move(client_id));
+		}
+		auto client_secret_val = yyjson_obj_get(obj, "client_secret");
+		if (!client_secret_val) {
+			throw InvalidInputException("OAuthClientCredentialsRequest required property 'client_secret' is missing");
+		} else {
+			string client_secret;
+			if (yyjson_is_str(client_secret_val)) {
+				client_secret = yyjson_get_str(client_secret_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format("OAuthClientCredentialsRequest property 'client_secret' "
+				                                               "is not of type 'string', found '%s' instead",
+				                                               yyjson_get_type_desc(client_secret_val)));
+			}
+			builder.SetClientSecret(std::move(client_secret));
+		}
+		auto scope_val = yyjson_obj_get(obj, "scope");
+		if (scope_val) {
+			string scope;
+			if (yyjson_is_str(scope_val)) {
+				scope = yyjson_get_str(scope_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "OAuthClientCredentialsRequest property 'scope' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(scope_val)));
+			}
+			builder.SetScope(std::move(scope));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+OAuthClientCredentialsRequest OAuthClientCredentialsRequest::FromJSON(yyjson_val *obj) {
+	OAuthClientCredentialsRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 OAuthClientCredentialsRequest OAuthClientCredentialsRequest::Copy() const {

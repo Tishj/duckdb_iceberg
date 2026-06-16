@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static CommitTableResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CommitTableResponse> &result);
+	static string TryFromJSON(yyjson_val *obj, CommitTableResponseBuilder &builder);
 	string Validate() const;
 
 	// Copy

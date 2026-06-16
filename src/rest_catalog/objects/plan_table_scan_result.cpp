@@ -69,42 +69,45 @@ string PlanTableScanResultBuilder::TryBuild(optional<PlanTableScanResult> &resul
 	}
 }
 
-PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
-	PlanTableScanResultBuilder builder;
-	do {
-		try {
-			builder.SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetFailedPlanningResult(FailedPlanningResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAsyncPlanningResult(AsyncPlanningResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetEmptyPlanningResult(EmptyPlanningResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("PlanTableScanResult failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string PlanTableScanResult::TryFromJSON(yyjson_val *obj, optional<PlanTableScanResult> &result) {
+string PlanTableScanResult::TryFromJSON(yyjson_val *obj, PlanTableScanResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetCompletedPlanningWithIdresult(CompletedPlanningWithIDResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetFailedPlanningResult(FailedPlanningResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAsyncPlanningResult(AsyncPlanningResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetEmptyPlanningResult(EmptyPlanningResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("PlanTableScanResult failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
+	PlanTableScanResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 PlanTableScanResult PlanTableScanResult::Copy() const {

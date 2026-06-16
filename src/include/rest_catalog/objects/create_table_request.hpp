@@ -34,7 +34,7 @@ private:
 public:
 	// Deserialization
 	static CreateTableRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CreateTableRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, CreateTableRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

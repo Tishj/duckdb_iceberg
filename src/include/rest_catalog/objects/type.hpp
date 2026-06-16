@@ -34,7 +34,7 @@ private:
 public:
 	// Deserialization
 	static Type FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<Type> &result);
+	static string TryFromJSON(yyjson_val *obj, TypeBuilder &builder);
 	string Validate() const;
 
 	// Copy

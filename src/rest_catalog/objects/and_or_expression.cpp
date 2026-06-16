@@ -68,41 +68,44 @@ string AndOrExpressionBuilder::TryBuild(optional<AndOrExpression> &result) {
 	}
 }
 
-AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
-	AndOrExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AndOrExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	auto left_val = yyjson_obj_get(obj, "left");
-	if (!left_val) {
-		throw InvalidInputException("AndOrExpression required property 'left' is missing");
-	} else {
-		unique_ptr<Expression> left;
-		left = make_uniq<Expression>(Expression::FromJSON(left_val));
-		builder.SetLeft(std::move(left));
-	}
-	auto right_val = yyjson_obj_get(obj, "right");
-	if (!right_val) {
-		throw InvalidInputException("AndOrExpression required property 'right' is missing");
-	} else {
-		unique_ptr<Expression> right;
-		right = make_uniq<Expression>(Expression::FromJSON(right_val));
-		builder.SetRight(std::move(right));
-	}
-	return builder.Build();
-}
-
-string AndOrExpression::TryFromJSON(yyjson_val *obj, optional<AndOrExpression> &result) {
+string AndOrExpression::TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AndOrExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
+		auto left_val = yyjson_obj_get(obj, "left");
+		if (!left_val) {
+			throw InvalidInputException("AndOrExpression required property 'left' is missing");
+		} else {
+			unique_ptr<Expression> left;
+			left = make_uniq<Expression>(Expression::FromJSON(left_val));
+			builder.SetLeft(std::move(left));
+		}
+		auto right_val = yyjson_obj_get(obj, "right");
+		if (!right_val) {
+			throw InvalidInputException("AndOrExpression required property 'right' is missing");
+		} else {
+			unique_ptr<Expression> right;
+			right = make_uniq<Expression>(Expression::FromJSON(right_val));
+			builder.SetRight(std::move(right));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
+	AndOrExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AndOrExpression AndOrExpression::Copy() const {

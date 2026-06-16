@@ -51,32 +51,35 @@ string TermBuilder::TryBuild(optional<Term> &result) {
 	}
 }
 
-Term Term::FromJSON(yyjson_val *obj) {
-	TermBuilder builder;
-	do {
-		try {
-			builder.SetReference(Reference::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetTransformTerm(TransformTerm::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("Term failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string Term::TryFromJSON(yyjson_val *obj, optional<Term> &result) {
+string Term::TryFromJSON(yyjson_val *obj, TermBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetReference(Reference::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetTransformTerm(TransformTerm::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("Term failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Term Term::FromJSON(yyjson_val *obj) {
+	TermBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 Term Term::Copy() const {

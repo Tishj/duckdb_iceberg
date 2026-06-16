@@ -49,25 +49,28 @@ string TrueExpressionBuilder::TryBuild(optional<TrueExpression> &result) {
 	}
 }
 
-TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
-	TrueExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("TrueExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	return builder.Build();
-}
-
-string TrueExpression::TryFromJSON(yyjson_val *obj, optional<TrueExpression> &result) {
+string TrueExpression::TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("TrueExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
+	TrueExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 TrueExpression TrueExpression::Copy() const {

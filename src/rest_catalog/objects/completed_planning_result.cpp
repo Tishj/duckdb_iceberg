@@ -60,43 +60,45 @@ string CompletedPlanningResult::Object5Builder::TryBuild(optional<CompletedPlann
 	}
 }
 
-CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjson_val *obj) {
-	Object5Builder builder;
-	auto status_val = yyjson_obj_get(obj, "status");
-	if (!status_val) {
-		throw InvalidInputException("Object5 required property 'status' is missing");
-	} else {
-		builder.SetStatus(PlanStatus::FromJSON(status_val));
-	}
-	auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
-	if (storage_credentials_val) {
-		vector<StorageCredential> storage_credentials;
-		if (yyjson_is_arr(storage_credentials_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
-				auto tmp = StorageCredential::FromJSON(val);
-				storage_credentials.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("Object5 property 'storage_credentials' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(storage_credentials_val)));
-		}
-		builder.SetStorageCredentials(std::move(storage_credentials));
-	}
-	return builder.Build();
-}
-
-string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj,
-                                                     optional<CompletedPlanningResult::Object5> &result) {
+string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj, Object5Builder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto status_val = yyjson_obj_get(obj, "status");
+		if (!status_val) {
+			throw InvalidInputException("Object5 required property 'status' is missing");
+		} else {
+			builder.SetStatus(PlanStatus::FromJSON(status_val));
+		}
+		auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
+		if (storage_credentials_val) {
+			vector<StorageCredential> storage_credentials;
+			if (yyjson_is_arr(storage_credentials_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(storage_credentials_val, idx, max, val) {
+					auto tmp = StorageCredential::FromJSON(val);
+					storage_credentials.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "Object5 property 'storage_credentials' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(storage_credentials_val)));
+			}
+			builder.SetStorageCredentials(std::move(storage_credentials));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjson_val *obj) {
+	Object5Builder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const {
@@ -196,21 +198,24 @@ string CompletedPlanningResultBuilder::TryBuild(optional<CompletedPlanningResult
 	}
 }
 
-CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
-	CompletedPlanningResultBuilder builder;
-	builder.SetScanTasks(ScanTasks::FromJSON(obj));
-	builder.SetObject5(Object5::FromJSON(obj));
-	return builder.Build();
-}
-
-string CompletedPlanningResult::TryFromJSON(yyjson_val *obj, optional<CompletedPlanningResult> &result) {
+string CompletedPlanningResult::TryFromJSON(yyjson_val *obj, CompletedPlanningResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetScanTasks(ScanTasks::FromJSON(obj));
+		builder.SetObject5(Object5::FromJSON(obj));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
+	CompletedPlanningResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CompletedPlanningResult CompletedPlanningResult::Copy() const {

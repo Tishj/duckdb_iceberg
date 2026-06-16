@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static Metrics FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<Metrics> &result);
+	static string TryFromJSON(yyjson_val *obj, MetricsBuilder &builder);
 	string Validate() const;
 
 	// Copy

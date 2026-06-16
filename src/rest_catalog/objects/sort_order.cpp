@@ -59,52 +59,55 @@ string SortOrderBuilder::TryBuild(optional<SortOrder> &result) {
 	}
 }
 
-SortOrder SortOrder::FromJSON(yyjson_val *obj) {
-	SortOrderBuilder builder;
-	auto order_id_val = yyjson_obj_get(obj, "order-id");
-	if (!order_id_val) {
-		throw InvalidInputException("SortOrder required property 'order-id' is missing");
-	} else {
-		int32_t order_id;
-		if (yyjson_is_int(order_id_val)) {
-			order_id = yyjson_get_int(order_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SortOrder property 'order_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(order_id_val)));
-		}
-		builder.SetOrderId(std::move(order_id));
-	}
-	auto fields_val = yyjson_obj_get(obj, "fields");
-	if (!fields_val) {
-		throw InvalidInputException("SortOrder required property 'fields' is missing");
-	} else {
-		vector<SortField> fields;
-		if (yyjson_is_arr(fields_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(fields_val, idx, max, val) {
-				auto tmp = SortField::FromJSON(val);
-				fields.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SortOrder property 'fields' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(fields_val)));
-		}
-		builder.SetFields(std::move(fields));
-	}
-	return builder.Build();
-}
-
-string SortOrder::TryFromJSON(yyjson_val *obj, optional<SortOrder> &result) {
+string SortOrder::TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto order_id_val = yyjson_obj_get(obj, "order-id");
+		if (!order_id_val) {
+			throw InvalidInputException("SortOrder required property 'order-id' is missing");
+		} else {
+			int32_t order_id;
+			if (yyjson_is_int(order_id_val)) {
+				order_id = yyjson_get_int(order_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("SortOrder property 'order_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(order_id_val)));
+			}
+			builder.SetOrderId(std::move(order_id));
+		}
+		auto fields_val = yyjson_obj_get(obj, "fields");
+		if (!fields_val) {
+			throw InvalidInputException("SortOrder required property 'fields' is missing");
+		} else {
+			vector<SortField> fields;
+			if (yyjson_is_arr(fields_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(fields_val, idx, max, val) {
+					auto tmp = SortField::FromJSON(val);
+					fields.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("SortOrder property 'fields' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(fields_val)));
+			}
+			builder.SetFields(std::move(fields));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SortOrder SortOrder::FromJSON(yyjson_val *obj) {
+	SortOrderBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SortOrder SortOrder::Copy() const {

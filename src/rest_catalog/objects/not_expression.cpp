@@ -59,33 +59,36 @@ string NotExpressionBuilder::TryBuild(optional<NotExpression> &result) {
 	}
 }
 
-NotExpression NotExpression::FromJSON(yyjson_val *obj) {
-	NotExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("NotExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	auto child_val = yyjson_obj_get(obj, "child");
-	if (!child_val) {
-		throw InvalidInputException("NotExpression required property 'child' is missing");
-	} else {
-		unique_ptr<Expression> child;
-		child = make_uniq<Expression>(Expression::FromJSON(child_val));
-		builder.SetChild(std::move(child));
-	}
-	return builder.Build();
-}
-
-string NotExpression::TryFromJSON(yyjson_val *obj, optional<NotExpression> &result) {
+string NotExpression::TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("NotExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
+		auto child_val = yyjson_obj_get(obj, "child");
+		if (!child_val) {
+			throw InvalidInputException("NotExpression required property 'child' is missing");
+		} else {
+			unique_ptr<Expression> child;
+			child = make_uniq<Expression>(Expression::FromJSON(child_val));
+			builder.SetChild(std::move(child));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+NotExpression NotExpression::FromJSON(yyjson_val *obj) {
+	NotExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 NotExpression NotExpression::Copy() const {

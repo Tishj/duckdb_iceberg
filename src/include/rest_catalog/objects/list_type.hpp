@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static ListType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ListType> &result);
+	static string TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder);
 	string Validate() const;
 
 	// Copy

@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static EncryptedKey FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<EncryptedKey> &result);
+	static string TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder);
 	string Validate() const;
 
 	// Copy

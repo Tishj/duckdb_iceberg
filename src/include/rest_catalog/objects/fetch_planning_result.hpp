@@ -34,7 +34,7 @@ private:
 public:
 	// Deserialization
 	static FetchPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<FetchPlanningResult> &result);
+	static string TryFromJSON(yyjson_val *obj, FetchPlanningResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

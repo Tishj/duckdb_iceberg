@@ -55,26 +55,29 @@ string AddSortOrderUpdateBuilder::TryBuild(optional<AddSortOrderUpdate> &result)
 	}
 }
 
-AddSortOrderUpdate AddSortOrderUpdate::FromJSON(yyjson_val *obj) {
-	AddSortOrderUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto sort_order_val = yyjson_obj_get(obj, "sort-order");
-	if (!sort_order_val) {
-		throw InvalidInputException("AddSortOrderUpdate required property 'sort-order' is missing");
-	} else {
-		builder.SetSortOrder(SortOrder::FromJSON(sort_order_val));
-	}
-	return builder.Build();
-}
-
-string AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, optional<AddSortOrderUpdate> &result) {
+string AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto sort_order_val = yyjson_obj_get(obj, "sort-order");
+		if (!sort_order_val) {
+			throw InvalidInputException("AddSortOrderUpdate required property 'sort-order' is missing");
+		} else {
+			builder.SetSortOrder(SortOrder::FromJSON(sort_order_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AddSortOrderUpdate AddSortOrderUpdate::FromJSON(yyjson_val *obj) {
+	AddSortOrderUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AddSortOrderUpdate AddSortOrderUpdate::Copy() const {

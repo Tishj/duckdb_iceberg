@@ -58,47 +58,50 @@ string AssertViewUUIDBuilder::TryBuild(optional<AssertViewUUID> &result) {
 	}
 }
 
-AssertViewUUID AssertViewUUID::FromJSON(yyjson_val *obj) {
-	AssertViewUUIDBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertViewUUID required property 'type' is missing");
-	} else {
-		string type;
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AssertViewUUID property 'type' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(type_val)));
-		}
-		builder.SetType(std::move(type));
-	}
-	auto uuid_val = yyjson_obj_get(obj, "uuid");
-	if (!uuid_val) {
-		throw InvalidInputException("AssertViewUUID required property 'uuid' is missing");
-	} else {
-		string uuid;
-		if (yyjson_is_str(uuid_val)) {
-			uuid = yyjson_get_str(uuid_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AssertViewUUID property 'uuid' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(uuid_val)));
-		}
-		builder.SetUuid(std::move(uuid));
-	}
-	return builder.Build();
-}
-
-string AssertViewUUID::TryFromJSON(yyjson_val *obj, optional<AssertViewUUID> &result) {
+string AssertViewUUID::TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertViewUUID required property 'type' is missing");
+		} else {
+			string type;
+			if (yyjson_is_str(type_val)) {
+				type = yyjson_get_str(type_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("AssertViewUUID property 'type' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(type_val)));
+			}
+			builder.SetType(std::move(type));
+		}
+		auto uuid_val = yyjson_obj_get(obj, "uuid");
+		if (!uuid_val) {
+			throw InvalidInputException("AssertViewUUID required property 'uuid' is missing");
+		} else {
+			string uuid;
+			if (yyjson_is_str(uuid_val)) {
+				uuid = yyjson_get_str(uuid_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("AssertViewUUID property 'uuid' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(uuid_val)));
+			}
+			builder.SetUuid(std::move(uuid));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertViewUUID AssertViewUUID::FromJSON(yyjson_val *obj) {
+	AssertViewUUIDBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertViewUUID AssertViewUUID::Copy() const {

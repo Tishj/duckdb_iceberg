@@ -84,57 +84,60 @@ string ExpressionBuilder::TryBuild(optional<Expression> &result) {
 	}
 }
 
-Expression Expression::FromJSON(yyjson_val *obj) {
-	ExpressionBuilder builder;
-	do {
-		try {
-			builder.SetTrueExpression(TrueExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetFalseExpression(FalseExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetAndOrExpression(AndOrExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetNotExpression(NotExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetSetExpression(SetExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetLiteralExpression(LiteralExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetUnaryExpression(UnaryExpression::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("Expression failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string Expression::TryFromJSON(yyjson_val *obj, optional<Expression> &result) {
+string Expression::TryFromJSON(yyjson_val *obj, ExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetTrueExpression(TrueExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetFalseExpression(FalseExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetAndOrExpression(AndOrExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetNotExpression(NotExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetSetExpression(SetExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetLiteralExpression(LiteralExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetUnaryExpression(UnaryExpression::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("Expression failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Expression Expression::FromJSON(yyjson_val *obj) {
+	ExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 Expression Expression::Copy() const {

@@ -65,62 +65,65 @@ string LoadViewResultBuilder::TryBuild(optional<LoadViewResult> &result) {
 	}
 }
 
-LoadViewResult LoadViewResult::FromJSON(yyjson_val *obj) {
-	LoadViewResultBuilder builder;
-	auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
-	if (!metadata_location_val) {
-		throw InvalidInputException("LoadViewResult required property 'metadata-location' is missing");
-	} else {
-		string metadata_location;
-		if (yyjson_is_str(metadata_location_val)) {
-			metadata_location = yyjson_get_str(metadata_location_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "LoadViewResult property 'metadata_location' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(metadata_location_val)));
-		}
-		builder.SetMetadataLocation(std::move(metadata_location));
-	}
-	auto metadata_val = yyjson_obj_get(obj, "metadata");
-	if (!metadata_val) {
-		throw InvalidInputException("LoadViewResult required property 'metadata' is missing");
-	} else {
-		builder.SetMetadata(ViewMetadata::FromJSON(metadata_val));
-	}
-	auto config_val = yyjson_obj_get(obj, "config");
-	if (config_val) {
-		case_insensitive_map_t<string> config;
-		if (yyjson_is_obj(config_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(config_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("LoadViewResult property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				config.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("LoadViewResult property 'config' is not of type 'object'");
-		}
-		builder.SetConfig(std::move(config));
-	}
-	return builder.Build();
-}
-
-string LoadViewResult::TryFromJSON(yyjson_val *obj, optional<LoadViewResult> &result) {
+string LoadViewResult::TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
+		if (!metadata_location_val) {
+			throw InvalidInputException("LoadViewResult required property 'metadata-location' is missing");
+		} else {
+			string metadata_location;
+			if (yyjson_is_str(metadata_location_val)) {
+				metadata_location = yyjson_get_str(metadata_location_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "LoadViewResult property 'metadata_location' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(metadata_location_val)));
+			}
+			builder.SetMetadataLocation(std::move(metadata_location));
+		}
+		auto metadata_val = yyjson_obj_get(obj, "metadata");
+		if (!metadata_val) {
+			throw InvalidInputException("LoadViewResult required property 'metadata' is missing");
+		} else {
+			builder.SetMetadata(ViewMetadata::FromJSON(metadata_val));
+		}
+		auto config_val = yyjson_obj_get(obj, "config");
+		if (config_val) {
+			case_insensitive_map_t<string> config;
+			if (yyjson_is_obj(config_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(config_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "LoadViewResult property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					config.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("LoadViewResult property 'config' is not of type 'object'");
+			}
+			builder.SetConfig(std::move(config));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+LoadViewResult LoadViewResult::FromJSON(yyjson_val *obj) {
+	LoadViewResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 LoadViewResult LoadViewResult::Copy() const {

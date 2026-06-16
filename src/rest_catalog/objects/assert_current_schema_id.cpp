@@ -59,39 +59,42 @@ string AssertCurrentSchemaIdBuilder::TryBuild(optional<AssertCurrentSchemaId> &r
 	}
 }
 
-AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
-	AssertCurrentSchemaIdBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertCurrentSchemaId required property 'type' is missing");
-	} else {
-		builder.SetType(TableRequirementType::FromJSON(type_val));
-	}
-	auto current_schema_id_val = yyjson_obj_get(obj, "current-schema-id");
-	if (!current_schema_id_val) {
-		throw InvalidInputException("AssertCurrentSchemaId required property 'current-schema-id' is missing");
-	} else {
-		int32_t current_schema_id;
-		if (yyjson_is_int(current_schema_id_val)) {
-			current_schema_id = yyjson_get_int(current_schema_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "AssertCurrentSchemaId property 'current_schema_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(current_schema_id_val)));
-		}
-		builder.SetCurrentSchemaId(std::move(current_schema_id));
-	}
-	return builder.Build();
-}
-
-string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, optional<AssertCurrentSchemaId> &result) {
+string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, AssertCurrentSchemaIdBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertCurrentSchemaId required property 'type' is missing");
+		} else {
+			builder.SetType(TableRequirementType::FromJSON(type_val));
+		}
+		auto current_schema_id_val = yyjson_obj_get(obj, "current-schema-id");
+		if (!current_schema_id_val) {
+			throw InvalidInputException("AssertCurrentSchemaId required property 'current-schema-id' is missing");
+		} else {
+			int32_t current_schema_id;
+			if (yyjson_is_int(current_schema_id_val)) {
+				current_schema_id = yyjson_get_int(current_schema_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "AssertCurrentSchemaId property 'current_schema_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(current_schema_id_val)));
+			}
+			builder.SetCurrentSchemaId(std::move(current_schema_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
+	AssertCurrentSchemaIdBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertCurrentSchemaId AssertCurrentSchemaId::Copy() const {

@@ -59,48 +59,51 @@ string PositionDeleteFileBuilder::TryBuild(optional<PositionDeleteFile> &result)
 	}
 }
 
-PositionDeleteFile PositionDeleteFile::FromJSON(yyjson_val *obj) {
-	PositionDeleteFileBuilder builder;
-	builder.SetContentFile(ContentFile::FromJSON(obj));
-	auto content_offset_val = yyjson_obj_get(obj, "content-offset");
-	if (content_offset_val) {
-		int64_t content_offset;
-		if (yyjson_is_sint(content_offset_val)) {
-			content_offset = yyjson_get_sint(content_offset_val);
-		} else if (yyjson_is_uint(content_offset_val)) {
-			content_offset = yyjson_get_uint(content_offset_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "PositionDeleteFile property 'content_offset' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(content_offset_val)));
-		}
-		builder.SetContentOffset(std::move(content_offset));
-	}
-	auto content_size_in_bytes_val = yyjson_obj_get(obj, "content-size-in-bytes");
-	if (content_size_in_bytes_val) {
-		int64_t content_size_in_bytes;
-		if (yyjson_is_sint(content_size_in_bytes_val)) {
-			content_size_in_bytes = yyjson_get_sint(content_size_in_bytes_val);
-		} else if (yyjson_is_uint(content_size_in_bytes_val)) {
-			content_size_in_bytes = yyjson_get_uint(content_size_in_bytes_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "PositionDeleteFile property 'content_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(content_size_in_bytes_val)));
-		}
-		builder.SetContentSizeInBytes(std::move(content_size_in_bytes));
-	}
-	return builder.Build();
-}
-
-string PositionDeleteFile::TryFromJSON(yyjson_val *obj, optional<PositionDeleteFile> &result) {
+string PositionDeleteFile::TryFromJSON(yyjson_val *obj, PositionDeleteFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetContentFile(ContentFile::FromJSON(obj));
+		auto content_offset_val = yyjson_obj_get(obj, "content-offset");
+		if (content_offset_val) {
+			int64_t content_offset;
+			if (yyjson_is_sint(content_offset_val)) {
+				content_offset = yyjson_get_sint(content_offset_val);
+			} else if (yyjson_is_uint(content_offset_val)) {
+				content_offset = yyjson_get_uint(content_offset_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "PositionDeleteFile property 'content_offset' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(content_offset_val)));
+			}
+			builder.SetContentOffset(std::move(content_offset));
+		}
+		auto content_size_in_bytes_val = yyjson_obj_get(obj, "content-size-in-bytes");
+		if (content_size_in_bytes_val) {
+			int64_t content_size_in_bytes;
+			if (yyjson_is_sint(content_size_in_bytes_val)) {
+				content_size_in_bytes = yyjson_get_sint(content_size_in_bytes_val);
+			} else if (yyjson_is_uint(content_size_in_bytes_val)) {
+				content_size_in_bytes = yyjson_get_uint(content_size_in_bytes_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "PositionDeleteFile property 'content_size_in_bytes' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(content_size_in_bytes_val)));
+			}
+			builder.SetContentSizeInBytes(std::move(content_size_in_bytes));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+PositionDeleteFile PositionDeleteFile::FromJSON(yyjson_val *obj) {
+	PositionDeleteFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 PositionDeleteFile PositionDeleteFile::Copy() const {

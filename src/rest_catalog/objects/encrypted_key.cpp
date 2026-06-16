@@ -72,82 +72,85 @@ string EncryptedKeyBuilder::TryBuild(optional<EncryptedKey> &result) {
 	}
 }
 
-EncryptedKey EncryptedKey::FromJSON(yyjson_val *obj) {
-	EncryptedKeyBuilder builder;
-	auto key_id_val = yyjson_obj_get(obj, "key-id");
-	if (!key_id_val) {
-		throw InvalidInputException("EncryptedKey required property 'key-id' is missing");
-	} else {
-		string key_id;
-		if (yyjson_is_str(key_id_val)) {
-			key_id = yyjson_get_str(key_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("EncryptedKey property 'key_id' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(key_id_val)));
-		}
-		builder.SetKeyId(std::move(key_id));
-	}
-	auto encrypted_key_metadata_val = yyjson_obj_get(obj, "encrypted-key-metadata");
-	if (!encrypted_key_metadata_val) {
-		throw InvalidInputException("EncryptedKey required property 'encrypted-key-metadata' is missing");
-	} else {
-		string encrypted_key_metadata;
-		if (yyjson_is_str(encrypted_key_metadata_val)) {
-			encrypted_key_metadata = yyjson_get_str(encrypted_key_metadata_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "EncryptedKey property 'encrypted_key_metadata' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(encrypted_key_metadata_val)));
-		}
-		builder.SetEncryptedKeyMetadata(std::move(encrypted_key_metadata));
-	}
-	auto encrypted_by_id_val = yyjson_obj_get(obj, "encrypted-by-id");
-	if (encrypted_by_id_val) {
-		string encrypted_by_id;
-		if (yyjson_is_str(encrypted_by_id_val)) {
-			encrypted_by_id = yyjson_get_str(encrypted_by_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "EncryptedKey property 'encrypted_by_id' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(encrypted_by_id_val)));
-		}
-		builder.SetEncryptedById(std::move(encrypted_by_id));
-	}
-	auto properties_val = yyjson_obj_get(obj, "properties");
-	if (properties_val) {
-		case_insensitive_map_t<string> properties;
-		if (yyjson_is_obj(properties_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(properties_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(
-					    StringUtil::Format("EncryptedKey property 'tmp' is not of type 'string', found '%s' instead",
-					                       yyjson_get_type_desc(val)));
-				}
-				properties.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("EncryptedKey property 'properties' is not of type 'object'");
-		}
-		builder.SetProperties(std::move(properties));
-	}
-	return builder.Build();
-}
-
-string EncryptedKey::TryFromJSON(yyjson_val *obj, optional<EncryptedKey> &result) {
+string EncryptedKey::TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto key_id_val = yyjson_obj_get(obj, "key-id");
+		if (!key_id_val) {
+			throw InvalidInputException("EncryptedKey required property 'key-id' is missing");
+		} else {
+			string key_id;
+			if (yyjson_is_str(key_id_val)) {
+				key_id = yyjson_get_str(key_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("EncryptedKey property 'key_id' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(key_id_val)));
+			}
+			builder.SetKeyId(std::move(key_id));
+		}
+		auto encrypted_key_metadata_val = yyjson_obj_get(obj, "encrypted-key-metadata");
+		if (!encrypted_key_metadata_val) {
+			throw InvalidInputException("EncryptedKey required property 'encrypted-key-metadata' is missing");
+		} else {
+			string encrypted_key_metadata;
+			if (yyjson_is_str(encrypted_key_metadata_val)) {
+				encrypted_key_metadata = yyjson_get_str(encrypted_key_metadata_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "EncryptedKey property 'encrypted_key_metadata' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(encrypted_key_metadata_val)));
+			}
+			builder.SetEncryptedKeyMetadata(std::move(encrypted_key_metadata));
+		}
+		auto encrypted_by_id_val = yyjson_obj_get(obj, "encrypted-by-id");
+		if (encrypted_by_id_val) {
+			string encrypted_by_id;
+			if (yyjson_is_str(encrypted_by_id_val)) {
+				encrypted_by_id = yyjson_get_str(encrypted_by_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "EncryptedKey property 'encrypted_by_id' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(encrypted_by_id_val)));
+			}
+			builder.SetEncryptedById(std::move(encrypted_by_id));
+		}
+		auto properties_val = yyjson_obj_get(obj, "properties");
+		if (properties_val) {
+			case_insensitive_map_t<string> properties;
+			if (yyjson_is_obj(properties_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(properties_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "EncryptedKey property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					properties.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("EncryptedKey property 'properties' is not of type 'object'");
+			}
+			builder.SetProperties(std::move(properties));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+EncryptedKey EncryptedKey::FromJSON(yyjson_val *obj) {
+	EncryptedKeyBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 EncryptedKey EncryptedKey::Copy() const {

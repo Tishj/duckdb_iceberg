@@ -51,33 +51,36 @@ string MetricResultBuilder::TryBuild(optional<MetricResult> &result) {
 	}
 }
 
-MetricResult MetricResult::FromJSON(yyjson_val *obj) {
-	MetricResultBuilder builder;
-	int matched_any_of_variants = 0;
+string MetricResult::TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder) {
 	try {
-		builder.SetCounterResult(CounterResult::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	try {
-		builder.SetTimerResult(TimerResult::FromJSON(obj));
-		matched_any_of_variants++;
-	} catch (const Exception &) {
-	}
-	if (matched_any_of_variants == 0) {
-		throw InvalidInputException("MetricResult failed to parse, none of the anyOf candidates matched");
-	}
-	return builder.Build();
-}
-
-string MetricResult::TryFromJSON(yyjson_val *obj, optional<MetricResult> &result) {
-	try {
-		result.emplace(FromJSON(obj));
+		int matched_any_of_variants = 0;
+		try {
+			builder.SetCounterResult(CounterResult::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		try {
+			builder.SetTimerResult(TimerResult::FromJSON(obj));
+			matched_any_of_variants++;
+		} catch (const Exception &) {
+		}
+		if (matched_any_of_variants == 0) {
+			throw InvalidInputException("MetricResult failed to parse, none of the anyOf candidates matched");
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+MetricResult MetricResult::FromJSON(yyjson_val *obj) {
+	MetricResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 MetricResult MetricResult::Copy() const {

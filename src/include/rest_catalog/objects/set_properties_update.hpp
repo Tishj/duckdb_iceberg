@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static SetPropertiesUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetPropertiesUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

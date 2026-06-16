@@ -35,7 +35,7 @@ public:
 	public:
 		// Deserialization
 		static Object3 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, optional<Object3> &result);
+		static string TryFromJSON(yyjson_val *obj, Object3Builder &builder);
 		string Validate() const;
 
 		// Copy

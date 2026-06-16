@@ -18,26 +18,34 @@ namespace rest_api_objects {
 TimestampTzTypeValue::TimestampTzTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
-TimestampTzTypeValue TimestampTzTypeValue::FromJSON(yyjson_val *obj) {
-	string value;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		throw InvalidInputException(
-		    StringUtil::Format("TimestampTzTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                       yyjson_get_type_desc(obj)));
-	}
-	return TimestampTzTypeValue(std::move(value));
-}
-
 string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		string value;
+		if (yyjson_is_str(obj)) {
+			value = yyjson_get_str(obj);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("TimestampTzTypeValue property 'value' is not of type 'string', found '%s' instead",
+			                       yyjson_get_type_desc(obj)));
+		}
+		result.emplace(TimestampTzTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TimestampTzTypeValue TimestampTzTypeValue::FromJSON(yyjson_val *obj) {
+	optional<TimestampTzTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 TimestampTzTypeValue TimestampTzTypeValue::Copy() const {

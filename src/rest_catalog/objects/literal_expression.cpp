@@ -68,37 +68,40 @@ string LiteralExpressionBuilder::TryBuild(optional<LiteralExpression> &result) {
 	}
 }
 
-LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
-	LiteralExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("LiteralExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		throw InvalidInputException("LiteralExpression required property 'term' is missing");
-	} else {
-		builder.SetTerm(Term::FromJSON(term_val));
-	}
-	auto value_val = yyjson_obj_get(obj, "value");
-	if (!value_val) {
-		throw InvalidInputException("LiteralExpression required property 'value' is missing");
-	} else {
-		builder.SetValue(PrimitiveTypeValue::FromJSON(value_val));
-	}
-	return builder.Build();
-}
-
-string LiteralExpression::TryFromJSON(yyjson_val *obj, optional<LiteralExpression> &result) {
+string LiteralExpression::TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("LiteralExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
+		auto term_val = yyjson_obj_get(obj, "term");
+		if (!term_val) {
+			throw InvalidInputException("LiteralExpression required property 'term' is missing");
+		} else {
+			builder.SetTerm(Term::FromJSON(term_val));
+		}
+		auto value_val = yyjson_obj_get(obj, "value");
+		if (!value_val) {
+			throw InvalidInputException("LiteralExpression required property 'value' is missing");
+		} else {
+			builder.SetValue(PrimitiveTypeValue::FromJSON(value_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
+	LiteralExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 LiteralExpression LiteralExpression::Copy() const {

@@ -55,26 +55,29 @@ string AddPartitionSpecUpdateBuilder::TryBuild(optional<AddPartitionSpecUpdate> 
 	}
 }
 
-AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
-	AddPartitionSpecUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto spec_val = yyjson_obj_get(obj, "spec");
-	if (!spec_val) {
-		throw InvalidInputException("AddPartitionSpecUpdate required property 'spec' is missing");
-	} else {
-		builder.SetSpec(PartitionSpec::FromJSON(spec_val));
-	}
-	return builder.Build();
-}
-
-string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, optional<AddPartitionSpecUpdate> &result) {
+string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, AddPartitionSpecUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto spec_val = yyjson_obj_get(obj, "spec");
+		if (!spec_val) {
+			throw InvalidInputException("AddPartitionSpecUpdate required property 'spec' is missing");
+		} else {
+			builder.SetSpec(PartitionSpec::FromJSON(spec_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
+	AddPartitionSpecUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AddPartitionSpecUpdate AddPartitionSpecUpdate::Copy() const {

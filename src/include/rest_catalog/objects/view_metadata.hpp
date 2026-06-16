@@ -34,7 +34,7 @@ private:
 public:
 	// Deserialization
 	static ViewMetadata FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ViewMetadata> &result);
+	static string TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder);
 	string Validate() const;
 
 	// Copy

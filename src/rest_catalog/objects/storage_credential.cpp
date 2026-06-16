@@ -59,58 +59,61 @@ string StorageCredentialBuilder::TryBuild(optional<StorageCredential> &result) {
 	}
 }
 
-StorageCredential StorageCredential::FromJSON(yyjson_val *obj) {
-	StorageCredentialBuilder builder;
-	auto prefix_val = yyjson_obj_get(obj, "prefix");
-	if (!prefix_val) {
-		throw InvalidInputException("StorageCredential required property 'prefix' is missing");
-	} else {
-		string prefix;
-		if (yyjson_is_str(prefix_val)) {
-			prefix = yyjson_get_str(prefix_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("StorageCredential property 'prefix' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(prefix_val)));
-		}
-		builder.SetPrefix(std::move(prefix));
-	}
-	auto config_val = yyjson_obj_get(obj, "config");
-	if (!config_val) {
-		throw InvalidInputException("StorageCredential required property 'config' is missing");
-	} else {
-		case_insensitive_map_t<string> config;
-		if (yyjson_is_obj(config_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(config_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "StorageCredential property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				config.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("StorageCredential property 'config' is not of type 'object'");
-		}
-		builder.SetConfig(std::move(config));
-	}
-	return builder.Build();
-}
-
-string StorageCredential::TryFromJSON(yyjson_val *obj, optional<StorageCredential> &result) {
+string StorageCredential::TryFromJSON(yyjson_val *obj, StorageCredentialBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto prefix_val = yyjson_obj_get(obj, "prefix");
+		if (!prefix_val) {
+			throw InvalidInputException("StorageCredential required property 'prefix' is missing");
+		} else {
+			string prefix;
+			if (yyjson_is_str(prefix_val)) {
+				prefix = yyjson_get_str(prefix_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "StorageCredential property 'prefix' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(prefix_val)));
+			}
+			builder.SetPrefix(std::move(prefix));
+		}
+		auto config_val = yyjson_obj_get(obj, "config");
+		if (!config_val) {
+			throw InvalidInputException("StorageCredential required property 'config' is missing");
+		} else {
+			case_insensitive_map_t<string> config;
+			if (yyjson_is_obj(config_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(config_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "StorageCredential property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					config.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("StorageCredential property 'config' is not of type 'object'");
+			}
+			builder.SetConfig(std::move(config));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+StorageCredential StorageCredential::FromJSON(yyjson_val *obj) {
+	StorageCredentialBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 StorageCredential StorageCredential::Copy() const {

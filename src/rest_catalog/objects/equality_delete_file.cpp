@@ -51,44 +51,47 @@ string EqualityDeleteFileBuilder::TryBuild(optional<EqualityDeleteFile> &result)
 	}
 }
 
-EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
-	EqualityDeleteFileBuilder builder;
-	builder.SetContentFile(ContentFile::FromJSON(obj));
-	auto equality_ids_val = yyjson_obj_get(obj, "equality-ids");
-	if (equality_ids_val) {
-		vector<int32_t> equality_ids;
-		if (yyjson_is_arr(equality_ids_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(equality_ids_val, idx, max, val) {
-				int32_t tmp;
-				if (yyjson_is_int(val)) {
-					tmp = yyjson_get_int(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "EqualityDeleteFile property 'tmp' is not of type 'integer', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				equality_ids.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "EqualityDeleteFile property 'equality_ids' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(equality_ids_val)));
-		}
-		builder.SetEqualityIds(std::move(equality_ids));
-	}
-	return builder.Build();
-}
-
-string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, optional<EqualityDeleteFile> &result) {
+string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetContentFile(ContentFile::FromJSON(obj));
+		auto equality_ids_val = yyjson_obj_get(obj, "equality-ids");
+		if (equality_ids_val) {
+			vector<int32_t> equality_ids;
+			if (yyjson_is_arr(equality_ids_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(equality_ids_val, idx, max, val) {
+					int32_t tmp;
+					if (yyjson_is_int(val)) {
+						tmp = yyjson_get_int(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "EqualityDeleteFile property 'tmp' is not of type 'integer', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					equality_ids.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "EqualityDeleteFile property 'equality_ids' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(equality_ids_val)));
+			}
+			builder.SetEqualityIds(std::move(equality_ids));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
+	EqualityDeleteFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 EqualityDeleteFile EqualityDeleteFile::Copy() const {

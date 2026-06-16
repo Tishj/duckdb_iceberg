@@ -35,7 +35,7 @@ private:
 public:
 	// Deserialization
 	static ContentFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ContentFile> &result);
+	static string TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder);
 	string Validate() const;
 
 	// Copy

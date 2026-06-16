@@ -62,40 +62,43 @@ string SetStatisticsUpdateBuilder::TryBuild(optional<SetStatisticsUpdate> &resul
 	}
 }
 
-SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
-	SetStatisticsUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto statistics_val = yyjson_obj_get(obj, "statistics");
-	if (!statistics_val) {
-		throw InvalidInputException("SetStatisticsUpdate required property 'statistics' is missing");
-	} else {
-		builder.SetStatistics(StatisticsFile::FromJSON(statistics_val));
-	}
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (snapshot_id_val) {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "SetStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	return builder.Build();
-}
-
-string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, optional<SetStatisticsUpdate> &result) {
+string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetStatisticsUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto statistics_val = yyjson_obj_get(obj, "statistics");
+		if (!statistics_val) {
+			throw InvalidInputException("SetStatisticsUpdate required property 'statistics' is missing");
+		} else {
+			builder.SetStatistics(StatisticsFile::FromJSON(statistics_val));
+		}
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (snapshot_id_val) {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "SetStatisticsUpdate property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
+	SetStatisticsUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetStatisticsUpdate SetStatisticsUpdate::Copy() const {

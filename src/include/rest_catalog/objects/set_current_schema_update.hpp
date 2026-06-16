@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static SetCurrentSchemaUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetCurrentSchemaUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, SetCurrentSchemaUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

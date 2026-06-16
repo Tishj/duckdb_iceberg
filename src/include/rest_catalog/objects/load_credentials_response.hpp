@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static LoadCredentialsResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<LoadCredentialsResponse> &result);
+	static string TryFromJSON(yyjson_val *obj, LoadCredentialsResponseBuilder &builder);
 	string Validate() const;
 
 	// Copy

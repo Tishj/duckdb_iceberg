@@ -67,7 +67,7 @@ private:
 public:
 	// Deserialization
 	static TableUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TableUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

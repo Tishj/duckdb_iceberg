@@ -91,100 +91,103 @@ string StatisticsFileBuilder::TryBuild(optional<StatisticsFile> &result) {
 	}
 }
 
-StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
-	StatisticsFileBuilder builder;
-	auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
-	if (!snapshot_id_val) {
-		throw InvalidInputException("StatisticsFile required property 'snapshot-id' is missing");
-	} else {
-		int64_t snapshot_id;
-		if (yyjson_is_sint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_sint(snapshot_id_val);
-		} else if (yyjson_is_uint(snapshot_id_val)) {
-			snapshot_id = yyjson_get_uint(snapshot_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("StatisticsFile property 'snapshot_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(snapshot_id_val)));
-		}
-		builder.SetSnapshotId(std::move(snapshot_id));
-	}
-	auto statistics_path_val = yyjson_obj_get(obj, "statistics-path");
-	if (!statistics_path_val) {
-		throw InvalidInputException("StatisticsFile required property 'statistics-path' is missing");
-	} else {
-		string statistics_path;
-		if (yyjson_is_str(statistics_path_val)) {
-			statistics_path = yyjson_get_str(statistics_path_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "StatisticsFile property 'statistics_path' is not of type 'string', found '%s' instead",
-			    yyjson_get_type_desc(statistics_path_val)));
-		}
-		builder.SetStatisticsPath(std::move(statistics_path));
-	}
-	auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
-	if (!file_size_in_bytes_val) {
-		throw InvalidInputException("StatisticsFile required property 'file-size-in-bytes' is missing");
-	} else {
-		int64_t file_size_in_bytes;
-		if (yyjson_is_sint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
-		} else if (yyjson_is_uint(file_size_in_bytes_val)) {
-			file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "StatisticsFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(file_size_in_bytes_val)));
-		}
-		builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
-	}
-	auto file_footer_size_in_bytes_val = yyjson_obj_get(obj, "file-footer-size-in-bytes");
-	if (!file_footer_size_in_bytes_val) {
-		throw InvalidInputException("StatisticsFile required property 'file-footer-size-in-bytes' is missing");
-	} else {
-		int64_t file_footer_size_in_bytes;
-		if (yyjson_is_sint(file_footer_size_in_bytes_val)) {
-			file_footer_size_in_bytes = yyjson_get_sint(file_footer_size_in_bytes_val);
-		} else if (yyjson_is_uint(file_footer_size_in_bytes_val)) {
-			file_footer_size_in_bytes = yyjson_get_uint(file_footer_size_in_bytes_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "StatisticsFile property 'file_footer_size_in_bytes' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(file_footer_size_in_bytes_val)));
-		}
-		builder.SetFileFooterSizeInBytes(std::move(file_footer_size_in_bytes));
-	}
-	auto blob_metadata_val = yyjson_obj_get(obj, "blob-metadata");
-	if (!blob_metadata_val) {
-		throw InvalidInputException("StatisticsFile required property 'blob-metadata' is missing");
-	} else {
-		vector<BlobMetadata> blob_metadata;
-		if (yyjson_is_arr(blob_metadata_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(blob_metadata_val, idx, max, val) {
-				auto tmp = BlobMetadata::FromJSON(val);
-				blob_metadata.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("StatisticsFile property 'blob_metadata' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(blob_metadata_val)));
-		}
-		builder.SetBlobMetadata(std::move(blob_metadata));
-	}
-	return builder.Build();
-}
-
-string StatisticsFile::TryFromJSON(yyjson_val *obj, optional<StatisticsFile> &result) {
+string StatisticsFile::TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
+		if (!snapshot_id_val) {
+			throw InvalidInputException("StatisticsFile required property 'snapshot-id' is missing");
+		} else {
+			int64_t snapshot_id;
+			if (yyjson_is_sint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_sint(snapshot_id_val);
+			} else if (yyjson_is_uint(snapshot_id_val)) {
+				snapshot_id = yyjson_get_uint(snapshot_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "StatisticsFile property 'snapshot_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(snapshot_id_val)));
+			}
+			builder.SetSnapshotId(std::move(snapshot_id));
+		}
+		auto statistics_path_val = yyjson_obj_get(obj, "statistics-path");
+		if (!statistics_path_val) {
+			throw InvalidInputException("StatisticsFile required property 'statistics-path' is missing");
+		} else {
+			string statistics_path;
+			if (yyjson_is_str(statistics_path_val)) {
+				statistics_path = yyjson_get_str(statistics_path_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "StatisticsFile property 'statistics_path' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(statistics_path_val)));
+			}
+			builder.SetStatisticsPath(std::move(statistics_path));
+		}
+		auto file_size_in_bytes_val = yyjson_obj_get(obj, "file-size-in-bytes");
+		if (!file_size_in_bytes_val) {
+			throw InvalidInputException("StatisticsFile required property 'file-size-in-bytes' is missing");
+		} else {
+			int64_t file_size_in_bytes;
+			if (yyjson_is_sint(file_size_in_bytes_val)) {
+				file_size_in_bytes = yyjson_get_sint(file_size_in_bytes_val);
+			} else if (yyjson_is_uint(file_size_in_bytes_val)) {
+				file_size_in_bytes = yyjson_get_uint(file_size_in_bytes_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "StatisticsFile property 'file_size_in_bytes' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(file_size_in_bytes_val)));
+			}
+			builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
+		}
+		auto file_footer_size_in_bytes_val = yyjson_obj_get(obj, "file-footer-size-in-bytes");
+		if (!file_footer_size_in_bytes_val) {
+			throw InvalidInputException("StatisticsFile required property 'file-footer-size-in-bytes' is missing");
+		} else {
+			int64_t file_footer_size_in_bytes;
+			if (yyjson_is_sint(file_footer_size_in_bytes_val)) {
+				file_footer_size_in_bytes = yyjson_get_sint(file_footer_size_in_bytes_val);
+			} else if (yyjson_is_uint(file_footer_size_in_bytes_val)) {
+				file_footer_size_in_bytes = yyjson_get_uint(file_footer_size_in_bytes_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "StatisticsFile property 'file_footer_size_in_bytes' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(file_footer_size_in_bytes_val)));
+			}
+			builder.SetFileFooterSizeInBytes(std::move(file_footer_size_in_bytes));
+		}
+		auto blob_metadata_val = yyjson_obj_get(obj, "blob-metadata");
+		if (!blob_metadata_val) {
+			throw InvalidInputException("StatisticsFile required property 'blob-metadata' is missing");
+		} else {
+			vector<BlobMetadata> blob_metadata;
+			if (yyjson_is_arr(blob_metadata_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(blob_metadata_val, idx, max, val) {
+					auto tmp = BlobMetadata::FromJSON(val);
+					blob_metadata.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "StatisticsFile property 'blob_metadata' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(blob_metadata_val)));
+			}
+			builder.SetBlobMetadata(std::move(blob_metadata));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
+	StatisticsFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 StatisticsFile StatisticsFile::Copy() const {

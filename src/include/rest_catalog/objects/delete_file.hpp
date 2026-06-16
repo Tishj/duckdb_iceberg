@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static DeleteFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<DeleteFile> &result);
+	static string TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder);
 	string Validate() const;
 
 	// Copy

@@ -18,27 +18,36 @@ namespace rest_api_objects {
 LongTypeValue::LongTypeValue(int64_t value_p) : value(std::move(value_p)) {
 }
 
-LongTypeValue LongTypeValue::FromJSON(yyjson_val *obj) {
-	int64_t value;
-	if (yyjson_is_sint(obj)) {
-		value = yyjson_get_sint(obj);
-	} else if (yyjson_is_uint(obj)) {
-		value = yyjson_get_uint(obj);
-	} else {
-		throw InvalidInputException(StringUtil::Format(
-		    "LongTypeValue property 'value' is not of type 'integer', found '%s' instead", yyjson_get_type_desc(obj)));
-	}
-	return LongTypeValue(std::move(value));
-}
-
 string LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		int64_t value;
+		if (yyjson_is_sint(obj)) {
+			value = yyjson_get_sint(obj);
+		} else if (yyjson_is_uint(obj)) {
+			value = yyjson_get_uint(obj);
+		} else {
+			throw InvalidInputException(
+			    StringUtil::Format("LongTypeValue property 'value' is not of type 'integer', found '%s' instead",
+			                       yyjson_get_type_desc(obj)));
+		}
+		result.emplace(LongTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+LongTypeValue LongTypeValue::FromJSON(yyjson_val *obj) {
+	optional<LongTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 LongTypeValue LongTypeValue::Copy() const {

@@ -49,33 +49,36 @@ string BaseUpdateBuilder::TryBuild(optional<BaseUpdate> &result) {
 	}
 }
 
-BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
-	BaseUpdateBuilder builder;
-	auto action_val = yyjson_obj_get(obj, "action");
-	if (!action_val) {
-		throw InvalidInputException("BaseUpdate required property 'action' is missing");
-	} else {
-		string action;
-		if (yyjson_is_str(action_val)) {
-			action = yyjson_get_str(action_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("BaseUpdate property 'action' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(action_val)));
-		}
-		builder.SetAction(std::move(action));
-	}
-	return builder.Build();
-}
-
-string BaseUpdate::TryFromJSON(yyjson_val *obj, optional<BaseUpdate> &result) {
+string BaseUpdate::TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto action_val = yyjson_obj_get(obj, "action");
+		if (!action_val) {
+			throw InvalidInputException("BaseUpdate required property 'action' is missing");
+		} else {
+			string action;
+			if (yyjson_is_str(action_val)) {
+				action = yyjson_get_str(action_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("BaseUpdate property 'action' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(action_val)));
+			}
+			builder.SetAction(std::move(action));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
+	BaseUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 BaseUpdate BaseUpdate::Copy() const {

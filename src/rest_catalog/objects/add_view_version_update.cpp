@@ -55,26 +55,29 @@ string AddViewVersionUpdateBuilder::TryBuild(optional<AddViewVersionUpdate> &res
 	}
 }
 
-AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
-	AddViewVersionUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto view_version_val = yyjson_obj_get(obj, "view-version");
-	if (!view_version_val) {
-		throw InvalidInputException("AddViewVersionUpdate required property 'view-version' is missing");
-	} else {
-		builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
-	}
-	return builder.Build();
-}
-
-string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, optional<AddViewVersionUpdate> &result) {
+string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, AddViewVersionUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto view_version_val = yyjson_obj_get(obj, "view-version");
+		if (!view_version_val) {
+			throw InvalidInputException("AddViewVersionUpdate required property 'view-version' is missing");
+		} else {
+			builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
+	AddViewVersionUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AddViewVersionUpdate AddViewVersionUpdate::Copy() const {

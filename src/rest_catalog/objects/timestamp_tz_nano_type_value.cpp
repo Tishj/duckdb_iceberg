@@ -18,26 +18,34 @@ namespace rest_api_objects {
 TimestampTzNanoTypeValue::TimestampTzNanoTypeValue(string value_p) : value(std::move(value_p)) {
 }
 
-TimestampTzNanoTypeValue TimestampTzNanoTypeValue::FromJSON(yyjson_val *obj) {
-	string value;
-	if (yyjson_is_str(obj)) {
-		value = yyjson_get_str(obj);
-	} else {
-		throw InvalidInputException(
-		    StringUtil::Format("TimestampTzNanoTypeValue property 'value' is not of type 'string', found '%s' instead",
-		                       yyjson_get_type_desc(obj)));
-	}
-	return TimestampTzNanoTypeValue(std::move(value));
-}
-
 string TimestampTzNanoTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzNanoTypeValue> &result) {
 	try {
-		result.emplace(FromJSON(obj));
+		string value;
+		if (yyjson_is_str(obj)) {
+			value = yyjson_get_str(obj);
+		} else {
+			throw InvalidInputException(StringUtil::Format(
+			    "TimestampTzNanoTypeValue property 'value' is not of type 'string', found '%s' instead",
+			    yyjson_get_type_desc(obj)));
+		}
+		result.emplace(TimestampTzNanoTypeValue(std::move(value)));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TimestampTzNanoTypeValue TimestampTzNanoTypeValue::FromJSON(yyjson_val *obj) {
+	optional<TimestampTzNanoTypeValue> result;
+	auto error = TryFromJSON(obj, result);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	if (!result.has_value()) {
+		throw InternalException("TryFromJSON succeeded without producing a result");
+	}
+	return std::move(*result);
 }
 
 TimestampTzNanoTypeValue TimestampTzNanoTypeValue::Copy() const {

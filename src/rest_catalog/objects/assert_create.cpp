@@ -49,25 +49,28 @@ string AssertCreateBuilder::TryBuild(optional<AssertCreate> &result) {
 	}
 }
 
-AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
-	AssertCreateBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertCreate required property 'type' is missing");
-	} else {
-		builder.SetType(TableRequirementType::FromJSON(type_val));
-	}
-	return builder.Build();
-}
-
-string AssertCreate::TryFromJSON(yyjson_val *obj, optional<AssertCreate> &result) {
+string AssertCreate::TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertCreate required property 'type' is missing");
+		} else {
+			builder.SetType(TableRequirementType::FromJSON(type_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
+	AssertCreateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertCreate AssertCreate::Copy() const {

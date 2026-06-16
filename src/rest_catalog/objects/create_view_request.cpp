@@ -85,82 +85,85 @@ string CreateViewRequestBuilder::TryBuild(optional<CreateViewRequest> &result) {
 	}
 }
 
-CreateViewRequest CreateViewRequest::FromJSON(yyjson_val *obj) {
-	CreateViewRequestBuilder builder;
-	auto name_val = yyjson_obj_get(obj, "name");
-	if (!name_val) {
-		throw InvalidInputException("CreateViewRequest required property 'name' is missing");
-	} else {
-		string name;
-		if (yyjson_is_str(name_val)) {
-			name = yyjson_get_str(name_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CreateViewRequest property 'name' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(name_val)));
-		}
-		builder.SetName(std::move(name));
-	}
-	auto schema_val = yyjson_obj_get(obj, "schema");
-	if (!schema_val) {
-		throw InvalidInputException("CreateViewRequest required property 'schema' is missing");
-	} else {
-		builder.SetSchema(Schema::FromJSON(schema_val));
-	}
-	auto view_version_val = yyjson_obj_get(obj, "view-version");
-	if (!view_version_val) {
-		throw InvalidInputException("CreateViewRequest required property 'view-version' is missing");
-	} else {
-		builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
-	}
-	auto properties_val = yyjson_obj_get(obj, "properties");
-	if (!properties_val) {
-		throw InvalidInputException("CreateViewRequest required property 'properties' is missing");
-	} else {
-		case_insensitive_map_t<string> properties;
-		if (yyjson_is_obj(properties_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(properties_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "CreateViewRequest property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				properties.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("CreateViewRequest property 'properties' is not of type 'object'");
-		}
-		builder.SetProperties(std::move(properties));
-	}
-	auto location_val = yyjson_obj_get(obj, "location");
-	if (location_val) {
-		string location;
-		if (yyjson_is_str(location_val)) {
-			location = yyjson_get_str(location_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CreateViewRequest property 'location' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(location_val)));
-		}
-		builder.SetLocation(std::move(location));
-	}
-	return builder.Build();
-}
-
-string CreateViewRequest::TryFromJSON(yyjson_val *obj, optional<CreateViewRequest> &result) {
+string CreateViewRequest::TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto name_val = yyjson_obj_get(obj, "name");
+		if (!name_val) {
+			throw InvalidInputException("CreateViewRequest required property 'name' is missing");
+		} else {
+			string name;
+			if (yyjson_is_str(name_val)) {
+				name = yyjson_get_str(name_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("CreateViewRequest property 'name' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(name_val)));
+			}
+			builder.SetName(std::move(name));
+		}
+		auto schema_val = yyjson_obj_get(obj, "schema");
+		if (!schema_val) {
+			throw InvalidInputException("CreateViewRequest required property 'schema' is missing");
+		} else {
+			builder.SetSchema(Schema::FromJSON(schema_val));
+		}
+		auto view_version_val = yyjson_obj_get(obj, "view-version");
+		if (!view_version_val) {
+			throw InvalidInputException("CreateViewRequest required property 'view-version' is missing");
+		} else {
+			builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
+		}
+		auto properties_val = yyjson_obj_get(obj, "properties");
+		if (!properties_val) {
+			throw InvalidInputException("CreateViewRequest required property 'properties' is missing");
+		} else {
+			case_insensitive_map_t<string> properties;
+			if (yyjson_is_obj(properties_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(properties_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "CreateViewRequest property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					properties.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("CreateViewRequest property 'properties' is not of type 'object'");
+			}
+			builder.SetProperties(std::move(properties));
+		}
+		auto location_val = yyjson_obj_get(obj, "location");
+		if (location_val) {
+			string location;
+			if (yyjson_is_str(location_val)) {
+				location = yyjson_get_str(location_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CreateViewRequest property 'location' is not of type 'string', found '%s' instead",
+				    yyjson_get_type_desc(location_val)));
+			}
+			builder.SetLocation(std::move(location));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CreateViewRequest CreateViewRequest::FromJSON(yyjson_val *obj) {
+	CreateViewRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CreateViewRequest CreateViewRequest::Copy() const {

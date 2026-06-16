@@ -55,50 +55,53 @@ string PartitionSpecBuilder::TryBuild(optional<PartitionSpec> &result) {
 	}
 }
 
-PartitionSpec PartitionSpec::FromJSON(yyjson_val *obj) {
-	PartitionSpecBuilder builder;
-	auto fields_val = yyjson_obj_get(obj, "fields");
-	if (!fields_val) {
-		throw InvalidInputException("PartitionSpec required property 'fields' is missing");
-	} else {
-		vector<PartitionField> fields;
-		if (yyjson_is_arr(fields_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(fields_val, idx, max, val) {
-				auto tmp = PartitionField::FromJSON(val);
-				fields.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("PartitionSpec property 'fields' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(fields_val)));
-		}
-		builder.SetFields(std::move(fields));
-	}
-	auto spec_id_val = yyjson_obj_get(obj, "spec-id");
-	if (spec_id_val) {
-		int32_t spec_id;
-		if (yyjson_is_int(spec_id_val)) {
-			spec_id = yyjson_get_int(spec_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("PartitionSpec property 'spec_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(spec_id_val)));
-		}
-		builder.SetSpecId(std::move(spec_id));
-	}
-	return builder.Build();
-}
-
-string PartitionSpec::TryFromJSON(yyjson_val *obj, optional<PartitionSpec> &result) {
+string PartitionSpec::TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto fields_val = yyjson_obj_get(obj, "fields");
+		if (!fields_val) {
+			throw InvalidInputException("PartitionSpec required property 'fields' is missing");
+		} else {
+			vector<PartitionField> fields;
+			if (yyjson_is_arr(fields_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(fields_val, idx, max, val) {
+					auto tmp = PartitionField::FromJSON(val);
+					fields.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("PartitionSpec property 'fields' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(fields_val)));
+			}
+			builder.SetFields(std::move(fields));
+		}
+		auto spec_id_val = yyjson_obj_get(obj, "spec-id");
+		if (spec_id_val) {
+			int32_t spec_id;
+			if (yyjson_is_int(spec_id_val)) {
+				spec_id = yyjson_get_int(spec_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("PartitionSpec property 'spec_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(spec_id_val)));
+			}
+			builder.SetSpecId(std::move(spec_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+PartitionSpec PartitionSpec::FromJSON(yyjson_val *obj) {
+	PartitionSpecBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 PartitionSpec PartitionSpec::Copy() const {

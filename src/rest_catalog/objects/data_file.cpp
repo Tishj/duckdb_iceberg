@@ -89,58 +89,61 @@ string DataFileBuilder::TryBuild(optional<DataFile> &result) {
 	}
 }
 
-DataFile DataFile::FromJSON(yyjson_val *obj) {
-	DataFileBuilder builder;
-	builder.SetContentFile(ContentFile::FromJSON(obj));
-	auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
-	if (first_row_id_val) {
-		int64_t first_row_id;
-		if (yyjson_is_sint(first_row_id_val)) {
-			first_row_id = yyjson_get_sint(first_row_id_val);
-		} else if (yyjson_is_uint(first_row_id_val)) {
-			first_row_id = yyjson_get_uint(first_row_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("DataFile property 'first_row_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(first_row_id_val)));
-		}
-		builder.SetFirstRowId(std::move(first_row_id));
-	}
-	auto column_sizes_val = yyjson_obj_get(obj, "column-sizes");
-	if (column_sizes_val) {
-		builder.SetColumnSizes(CountMap::FromJSON(column_sizes_val));
-	}
-	auto value_counts_val = yyjson_obj_get(obj, "value-counts");
-	if (value_counts_val) {
-		builder.SetValueCounts(CountMap::FromJSON(value_counts_val));
-	}
-	auto null_value_counts_val = yyjson_obj_get(obj, "null-value-counts");
-	if (null_value_counts_val) {
-		builder.SetNullValueCounts(CountMap::FromJSON(null_value_counts_val));
-	}
-	auto nan_value_counts_val = yyjson_obj_get(obj, "nan-value-counts");
-	if (nan_value_counts_val) {
-		builder.SetNanValueCounts(CountMap::FromJSON(nan_value_counts_val));
-	}
-	auto lower_bounds_val = yyjson_obj_get(obj, "lower-bounds");
-	if (lower_bounds_val) {
-		builder.SetLowerBounds(ValueMap::FromJSON(lower_bounds_val));
-	}
-	auto upper_bounds_val = yyjson_obj_get(obj, "upper-bounds");
-	if (upper_bounds_val) {
-		builder.SetUpperBounds(ValueMap::FromJSON(upper_bounds_val));
-	}
-	return builder.Build();
-}
-
-string DataFile::TryFromJSON(yyjson_val *obj, optional<DataFile> &result) {
+string DataFile::TryFromJSON(yyjson_val *obj, DataFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetContentFile(ContentFile::FromJSON(obj));
+		auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
+		if (first_row_id_val) {
+			int64_t first_row_id;
+			if (yyjson_is_sint(first_row_id_val)) {
+				first_row_id = yyjson_get_sint(first_row_id_val);
+			} else if (yyjson_is_uint(first_row_id_val)) {
+				first_row_id = yyjson_get_uint(first_row_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("DataFile property 'first_row_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(first_row_id_val)));
+			}
+			builder.SetFirstRowId(std::move(first_row_id));
+		}
+		auto column_sizes_val = yyjson_obj_get(obj, "column-sizes");
+		if (column_sizes_val) {
+			builder.SetColumnSizes(CountMap::FromJSON(column_sizes_val));
+		}
+		auto value_counts_val = yyjson_obj_get(obj, "value-counts");
+		if (value_counts_val) {
+			builder.SetValueCounts(CountMap::FromJSON(value_counts_val));
+		}
+		auto null_value_counts_val = yyjson_obj_get(obj, "null-value-counts");
+		if (null_value_counts_val) {
+			builder.SetNullValueCounts(CountMap::FromJSON(null_value_counts_val));
+		}
+		auto nan_value_counts_val = yyjson_obj_get(obj, "nan-value-counts");
+		if (nan_value_counts_val) {
+			builder.SetNanValueCounts(CountMap::FromJSON(nan_value_counts_val));
+		}
+		auto lower_bounds_val = yyjson_obj_get(obj, "lower-bounds");
+		if (lower_bounds_val) {
+			builder.SetLowerBounds(ValueMap::FromJSON(lower_bounds_val));
+		}
+		auto upper_bounds_val = yyjson_obj_get(obj, "upper-bounds");
+		if (upper_bounds_val) {
+			builder.SetUpperBounds(ValueMap::FromJSON(upper_bounds_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+DataFile DataFile::FromJSON(yyjson_val *obj) {
+	DataFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 DataFile DataFile::Copy() const {

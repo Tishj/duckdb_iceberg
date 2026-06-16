@@ -43,7 +43,7 @@ private:
 public:
 	// Deserialization
 	static TableRequirement FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TableRequirement> &result);
+	static string TryFromJSON(yyjson_val *obj, TableRequirementBuilder &builder);
 	string Validate() const;
 
 	// Copy

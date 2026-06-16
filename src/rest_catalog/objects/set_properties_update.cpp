@@ -55,45 +55,48 @@ string SetPropertiesUpdateBuilder::TryBuild(optional<SetPropertiesUpdate> &resul
 	}
 }
 
-SetPropertiesUpdate SetPropertiesUpdate::FromJSON(yyjson_val *obj) {
-	SetPropertiesUpdateBuilder builder;
-	builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
-	auto updates_val = yyjson_obj_get(obj, "updates");
-	if (!updates_val) {
-		throw InvalidInputException("SetPropertiesUpdate required property 'updates' is missing");
-	} else {
-		case_insensitive_map_t<string> updates;
-		if (yyjson_is_obj(updates_val)) {
-			size_t idx, max;
-			yyjson_val *key, *val;
-			yyjson_obj_foreach(updates_val, idx, max, key, val) {
-				auto key_str = yyjson_get_str(key);
-				string tmp;
-				if (yyjson_is_str(val)) {
-					tmp = yyjson_get_str(val);
-				} else {
-					throw InvalidInputException(StringUtil::Format(
-					    "SetPropertiesUpdate property 'tmp' is not of type 'string', found '%s' instead",
-					    yyjson_get_type_desc(val)));
-				}
-				updates.emplace(key_str, std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException("SetPropertiesUpdate property 'updates' is not of type 'object'");
-		}
-		builder.SetUpdates(std::move(updates));
-	}
-	return builder.Build();
-}
-
-string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, optional<SetPropertiesUpdate> &result) {
+string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
+		auto updates_val = yyjson_obj_get(obj, "updates");
+		if (!updates_val) {
+			throw InvalidInputException("SetPropertiesUpdate required property 'updates' is missing");
+		} else {
+			case_insensitive_map_t<string> updates;
+			if (yyjson_is_obj(updates_val)) {
+				size_t idx, max;
+				yyjson_val *key, *val;
+				yyjson_obj_foreach(updates_val, idx, max, key, val) {
+					auto key_str = yyjson_get_str(key);
+					string tmp;
+					if (yyjson_is_str(val)) {
+						tmp = yyjson_get_str(val);
+					} else {
+						throw InvalidInputException(StringUtil::Format(
+						    "SetPropertiesUpdate property 'tmp' is not of type 'string', found '%s' instead",
+						    yyjson_get_type_desc(val)));
+					}
+					updates.emplace(key_str, std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException("SetPropertiesUpdate property 'updates' is not of type 'object'");
+			}
+			builder.SetUpdates(std::move(updates));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetPropertiesUpdate SetPropertiesUpdate::FromJSON(yyjson_val *obj) {
+	SetPropertiesUpdateBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetPropertiesUpdate SetPropertiesUpdate::Copy() const {

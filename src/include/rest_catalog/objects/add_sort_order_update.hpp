@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static AddSortOrderUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AddSortOrderUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

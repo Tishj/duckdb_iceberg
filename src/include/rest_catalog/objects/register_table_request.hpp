@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static RegisterTableRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<RegisterTableRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, RegisterTableRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

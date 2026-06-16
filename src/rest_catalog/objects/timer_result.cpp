@@ -68,65 +68,68 @@ string TimerResultBuilder::TryBuild(optional<TimerResult> &result) {
 	}
 }
 
-TimerResult TimerResult::FromJSON(yyjson_val *obj) {
-	TimerResultBuilder builder;
-	auto time_unit_val = yyjson_obj_get(obj, "time-unit");
-	if (!time_unit_val) {
-		throw InvalidInputException("TimerResult required property 'time-unit' is missing");
-	} else {
-		string time_unit;
-		if (yyjson_is_str(time_unit_val)) {
-			time_unit = yyjson_get_str(time_unit_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("TimerResult property 'time_unit' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(time_unit_val)));
-		}
-		builder.SetTimeUnit(std::move(time_unit));
-	}
-	auto count_val = yyjson_obj_get(obj, "count");
-	if (!count_val) {
-		throw InvalidInputException("TimerResult required property 'count' is missing");
-	} else {
-		int64_t count;
-		if (yyjson_is_sint(count_val)) {
-			count = yyjson_get_sint(count_val);
-		} else if (yyjson_is_uint(count_val)) {
-			count = yyjson_get_uint(count_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("TimerResult property 'count' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(count_val)));
-		}
-		builder.SetCount(std::move(count));
-	}
-	auto total_duration_val = yyjson_obj_get(obj, "total-duration");
-	if (!total_duration_val) {
-		throw InvalidInputException("TimerResult required property 'total-duration' is missing");
-	} else {
-		int64_t total_duration;
-		if (yyjson_is_sint(total_duration_val)) {
-			total_duration = yyjson_get_sint(total_duration_val);
-		} else if (yyjson_is_uint(total_duration_val)) {
-			total_duration = yyjson_get_uint(total_duration_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("TimerResult property 'total_duration' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(total_duration_val)));
-		}
-		builder.SetTotalDuration(std::move(total_duration));
-	}
-	return builder.Build();
-}
-
-string TimerResult::TryFromJSON(yyjson_val *obj, optional<TimerResult> &result) {
+string TimerResult::TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto time_unit_val = yyjson_obj_get(obj, "time-unit");
+		if (!time_unit_val) {
+			throw InvalidInputException("TimerResult required property 'time-unit' is missing");
+		} else {
+			string time_unit;
+			if (yyjson_is_str(time_unit_val)) {
+				time_unit = yyjson_get_str(time_unit_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("TimerResult property 'time_unit' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(time_unit_val)));
+			}
+			builder.SetTimeUnit(std::move(time_unit));
+		}
+		auto count_val = yyjson_obj_get(obj, "count");
+		if (!count_val) {
+			throw InvalidInputException("TimerResult required property 'count' is missing");
+		} else {
+			int64_t count;
+			if (yyjson_is_sint(count_val)) {
+				count = yyjson_get_sint(count_val);
+			} else if (yyjson_is_uint(count_val)) {
+				count = yyjson_get_uint(count_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("TimerResult property 'count' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(count_val)));
+			}
+			builder.SetCount(std::move(count));
+		}
+		auto total_duration_val = yyjson_obj_get(obj, "total-duration");
+		if (!total_duration_val) {
+			throw InvalidInputException("TimerResult required property 'total-duration' is missing");
+		} else {
+			int64_t total_duration;
+			if (yyjson_is_sint(total_duration_val)) {
+				total_duration = yyjson_get_sint(total_duration_val);
+			} else if (yyjson_is_uint(total_duration_val)) {
+				total_duration = yyjson_get_uint(total_duration_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "TimerResult property 'total_duration' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(total_duration_val)));
+			}
+			builder.SetTotalDuration(std::move(total_duration));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+TimerResult TimerResult::FromJSON(yyjson_val *obj) {
+	TimerResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 TimerResult TimerResult::Copy() const {

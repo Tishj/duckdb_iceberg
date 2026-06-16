@@ -52,25 +52,28 @@ string FailedPlanningResult::Object7Builder::TryBuild(optional<FailedPlanningRes
 	}
 }
 
-FailedPlanningResult::Object7 FailedPlanningResult::Object7::FromJSON(yyjson_val *obj) {
-	Object7Builder builder;
-	auto status_val = yyjson_obj_get(obj, "status");
-	if (!status_val) {
-		throw InvalidInputException("Object7 required property 'status' is missing");
-	} else {
-		builder.SetStatus(PlanStatus::FromJSON(status_val));
-	}
-	return builder.Build();
-}
-
-string FailedPlanningResult::Object7::TryFromJSON(yyjson_val *obj, optional<FailedPlanningResult::Object7> &result) {
+string FailedPlanningResult::Object7::TryFromJSON(yyjson_val *obj, Object7Builder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto status_val = yyjson_obj_get(obj, "status");
+		if (!status_val) {
+			throw InvalidInputException("Object7 required property 'status' is missing");
+		} else {
+			builder.SetStatus(PlanStatus::FromJSON(status_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+FailedPlanningResult::Object7 FailedPlanningResult::Object7::FromJSON(yyjson_val *obj) {
+	Object7Builder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 FailedPlanningResult::Object7 FailedPlanningResult::Object7::Copy() const {
@@ -140,21 +143,24 @@ string FailedPlanningResultBuilder::TryBuild(optional<FailedPlanningResult> &res
 	}
 }
 
-FailedPlanningResult FailedPlanningResult::FromJSON(yyjson_val *obj) {
-	FailedPlanningResultBuilder builder;
-	builder.SetIcebergErrorResponse(IcebergErrorResponse::FromJSON(obj));
-	builder.SetObject7(Object7::FromJSON(obj));
-	return builder.Build();
-}
-
-string FailedPlanningResult::TryFromJSON(yyjson_val *obj, optional<FailedPlanningResult> &result) {
+string FailedPlanningResult::TryFromJSON(yyjson_val *obj, FailedPlanningResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		builder.SetIcebergErrorResponse(IcebergErrorResponse::FromJSON(obj));
+		builder.SetObject7(Object7::FromJSON(obj));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+FailedPlanningResult FailedPlanningResult::FromJSON(yyjson_val *obj) {
+	FailedPlanningResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 FailedPlanningResult FailedPlanningResult::Copy() const {

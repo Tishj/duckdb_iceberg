@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static ValueMap FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ValueMap> &result);
+	static string TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder);
 	string Validate() const;
 
 	// Copy

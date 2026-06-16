@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static CatalogConfig FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CatalogConfig> &result);
+	static string TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder);
 	string Validate() const;
 
 	// Copy

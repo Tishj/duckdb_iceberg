@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static AddSnapshotUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AddSnapshotUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, AddSnapshotUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

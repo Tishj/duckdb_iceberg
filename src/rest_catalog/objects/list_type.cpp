@@ -79,69 +79,72 @@ string ListTypeBuilder::TryBuild(optional<ListType> &result) {
 	}
 }
 
-ListType ListType::FromJSON(yyjson_val *obj) {
-	ListTypeBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("ListType required property 'type' is missing");
-	} else {
-		string type;
-		if (yyjson_is_str(type_val)) {
-			type = yyjson_get_str(type_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ListType property 'type' is not of type 'string', found '%s' instead",
-			                       yyjson_get_type_desc(type_val)));
-		}
-		builder.SetType(std::move(type));
-	}
-	auto element_id_val = yyjson_obj_get(obj, "element-id");
-	if (!element_id_val) {
-		throw InvalidInputException("ListType required property 'element-id' is missing");
-	} else {
-		int32_t element_id;
-		if (yyjson_is_int(element_id_val)) {
-			element_id = yyjson_get_int(element_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ListType property 'element_id' is not of type 'integer', found '%s' instead",
-			                       yyjson_get_type_desc(element_id_val)));
-		}
-		builder.SetElementId(std::move(element_id));
-	}
-	auto element_val = yyjson_obj_get(obj, "element");
-	if (!element_val) {
-		throw InvalidInputException("ListType required property 'element' is missing");
-	} else {
-		unique_ptr<Type> element;
-		element = make_uniq<Type>(Type::FromJSON(element_val));
-		builder.SetElement(std::move(element));
-	}
-	auto element_required_val = yyjson_obj_get(obj, "element-required");
-	if (!element_required_val) {
-		throw InvalidInputException("ListType required property 'element-required' is missing");
-	} else {
-		bool element_required;
-		if (yyjson_is_bool(element_required_val)) {
-			element_required = yyjson_get_bool(element_required_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("ListType property 'element_required' is not of type 'boolean', found '%s' instead",
-			                       yyjson_get_type_desc(element_required_val)));
-		}
-		builder.SetElementRequired(std::move(element_required));
-	}
-	return builder.Build();
-}
-
-string ListType::TryFromJSON(yyjson_val *obj, optional<ListType> &result) {
+string ListType::TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("ListType required property 'type' is missing");
+		} else {
+			string type;
+			if (yyjson_is_str(type_val)) {
+				type = yyjson_get_str(type_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ListType property 'type' is not of type 'string', found '%s' instead",
+				                       yyjson_get_type_desc(type_val)));
+			}
+			builder.SetType(std::move(type));
+		}
+		auto element_id_val = yyjson_obj_get(obj, "element-id");
+		if (!element_id_val) {
+			throw InvalidInputException("ListType required property 'element-id' is missing");
+		} else {
+			int32_t element_id;
+			if (yyjson_is_int(element_id_val)) {
+				element_id = yyjson_get_int(element_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("ListType property 'element_id' is not of type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(element_id_val)));
+			}
+			builder.SetElementId(std::move(element_id));
+		}
+		auto element_val = yyjson_obj_get(obj, "element");
+		if (!element_val) {
+			throw InvalidInputException("ListType required property 'element' is missing");
+		} else {
+			unique_ptr<Type> element;
+			element = make_uniq<Type>(Type::FromJSON(element_val));
+			builder.SetElement(std::move(element));
+		}
+		auto element_required_val = yyjson_obj_get(obj, "element-required");
+		if (!element_required_val) {
+			throw InvalidInputException("ListType required property 'element-required' is missing");
+		} else {
+			bool element_required;
+			if (yyjson_is_bool(element_required_val)) {
+				element_required = yyjson_get_bool(element_required_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ListType property 'element_required' is not of type 'boolean', found '%s' instead",
+				    yyjson_get_type_desc(element_required_val)));
+			}
+			builder.SetElementRequired(std::move(element_required));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ListType ListType::FromJSON(yyjson_val *obj) {
+	ListTypeBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ListType ListType::Copy() const {

@@ -68,50 +68,53 @@ string SetExpressionBuilder::TryBuild(optional<SetExpression> &result) {
 	}
 }
 
-SetExpression SetExpression::FromJSON(yyjson_val *obj) {
-	SetExpressionBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("SetExpression required property 'type' is missing");
-	} else {
-		builder.SetType(ExpressionType::FromJSON(type_val));
-	}
-	auto term_val = yyjson_obj_get(obj, "term");
-	if (!term_val) {
-		throw InvalidInputException("SetExpression required property 'term' is missing");
-	} else {
-		builder.SetTerm(Term::FromJSON(term_val));
-	}
-	auto values_val = yyjson_obj_get(obj, "values");
-	if (!values_val) {
-		throw InvalidInputException("SetExpression required property 'values' is missing");
-	} else {
-		vector<PrimitiveTypeValue> values;
-		if (yyjson_is_arr(values_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(values_val, idx, max, val) {
-				auto tmp = PrimitiveTypeValue::FromJSON(val);
-				values.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("SetExpression property 'values' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(values_val)));
-		}
-		builder.SetValues(std::move(values));
-	}
-	return builder.Build();
-}
-
-string SetExpression::TryFromJSON(yyjson_val *obj, optional<SetExpression> &result) {
+string SetExpression::TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("SetExpression required property 'type' is missing");
+		} else {
+			builder.SetType(ExpressionType::FromJSON(type_val));
+		}
+		auto term_val = yyjson_obj_get(obj, "term");
+		if (!term_val) {
+			throw InvalidInputException("SetExpression required property 'term' is missing");
+		} else {
+			builder.SetTerm(Term::FromJSON(term_val));
+		}
+		auto values_val = yyjson_obj_get(obj, "values");
+		if (!values_val) {
+			throw InvalidInputException("SetExpression required property 'values' is missing");
+		} else {
+			vector<PrimitiveTypeValue> values;
+			if (yyjson_is_arr(values_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(values_val, idx, max, val) {
+					auto tmp = PrimitiveTypeValue::FromJSON(val);
+					values.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("SetExpression property 'values' is not of type 'array', found '%s' instead",
+				                       yyjson_get_type_desc(values_val)));
+			}
+			builder.SetValues(std::move(values));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+SetExpression SetExpression::FromJSON(yyjson_val *obj) {
+	SetExpressionBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 SetExpression SetExpression::Copy() const {

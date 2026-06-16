@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static RenameTableRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<RenameTableRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, RenameTableRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

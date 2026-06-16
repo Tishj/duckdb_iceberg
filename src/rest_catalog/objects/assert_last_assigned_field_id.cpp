@@ -59,40 +59,44 @@ string AssertLastAssignedFieldIdBuilder::TryBuild(optional<AssertLastAssignedFie
 	}
 }
 
-AssertLastAssignedFieldId AssertLastAssignedFieldId::FromJSON(yyjson_val *obj) {
-	AssertLastAssignedFieldIdBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertLastAssignedFieldId required property 'type' is missing");
-	} else {
-		builder.SetType(TableRequirementType::FromJSON(type_val));
-	}
-	auto last_assigned_field_id_val = yyjson_obj_get(obj, "last-assigned-field-id");
-	if (!last_assigned_field_id_val) {
-		throw InvalidInputException("AssertLastAssignedFieldId required property 'last-assigned-field-id' is missing");
-	} else {
-		int32_t last_assigned_field_id;
-		if (yyjson_is_int(last_assigned_field_id_val)) {
-			last_assigned_field_id = yyjson_get_int(last_assigned_field_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AssertLastAssignedFieldId property 'last_assigned_field_id' is not of type "
-			                       "'integer', found '%s' instead",
-			                       yyjson_get_type_desc(last_assigned_field_id_val)));
-		}
-		builder.SetLastAssignedFieldId(std::move(last_assigned_field_id));
-	}
-	return builder.Build();
-}
-
-string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, optional<AssertLastAssignedFieldId> &result) {
+string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, AssertLastAssignedFieldIdBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertLastAssignedFieldId required property 'type' is missing");
+		} else {
+			builder.SetType(TableRequirementType::FromJSON(type_val));
+		}
+		auto last_assigned_field_id_val = yyjson_obj_get(obj, "last-assigned-field-id");
+		if (!last_assigned_field_id_val) {
+			throw InvalidInputException(
+			    "AssertLastAssignedFieldId required property 'last-assigned-field-id' is missing");
+		} else {
+			int32_t last_assigned_field_id;
+			if (yyjson_is_int(last_assigned_field_id_val)) {
+				last_assigned_field_id = yyjson_get_int(last_assigned_field_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("AssertLastAssignedFieldId property 'last_assigned_field_id' is not of type "
+				                       "'integer', found '%s' instead",
+				                       yyjson_get_type_desc(last_assigned_field_id_val)));
+			}
+			builder.SetLastAssignedFieldId(std::move(last_assigned_field_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertLastAssignedFieldId AssertLastAssignedFieldId::FromJSON(yyjson_val *obj) {
+	AssertLastAssignedFieldIdBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertLastAssignedFieldId AssertLastAssignedFieldId::Copy() const {

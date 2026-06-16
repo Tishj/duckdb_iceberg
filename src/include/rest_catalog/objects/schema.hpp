@@ -38,7 +38,7 @@ public:
 	public:
 		// Deserialization
 		static Object1 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, optional<Object1> &result);
+		static string TryFromJSON(yyjson_val *obj, Object1Builder &builder);
 		string Validate() const;
 
 		// Copy
@@ -73,7 +73,7 @@ private:
 public:
 	// Deserialization
 	static Schema FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<Schema> &result);
+	static string TryFromJSON(yyjson_val *obj, SchemaBuilder &builder);
 	string Validate() const;
 
 	// Copy

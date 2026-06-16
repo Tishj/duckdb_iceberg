@@ -32,7 +32,7 @@ private:
 public:
 	// Deserialization
 	static OAuthTokenExchangeRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<OAuthTokenExchangeRequest> &result);
+	static string TryFromJSON(yyjson_val *obj, OAuthTokenExchangeRequestBuilder &builder);
 	string Validate() const;
 
 	// Copy

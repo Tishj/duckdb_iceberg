@@ -59,39 +59,42 @@ string AssertDefaultSpecIdBuilder::TryBuild(optional<AssertDefaultSpecId> &resul
 	}
 }
 
-AssertDefaultSpecId AssertDefaultSpecId::FromJSON(yyjson_val *obj) {
-	AssertDefaultSpecIdBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertDefaultSpecId required property 'type' is missing");
-	} else {
-		builder.SetType(TableRequirementType::FromJSON(type_val));
-	}
-	auto default_spec_id_val = yyjson_obj_get(obj, "default-spec-id");
-	if (!default_spec_id_val) {
-		throw InvalidInputException("AssertDefaultSpecId required property 'default-spec-id' is missing");
-	} else {
-		int32_t default_spec_id;
-		if (yyjson_is_int(default_spec_id_val)) {
-			default_spec_id = yyjson_get_int(default_spec_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "AssertDefaultSpecId property 'default_spec_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(default_spec_id_val)));
-		}
-		builder.SetDefaultSpecId(std::move(default_spec_id));
-	}
-	return builder.Build();
-}
-
-string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj, optional<AssertDefaultSpecId> &result) {
+string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertDefaultSpecId required property 'type' is missing");
+		} else {
+			builder.SetType(TableRequirementType::FromJSON(type_val));
+		}
+		auto default_spec_id_val = yyjson_obj_get(obj, "default-spec-id");
+		if (!default_spec_id_val) {
+			throw InvalidInputException("AssertDefaultSpecId required property 'default-spec-id' is missing");
+		} else {
+			int32_t default_spec_id;
+			if (yyjson_is_int(default_spec_id_val)) {
+				default_spec_id = yyjson_get_int(default_spec_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "AssertDefaultSpecId property 'default_spec_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(default_spec_id_val)));
+			}
+			builder.SetDefaultSpecId(std::move(default_spec_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertDefaultSpecId AssertDefaultSpecId::FromJSON(yyjson_val *obj) {
+	AssertDefaultSpecIdBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertDefaultSpecId AssertDefaultSpecId::Copy() const {

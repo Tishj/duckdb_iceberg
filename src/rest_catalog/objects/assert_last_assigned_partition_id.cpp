@@ -61,41 +61,44 @@ string AssertLastAssignedPartitionIdBuilder::TryBuild(optional<AssertLastAssigne
 	}
 }
 
-AssertLastAssignedPartitionId AssertLastAssignedPartitionId::FromJSON(yyjson_val *obj) {
-	AssertLastAssignedPartitionIdBuilder builder;
-	auto type_val = yyjson_obj_get(obj, "type");
-	if (!type_val) {
-		throw InvalidInputException("AssertLastAssignedPartitionId required property 'type' is missing");
-	} else {
-		builder.SetType(TableRequirementType::FromJSON(type_val));
-	}
-	auto last_assigned_partition_id_val = yyjson_obj_get(obj, "last-assigned-partition-id");
-	if (!last_assigned_partition_id_val) {
-		throw InvalidInputException(
-		    "AssertLastAssignedPartitionId required property 'last-assigned-partition-id' is missing");
-	} else {
-		int32_t last_assigned_partition_id;
-		if (yyjson_is_int(last_assigned_partition_id_val)) {
-			last_assigned_partition_id = yyjson_get_int(last_assigned_partition_id_val);
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("AssertLastAssignedPartitionId property 'last_assigned_partition_id' is not of type "
-			                       "'integer', found '%s' instead",
-			                       yyjson_get_type_desc(last_assigned_partition_id_val)));
-		}
-		builder.SetLastAssignedPartitionId(std::move(last_assigned_partition_id));
-	}
-	return builder.Build();
-}
-
-string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj, optional<AssertLastAssignedPartitionId> &result) {
+string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj, AssertLastAssignedPartitionIdBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto type_val = yyjson_obj_get(obj, "type");
+		if (!type_val) {
+			throw InvalidInputException("AssertLastAssignedPartitionId required property 'type' is missing");
+		} else {
+			builder.SetType(TableRequirementType::FromJSON(type_val));
+		}
+		auto last_assigned_partition_id_val = yyjson_obj_get(obj, "last-assigned-partition-id");
+		if (!last_assigned_partition_id_val) {
+			throw InvalidInputException(
+			    "AssertLastAssignedPartitionId required property 'last-assigned-partition-id' is missing");
+		} else {
+			int32_t last_assigned_partition_id;
+			if (yyjson_is_int(last_assigned_partition_id_val)) {
+				last_assigned_partition_id = yyjson_get_int(last_assigned_partition_id_val);
+			} else {
+				throw InvalidInputException(
+				    StringUtil::Format("AssertLastAssignedPartitionId property 'last_assigned_partition_id' is not of "
+				                       "type 'integer', found '%s' instead",
+				                       yyjson_get_type_desc(last_assigned_partition_id_val)));
+			}
+			builder.SetLastAssignedPartitionId(std::move(last_assigned_partition_id));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+AssertLastAssignedPartitionId AssertLastAssignedPartitionId::FromJSON(yyjson_val *obj) {
+	AssertLastAssignedPartitionIdBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 AssertLastAssignedPartitionId AssertLastAssignedPartitionId::Copy() const {

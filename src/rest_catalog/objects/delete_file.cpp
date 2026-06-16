@@ -52,32 +52,35 @@ string DeleteFileBuilder::TryBuild(optional<DeleteFile> &result) {
 	}
 }
 
-DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
-	DeleteFileBuilder builder;
-	do {
-		try {
-			builder.SetPositionDeleteFile(PositionDeleteFile::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetEqualityDeleteFile(EqualityDeleteFile::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("DeleteFile failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string DeleteFile::TryFromJSON(yyjson_val *obj, optional<DeleteFile> &result) {
+string DeleteFile::TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetPositionDeleteFile(PositionDeleteFile::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetEqualityDeleteFile(EqualityDeleteFile::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("DeleteFile failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
+	DeleteFileBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 DeleteFile DeleteFile::Copy() const {

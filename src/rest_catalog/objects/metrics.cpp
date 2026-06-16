@@ -47,28 +47,31 @@ string MetricsBuilder::TryBuild(optional<Metrics> &result) {
 	}
 }
 
-Metrics Metrics::FromJSON(yyjson_val *obj) {
-	MetricsBuilder builder;
-	case_insensitive_map_t<MetricResult> additional_properties;
-	size_t idx, max;
-	yyjson_val *key, *val;
-	yyjson_obj_foreach(obj, idx, max, key, val) {
-		auto key_str = yyjson_get_str(key);
-		auto tmp = MetricResult::FromJSON(val);
-		additional_properties.emplace(key_str, std::move(tmp));
-	}
-	builder.SetAdditionalProperties(std::move(additional_properties));
-	return builder.Build();
-}
-
-string Metrics::TryFromJSON(yyjson_val *obj, optional<Metrics> &result) {
+string Metrics::TryFromJSON(yyjson_val *obj, MetricsBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		case_insensitive_map_t<MetricResult> additional_properties;
+		size_t idx, max;
+		yyjson_val *key, *val;
+		yyjson_obj_foreach(obj, idx, max, key, val) {
+			auto key_str = yyjson_get_str(key);
+			auto tmp = MetricResult::FromJSON(val);
+			additional_properties.emplace(key_str, std::move(tmp));
+		}
+		builder.SetAdditionalProperties(std::move(additional_properties));
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+Metrics Metrics::FromJSON(yyjson_val *obj) {
+	MetricsBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 Metrics Metrics::Copy() const {

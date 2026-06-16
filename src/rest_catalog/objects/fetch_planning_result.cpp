@@ -61,37 +61,40 @@ string FetchPlanningResultBuilder::TryBuild(optional<FetchPlanningResult> &resul
 	}
 }
 
-FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
-	FetchPlanningResultBuilder builder;
-	do {
-		try {
-			builder.SetCompletedPlanningResult(CompletedPlanningResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetFailedPlanningResult(FailedPlanningResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		try {
-			builder.SetEmptyPlanningResult(EmptyPlanningResult::FromJSON(obj));
-			break;
-		} catch (const Exception &) {
-		}
-		throw InvalidInputException("FetchPlanningResult failed to parse, none of the oneOf candidates matched");
-	} while (false);
-	return builder.Build();
-}
-
-string FetchPlanningResult::TryFromJSON(yyjson_val *obj, optional<FetchPlanningResult> &result) {
+string FetchPlanningResult::TryFromJSON(yyjson_val *obj, FetchPlanningResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		do {
+			try {
+				builder.SetCompletedPlanningResult(CompletedPlanningResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetFailedPlanningResult(FailedPlanningResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			try {
+				builder.SetEmptyPlanningResult(EmptyPlanningResult::FromJSON(obj));
+				break;
+			} catch (const Exception &) {
+			}
+			throw InvalidInputException("FetchPlanningResult failed to parse, none of the oneOf candidates matched");
+		} while (false);
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
+	FetchPlanningResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 FetchPlanningResult FetchPlanningResult::Copy() const {

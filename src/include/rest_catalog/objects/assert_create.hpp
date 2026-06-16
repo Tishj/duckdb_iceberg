@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static AssertCreate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<AssertCreate> &result);
+	static string TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder);
 	string Validate() const;
 
 	// Copy

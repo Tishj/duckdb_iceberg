@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static RemoveSnapshotRefUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<RemoveSnapshotRefUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

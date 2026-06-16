@@ -30,7 +30,7 @@ private:
 public:
 	// Deserialization
 	static SetCurrentViewVersionUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SetCurrentViewVersionUpdate> &result);
+	static string TryFromJSON(yyjson_val *obj, SetCurrentViewVersionUpdateBuilder &builder);
 	string Validate() const;
 
 	// Copy

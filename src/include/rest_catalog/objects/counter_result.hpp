@@ -29,7 +29,7 @@ private:
 public:
 	// Deserialization
 	static CounterResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<CounterResult> &result);
+	static string TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

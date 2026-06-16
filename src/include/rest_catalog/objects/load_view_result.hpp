@@ -31,7 +31,7 @@ private:
 public:
 	// Deserialization
 	static LoadViewResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<LoadViewResult> &result);
+	static string TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

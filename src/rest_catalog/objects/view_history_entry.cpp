@@ -59,49 +59,52 @@ string ViewHistoryEntryBuilder::TryBuild(optional<ViewHistoryEntry> &result) {
 	}
 }
 
-ViewHistoryEntry ViewHistoryEntry::FromJSON(yyjson_val *obj) {
-	ViewHistoryEntryBuilder builder;
-	auto version_id_val = yyjson_obj_get(obj, "version-id");
-	if (!version_id_val) {
-		throw InvalidInputException("ViewHistoryEntry required property 'version-id' is missing");
-	} else {
-		int32_t version_id;
-		if (yyjson_is_int(version_id_val)) {
-			version_id = yyjson_get_int(version_id_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ViewHistoryEntry property 'version_id' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(version_id_val)));
-		}
-		builder.SetVersionId(std::move(version_id));
-	}
-	auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
-	if (!timestamp_ms_val) {
-		throw InvalidInputException("ViewHistoryEntry required property 'timestamp-ms' is missing");
-	} else {
-		int64_t timestamp_ms;
-		if (yyjson_is_sint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_sint(timestamp_ms_val);
-		} else if (yyjson_is_uint(timestamp_ms_val)) {
-			timestamp_ms = yyjson_get_uint(timestamp_ms_val);
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "ViewHistoryEntry property 'timestamp_ms' is not of type 'integer', found '%s' instead",
-			    yyjson_get_type_desc(timestamp_ms_val)));
-		}
-		builder.SetTimestampMs(std::move(timestamp_ms));
-	}
-	return builder.Build();
-}
-
-string ViewHistoryEntry::TryFromJSON(yyjson_val *obj, optional<ViewHistoryEntry> &result) {
+string ViewHistoryEntry::TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto version_id_val = yyjson_obj_get(obj, "version-id");
+		if (!version_id_val) {
+			throw InvalidInputException("ViewHistoryEntry required property 'version-id' is missing");
+		} else {
+			int32_t version_id;
+			if (yyjson_is_int(version_id_val)) {
+				version_id = yyjson_get_int(version_id_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewHistoryEntry property 'version_id' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(version_id_val)));
+			}
+			builder.SetVersionId(std::move(version_id));
+		}
+		auto timestamp_ms_val = yyjson_obj_get(obj, "timestamp-ms");
+		if (!timestamp_ms_val) {
+			throw InvalidInputException("ViewHistoryEntry required property 'timestamp-ms' is missing");
+		} else {
+			int64_t timestamp_ms;
+			if (yyjson_is_sint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_sint(timestamp_ms_val);
+			} else if (yyjson_is_uint(timestamp_ms_val)) {
+				timestamp_ms = yyjson_get_uint(timestamp_ms_val);
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "ViewHistoryEntry property 'timestamp_ms' is not of type 'integer', found '%s' instead",
+				    yyjson_get_type_desc(timestamp_ms_val)));
+			}
+			builder.SetTimestampMs(std::move(timestamp_ms));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+ViewHistoryEntry ViewHistoryEntry::FromJSON(yyjson_val *obj) {
+	ViewHistoryEntryBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 ViewHistoryEntry ViewHistoryEntry::Copy() const {

@@ -61,59 +61,62 @@ string CommitViewRequestBuilder::TryBuild(optional<CommitViewRequest> &result) {
 	}
 }
 
-CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
-	CommitViewRequestBuilder builder;
-	auto updates_val = yyjson_obj_get(obj, "updates");
-	if (!updates_val) {
-		throw InvalidInputException("CommitViewRequest required property 'updates' is missing");
-	} else {
-		vector<ViewUpdate> updates;
-		if (yyjson_is_arr(updates_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(updates_val, idx, max, val) {
-				auto tmp = ViewUpdate::FromJSON(val);
-				updates.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(
-			    StringUtil::Format("CommitViewRequest property 'updates' is not of type 'array', found '%s' instead",
-			                       yyjson_get_type_desc(updates_val)));
-		}
-		builder.SetUpdates(std::move(updates));
-	}
-	auto identifier_val = yyjson_obj_get(obj, "identifier");
-	if (identifier_val) {
-		builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
-	}
-	auto requirements_val = yyjson_obj_get(obj, "requirements");
-	if (requirements_val) {
-		vector<ViewRequirement> requirements;
-		if (yyjson_is_arr(requirements_val)) {
-			size_t idx, max;
-			yyjson_val *val;
-			yyjson_arr_foreach(requirements_val, idx, max, val) {
-				auto tmp = ViewRequirement::FromJSON(val);
-				requirements.emplace_back(std::move(tmp));
-			}
-		} else {
-			throw InvalidInputException(StringUtil::Format(
-			    "CommitViewRequest property 'requirements' is not of type 'array', found '%s' instead",
-			    yyjson_get_type_desc(requirements_val)));
-		}
-		builder.SetRequirements(std::move(requirements));
-	}
-	return builder.Build();
-}
-
-string CommitViewRequest::TryFromJSON(yyjson_val *obj, optional<CommitViewRequest> &result) {
+string CommitViewRequest::TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto updates_val = yyjson_obj_get(obj, "updates");
+		if (!updates_val) {
+			throw InvalidInputException("CommitViewRequest required property 'updates' is missing");
+		} else {
+			vector<ViewUpdate> updates;
+			if (yyjson_is_arr(updates_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(updates_val, idx, max, val) {
+					auto tmp = ViewUpdate::FromJSON(val);
+					updates.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitViewRequest property 'updates' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(updates_val)));
+			}
+			builder.SetUpdates(std::move(updates));
+		}
+		auto identifier_val = yyjson_obj_get(obj, "identifier");
+		if (identifier_val) {
+			builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
+		}
+		auto requirements_val = yyjson_obj_get(obj, "requirements");
+		if (requirements_val) {
+			vector<ViewRequirement> requirements;
+			if (yyjson_is_arr(requirements_val)) {
+				size_t idx, max;
+				yyjson_val *val;
+				yyjson_arr_foreach(requirements_val, idx, max, val) {
+					auto tmp = ViewRequirement::FromJSON(val);
+					requirements.emplace_back(std::move(tmp));
+				}
+			} else {
+				throw InvalidInputException(StringUtil::Format(
+				    "CommitViewRequest property 'requirements' is not of type 'array', found '%s' instead",
+				    yyjson_get_type_desc(requirements_val)));
+			}
+			builder.SetRequirements(std::move(requirements));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
+	CommitViewRequestBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 CommitViewRequest CommitViewRequest::Copy() const {

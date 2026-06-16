@@ -39,7 +39,7 @@ public:
 	public:
 		// Deserialization
 		static Object7 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, optional<Object7> &result);
+		static string TryFromJSON(yyjson_val *obj, Object7Builder &builder);
 		string Validate() const;
 
 		// Copy
@@ -72,7 +72,7 @@ private:
 public:
 	// Deserialization
 	static FailedPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<FailedPlanningResult> &result);
+	static string TryFromJSON(yyjson_val *obj, FailedPlanningResultBuilder &builder);
 	string Validate() const;
 
 	// Copy

@@ -49,25 +49,28 @@ string EmptyPlanningResultBuilder::TryBuild(optional<EmptyPlanningResult> &resul
 	}
 }
 
-EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
-	EmptyPlanningResultBuilder builder;
-	auto status_val = yyjson_obj_get(obj, "status");
-	if (!status_val) {
-		throw InvalidInputException("EmptyPlanningResult required property 'status' is missing");
-	} else {
-		builder.SetStatus(PlanStatus::FromJSON(status_val));
-	}
-	return builder.Build();
-}
-
-string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, optional<EmptyPlanningResult> &result) {
+string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuilder &builder) {
 	try {
-		result.emplace(FromJSON(obj));
+		auto status_val = yyjson_obj_get(obj, "status");
+		if (!status_val) {
+			throw InvalidInputException("EmptyPlanningResult required property 'status' is missing");
+		} else {
+			builder.SetStatus(PlanStatus::FromJSON(status_val));
+		}
 		return "";
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
 	}
+}
+
+EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
+	EmptyPlanningResultBuilder builder;
+	auto error = TryFromJSON(obj, builder);
+	if (!error.empty()) {
+		throw InvalidInputException(error);
+	}
+	return builder.Build();
 }
 
 EmptyPlanningResult EmptyPlanningResult::Copy() const {
