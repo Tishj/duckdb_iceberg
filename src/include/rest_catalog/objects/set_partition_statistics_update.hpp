@@ -19,9 +19,9 @@ class SetPartitionStatisticsUpdateBuilder;
 
 class SetPartitionStatisticsUpdate {
 public:
-	SetPartitionStatisticsUpdate(const SetPartitionStatisticsUpdate &) = delete;
+	SetPartitionStatisticsUpdate(const SetPartitionStatisticsUpdate &);
 	SetPartitionStatisticsUpdate &operator=(const SetPartitionStatisticsUpdate &) = delete;
-	SetPartitionStatisticsUpdate(SetPartitionStatisticsUpdate &&) = default;
+	SetPartitionStatisticsUpdate(SetPartitionStatisticsUpdate &&);
 	SetPartitionStatisticsUpdate &operator=(SetPartitionStatisticsUpdate &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	PartitionStatisticsFile partition_statistics;
+	const BaseUpdate base_update;
+	const PartitionStatisticsFile partition_statistics;
 };
 
 class SetPartitionStatisticsUpdateBuilder {

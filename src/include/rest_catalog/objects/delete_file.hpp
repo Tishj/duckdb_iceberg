@@ -19,9 +19,9 @@ class DeleteFileBuilder;
 
 class DeleteFile {
 public:
-	DeleteFile(const DeleteFile &) = delete;
+	DeleteFile(const DeleteFile &);
 	DeleteFile &operator=(const DeleteFile &) = delete;
-	DeleteFile(DeleteFile &&) = default;
+	DeleteFile(DeleteFile &&);
 	DeleteFile &operator=(DeleteFile &&) = delete;
 
 private:
@@ -43,8 +43,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<PositionDeleteFile> position_delete_file;
-	optional<EqualityDeleteFile> equality_delete_file;
+	const optional<PositionDeleteFile> position_delete_file;
+	const optional<EqualityDeleteFile> equality_delete_file;
 };
 
 class DeleteFileBuilder {

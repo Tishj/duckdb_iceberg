@@ -20,6 +20,13 @@ SetSnapshotRefUpdate::SetSnapshotRefUpdate(BaseUpdate base_update_p, SnapshotRef
     : base_update(std::move(base_update_p)), snapshot_reference(std::move(snapshot_reference_p)),
       ref_name(std::move(ref_name_p)) {
 }
+SetSnapshotRefUpdate::SetSnapshotRefUpdate(const SetSnapshotRefUpdate &other)
+    : base_update(other.base_update.Copy()), snapshot_reference(other.snapshot_reference.Copy()),
+      ref_name(other.ref_name) {
+}
+SetSnapshotRefUpdate::SetSnapshotRefUpdate(SetSnapshotRefUpdate &&other)
+    : SetSnapshotRefUpdate(static_cast<const SetSnapshotRefUpdate &>(other)) {
+}
 
 SetSnapshotRefUpdateBuilder::SetSnapshotRefUpdateBuilder() {
 }
@@ -98,15 +105,7 @@ SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetSnapshotRefUpdate SetSnapshotRefUpdate::Copy() const {
-	SetSnapshotRefUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto snapshot_reference_tmp = snapshot_reference.Copy();
-	builder.SetSnapshotReference(std::move(snapshot_reference_tmp));
-	string ref_name_tmp;
-	ref_name_tmp = ref_name;
-	builder.SetRefName(std::move(ref_name_tmp));
-	return builder.Build();
+	return SetSnapshotRefUpdate(*this);
 }
 
 string SetSnapshotRefUpdate::Validate() const {

@@ -17,9 +17,9 @@ class PartitionStatisticsFileBuilder;
 
 class PartitionStatisticsFile {
 public:
-	PartitionStatisticsFile(const PartitionStatisticsFile &) = delete;
+	PartitionStatisticsFile(const PartitionStatisticsFile &);
 	PartitionStatisticsFile &operator=(const PartitionStatisticsFile &) = delete;
-	PartitionStatisticsFile(PartitionStatisticsFile &&) = default;
+	PartitionStatisticsFile(PartitionStatisticsFile &&);
 	PartitionStatisticsFile &operator=(PartitionStatisticsFile &&) = delete;
 
 private:
@@ -40,9 +40,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int64_t snapshot_id;
-	string statistics_path;
-	int64_t file_size_in_bytes;
+	const int64_t snapshot_id;
+	const string statistics_path;
+	const int64_t file_size_in_bytes;
 };
 
 class PartitionStatisticsFileBuilder {

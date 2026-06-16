@@ -17,9 +17,9 @@ class SnapshotReferenceBuilder;
 
 class SnapshotReference {
 public:
-	SnapshotReference(const SnapshotReference &) = delete;
+	SnapshotReference(const SnapshotReference &);
 	SnapshotReference &operator=(const SnapshotReference &) = delete;
-	SnapshotReference(SnapshotReference &&) = default;
+	SnapshotReference(SnapshotReference &&);
 	SnapshotReference &operator=(SnapshotReference &&) = delete;
 
 private:
@@ -41,11 +41,11 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	int64_t snapshot_id;
-	optional<int64_t> max_ref_age_ms;
-	optional<int64_t> max_snapshot_age_ms;
-	optional<int32_t> min_snapshots_to_keep;
+	const string type;
+	const int64_t snapshot_id;
+	const optional<int64_t> max_ref_age_ms;
+	const optional<int64_t> max_snapshot_age_ms;
+	const optional<int32_t> min_snapshots_to_keep;
 };
 
 class SnapshotReferenceBuilder {

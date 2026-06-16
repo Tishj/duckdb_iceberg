@@ -20,9 +20,9 @@ class NotExpressionBuilder;
 
 class NotExpression {
 public:
-	NotExpression(const NotExpression &) = delete;
+	NotExpression(const NotExpression &);
 	NotExpression &operator=(const NotExpression &) = delete;
-	NotExpression(NotExpression &&) = default;
+	NotExpression(NotExpression &&);
 	NotExpression &operator=(NotExpression &&) = delete;
 
 private:
@@ -43,8 +43,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
-	unique_ptr<Expression> child;
+	const ExpressionType type;
+	const unique_ptr<Expression> child;
 };
 
 class NotExpressionBuilder {

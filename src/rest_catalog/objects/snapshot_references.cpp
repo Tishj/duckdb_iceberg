@@ -18,6 +18,18 @@ namespace rest_api_objects {
 SnapshotReferences::SnapshotReferences(case_insensitive_map_t<SnapshotReference> additional_properties_p)
     : additional_properties(std::move(additional_properties_p)) {
 }
+SnapshotReferences::SnapshotReferences(const SnapshotReferences &other)
+    : additional_properties(([&]() {
+	      case_insensitive_map_t<SnapshotReference> copied;
+	      for (const auto &entry : other.additional_properties) {
+		      copied.emplace(entry.first, entry.second.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+SnapshotReferences::SnapshotReferences(SnapshotReferences &&other)
+    : SnapshotReferences(static_cast<const SnapshotReferences &>(other)) {
+}
 
 SnapshotReferencesBuilder::SnapshotReferencesBuilder() {
 }
@@ -76,13 +88,7 @@ SnapshotReferences SnapshotReferences::FromJSON(yyjson_val *obj) {
 }
 
 SnapshotReferences SnapshotReferences::Copy() const {
-	SnapshotReferencesBuilder builder;
-	case_insensitive_map_t<SnapshotReference> additional_properties_tmp;
-	for (auto &entry : additional_properties) {
-		additional_properties_tmp.emplace(entry.first, entry.second.Copy());
-	}
-	builder.SetAdditionalProperties(std::move(additional_properties_tmp));
-	return builder.Build();
+	return SnapshotReferences(*this);
 }
 
 string SnapshotReferences::Validate() const {

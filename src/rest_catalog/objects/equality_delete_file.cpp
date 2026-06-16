@@ -18,6 +18,21 @@ namespace rest_api_objects {
 EqualityDeleteFile::EqualityDeleteFile(ContentFile content_file_p, optional<vector<int32_t>> equality_ids_p)
     : content_file(std::move(content_file_p)), equality_ids(std::move(equality_ids_p)) {
 }
+EqualityDeleteFile::EqualityDeleteFile(const EqualityDeleteFile &other)
+    : content_file(other.content_file.Copy()),
+      equality_ids((other.equality_ids.has_value() ? optional<vector<int32_t>>(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve((*other.equality_ids).size());
+	      for (const auto &item : (*other.equality_ids)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                                   : optional<vector<int32_t>>())) {
+}
+EqualityDeleteFile::EqualityDeleteFile(EqualityDeleteFile &&other)
+    : EqualityDeleteFile(static_cast<const EqualityDeleteFile &>(other)) {
+}
 
 EqualityDeleteFileBuilder::EqualityDeleteFileBuilder() {
 }
@@ -95,21 +110,7 @@ EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
 }
 
 EqualityDeleteFile EqualityDeleteFile::Copy() const {
-	EqualityDeleteFileBuilder builder;
-	auto content_file_tmp = content_file.Copy();
-	builder.SetContentFile(std::move(content_file_tmp));
-	optional<vector<int32_t>> equality_ids_tmp;
-	if (equality_ids.has_value()) {
-		equality_ids_tmp.emplace();
-		(*equality_ids_tmp).reserve((*equality_ids).size());
-		for (auto &item : (*equality_ids)) {
-			(*equality_ids_tmp).emplace_back(item);
-		}
-	}
-	if (equality_ids_tmp.has_value()) {
-		builder.SetEqualityIds(std::move((*equality_ids_tmp)));
-	}
-	return builder.Build();
+	return EqualityDeleteFile(*this);
 }
 
 string EqualityDeleteFile::Validate() const {

@@ -18,6 +18,13 @@ namespace rest_api_objects {
 AndOrExpression::AndOrExpression(ExpressionType type_p, unique_ptr<Expression> left_p, unique_ptr<Expression> right_p)
     : type(std::move(type_p)), left(std::move(left_p)), right(std::move(right_p)) {
 }
+AndOrExpression::AndOrExpression(const AndOrExpression &other)
+    : type(other.type.Copy()), left(other.left ? make_uniq<Expression>(other.left->Copy()) : nullptr),
+      right(other.right ? make_uniq<Expression>(other.right->Copy()) : nullptr) {
+}
+AndOrExpression::AndOrExpression(AndOrExpression &&other)
+    : AndOrExpression(static_cast<const AndOrExpression &>(other)) {
+}
 
 AndOrExpressionBuilder::AndOrExpressionBuilder() {
 }
@@ -109,16 +116,7 @@ AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
 }
 
 AndOrExpression AndOrExpression::Copy() const {
-	AndOrExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	unique_ptr<Expression> left_tmp;
-	left_tmp = left ? make_uniq<Expression>(left->Copy()) : nullptr;
-	builder.SetLeft(std::move(left_tmp));
-	unique_ptr<Expression> right_tmp;
-	right_tmp = right ? make_uniq<Expression>(right->Copy()) : nullptr;
-	builder.SetRight(std::move(right_tmp));
-	return builder.Build();
+	return AndOrExpression(*this);
 }
 
 string AndOrExpression::Validate() const {

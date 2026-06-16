@@ -20,6 +20,16 @@ PositionDeleteFile::PositionDeleteFile(ContentFile content_file_p, optional<int6
     : content_file(std::move(content_file_p)), content_offset(std::move(content_offset_p)),
       content_size_in_bytes(std::move(content_size_in_bytes_p)) {
 }
+PositionDeleteFile::PositionDeleteFile(const PositionDeleteFile &other)
+    : content_file(other.content_file.Copy()),
+      content_offset(
+          (other.content_offset.has_value() ? optional<int64_t>((*other.content_offset)) : optional<int64_t>())),
+      content_size_in_bytes((other.content_size_in_bytes.has_value() ? optional<int64_t>((*other.content_size_in_bytes))
+                                                                     : optional<int64_t>())) {
+}
+PositionDeleteFile::PositionDeleteFile(PositionDeleteFile &&other)
+    : PositionDeleteFile(static_cast<const PositionDeleteFile &>(other)) {
+}
 
 PositionDeleteFileBuilder::PositionDeleteFileBuilder() {
 }
@@ -107,26 +117,7 @@ PositionDeleteFile PositionDeleteFile::FromJSON(yyjson_val *obj) {
 }
 
 PositionDeleteFile PositionDeleteFile::Copy() const {
-	PositionDeleteFileBuilder builder;
-	auto content_file_tmp = content_file.Copy();
-	builder.SetContentFile(std::move(content_file_tmp));
-	optional<int64_t> content_offset_tmp;
-	if (content_offset.has_value()) {
-		content_offset_tmp.emplace();
-		(*content_offset_tmp) = (*content_offset);
-	}
-	if (content_offset_tmp.has_value()) {
-		builder.SetContentOffset(std::move((*content_offset_tmp)));
-	}
-	optional<int64_t> content_size_in_bytes_tmp;
-	if (content_size_in_bytes.has_value()) {
-		content_size_in_bytes_tmp.emplace();
-		(*content_size_in_bytes_tmp) = (*content_size_in_bytes);
-	}
-	if (content_size_in_bytes_tmp.has_value()) {
-		builder.SetContentSizeInBytes(std::move((*content_size_in_bytes_tmp)));
-	}
-	return builder.Build();
+	return PositionDeleteFile(*this);
 }
 
 string PositionDeleteFile::Validate() const {

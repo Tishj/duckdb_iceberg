@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class DoubleTypeValue {
 public:
-	DoubleTypeValue(const DoubleTypeValue &) = delete;
+	DoubleTypeValue(const DoubleTypeValue &);
 	DoubleTypeValue &operator=(const DoubleTypeValue &) = delete;
-	DoubleTypeValue(DoubleTypeValue &&) = default;
+	DoubleTypeValue(DoubleTypeValue &&);
 	DoubleTypeValue &operator=(DoubleTypeValue &&) = delete;
 	DoubleTypeValue(double value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	double value;
+	const double value;
 };
 
 } // namespace rest_api_objects

@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 IcebergErrorResponse::IcebergErrorResponse(ErrorModel _error_p) : _error(std::move(_error_p)) {
 }
+IcebergErrorResponse::IcebergErrorResponse(const IcebergErrorResponse &other) : _error(other._error.Copy()) {
+}
+IcebergErrorResponse::IcebergErrorResponse(IcebergErrorResponse &&other)
+    : IcebergErrorResponse(static_cast<const IcebergErrorResponse &>(other)) {
+}
 
 IcebergErrorResponseBuilder::IcebergErrorResponseBuilder() {
 }
@@ -74,10 +79,7 @@ IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
 }
 
 IcebergErrorResponse IcebergErrorResponse::Copy() const {
-	IcebergErrorResponseBuilder builder;
-	auto _error_tmp = _error.Copy();
-	builder.SetError(std::move(_error_tmp));
-	return builder.Build();
+	return IcebergErrorResponse(*this);
 }
 
 string IcebergErrorResponse::Validate() const {

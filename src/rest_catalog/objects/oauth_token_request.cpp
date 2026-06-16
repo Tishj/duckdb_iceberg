@@ -20,6 +20,19 @@ OAuthTokenRequest::OAuthTokenRequest(optional<OAuthClientCredentialsRequest> oau
     : oauth_client_credentials_request(std::move(oauth_client_credentials_request_p)),
       oauth_token_exchange_request(std::move(oauth_token_exchange_request_p)) {
 }
+OAuthTokenRequest::OAuthTokenRequest(const OAuthTokenRequest &other)
+    : oauth_client_credentials_request(
+          (other.oauth_client_credentials_request.has_value()
+               ? optional<OAuthClientCredentialsRequest>((*other.oauth_client_credentials_request).Copy())
+               : optional<OAuthClientCredentialsRequest>())),
+      oauth_token_exchange_request(
+          (other.oauth_token_exchange_request.has_value()
+               ? optional<OAuthTokenExchangeRequest>((*other.oauth_token_exchange_request).Copy())
+               : optional<OAuthTokenExchangeRequest>())) {
+}
+OAuthTokenRequest::OAuthTokenRequest(OAuthTokenRequest &&other)
+    : OAuthTokenRequest(static_cast<const OAuthTokenRequest &>(other)) {
+}
 
 OAuthTokenRequestBuilder::OAuthTokenRequestBuilder() {
 }
@@ -88,22 +101,7 @@ OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
 }
 
 OAuthTokenRequest OAuthTokenRequest::Copy() const {
-	OAuthTokenRequestBuilder builder;
-	optional<OAuthClientCredentialsRequest> oauth_client_credentials_request_tmp;
-	if (oauth_client_credentials_request.has_value()) {
-		oauth_client_credentials_request_tmp.emplace((*oauth_client_credentials_request).Copy());
-	}
-	if (oauth_client_credentials_request_tmp.has_value()) {
-		builder.SetOauthClientCredentialsRequest(std::move(*oauth_client_credentials_request_tmp));
-	}
-	optional<OAuthTokenExchangeRequest> oauth_token_exchange_request_tmp;
-	if (oauth_token_exchange_request.has_value()) {
-		oauth_token_exchange_request_tmp.emplace((*oauth_token_exchange_request).Copy());
-	}
-	if (oauth_token_exchange_request_tmp.has_value()) {
-		builder.SetOauthTokenExchangeRequest(std::move(*oauth_token_exchange_request_tmp));
-	}
-	return builder.Build();
+	return OAuthTokenRequest(*this);
 }
 
 string OAuthTokenRequest::Validate() const {

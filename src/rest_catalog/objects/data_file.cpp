@@ -24,6 +24,24 @@ DataFile::DataFile(ContentFile content_file_p, optional<int64_t> first_row_id_p,
       null_value_counts(std::move(null_value_counts_p)), nan_value_counts(std::move(nan_value_counts_p)),
       lower_bounds(std::move(lower_bounds_p)), upper_bounds(std::move(upper_bounds_p)) {
 }
+DataFile::DataFile(const DataFile &other)
+    : content_file(other.content_file.Copy()),
+      first_row_id((other.first_row_id.has_value() ? optional<int64_t>((*other.first_row_id)) : optional<int64_t>())),
+      column_sizes(
+          (other.column_sizes.has_value() ? optional<CountMap>((*other.column_sizes).Copy()) : optional<CountMap>())),
+      value_counts(
+          (other.value_counts.has_value() ? optional<CountMap>((*other.value_counts).Copy()) : optional<CountMap>())),
+      null_value_counts((other.null_value_counts.has_value() ? optional<CountMap>((*other.null_value_counts).Copy())
+                                                             : optional<CountMap>())),
+      nan_value_counts((other.nan_value_counts.has_value() ? optional<CountMap>((*other.nan_value_counts).Copy())
+                                                           : optional<CountMap>())),
+      lower_bounds(
+          (other.lower_bounds.has_value() ? optional<ValueMap>((*other.lower_bounds).Copy()) : optional<ValueMap>())),
+      upper_bounds(
+          (other.upper_bounds.has_value() ? optional<ValueMap>((*other.upper_bounds).Copy()) : optional<ValueMap>())) {
+}
+DataFile::DataFile(DataFile &&other) : DataFile(static_cast<const DataFile &>(other)) {
+}
 
 DataFileBuilder::DataFileBuilder() {
 }
@@ -147,60 +165,7 @@ DataFile DataFile::FromJSON(yyjson_val *obj) {
 }
 
 DataFile DataFile::Copy() const {
-	DataFileBuilder builder;
-	auto content_file_tmp = content_file.Copy();
-	builder.SetContentFile(std::move(content_file_tmp));
-	optional<int64_t> first_row_id_tmp;
-	if (first_row_id.has_value()) {
-		first_row_id_tmp.emplace();
-		(*first_row_id_tmp) = (*first_row_id);
-	}
-	if (first_row_id_tmp.has_value()) {
-		builder.SetFirstRowId(std::move((*first_row_id_tmp)));
-	}
-	optional<CountMap> column_sizes_tmp;
-	if (column_sizes.has_value()) {
-		column_sizes_tmp.emplace((*column_sizes).Copy());
-	}
-	if (column_sizes_tmp.has_value()) {
-		builder.SetColumnSizes(std::move(*column_sizes_tmp));
-	}
-	optional<CountMap> value_counts_tmp;
-	if (value_counts.has_value()) {
-		value_counts_tmp.emplace((*value_counts).Copy());
-	}
-	if (value_counts_tmp.has_value()) {
-		builder.SetValueCounts(std::move(*value_counts_tmp));
-	}
-	optional<CountMap> null_value_counts_tmp;
-	if (null_value_counts.has_value()) {
-		null_value_counts_tmp.emplace((*null_value_counts).Copy());
-	}
-	if (null_value_counts_tmp.has_value()) {
-		builder.SetNullValueCounts(std::move(*null_value_counts_tmp));
-	}
-	optional<CountMap> nan_value_counts_tmp;
-	if (nan_value_counts.has_value()) {
-		nan_value_counts_tmp.emplace((*nan_value_counts).Copy());
-	}
-	if (nan_value_counts_tmp.has_value()) {
-		builder.SetNanValueCounts(std::move(*nan_value_counts_tmp));
-	}
-	optional<ValueMap> lower_bounds_tmp;
-	if (lower_bounds.has_value()) {
-		lower_bounds_tmp.emplace((*lower_bounds).Copy());
-	}
-	if (lower_bounds_tmp.has_value()) {
-		builder.SetLowerBounds(std::move(*lower_bounds_tmp));
-	}
-	optional<ValueMap> upper_bounds_tmp;
-	if (upper_bounds.has_value()) {
-		upper_bounds_tmp.emplace((*upper_bounds).Copy());
-	}
-	if (upper_bounds_tmp.has_value()) {
-		builder.SetUpperBounds(std::move(*upper_bounds_tmp));
-	}
-	return builder.Build();
+	return DataFile(*this);
 }
 
 string DataFile::Validate() const {

@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 CounterResult::CounterResult(string unit_p, int64_t value_p) : unit(std::move(unit_p)), value(std::move(value_p)) {
 }
+CounterResult::CounterResult(const CounterResult &other) : unit(other.unit), value(other.value) {
+}
+CounterResult::CounterResult(CounterResult &&other) : CounterResult(static_cast<const CounterResult &>(other)) {
+}
 
 CounterResultBuilder::CounterResultBuilder() {
 }
@@ -107,14 +111,7 @@ CounterResult CounterResult::FromJSON(yyjson_val *obj) {
 }
 
 CounterResult CounterResult::Copy() const {
-	CounterResultBuilder builder;
-	string unit_tmp;
-	unit_tmp = unit;
-	builder.SetUnit(std::move(unit_tmp));
-	int64_t value_tmp;
-	value_tmp = value;
-	builder.SetValue(std::move(value_tmp));
-	return builder.Build();
+	return CounterResult(*this);
 }
 
 string CounterResult::Validate() const {

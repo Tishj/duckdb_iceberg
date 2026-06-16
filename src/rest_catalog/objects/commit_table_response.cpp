@@ -18,6 +18,12 @@ namespace rest_api_objects {
 CommitTableResponse::CommitTableResponse(string metadata_location_p, TableMetadata metadata_p)
     : metadata_location(std::move(metadata_location_p)), metadata(std::move(metadata_p)) {
 }
+CommitTableResponse::CommitTableResponse(const CommitTableResponse &other)
+    : metadata_location(other.metadata_location), metadata(other.metadata.Copy()) {
+}
+CommitTableResponse::CommitTableResponse(CommitTableResponse &&other)
+    : CommitTableResponse(static_cast<const CommitTableResponse &>(other)) {
+}
 
 CommitTableResponseBuilder::CommitTableResponseBuilder() {
 }
@@ -98,13 +104,7 @@ CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
 }
 
 CommitTableResponse CommitTableResponse::Copy() const {
-	CommitTableResponseBuilder builder;
-	string metadata_location_tmp;
-	metadata_location_tmp = metadata_location;
-	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	auto metadata_tmp = metadata.Copy();
-	builder.SetMetadata(std::move(metadata_tmp));
-	return builder.Build();
+	return CommitTableResponse(*this);
 }
 
 string CommitTableResponse::Validate() const {

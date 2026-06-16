@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 TokenType::TokenType(string value_p) : value(std::move(value_p)) {
 }
+TokenType::TokenType(const TokenType &other) : value(other.value) {
+}
+TokenType::TokenType(TokenType &&other) : TokenType(static_cast<const TokenType &>(other)) {
+}
 
 string TokenType::TryFromJSON(yyjson_val *obj, optional<TokenType> &result) {
 	try {
@@ -48,9 +52,7 @@ TokenType TokenType::FromJSON(yyjson_val *obj) {
 }
 
 TokenType TokenType::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return TokenType(std::move(value_tmp));
+	return TokenType(*this);
 }
 
 string TokenType::Validate() const {

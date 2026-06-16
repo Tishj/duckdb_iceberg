@@ -18,9 +18,9 @@ class RemoveSnapshotRefUpdateBuilder;
 
 class RemoveSnapshotRefUpdate {
 public:
-	RemoveSnapshotRefUpdate(const RemoveSnapshotRefUpdate &) = delete;
+	RemoveSnapshotRefUpdate(const RemoveSnapshotRefUpdate &);
 	RemoveSnapshotRefUpdate &operator=(const RemoveSnapshotRefUpdate &) = delete;
-	RemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate &&) = default;
+	RemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate &&);
 	RemoveSnapshotRefUpdate &operator=(RemoveSnapshotRefUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	string ref_name;
+	const BaseUpdate base_update;
+	const string ref_name;
 };
 
 class RemoveSnapshotRefUpdateBuilder {

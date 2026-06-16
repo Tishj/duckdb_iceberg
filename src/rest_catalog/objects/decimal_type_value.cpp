@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 DecimalTypeValue::DecimalTypeValue(string value_p) : value(std::move(value_p)) {
 }
+DecimalTypeValue::DecimalTypeValue(const DecimalTypeValue &other) : value(other.value) {
+}
+DecimalTypeValue::DecimalTypeValue(DecimalTypeValue &&other)
+    : DecimalTypeValue(static_cast<const DecimalTypeValue &>(other)) {
+}
 
 string DecimalTypeValue::TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ DecimalTypeValue DecimalTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 DecimalTypeValue DecimalTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return DecimalTypeValue(std::move(value_tmp));
+	return DecimalTypeValue(*this);
 }
 
 string DecimalTypeValue::Validate() const {

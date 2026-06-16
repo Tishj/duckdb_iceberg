@@ -19,17 +19,17 @@ class FailedPlanningResultBuilder;
 
 class FailedPlanningResult {
 public:
-	FailedPlanningResult(const FailedPlanningResult &) = delete;
+	FailedPlanningResult(const FailedPlanningResult &);
 	FailedPlanningResult &operator=(const FailedPlanningResult &) = delete;
-	FailedPlanningResult(FailedPlanningResult &&) = default;
+	FailedPlanningResult(FailedPlanningResult &&);
 	FailedPlanningResult &operator=(FailedPlanningResult &&) = delete;
 	class Object7Builder;
 
 	class Object7 {
 	public:
-		Object7(const Object7 &) = delete;
+		Object7(const Object7 &);
 		Object7 &operator=(const Object7 &) = delete;
-		Object7(Object7 &&) = default;
+		Object7(Object7 &&);
 		Object7 &operator=(Object7 &&) = delete;
 
 	private:
@@ -50,7 +50,7 @@ public:
 		yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 	public:
-		PlanStatus status;
+		const PlanStatus status;
 	};
 
 	class Object7Builder {
@@ -83,8 +83,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	IcebergErrorResponse iceberg_error_response;
-	Object7 object_7;
+	const IcebergErrorResponse iceberg_error_response;
+	const Object7 object_7;
 };
 
 class FailedPlanningResultBuilder {

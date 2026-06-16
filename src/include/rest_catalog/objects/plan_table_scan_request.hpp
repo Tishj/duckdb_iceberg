@@ -20,9 +20,9 @@ class PlanTableScanRequestBuilder;
 
 class PlanTableScanRequest {
 public:
-	PlanTableScanRequest(const PlanTableScanRequest &) = delete;
+	PlanTableScanRequest(const PlanTableScanRequest &);
 	PlanTableScanRequest &operator=(const PlanTableScanRequest &) = delete;
-	PlanTableScanRequest(PlanTableScanRequest &&) = default;
+	PlanTableScanRequest(PlanTableScanRequest &&);
 	PlanTableScanRequest &operator=(PlanTableScanRequest &&) = delete;
 
 private:
@@ -47,15 +47,15 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<int64_t> snapshot_id;
-	optional<vector<FieldName>> select;
-	unique_ptr<Expression> filter;
-	optional<int64_t> min_rows_requested;
-	optional<bool> case_sensitive;
-	optional<bool> use_snapshot_schema;
-	optional<int64_t> start_snapshot_id;
-	optional<int64_t> end_snapshot_id;
-	optional<vector<FieldName>> stats_fields;
+	const optional<int64_t> snapshot_id;
+	const optional<vector<FieldName>> select;
+	const unique_ptr<Expression> filter;
+	const optional<int64_t> min_rows_requested;
+	const optional<bool> case_sensitive;
+	const optional<bool> use_snapshot_schema;
+	const optional<int64_t> start_snapshot_id;
+	const optional<int64_t> end_snapshot_id;
+	const optional<vector<FieldName>> stats_fields;
 };
 
 class PlanTableScanRequestBuilder {

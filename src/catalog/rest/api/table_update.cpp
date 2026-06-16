@@ -40,14 +40,13 @@ void AddSchemaUpdate::CreateUpdate(DatabaseInstance &db, ClientContext &context,
 		throw InternalException("(AddSchemaUpdate) Couldn't find schema with id: %d", schema_id);
 	}
 	auto &schema = it->second;
-	auto update = rest_api_objects::AddSchemaUpdateBuilder()
-	                  .SetBaseUpdate(MakeBaseUpdate("add-schema"))
-	                  .SetSchema(CopySchema(*schema.get()))
-	                  .Build();
+	rest_api_objects::AddSchemaUpdateBuilder update_builder;
+	update_builder.SetBaseUpdate(MakeBaseUpdate("add-schema")).SetSchema(CopySchema(*schema.get()));
 	// last-column-id is technically deprecated in AddSchemaUpdate, but some catalogs still use it (nessie).
 	if (last_column_id.IsValid()) {
-		update.last_column_id = last_column_id.GetIndex();
+		update_builder.SetLastColumnId(last_column_id.GetIndex());
 	}
+	auto update = update_builder.Build();
 	commit_state.updates.push_back(
 	    rest_api_objects::TableUpdateBuilder().SetAddSchemaUpdate(std::move(update)).Build());
 }
@@ -204,13 +203,15 @@ void AddPartitionSpec::CreateUpdate(DatabaseInstance &db, ClientContext &context
 			                         .SetSourceId(field.source_id)
 			                         .SetTransform(std::move(transform))
 			                         .SetName(field.GetPartitionSpecFieldName())
+			                         .SetFieldId(field.partition_field_id)
 			                         .Build();
-			updated_field.field_id = field.partition_field_id;
 			fields.push_back(std::move(updated_field));
 		}
 	}
-	auto spec = rest_api_objects::PartitionSpecBuilder().SetFields(std::move(fields)).Build();
-	spec.spec_id = table_info.table_metadata.default_spec_id;
+	auto spec = rest_api_objects::PartitionSpecBuilder()
+	                .SetFields(std::move(fields))
+	                .SetSpecId(table_info.table_metadata.default_spec_id)
+	                .Build();
 	auto req = rest_api_objects::AddPartitionSpecUpdateBuilder()
 	               .SetBaseUpdate(MakeBaseUpdate("add-spec"))
 	               .SetSpec(std::move(spec))

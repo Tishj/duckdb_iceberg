@@ -18,6 +18,12 @@ namespace rest_api_objects {
 SetDefaultSpecUpdate::SetDefaultSpecUpdate(BaseUpdate base_update_p, int32_t spec_id_p)
     : base_update(std::move(base_update_p)), spec_id(std::move(spec_id_p)) {
 }
+SetDefaultSpecUpdate::SetDefaultSpecUpdate(const SetDefaultSpecUpdate &other)
+    : base_update(other.base_update.Copy()), spec_id(other.spec_id) {
+}
+SetDefaultSpecUpdate::SetDefaultSpecUpdate(SetDefaultSpecUpdate &&other)
+    : SetDefaultSpecUpdate(static_cast<const SetDefaultSpecUpdate &>(other)) {
+}
 
 SetDefaultSpecUpdateBuilder::SetDefaultSpecUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetDefaultSpecUpdate SetDefaultSpecUpdate::Copy() const {
-	SetDefaultSpecUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	int32_t spec_id_tmp;
-	spec_id_tmp = spec_id;
-	builder.SetSpecId(std::move(spec_id_tmp));
-	return builder.Build();
+	return SetDefaultSpecUpdate(*this);
 }
 
 string SetDefaultSpecUpdate::Validate() const {

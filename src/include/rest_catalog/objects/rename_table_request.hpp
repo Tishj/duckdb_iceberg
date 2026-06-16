@@ -18,9 +18,9 @@ class RenameTableRequestBuilder;
 
 class RenameTableRequest {
 public:
-	RenameTableRequest(const RenameTableRequest &) = delete;
+	RenameTableRequest(const RenameTableRequest &);
 	RenameTableRequest &operator=(const RenameTableRequest &) = delete;
-	RenameTableRequest(RenameTableRequest &&) = default;
+	RenameTableRequest(RenameTableRequest &&);
 	RenameTableRequest &operator=(RenameTableRequest &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableIdentifier source;
-	TableIdentifier destination;
+	const TableIdentifier source;
+	const TableIdentifier destination;
 };
 
 class RenameTableRequestBuilder {

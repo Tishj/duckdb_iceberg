@@ -19,9 +19,9 @@ class LoadTableResultBuilder;
 
 class LoadTableResult {
 public:
-	LoadTableResult(const LoadTableResult &) = delete;
+	LoadTableResult(const LoadTableResult &);
 	LoadTableResult &operator=(const LoadTableResult &) = delete;
-	LoadTableResult(LoadTableResult &&) = default;
+	LoadTableResult(LoadTableResult &&);
 	LoadTableResult &operator=(LoadTableResult &&) = delete;
 
 private:
@@ -44,10 +44,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableMetadata metadata;
-	optional<string> metadata_location;
-	optional<case_insensitive_map_t<string>> config;
-	optional<vector<StorageCredential>> storage_credentials;
+	const TableMetadata metadata;
+	const optional<string> metadata_location;
+	const optional<case_insensitive_map_t<string>> config;
+	const optional<vector<StorageCredential>> storage_credentials;
 };
 
 class LoadTableResultBuilder {

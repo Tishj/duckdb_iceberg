@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AssertDefaultSpecId::AssertDefaultSpecId(TableRequirementType type_p, int32_t default_spec_id_p)
     : type(std::move(type_p)), default_spec_id(std::move(default_spec_id_p)) {
 }
+AssertDefaultSpecId::AssertDefaultSpecId(const AssertDefaultSpecId &other)
+    : type(other.type.Copy()), default_spec_id(other.default_spec_id) {
+}
+AssertDefaultSpecId::AssertDefaultSpecId(AssertDefaultSpecId &&other)
+    : AssertDefaultSpecId(static_cast<const AssertDefaultSpecId &>(other)) {
+}
 
 AssertDefaultSpecIdBuilder::AssertDefaultSpecIdBuilder() {
 }
@@ -98,13 +104,7 @@ AssertDefaultSpecId AssertDefaultSpecId::FromJSON(yyjson_val *obj) {
 }
 
 AssertDefaultSpecId AssertDefaultSpecId::Copy() const {
-	AssertDefaultSpecIdBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	int32_t default_spec_id_tmp;
-	default_spec_id_tmp = default_spec_id;
-	builder.SetDefaultSpecId(std::move(default_spec_id_tmp));
-	return builder.Build();
+	return AssertDefaultSpecId(*this);
 }
 
 string AssertDefaultSpecId::Validate() const {

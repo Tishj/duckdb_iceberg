@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class FileFormat {
 public:
-	FileFormat(const FileFormat &) = delete;
+	FileFormat(const FileFormat &);
 	FileFormat &operator=(const FileFormat &) = delete;
-	FileFormat(FileFormat &&) = default;
+	FileFormat(FileFormat &&);
 	FileFormat &operator=(FileFormat &&) = delete;
 	FileFormat(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

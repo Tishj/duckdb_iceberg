@@ -18,9 +18,9 @@ class PartitionFieldBuilder;
 
 class PartitionField {
 public:
-	PartitionField(const PartitionField &) = delete;
+	PartitionField(const PartitionField &);
 	PartitionField &operator=(const PartitionField &) = delete;
-	PartitionField(PartitionField &&) = default;
+	PartitionField(PartitionField &&);
 	PartitionField &operator=(PartitionField &&) = delete;
 
 private:
@@ -41,10 +41,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t source_id;
-	Transform transform;
-	string name;
-	optional<int32_t> field_id;
+	const int32_t source_id;
+	const Transform transform;
+	const string name;
+	const optional<int32_t> field_id;
 };
 
 class PartitionFieldBuilder {

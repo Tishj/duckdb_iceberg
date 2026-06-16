@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 FalseExpression::FalseExpression(ExpressionType type_p) : type(std::move(type_p)) {
 }
+FalseExpression::FalseExpression(const FalseExpression &other) : type(other.type.Copy()) {
+}
+FalseExpression::FalseExpression(FalseExpression &&other)
+    : FalseExpression(static_cast<const FalseExpression &>(other)) {
+}
 
 FalseExpressionBuilder::FalseExpressionBuilder() {
 }
@@ -74,10 +79,7 @@ FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
 }
 
 FalseExpression FalseExpression::Copy() const {
-	FalseExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	return builder.Build();
+	return FalseExpression(*this);
 }
 
 string FalseExpression::Validate() const {

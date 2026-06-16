@@ -127,37 +127,39 @@ static IcebergSnapshotMetrics MetricsFromSummary(const case_insensitive_map_t<st
 }
 
 rest_api_objects::Snapshot IcebergSnapshot::ToRESTObject(const IcebergTableMetadata &table_metadata) const {
-	auto summary = rest_api_objects::Snapshot::Object2Builder().SetOperation(OperationTypeToString(operation)).Build();
+	case_insensitive_map_t<string> additional_properties;
 	auto &metrics_map = metrics.metrics;
 	for (auto &entry : metrics_map) {
-		summary.additional_properties[MetricsTypeToString(entry.first)] = std::to_string(entry.second);
+		additional_properties.emplace(MetricsTypeToString(entry.first), std::to_string(entry.second));
 	}
-	auto res = rest_api_objects::SnapshotBuilder()
-	               .SetSnapshotId(snapshot_id)
-	               .SetTimestampMs(timestamp_ms.value)
-	               .SetManifestList(manifest_list)
-	               .SetSummary(std::move(summary))
-	               .Build();
+	auto summary = rest_api_objects::Snapshot::Object2Builder()
+	                   .SetOperation(OperationTypeToString(operation))
+	                   .SetAdditionalProperties(std::move(additional_properties))
+	                   .Build();
+	rest_api_objects::SnapshotBuilder snapshot_builder;
+	snapshot_builder.SetSnapshotId(snapshot_id)
+	    .SetTimestampMs(timestamp_ms.value)
+	    .SetManifestList(manifest_list)
+	    .SetSummary(std::move(summary));
 
 	if (has_parent_snapshot) {
-		res.parent_snapshot_id = parent_snapshot_id;
+		snapshot_builder.SetParentSnapshotId(parent_snapshot_id);
 	}
 
 	if (has_added_rows) {
-		res.added_rows = added_rows;
+		snapshot_builder.SetAddedRows(added_rows);
 	}
 
-	res.sequence_number = sequence_number;
-
-	res.schema_id = schema_id;
+	snapshot_builder.SetSequenceNumber(sequence_number);
+	snapshot_builder.SetSchemaId(schema_id);
 
 	if (has_first_row_id) {
-		res.first_row_id = first_row_id;
+		snapshot_builder.SetFirstRowId(first_row_id);
 	} else if (table_metadata.iceberg_version >= 3) {
 		throw InternalException("first-row-id required for V3 tables!");
 	}
 
-	return res;
+	return snapshot_builder.Build();
 }
 
 IcebergSnapshot IcebergSnapshot::ParseSnapshot(const rest_api_objects::Snapshot &snapshot,

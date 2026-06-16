@@ -101,7 +101,7 @@ static string RESTObjectToJSONString(const RESTObject &object) {
 	return JsonDocToString(std::move(doc_p));
 }
 
-static string ConstructTableUpdateJSON(rest_api_objects::CommitTableRequest &table_change) {
+static string ConstructTableUpdateJSON(const rest_api_objects::CommitTableRequest &table_change) {
 	std::unique_ptr<yyjson_mut_doc, YyjsonDocDeleter> doc_p(yyjson_mut_doc_new(nullptr));
 	auto doc = doc_p.get();
 	auto root_object = CommitTableToJSON(doc, table_change);
@@ -113,8 +113,8 @@ static rest_api_objects::TableRequirement CreateAssertRefSnapshotIdRequirement(c
 	auto res = rest_api_objects::AssertRefSnapshotIdBuilder()
 	               .SetType(rest_api_objects::TableRequirementType("assert-ref-snapshot-id"))
 	               .SetRef("main")
+	               .SetSnapshotId(old_snapshot.snapshot_id)
 	               .Build();
-	res.snapshot_id = old_snapshot.snapshot_id;
 	return rest_api_objects::TableRequirementBuilder().SetAssertRefSnapshotId(std::move(res)).Build();
 }
 
@@ -134,15 +134,14 @@ void IcebergTransaction::DropSecrets(ClientContext &context) {
 }
 
 static rest_api_objects::TableUpdate CreateSetSnapshotRefUpdate(int64_t snapshot_id) {
-	rest_api_objects::BaseUpdate base_update =
-	    rest_api_objects::BaseUpdateBuilder().SetAction("set-snapshot-ref").Build();
-	rest_api_objects::SetSnapshotRefUpdate update = rest_api_objects::SetSnapshotRefUpdateBuilder()
-	                                                    .SetBaseUpdate(std::move(base_update))
-	                                                    .SetRefName("main")
-	                                                    .Build();
-	update.base_update.action = "set-snapshot-ref";
-	update.snapshot_reference.type = "branch";
-	update.snapshot_reference.snapshot_id = snapshot_id;
+	auto base_update = rest_api_objects::BaseUpdateBuilder().SetAction("set-snapshot-ref").Build();
+	auto snapshot_reference =
+	    rest_api_objects::SnapshotReferenceBuilder().SetType("branch").SetSnapshotId(snapshot_id).Build();
+	auto update = rest_api_objects::SetSnapshotRefUpdateBuilder()
+	                  .SetBaseUpdate(std::move(base_update))
+	                  .SetSnapshotReference(std::move(snapshot_reference))
+	                  .SetRefName("main")
+	                  .Build();
 	return rest_api_objects::TableUpdateBuilder().SetSetSnapshotRefUpdate(std::move(update)).Build();
 }
 
@@ -403,8 +402,8 @@ void IcebergTransaction::DoSchemaCreates(ClientContext &context) {
 
 		auto request = rest_api_objects::CreateNamespaceRequestBuilder()
 		                   .SetNamespace(rest_api_objects::Namespace(namespace_identifiers))
+		                   .SetProperties(case_insensitive_map_t<string>())
 		                   .Build();
-		request.properties = case_insensitive_map_t<string>();
 		auto create_body = RESTObjectToJSONString(request);
 
 		IRCAPI::CommitNamespaceCreate(context, ic_catalog, create_body);
@@ -433,10 +432,11 @@ void IcebergTransaction::DoSchemaPropertyUpdates(ClientContext &context) {
 		auto schema_property_updates = properties_update.second;
 		auto namespace_identifiers = IRCAPI::ParseSchemaName(schema_name_no_catalog);
 
-		auto request = rest_api_objects::UpdateNamespacePropertiesRequestBuilder().Build();
-		request.removals = vector<string>();
-		request.removals->assign(schema_property_updates.removals.begin(), schema_property_updates.removals.end());
-		request.updates = schema_property_updates.updates;
+		vector<string> removals(schema_property_updates.removals.begin(), schema_property_updates.removals.end());
+		auto request = rest_api_objects::UpdateNamespacePropertiesRequestBuilder()
+		                   .SetRemovals(std::move(removals))
+		                   .SetUpdates(schema_property_updates.updates)
+		                   .Build();
 		auto create_body = RESTObjectToJSONString(request);
 
 		IRCAPI::CommitNamespacePropertiesUpdate(context, ic_catalog, create_body, namespace_identifiers);

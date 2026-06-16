@@ -18,9 +18,9 @@ class CreateNamespaceResponseBuilder;
 
 class CreateNamespaceResponse {
 public:
-	CreateNamespaceResponse(const CreateNamespaceResponse &) = delete;
+	CreateNamespaceResponse(const CreateNamespaceResponse &);
 	CreateNamespaceResponse &operator=(const CreateNamespaceResponse &) = delete;
-	CreateNamespaceResponse(CreateNamespaceResponse &&) = default;
+	CreateNamespaceResponse(CreateNamespaceResponse &&);
 	CreateNamespaceResponse &operator=(CreateNamespaceResponse &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	Namespace _namespace;
-	optional<case_insensitive_map_t<string>> properties;
+	const Namespace _namespace;
+	const optional<case_insensitive_map_t<string>> properties;
 };
 
 class CreateNamespaceResponseBuilder {

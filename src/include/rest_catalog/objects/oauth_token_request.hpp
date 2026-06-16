@@ -19,9 +19,9 @@ class OAuthTokenRequestBuilder;
 
 class OAuthTokenRequest {
 public:
-	OAuthTokenRequest(const OAuthTokenRequest &) = delete;
+	OAuthTokenRequest(const OAuthTokenRequest &);
 	OAuthTokenRequest &operator=(const OAuthTokenRequest &) = delete;
-	OAuthTokenRequest(OAuthTokenRequest &&) = default;
+	OAuthTokenRequest(OAuthTokenRequest &&);
 	OAuthTokenRequest &operator=(OAuthTokenRequest &&) = delete;
 
 private:
@@ -43,8 +43,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<OAuthClientCredentialsRequest> oauth_client_credentials_request;
-	optional<OAuthTokenExchangeRequest> oauth_token_exchange_request;
+	const optional<OAuthClientCredentialsRequest> oauth_client_credentials_request;
+	const optional<OAuthTokenExchangeRequest> oauth_token_exchange_request;
 };
 
 class OAuthTokenRequestBuilder {

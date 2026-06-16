@@ -18,9 +18,9 @@ class PartitionSpecBuilder;
 
 class PartitionSpec {
 public:
-	PartitionSpec(const PartitionSpec &) = delete;
+	PartitionSpec(const PartitionSpec &);
 	PartitionSpec &operator=(const PartitionSpec &) = delete;
-	PartitionSpec(PartitionSpec &&) = default;
+	PartitionSpec(PartitionSpec &&);
 	PartitionSpec &operator=(PartitionSpec &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<PartitionField> fields;
-	optional<int32_t> spec_id;
+	const vector<PartitionField> fields;
+	const optional<int32_t> spec_id;
 };
 
 class PartitionSpecBuilder {

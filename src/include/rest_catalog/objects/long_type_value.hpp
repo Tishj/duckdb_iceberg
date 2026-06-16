@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class LongTypeValue {
 public:
-	LongTypeValue(const LongTypeValue &) = delete;
+	LongTypeValue(const LongTypeValue &);
 	LongTypeValue &operator=(const LongTypeValue &) = delete;
-	LongTypeValue(LongTypeValue &&) = default;
+	LongTypeValue(LongTypeValue &&);
 	LongTypeValue &operator=(LongTypeValue &&) = delete;
 	LongTypeValue(int64_t value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int64_t value;
+	const int64_t value;
 };
 
 } // namespace rest_api_objects

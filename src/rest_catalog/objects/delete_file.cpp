@@ -19,6 +19,16 @@ DeleteFile::DeleteFile(optional<PositionDeleteFile> position_delete_file_p,
                        optional<EqualityDeleteFile> equality_delete_file_p)
     : position_delete_file(std::move(position_delete_file_p)), equality_delete_file(std::move(equality_delete_file_p)) {
 }
+DeleteFile::DeleteFile(const DeleteFile &other)
+    : position_delete_file((other.position_delete_file.has_value()
+                                ? optional<PositionDeleteFile>((*other.position_delete_file).Copy())
+                                : optional<PositionDeleteFile>())),
+      equality_delete_file((other.equality_delete_file.has_value()
+                                ? optional<EqualityDeleteFile>((*other.equality_delete_file).Copy())
+                                : optional<EqualityDeleteFile>())) {
+}
+DeleteFile::DeleteFile(DeleteFile &&other) : DeleteFile(static_cast<const DeleteFile &>(other)) {
+}
 
 DeleteFileBuilder::DeleteFileBuilder() {
 }
@@ -84,22 +94,7 @@ DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
 }
 
 DeleteFile DeleteFile::Copy() const {
-	DeleteFileBuilder builder;
-	optional<PositionDeleteFile> position_delete_file_tmp;
-	if (position_delete_file.has_value()) {
-		position_delete_file_tmp.emplace((*position_delete_file).Copy());
-	}
-	if (position_delete_file_tmp.has_value()) {
-		builder.SetPositionDeleteFile(std::move(*position_delete_file_tmp));
-	}
-	optional<EqualityDeleteFile> equality_delete_file_tmp;
-	if (equality_delete_file.has_value()) {
-		equality_delete_file_tmp.emplace((*equality_delete_file).Copy());
-	}
-	if (equality_delete_file_tmp.has_value()) {
-		builder.SetEqualityDeleteFile(std::move(*equality_delete_file_tmp));
-	}
-	return builder.Build();
+	return DeleteFile(*this);
 }
 
 string DeleteFile::Validate() const {

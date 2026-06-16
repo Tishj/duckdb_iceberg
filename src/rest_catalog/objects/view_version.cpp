@@ -22,6 +22,28 @@ ViewVersion::ViewVersion(int32_t version_id_p, int64_t timestamp_ms_p, int32_t s
       summary(std::move(summary_p)), representations(std::move(representations_p)),
       default_namespace(std::move(default_namespace_p)), default_catalog(std::move(default_catalog_p)) {
 }
+ViewVersion::ViewVersion(const ViewVersion &other)
+    : version_id(other.version_id), timestamp_ms(other.timestamp_ms), schema_id(other.schema_id), summary(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.summary) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())),
+      representations(([&]() {
+	      vector<ViewRepresentation> copied;
+	      copied.reserve(other.representations.size());
+	      for (const auto &item : other.representations) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      default_namespace(other.default_namespace.Copy()),
+      default_catalog(
+          (other.default_catalog.has_value() ? optional<string>((*other.default_catalog)) : optional<string>())) {
+}
+ViewVersion::ViewVersion(ViewVersion &&other) : ViewVersion(static_cast<const ViewVersion &>(other)) {
+}
 
 ViewVersionBuilder::ViewVersionBuilder() {
 }
@@ -231,38 +253,7 @@ ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
 }
 
 ViewVersion ViewVersion::Copy() const {
-	ViewVersionBuilder builder;
-	int32_t version_id_tmp;
-	version_id_tmp = version_id;
-	builder.SetVersionId(std::move(version_id_tmp));
-	int64_t timestamp_ms_tmp;
-	timestamp_ms_tmp = timestamp_ms;
-	builder.SetTimestampMs(std::move(timestamp_ms_tmp));
-	int32_t schema_id_tmp;
-	schema_id_tmp = schema_id;
-	builder.SetSchemaId(std::move(schema_id_tmp));
-	case_insensitive_map_t<string> summary_tmp;
-	for (auto &entry : summary) {
-		summary_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetSummary(std::move(summary_tmp));
-	vector<ViewRepresentation> representations_tmp;
-	representations_tmp.reserve(representations.size());
-	for (auto &item : representations) {
-		representations_tmp.emplace_back(item.Copy());
-	}
-	builder.SetRepresentations(std::move(representations_tmp));
-	auto default_namespace_tmp = default_namespace.Copy();
-	builder.SetDefaultNamespace(std::move(default_namespace_tmp));
-	optional<string> default_catalog_tmp;
-	if (default_catalog.has_value()) {
-		default_catalog_tmp.emplace();
-		(*default_catalog_tmp) = (*default_catalog);
-	}
-	if (default_catalog_tmp.has_value()) {
-		builder.SetDefaultCatalog(std::move((*default_catalog_tmp)));
-	}
-	return builder.Build();
+	return ViewVersion(*this);
 }
 
 string ViewVersion::Validate() const {

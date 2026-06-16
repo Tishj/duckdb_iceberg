@@ -18,9 +18,9 @@ class EmptyPlanningResultBuilder;
 
 class EmptyPlanningResult {
 public:
-	EmptyPlanningResult(const EmptyPlanningResult &) = delete;
+	EmptyPlanningResult(const EmptyPlanningResult &);
 	EmptyPlanningResult &operator=(const EmptyPlanningResult &) = delete;
-	EmptyPlanningResult(EmptyPlanningResult &&) = default;
+	EmptyPlanningResult(EmptyPlanningResult &&);
 	EmptyPlanningResult &operator=(EmptyPlanningResult &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	PlanStatus status;
+	const PlanStatus status;
 };
 
 class EmptyPlanningResultBuilder {

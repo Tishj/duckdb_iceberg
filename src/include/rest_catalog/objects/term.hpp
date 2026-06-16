@@ -19,9 +19,9 @@ class TermBuilder;
 
 class Term {
 public:
-	Term(const Term &) = delete;
+	Term(const Term &);
 	Term &operator=(const Term &) = delete;
-	Term(Term &&) = default;
+	Term(Term &&);
 	Term &operator=(Term &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<Reference> reference;
-	optional<TransformTerm> transform_term;
+	const optional<Reference> reference;
+	const optional<TransformTerm> transform_term;
 };
 
 class TermBuilder {

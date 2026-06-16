@@ -18,9 +18,9 @@ class RemoveSchemasUpdateBuilder;
 
 class RemoveSchemasUpdate {
 public:
-	RemoveSchemasUpdate(const RemoveSchemasUpdate &) = delete;
+	RemoveSchemasUpdate(const RemoveSchemasUpdate &);
 	RemoveSchemasUpdate &operator=(const RemoveSchemasUpdate &) = delete;
-	RemoveSchemasUpdate(RemoveSchemasUpdate &&) = default;
+	RemoveSchemasUpdate(RemoveSchemasUpdate &&);
 	RemoveSchemasUpdate &operator=(RemoveSchemasUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	vector<int32_t> schema_ids;
+	const BaseUpdate base_update;
+	const vector<int32_t> schema_ids;
 };
 
 class RemoveSchemasUpdateBuilder {

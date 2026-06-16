@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 AssertCreate::AssertCreate(TableRequirementType type_p) : type(std::move(type_p)) {
 }
+AssertCreate::AssertCreate(const AssertCreate &other) : type(other.type.Copy()) {
+}
+AssertCreate::AssertCreate(AssertCreate &&other) : AssertCreate(static_cast<const AssertCreate &>(other)) {
+}
 
 AssertCreateBuilder::AssertCreateBuilder() {
 }
@@ -74,10 +78,7 @@ AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
 }
 
 AssertCreate AssertCreate::Copy() const {
-	AssertCreateBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	return builder.Build();
+	return AssertCreate(*this);
 }
 
 string AssertCreate::Validate() const {

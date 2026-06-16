@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 Transform::Transform(string value_p) : value(std::move(value_p)) {
 }
+Transform::Transform(const Transform &other) : value(other.value) {
+}
+Transform::Transform(Transform &&other) : Transform(static_cast<const Transform &>(other)) {
+}
 
 string Transform::TryFromJSON(yyjson_val *obj, optional<Transform> &result) {
 	try {
@@ -48,9 +52,7 @@ Transform Transform::FromJSON(yyjson_val *obj) {
 }
 
 Transform Transform::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return Transform(std::move(value_tmp));
+	return Transform(*this);
 }
 
 string Transform::Validate() const {

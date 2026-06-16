@@ -20,9 +20,9 @@ class DataFileBuilder;
 
 class DataFile {
 public:
-	DataFile(const DataFile &) = delete;
+	DataFile(const DataFile &);
 	DataFile &operator=(const DataFile &) = delete;
-	DataFile(DataFile &&) = default;
+	DataFile(DataFile &&);
 	DataFile &operator=(DataFile &&) = delete;
 
 private:
@@ -46,14 +46,14 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ContentFile content_file;
-	optional<int64_t> first_row_id;
-	optional<CountMap> column_sizes;
-	optional<CountMap> value_counts;
-	optional<CountMap> null_value_counts;
-	optional<CountMap> nan_value_counts;
-	optional<ValueMap> lower_bounds;
-	optional<ValueMap> upper_bounds;
+	const ContentFile content_file;
+	const optional<int64_t> first_row_id;
+	const optional<CountMap> column_sizes;
+	const optional<CountMap> value_counts;
+	const optional<CountMap> null_value_counts;
+	const optional<CountMap> nan_value_counts;
+	const optional<ValueMap> lower_bounds;
+	const optional<ValueMap> upper_bounds;
 };
 
 class DataFileBuilder {

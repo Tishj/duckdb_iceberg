@@ -19,9 +19,9 @@ class CountMapBuilder;
 
 class CountMap {
 public:
-	CountMap(const CountMap &) = delete;
+	CountMap(const CountMap &);
 	CountMap &operator=(const CountMap &) = delete;
-	CountMap(CountMap &&) = default;
+	CountMap(CountMap &&);
 	CountMap &operator=(CountMap &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<vector<IntegerTypeValue>> keys;
-	optional<vector<LongTypeValue>> values;
+	const optional<vector<IntegerTypeValue>> keys;
+	const optional<vector<LongTypeValue>> values;
 };
 
 class CountMapBuilder {

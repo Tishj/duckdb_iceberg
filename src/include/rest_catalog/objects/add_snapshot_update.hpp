@@ -19,9 +19,9 @@ class AddSnapshotUpdateBuilder;
 
 class AddSnapshotUpdate {
 public:
-	AddSnapshotUpdate(const AddSnapshotUpdate &) = delete;
+	AddSnapshotUpdate(const AddSnapshotUpdate &);
 	AddSnapshotUpdate &operator=(const AddSnapshotUpdate &) = delete;
-	AddSnapshotUpdate(AddSnapshotUpdate &&) = default;
+	AddSnapshotUpdate(AddSnapshotUpdate &&);
 	AddSnapshotUpdate &operator=(AddSnapshotUpdate &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	Snapshot snapshot;
+	const BaseUpdate base_update;
+	const Snapshot snapshot;
 };
 
 class AddSnapshotUpdateBuilder {

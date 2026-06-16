@@ -392,8 +392,6 @@ void IRCAPI::CommitMultiTableUpdate(ClientContext &context, IcebergCatalog &cata
 		}
 		DUCKDB_LOG(context, IcebergLogType, stack_trace);
 
-		// Omit stack from error output
-		error._error.stack = vector<string>();
 		throw InvalidConfigurationException(
 		    "Request to '%s' returned a non-200 status code (%s). \n message: %s\n type: %s\n reason: %s\n",
 		    url_builder.GetURLEncoded(), EnumUtil::ToString(response->status), error._error.message, error._error.type,

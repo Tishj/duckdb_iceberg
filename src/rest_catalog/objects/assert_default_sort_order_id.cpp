@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AssertDefaultSortOrderId::AssertDefaultSortOrderId(TableRequirementType type_p, int32_t default_sort_order_id_p)
     : type(std::move(type_p)), default_sort_order_id(std::move(default_sort_order_id_p)) {
 }
+AssertDefaultSortOrderId::AssertDefaultSortOrderId(const AssertDefaultSortOrderId &other)
+    : type(other.type.Copy()), default_sort_order_id(other.default_sort_order_id) {
+}
+AssertDefaultSortOrderId::AssertDefaultSortOrderId(AssertDefaultSortOrderId &&other)
+    : AssertDefaultSortOrderId(static_cast<const AssertDefaultSortOrderId &>(other)) {
+}
 
 AssertDefaultSortOrderIdBuilder::AssertDefaultSortOrderIdBuilder() {
 }
@@ -100,13 +106,7 @@ AssertDefaultSortOrderId AssertDefaultSortOrderId::FromJSON(yyjson_val *obj) {
 }
 
 AssertDefaultSortOrderId AssertDefaultSortOrderId::Copy() const {
-	AssertDefaultSortOrderIdBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	int32_t default_sort_order_id_tmp;
-	default_sort_order_id_tmp = default_sort_order_id;
-	builder.SetDefaultSortOrderId(std::move(default_sort_order_id_tmp));
-	return builder.Build();
+	return AssertDefaultSortOrderId(*this);
 }
 
 string AssertDefaultSortOrderId::Validate() const {

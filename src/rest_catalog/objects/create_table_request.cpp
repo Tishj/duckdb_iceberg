@@ -23,6 +23,26 @@ CreateTableRequest::CreateTableRequest(string name_p, Schema schema_p, optional<
       partition_spec(std::move(partition_spec_p)), write_order(std::move(write_order_p)),
       stage_create(std::move(stage_create_p)), properties(std::move(properties_p)) {
 }
+CreateTableRequest::CreateTableRequest(const CreateTableRequest &other)
+    : name(other.name), schema(other.schema.Copy()),
+      location((other.location.has_value() ? optional<string>((*other.location)) : optional<string>())),
+      partition_spec((other.partition_spec.has_value() ? optional<PartitionSpec>((*other.partition_spec).Copy())
+                                                       : optional<PartitionSpec>())),
+      write_order(
+          (other.write_order.has_value() ? optional<SortOrder>((*other.write_order).Copy()) : optional<SortOrder>())),
+      stage_create((other.stage_create.has_value() ? optional<bool>((*other.stage_create)) : optional<bool>())),
+      properties((other.properties.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.properties)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                               : optional<case_insensitive_map_t<string>>())) {
+}
+CreateTableRequest::CreateTableRequest(CreateTableRequest &&other)
+    : CreateTableRequest(static_cast<const CreateTableRequest &>(other)) {
+}
 
 CreateTableRequestBuilder::CreateTableRequestBuilder() {
 }
@@ -185,53 +205,7 @@ CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
 }
 
 CreateTableRequest CreateTableRequest::Copy() const {
-	CreateTableRequestBuilder builder;
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	auto schema_tmp = schema.Copy();
-	builder.SetSchema(std::move(schema_tmp));
-	optional<string> location_tmp;
-	if (location.has_value()) {
-		location_tmp.emplace();
-		(*location_tmp) = (*location);
-	}
-	if (location_tmp.has_value()) {
-		builder.SetLocation(std::move((*location_tmp)));
-	}
-	optional<PartitionSpec> partition_spec_tmp;
-	if (partition_spec.has_value()) {
-		partition_spec_tmp.emplace((*partition_spec).Copy());
-	}
-	if (partition_spec_tmp.has_value()) {
-		builder.SetPartitionSpec(std::move(*partition_spec_tmp));
-	}
-	optional<SortOrder> write_order_tmp;
-	if (write_order.has_value()) {
-		write_order_tmp.emplace((*write_order).Copy());
-	}
-	if (write_order_tmp.has_value()) {
-		builder.SetWriteOrder(std::move(*write_order_tmp));
-	}
-	optional<bool> stage_create_tmp;
-	if (stage_create.has_value()) {
-		stage_create_tmp.emplace();
-		(*stage_create_tmp) = (*stage_create);
-	}
-	if (stage_create_tmp.has_value()) {
-		builder.SetStageCreate(std::move((*stage_create_tmp)));
-	}
-	optional<case_insensitive_map_t<string>> properties_tmp;
-	if (properties.has_value()) {
-		properties_tmp.emplace();
-		for (auto &entry : (*properties)) {
-			(*properties_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move((*properties_tmp)));
-	}
-	return builder.Build();
+	return CreateTableRequest(*this);
 }
 
 string CreateTableRequest::Validate() const {

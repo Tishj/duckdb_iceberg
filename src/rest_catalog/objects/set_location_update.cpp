@@ -18,6 +18,12 @@ namespace rest_api_objects {
 SetLocationUpdate::SetLocationUpdate(BaseUpdate base_update_p, string location_p)
     : base_update(std::move(base_update_p)), location(std::move(location_p)) {
 }
+SetLocationUpdate::SetLocationUpdate(const SetLocationUpdate &other)
+    : base_update(other.base_update.Copy()), location(other.location) {
+}
+SetLocationUpdate::SetLocationUpdate(SetLocationUpdate &&other)
+    : SetLocationUpdate(static_cast<const SetLocationUpdate &>(other)) {
+}
 
 SetLocationUpdateBuilder::SetLocationUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ SetLocationUpdate SetLocationUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetLocationUpdate SetLocationUpdate::Copy() const {
-	SetLocationUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	string location_tmp;
-	location_tmp = location;
-	builder.SetLocation(std::move(location_tmp));
-	return builder.Build();
+	return SetLocationUpdate(*this);
 }
 
 string SetLocationUpdate::Validate() const {

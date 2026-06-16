@@ -20,6 +20,13 @@ MapType::MapType(string type_p, int32_t key_id_p, unique_ptr<Type> key_p, int32_
     : type(std::move(type_p)), key_id(std::move(key_id_p)), key(std::move(key_p)), value_id(std::move(value_id_p)),
       value(std::move(value_p)), value_required(std::move(value_required_p)) {
 }
+MapType::MapType(const MapType &other)
+    : type(other.type), key_id(other.key_id), key(other.key ? make_uniq<Type>(other.key->Copy()) : nullptr),
+      value_id(other.value_id), value(other.value ? make_uniq<Type>(other.value->Copy()) : nullptr),
+      value_required(other.value_required) {
+}
+MapType::MapType(MapType &&other) : MapType(static_cast<const MapType &>(other)) {
+}
 
 MapTypeBuilder::MapTypeBuilder() {
 }
@@ -189,26 +196,7 @@ MapType MapType::FromJSON(yyjson_val *obj) {
 }
 
 MapType MapType::Copy() const {
-	MapTypeBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	int32_t key_id_tmp;
-	key_id_tmp = key_id;
-	builder.SetKeyId(std::move(key_id_tmp));
-	unique_ptr<Type> key_tmp;
-	key_tmp = key ? make_uniq<Type>(key->Copy()) : nullptr;
-	builder.SetKey(std::move(key_tmp));
-	int32_t value_id_tmp;
-	value_id_tmp = value_id;
-	builder.SetValueId(std::move(value_id_tmp));
-	unique_ptr<Type> value_tmp;
-	value_tmp = value ? make_uniq<Type>(value->Copy()) : nullptr;
-	builder.SetValue(std::move(value_tmp));
-	bool value_required_tmp;
-	value_required_tmp = value_required;
-	builder.SetValueRequired(std::move(value_required_tmp));
-	return builder.Build();
+	return MapType(*this);
 }
 
 string MapType::Validate() const {

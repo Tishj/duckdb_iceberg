@@ -18,6 +18,11 @@ namespace rest_api_objects {
 TimerResult::TimerResult(string time_unit_p, int64_t count_p, int64_t total_duration_p)
     : time_unit(std::move(time_unit_p)), count(std::move(count_p)), total_duration(std::move(total_duration_p)) {
 }
+TimerResult::TimerResult(const TimerResult &other)
+    : time_unit(other.time_unit), count(other.count), total_duration(other.total_duration) {
+}
+TimerResult::TimerResult(TimerResult &&other) : TimerResult(static_cast<const TimerResult &>(other)) {
+}
 
 TimerResultBuilder::TimerResultBuilder() {
 }
@@ -133,17 +138,7 @@ TimerResult TimerResult::FromJSON(yyjson_val *obj) {
 }
 
 TimerResult TimerResult::Copy() const {
-	TimerResultBuilder builder;
-	string time_unit_tmp;
-	time_unit_tmp = time_unit;
-	builder.SetTimeUnit(std::move(time_unit_tmp));
-	int64_t count_tmp;
-	count_tmp = count;
-	builder.SetCount(std::move(count_tmp));
-	int64_t total_duration_tmp;
-	total_duration_tmp = total_duration;
-	builder.SetTotalDuration(std::move(total_duration_tmp));
-	return builder.Build();
+	return TimerResult(*this);
 }
 
 string TimerResult::Validate() const {

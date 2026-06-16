@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 LongTypeValue::LongTypeValue(int64_t value_p) : value(std::move(value_p)) {
 }
+LongTypeValue::LongTypeValue(const LongTypeValue &other) : value(other.value) {
+}
+LongTypeValue::LongTypeValue(LongTypeValue &&other) : LongTypeValue(static_cast<const LongTypeValue &>(other)) {
+}
 
 string LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &result) {
 	try {
@@ -51,9 +55,7 @@ LongTypeValue LongTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 LongTypeValue LongTypeValue::Copy() const {
-	int64_t value_tmp;
-	value_tmp = value;
-	return LongTypeValue(std::move(value_tmp));
+	return LongTypeValue(*this);
 }
 
 string LongTypeValue::Validate() const {

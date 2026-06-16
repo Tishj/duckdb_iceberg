@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class TimestampTzTypeValue {
 public:
-	TimestampTzTypeValue(const TimestampTzTypeValue &) = delete;
+	TimestampTzTypeValue(const TimestampTzTypeValue &);
 	TimestampTzTypeValue &operator=(const TimestampTzTypeValue &) = delete;
-	TimestampTzTypeValue(TimestampTzTypeValue &&) = default;
+	TimestampTzTypeValue(TimestampTzTypeValue &&);
 	TimestampTzTypeValue &operator=(TimestampTzTypeValue &&) = delete;
 	TimestampTzTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

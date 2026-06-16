@@ -17,9 +17,9 @@ class TimerResultBuilder;
 
 class TimerResult {
 public:
-	TimerResult(const TimerResult &) = delete;
+	TimerResult(const TimerResult &);
 	TimerResult &operator=(const TimerResult &) = delete;
-	TimerResult(TimerResult &&) = default;
+	TimerResult(TimerResult &&);
 	TimerResult &operator=(TimerResult &&) = delete;
 
 private:
@@ -40,9 +40,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string time_unit;
-	int64_t count;
-	int64_t total_duration;
+	const string time_unit;
+	const int64_t count;
+	const int64_t total_duration;
 };
 
 class TimerResultBuilder {

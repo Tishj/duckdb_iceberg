@@ -19,9 +19,9 @@ class TransformTermBuilder;
 
 class TransformTerm {
 public:
-	TransformTerm(const TransformTerm &) = delete;
+	TransformTerm(const TransformTerm &);
 	TransformTerm &operator=(const TransformTerm &) = delete;
-	TransformTerm(TransformTerm &&) = default;
+	TransformTerm(TransformTerm &&);
 	TransformTerm &operator=(TransformTerm &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	Transform transform;
-	Reference term;
+	const string type;
+	const Transform transform;
+	const Reference term;
 };
 
 class TransformTermBuilder {

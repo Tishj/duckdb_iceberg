@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AddPartitionSpecUpdate::AddPartitionSpecUpdate(BaseUpdate base_update_p, PartitionSpec spec_p)
     : base_update(std::move(base_update_p)), spec(std::move(spec_p)) {
 }
+AddPartitionSpecUpdate::AddPartitionSpecUpdate(const AddPartitionSpecUpdate &other)
+    : base_update(other.base_update.Copy()), spec(other.spec.Copy()) {
+}
+AddPartitionSpecUpdate::AddPartitionSpecUpdate(AddPartitionSpecUpdate &&other)
+    : AddPartitionSpecUpdate(static_cast<const AddPartitionSpecUpdate &>(other)) {
+}
 
 AddPartitionSpecUpdateBuilder::AddPartitionSpecUpdateBuilder() {
 }
@@ -81,12 +87,7 @@ AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AddPartitionSpecUpdate AddPartitionSpecUpdate::Copy() const {
-	AddPartitionSpecUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto spec_tmp = spec.Copy();
-	builder.SetSpec(std::move(spec_tmp));
-	return builder.Build();
+	return AddPartitionSpecUpdate(*this);
 }
 
 string AddPartitionSpecUpdate::Validate() const {

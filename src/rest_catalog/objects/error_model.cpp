@@ -18,6 +18,20 @@ namespace rest_api_objects {
 ErrorModel::ErrorModel(string message_p, string type_p, int32_t code_p, optional<vector<string>> stack_p)
     : message(std::move(message_p)), type(std::move(type_p)), code(std::move(code_p)), stack(std::move(stack_p)) {
 }
+ErrorModel::ErrorModel(const ErrorModel &other)
+    : message(other.message), type(other.type), code(other.code),
+      stack((other.stack.has_value() ? optional<vector<string>>(([&]() {
+	      vector<string> copied;
+	      copied.reserve((*other.stack).size());
+	      for (const auto &item : (*other.stack)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                     : optional<vector<string>>())) {
+}
+ErrorModel::ErrorModel(ErrorModel &&other) : ErrorModel(static_cast<const ErrorModel &>(other)) {
+}
 
 ErrorModelBuilder::ErrorModelBuilder() {
 }
@@ -158,28 +172,7 @@ ErrorModel ErrorModel::FromJSON(yyjson_val *obj) {
 }
 
 ErrorModel ErrorModel::Copy() const {
-	ErrorModelBuilder builder;
-	string message_tmp;
-	message_tmp = message;
-	builder.SetMessage(std::move(message_tmp));
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	int32_t code_tmp;
-	code_tmp = code;
-	builder.SetCode(std::move(code_tmp));
-	optional<vector<string>> stack_tmp;
-	if (stack.has_value()) {
-		stack_tmp.emplace();
-		(*stack_tmp).reserve((*stack).size());
-		for (auto &item : (*stack)) {
-			(*stack_tmp).emplace_back(item);
-		}
-	}
-	if (stack_tmp.has_value()) {
-		builder.SetStack(std::move((*stack_tmp)));
-	}
-	return builder.Build();
+	return ErrorModel(*this);
 }
 
 string ErrorModel::Validate() const {

@@ -19,9 +19,9 @@ class AddSchemaUpdateBuilder;
 
 class AddSchemaUpdate {
 public:
-	AddSchemaUpdate(const AddSchemaUpdate &) = delete;
+	AddSchemaUpdate(const AddSchemaUpdate &);
 	AddSchemaUpdate &operator=(const AddSchemaUpdate &) = delete;
-	AddSchemaUpdate(AddSchemaUpdate &&) = default;
+	AddSchemaUpdate(AddSchemaUpdate &&);
 	AddSchemaUpdate &operator=(AddSchemaUpdate &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	Schema schema;
-	optional<int32_t> last_column_id;
+	const BaseUpdate base_update;
+	const Schema schema;
+	const optional<int32_t> last_column_id;
 };
 
 class AddSchemaUpdateBuilder {

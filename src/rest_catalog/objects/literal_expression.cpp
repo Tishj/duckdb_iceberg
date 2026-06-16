@@ -18,6 +18,12 @@ namespace rest_api_objects {
 LiteralExpression::LiteralExpression(ExpressionType type_p, Term term_p, PrimitiveTypeValue value_p)
     : type(std::move(type_p)), term(std::move(term_p)), value(std::move(value_p)) {
 }
+LiteralExpression::LiteralExpression(const LiteralExpression &other)
+    : type(other.type.Copy()), term(other.term.Copy()), value(other.value.Copy()) {
+}
+LiteralExpression::LiteralExpression(LiteralExpression &&other)
+    : LiteralExpression(static_cast<const LiteralExpression &>(other)) {
+}
 
 LiteralExpressionBuilder::LiteralExpressionBuilder() {
 }
@@ -105,14 +111,7 @@ LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
 }
 
 LiteralExpression LiteralExpression::Copy() const {
-	LiteralExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	auto term_tmp = term.Copy();
-	builder.SetTerm(std::move(term_tmp));
-	auto value_tmp = value.Copy();
-	builder.SetValue(std::move(value_tmp));
-	return builder.Build();
+	return LiteralExpression(*this);
 }
 
 string LiteralExpression::Validate() const {

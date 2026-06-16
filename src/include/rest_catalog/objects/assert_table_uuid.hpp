@@ -18,9 +18,9 @@ class AssertTableUUIDBuilder;
 
 class AssertTableUUID {
 public:
-	AssertTableUUID(const AssertTableUUID &) = delete;
+	AssertTableUUID(const AssertTableUUID &);
 	AssertTableUUID &operator=(const AssertTableUUID &) = delete;
-	AssertTableUUID(AssertTableUUID &&) = default;
+	AssertTableUUID(AssertTableUUID &&);
 	AssertTableUUID &operator=(AssertTableUUID &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	string uuid;
+	const TableRequirementType type;
+	const string uuid;
 };
 
 class AssertTableUUIDBuilder {

@@ -19,9 +19,9 @@ class CreateViewRequestBuilder;
 
 class CreateViewRequest {
 public:
-	CreateViewRequest(const CreateViewRequest &) = delete;
+	CreateViewRequest(const CreateViewRequest &);
 	CreateViewRequest &operator=(const CreateViewRequest &) = delete;
-	CreateViewRequest(CreateViewRequest &&) = default;
+	CreateViewRequest(CreateViewRequest &&);
 	CreateViewRequest &operator=(CreateViewRequest &&) = delete;
 
 private:
@@ -43,11 +43,11 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string name;
-	Schema schema;
-	ViewVersion view_version;
-	case_insensitive_map_t<string> properties;
-	optional<string> location;
+	const string name;
+	const Schema schema;
+	const ViewVersion view_version;
+	const case_insensitive_map_t<string> properties;
+	const optional<string> location;
 };
 
 class CreateViewRequestBuilder {

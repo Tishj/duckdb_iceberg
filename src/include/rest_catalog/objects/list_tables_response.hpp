@@ -19,9 +19,9 @@ class ListTablesResponseBuilder;
 
 class ListTablesResponse {
 public:
-	ListTablesResponse(const ListTablesResponse &) = delete;
+	ListTablesResponse(const ListTablesResponse &);
 	ListTablesResponse &operator=(const ListTablesResponse &) = delete;
-	ListTablesResponse(ListTablesResponse &&) = default;
+	ListTablesResponse(ListTablesResponse &&);
 	ListTablesResponse &operator=(ListTablesResponse &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<PageToken> next_page_token;
-	optional<vector<TableIdentifier>> identifiers;
+	const optional<PageToken> next_page_token;
+	const optional<vector<TableIdentifier>> identifiers;
 };
 
 class ListTablesResponseBuilder {

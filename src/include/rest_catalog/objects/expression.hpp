@@ -24,9 +24,9 @@ class ExpressionBuilder;
 
 class Expression {
 public:
-	Expression(const Expression &) = delete;
+	Expression(const Expression &);
 	Expression &operator=(const Expression &) = delete;
-	Expression(Expression &&) = default;
+	Expression(Expression &&);
 	Expression &operator=(Expression &&) = delete;
 
 private:
@@ -50,13 +50,13 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<TrueExpression> true_expression;
-	optional<FalseExpression> false_expression;
-	optional<AndOrExpression> and_or_expression;
-	optional<NotExpression> not_expression;
-	optional<SetExpression> set_expression;
-	optional<LiteralExpression> literal_expression;
-	optional<UnaryExpression> unary_expression;
+	const optional<TrueExpression> true_expression;
+	const optional<FalseExpression> false_expression;
+	const optional<AndOrExpression> and_or_expression;
+	const optional<NotExpression> not_expression;
+	const optional<SetExpression> set_expression;
+	const optional<LiteralExpression> literal_expression;
+	const optional<UnaryExpression> unary_expression;
 };
 
 class ExpressionBuilder {

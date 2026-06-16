@@ -17,9 +17,9 @@ class OAuthErrorBuilder;
 
 class OAuthError {
 public:
-	OAuthError(const OAuthError &) = delete;
+	OAuthError(const OAuthError &);
 	OAuthError &operator=(const OAuthError &) = delete;
-	OAuthError(OAuthError &&) = default;
+	OAuthError(OAuthError &&);
 	OAuthError &operator=(OAuthError &&) = delete;
 
 private:
@@ -40,9 +40,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string _error;
-	optional<string> error_description;
-	optional<string> error_uri;
+	const string _error;
+	const optional<string> error_description;
+	const optional<string> error_uri;
 };
 
 class OAuthErrorBuilder {

@@ -20,9 +20,9 @@ class SetExpressionBuilder;
 
 class SetExpression {
 public:
-	SetExpression(const SetExpression &) = delete;
+	SetExpression(const SetExpression &);
 	SetExpression &operator=(const SetExpression &) = delete;
-	SetExpression(SetExpression &&) = default;
+	SetExpression(SetExpression &&);
 	SetExpression &operator=(SetExpression &&) = delete;
 
 private:
@@ -43,9 +43,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
-	Term term;
-	vector<PrimitiveTypeValue> values;
+	const ExpressionType type;
+	const Term term;
+	const vector<PrimitiveTypeValue> values;
 };
 
 class SetExpressionBuilder {

@@ -25,6 +25,33 @@ ContentFile::ContentFile(int32_t spec_id_p, vector<PrimitiveTypeValue> partition
       key_metadata(std::move(key_metadata_p)), split_offsets(std::move(split_offsets_p)),
       sort_order_id(std::move(sort_order_id_p)) {
 }
+ContentFile::ContentFile(const ContentFile &other)
+    : spec_id(other.spec_id), partition(([&]() {
+	      vector<PrimitiveTypeValue> copied;
+	      copied.reserve(other.partition.size());
+	      for (const auto &item : other.partition) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      content(other.content), file_path(other.file_path), file_format(other.file_format.Copy()),
+      file_size_in_bytes(other.file_size_in_bytes), record_count(other.record_count),
+      key_metadata((other.key_metadata.has_value() ? optional<BinaryTypeValue>((*other.key_metadata).Copy())
+                                                   : optional<BinaryTypeValue>())),
+      split_offsets((other.split_offsets.has_value() ? optional<vector<int64_t>>(([&]() {
+	      vector<int64_t> copied;
+	      copied.reserve((*other.split_offsets).size());
+	      for (const auto &item : (*other.split_offsets)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                                     : optional<vector<int64_t>>())),
+      sort_order_id(
+          (other.sort_order_id.has_value() ? optional<int32_t>((*other.sort_order_id)) : optional<int32_t>())) {
+}
+ContentFile::ContentFile(ContentFile &&other) : ContentFile(static_cast<const ContentFile &>(other)) {
+}
 
 ContentFileBuilder::ContentFileBuilder() {
 }
@@ -289,57 +316,7 @@ ContentFile ContentFile::FromJSON(yyjson_val *obj) {
 }
 
 ContentFile ContentFile::Copy() const {
-	ContentFileBuilder builder;
-	int32_t spec_id_tmp;
-	spec_id_tmp = spec_id;
-	builder.SetSpecId(std::move(spec_id_tmp));
-	vector<PrimitiveTypeValue> partition_tmp;
-	partition_tmp.reserve(partition.size());
-	for (auto &item : partition) {
-		partition_tmp.emplace_back(item.Copy());
-	}
-	builder.SetPartition(std::move(partition_tmp));
-	string content_tmp;
-	content_tmp = content;
-	builder.SetContent(std::move(content_tmp));
-	string file_path_tmp;
-	file_path_tmp = file_path;
-	builder.SetFilePath(std::move(file_path_tmp));
-	auto file_format_tmp = file_format.Copy();
-	builder.SetFileFormat(std::move(file_format_tmp));
-	int64_t file_size_in_bytes_tmp;
-	file_size_in_bytes_tmp = file_size_in_bytes;
-	builder.SetFileSizeInBytes(std::move(file_size_in_bytes_tmp));
-	int64_t record_count_tmp;
-	record_count_tmp = record_count;
-	builder.SetRecordCount(std::move(record_count_tmp));
-	optional<BinaryTypeValue> key_metadata_tmp;
-	if (key_metadata.has_value()) {
-		key_metadata_tmp.emplace((*key_metadata).Copy());
-	}
-	if (key_metadata_tmp.has_value()) {
-		builder.SetKeyMetadata(std::move(*key_metadata_tmp));
-	}
-	optional<vector<int64_t>> split_offsets_tmp;
-	if (split_offsets.has_value()) {
-		split_offsets_tmp.emplace();
-		(*split_offsets_tmp).reserve((*split_offsets).size());
-		for (auto &item : (*split_offsets)) {
-			(*split_offsets_tmp).emplace_back(item);
-		}
-	}
-	if (split_offsets_tmp.has_value()) {
-		builder.SetSplitOffsets(std::move((*split_offsets_tmp)));
-	}
-	optional<int32_t> sort_order_id_tmp;
-	if (sort_order_id.has_value()) {
-		sort_order_id_tmp.emplace();
-		(*sort_order_id_tmp) = (*sort_order_id);
-	}
-	if (sort_order_id_tmp.has_value()) {
-		builder.SetSortOrderId(std::move((*sort_order_id_tmp)));
-	}
-	return builder.Build();
+	return ContentFile(*this);
 }
 
 string ContentFile::Validate() const {

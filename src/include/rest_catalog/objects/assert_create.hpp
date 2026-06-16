@@ -18,9 +18,9 @@ class AssertCreateBuilder;
 
 class AssertCreate {
 public:
-	AssertCreate(const AssertCreate &) = delete;
+	AssertCreate(const AssertCreate &);
 	AssertCreate &operator=(const AssertCreate &) = delete;
-	AssertCreate(AssertCreate &&) = default;
+	AssertCreate(AssertCreate &&);
 	AssertCreate &operator=(AssertCreate &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
+	const TableRequirementType type;
 };
 
 class AssertCreateBuilder {

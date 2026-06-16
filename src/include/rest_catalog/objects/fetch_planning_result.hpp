@@ -20,9 +20,9 @@ class FetchPlanningResultBuilder;
 
 class FetchPlanningResult {
 public:
-	FetchPlanningResult(const FetchPlanningResult &) = delete;
+	FetchPlanningResult(const FetchPlanningResult &);
 	FetchPlanningResult &operator=(const FetchPlanningResult &) = delete;
-	FetchPlanningResult(FetchPlanningResult &&) = default;
+	FetchPlanningResult(FetchPlanningResult &&);
 	FetchPlanningResult &operator=(FetchPlanningResult &&) = delete;
 
 private:
@@ -45,9 +45,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<CompletedPlanningResult> completed_planning_result;
-	optional<FailedPlanningResult> failed_planning_result;
-	optional<EmptyPlanningResult> empty_planning_result;
+	const optional<CompletedPlanningResult> completed_planning_result;
+	const optional<FailedPlanningResult> failed_planning_result;
+	const optional<EmptyPlanningResult> empty_planning_result;
 };
 
 class FetchPlanningResultBuilder {

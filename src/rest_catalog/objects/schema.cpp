@@ -18,8 +18,26 @@ namespace rest_api_objects {
 Schema::Schema(StructType struct_type_p, Object1 object_1_p)
     : struct_type(std::move(struct_type_p)), object_1(std::move(object_1_p)) {
 }
+Schema::Schema(const Schema &other) : struct_type(other.struct_type.Copy()), object_1(other.object_1.Copy()) {
+}
+Schema::Schema(Schema &&other) : Schema(static_cast<const Schema &>(other)) {
+}
 Schema::Object1::Object1(optional<int32_t> schema_id_p, optional<vector<int32_t>> identifier_field_ids_p)
     : schema_id(std::move(schema_id_p)), identifier_field_ids(std::move(identifier_field_ids_p)) {
+}
+Schema::Object1::Object1(const Schema::Object1 &other)
+    : schema_id((other.schema_id.has_value() ? optional<int32_t>((*other.schema_id)) : optional<int32_t>())),
+      identifier_field_ids((other.identifier_field_ids.has_value() ? optional<vector<int32_t>>(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve((*other.identifier_field_ids).size());
+	      for (const auto &item : (*other.identifier_field_ids)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                                                   : optional<vector<int32_t>>())) {
+}
+Schema::Object1::Object1(Schema::Object1 &&other) : Object1(static_cast<const Schema::Object1 &>(other)) {
 }
 
 Schema::Object1Builder::Object1Builder() {
@@ -109,27 +127,7 @@ Schema::Object1 Schema::Object1::FromJSON(yyjson_val *obj) {
 }
 
 Schema::Object1 Schema::Object1::Copy() const {
-	Object1Builder builder;
-	optional<int32_t> schema_id_tmp;
-	if (schema_id.has_value()) {
-		schema_id_tmp.emplace();
-		(*schema_id_tmp) = (*schema_id);
-	}
-	if (schema_id_tmp.has_value()) {
-		builder.SetSchemaId(std::move((*schema_id_tmp)));
-	}
-	optional<vector<int32_t>> identifier_field_ids_tmp;
-	if (identifier_field_ids.has_value()) {
-		identifier_field_ids_tmp.emplace();
-		(*identifier_field_ids_tmp).reserve((*identifier_field_ids).size());
-		for (auto &item : (*identifier_field_ids)) {
-			(*identifier_field_ids_tmp).emplace_back(item);
-		}
-	}
-	if (identifier_field_ids_tmp.has_value()) {
-		builder.SetIdentifierFieldIds(std::move((*identifier_field_ids_tmp)));
-	}
-	return builder.Build();
+	return Schema::Object1(*this);
 }
 
 string Schema::Object1::Validate() const {
@@ -219,12 +217,7 @@ Schema Schema::FromJSON(yyjson_val *obj) {
 }
 
 Schema Schema::Copy() const {
-	SchemaBuilder builder;
-	auto struct_type_tmp = struct_type.Copy();
-	builder.SetStructType(std::move(struct_type_tmp));
-	auto object_1_tmp = object_1.Copy();
-	builder.SetObject1(std::move(object_1_tmp));
-	return builder.Build();
+	return Schema(*this);
 }
 
 string Schema::Validate() const {

@@ -17,9 +17,9 @@ class SQLViewRepresentationBuilder;
 
 class SQLViewRepresentation {
 public:
-	SQLViewRepresentation(const SQLViewRepresentation &) = delete;
+	SQLViewRepresentation(const SQLViewRepresentation &);
 	SQLViewRepresentation &operator=(const SQLViewRepresentation &) = delete;
-	SQLViewRepresentation(SQLViewRepresentation &&) = default;
+	SQLViewRepresentation(SQLViewRepresentation &&);
 	SQLViewRepresentation &operator=(SQLViewRepresentation &&) = delete;
 
 private:
@@ -40,9 +40,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	string sql;
-	string dialect;
+	const string type;
+	const string sql;
+	const string dialect;
 };
 
 class SQLViewRepresentationBuilder {

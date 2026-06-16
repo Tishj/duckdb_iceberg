@@ -20,6 +20,21 @@ EncryptedKey::EncryptedKey(string key_id_p, string encrypted_key_metadata_p, opt
     : key_id(std::move(key_id_p)), encrypted_key_metadata(std::move(encrypted_key_metadata_p)),
       encrypted_by_id(std::move(encrypted_by_id_p)), properties(std::move(properties_p)) {
 }
+EncryptedKey::EncryptedKey(const EncryptedKey &other)
+    : key_id(other.key_id), encrypted_key_metadata(other.encrypted_key_metadata),
+      encrypted_by_id(
+          (other.encrypted_by_id.has_value() ? optional<string>((*other.encrypted_by_id)) : optional<string>())),
+      properties((other.properties.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.properties)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                               : optional<case_insensitive_map_t<string>>())) {
+}
+EncryptedKey::EncryptedKey(EncryptedKey &&other) : EncryptedKey(static_cast<const EncryptedKey &>(other)) {
+}
 
 EncryptedKeyBuilder::EncryptedKeyBuilder() {
 }
@@ -154,32 +169,7 @@ EncryptedKey EncryptedKey::FromJSON(yyjson_val *obj) {
 }
 
 EncryptedKey EncryptedKey::Copy() const {
-	EncryptedKeyBuilder builder;
-	string key_id_tmp;
-	key_id_tmp = key_id;
-	builder.SetKeyId(std::move(key_id_tmp));
-	string encrypted_key_metadata_tmp;
-	encrypted_key_metadata_tmp = encrypted_key_metadata;
-	builder.SetEncryptedKeyMetadata(std::move(encrypted_key_metadata_tmp));
-	optional<string> encrypted_by_id_tmp;
-	if (encrypted_by_id.has_value()) {
-		encrypted_by_id_tmp.emplace();
-		(*encrypted_by_id_tmp) = (*encrypted_by_id);
-	}
-	if (encrypted_by_id_tmp.has_value()) {
-		builder.SetEncryptedById(std::move((*encrypted_by_id_tmp)));
-	}
-	optional<case_insensitive_map_t<string>> properties_tmp;
-	if (properties.has_value()) {
-		properties_tmp.emplace();
-		for (auto &entry : (*properties)) {
-			(*properties_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move((*properties_tmp)));
-	}
-	return builder.Build();
+	return EncryptedKey(*this);
 }
 
 string EncryptedKey::Validate() const {

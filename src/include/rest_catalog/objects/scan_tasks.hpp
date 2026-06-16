@@ -20,9 +20,9 @@ class ScanTasksBuilder;
 
 class ScanTasks {
 public:
-	ScanTasks(const ScanTasks &) = delete;
+	ScanTasks(const ScanTasks &);
 	ScanTasks &operator=(const ScanTasks &) = delete;
-	ScanTasks(ScanTasks &&) = default;
+	ScanTasks(ScanTasks &&);
 	ScanTasks &operator=(ScanTasks &&) = delete;
 
 private:
@@ -44,9 +44,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<vector<DeleteFile>> delete_files;
-	optional<vector<FileScanTask>> file_scan_tasks;
-	optional<vector<PlanTask>> plan_tasks;
+	const optional<vector<DeleteFile>> delete_files;
+	const optional<vector<FileScanTask>> file_scan_tasks;
+	const optional<vector<PlanTask>> plan_tasks;
 };
 
 class ScanTasksBuilder {

@@ -20,9 +20,9 @@ class AndOrExpressionBuilder;
 
 class AndOrExpression {
 public:
-	AndOrExpression(const AndOrExpression &) = delete;
+	AndOrExpression(const AndOrExpression &);
 	AndOrExpression &operator=(const AndOrExpression &) = delete;
-	AndOrExpression(AndOrExpression &&) = default;
+	AndOrExpression(AndOrExpression &&);
 	AndOrExpression &operator=(AndOrExpression &&) = delete;
 
 private:
@@ -43,9 +43,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
-	unique_ptr<Expression> left;
-	unique_ptr<Expression> right;
+	const ExpressionType type;
+	const unique_ptr<Expression> left;
+	const unique_ptr<Expression> right;
 };
 
 class AndOrExpressionBuilder {

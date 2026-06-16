@@ -19,6 +19,28 @@ UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest(optional<vect
                                                                    optional<case_insensitive_map_t<string>> updates_p)
     : removals(std::move(removals_p)), updates(std::move(updates_p)) {
 }
+UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest(const UpdateNamespacePropertiesRequest &other)
+    : removals((other.removals.has_value() ? optional<vector<string>>(([&]() {
+	      vector<string> copied;
+	      copied.reserve((*other.removals).size());
+	      for (const auto &item : (*other.removals)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                           : optional<vector<string>>())),
+      updates((other.updates.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.updates)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                         : optional<case_insensitive_map_t<string>>())) {
+}
+UpdateNamespacePropertiesRequest::UpdateNamespacePropertiesRequest(UpdateNamespacePropertiesRequest &&other)
+    : UpdateNamespacePropertiesRequest(static_cast<const UpdateNamespacePropertiesRequest &>(other)) {
+}
 
 UpdateNamespacePropertiesRequestBuilder::UpdateNamespacePropertiesRequestBuilder() {
 }
@@ -123,29 +145,7 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjs
 }
 
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const {
-	UpdateNamespacePropertiesRequestBuilder builder;
-	optional<vector<string>> removals_tmp;
-	if (removals.has_value()) {
-		removals_tmp.emplace();
-		(*removals_tmp).reserve((*removals).size());
-		for (auto &item : (*removals)) {
-			(*removals_tmp).emplace_back(item);
-		}
-	}
-	if (removals_tmp.has_value()) {
-		builder.SetRemovals(std::move((*removals_tmp)));
-	}
-	optional<case_insensitive_map_t<string>> updates_tmp;
-	if (updates.has_value()) {
-		updates_tmp.emplace();
-		for (auto &entry : (*updates)) {
-			(*updates_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (updates_tmp.has_value()) {
-		builder.SetUpdates(std::move((*updates_tmp)));
-	}
-	return builder.Build();
+	return UpdateNamespacePropertiesRequest(*this);
 }
 
 string UpdateNamespacePropertiesRequest::Validate() const {

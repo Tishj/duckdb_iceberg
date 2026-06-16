@@ -18,9 +18,9 @@ class IcebergErrorResponseBuilder;
 
 class IcebergErrorResponse {
 public:
-	IcebergErrorResponse(const IcebergErrorResponse &) = delete;
+	IcebergErrorResponse(const IcebergErrorResponse &);
 	IcebergErrorResponse &operator=(const IcebergErrorResponse &) = delete;
-	IcebergErrorResponse(IcebergErrorResponse &&) = default;
+	IcebergErrorResponse(IcebergErrorResponse &&);
 	IcebergErrorResponse &operator=(IcebergErrorResponse &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ErrorModel _error;
+	const ErrorModel _error;
 };
 
 class IcebergErrorResponseBuilder {

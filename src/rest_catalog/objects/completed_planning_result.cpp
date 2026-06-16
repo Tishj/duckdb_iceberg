@@ -18,9 +18,30 @@ namespace rest_api_objects {
 CompletedPlanningResult::CompletedPlanningResult(ScanTasks scan_tasks_p, Object5 object_5_p)
     : scan_tasks(std::move(scan_tasks_p)), object_5(std::move(object_5_p)) {
 }
+CompletedPlanningResult::CompletedPlanningResult(const CompletedPlanningResult &other)
+    : scan_tasks(other.scan_tasks.Copy()), object_5(other.object_5.Copy()) {
+}
+CompletedPlanningResult::CompletedPlanningResult(CompletedPlanningResult &&other)
+    : CompletedPlanningResult(static_cast<const CompletedPlanningResult &>(other)) {
+}
 CompletedPlanningResult::Object5::Object5(PlanStatus status_p,
                                           optional<vector<StorageCredential>> storage_credentials_p)
     : status(std::move(status_p)), storage_credentials(std::move(storage_credentials_p)) {
+}
+CompletedPlanningResult::Object5::Object5(const CompletedPlanningResult::Object5 &other)
+    : status(other.status.Copy()),
+      storage_credentials((other.storage_credentials.has_value() ? optional<vector<StorageCredential>>(([&]() {
+	      vector<StorageCredential> copied;
+	      copied.reserve((*other.storage_credentials).size());
+	      for (const auto &item : (*other.storage_credentials)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                                 : optional<vector<StorageCredential>>())) {
+}
+CompletedPlanningResult::Object5::Object5(CompletedPlanningResult::Object5 &&other)
+    : Object5(static_cast<const CompletedPlanningResult::Object5 &>(other)) {
 }
 
 CompletedPlanningResult::Object5Builder::Object5Builder() {
@@ -102,21 +123,7 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjs
 }
 
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const {
-	Object5Builder builder;
-	auto status_tmp = status.Copy();
-	builder.SetStatus(std::move(status_tmp));
-	optional<vector<StorageCredential>> storage_credentials_tmp;
-	if (storage_credentials.has_value()) {
-		storage_credentials_tmp.emplace();
-		(*storage_credentials_tmp).reserve((*storage_credentials).size());
-		for (auto &item : (*storage_credentials)) {
-			(*storage_credentials_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (storage_credentials_tmp.has_value()) {
-		builder.SetStorageCredentials(std::move((*storage_credentials_tmp)));
-	}
-	return builder.Build();
+	return CompletedPlanningResult::Object5(*this);
 }
 
 string CompletedPlanningResult::Object5::Validate() const {
@@ -219,12 +226,7 @@ CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
 }
 
 CompletedPlanningResult CompletedPlanningResult::Copy() const {
-	CompletedPlanningResultBuilder builder;
-	auto scan_tasks_tmp = scan_tasks.Copy();
-	builder.SetScanTasks(std::move(scan_tasks_tmp));
-	auto object_5_tmp = object_5.Copy();
-	builder.SetObject5(std::move(object_5_tmp));
-	return builder.Build();
+	return CompletedPlanningResult(*this);
 }
 
 string CompletedPlanningResult::Validate() const {

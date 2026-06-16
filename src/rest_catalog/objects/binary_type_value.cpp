@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 BinaryTypeValue::BinaryTypeValue(string value_p) : value(std::move(value_p)) {
 }
+BinaryTypeValue::BinaryTypeValue(const BinaryTypeValue &other) : value(other.value) {
+}
+BinaryTypeValue::BinaryTypeValue(BinaryTypeValue &&other)
+    : BinaryTypeValue(static_cast<const BinaryTypeValue &>(other)) {
+}
 
 string BinaryTypeValue::TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ BinaryTypeValue BinaryTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 BinaryTypeValue BinaryTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return BinaryTypeValue(std::move(value_tmp));
+	return BinaryTypeValue(*this);
 }
 
 string BinaryTypeValue::Validate() const {

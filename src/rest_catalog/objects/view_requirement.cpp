@@ -18,6 +18,13 @@ namespace rest_api_objects {
 ViewRequirement::ViewRequirement(optional<AssertViewUUID> assert_view_uuid_p)
     : assert_view_uuid(std::move(assert_view_uuid_p)) {
 }
+ViewRequirement::ViewRequirement(const ViewRequirement &other)
+    : assert_view_uuid((other.assert_view_uuid.has_value() ? optional<AssertViewUUID>((*other.assert_view_uuid).Copy())
+                                                           : optional<AssertViewUUID>())) {
+}
+ViewRequirement::ViewRequirement(ViewRequirement &&other)
+    : ViewRequirement(static_cast<const ViewRequirement &>(other)) {
+}
 
 ViewRequirementBuilder::ViewRequirementBuilder() {
 }
@@ -73,15 +80,7 @@ ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
 }
 
 ViewRequirement ViewRequirement::Copy() const {
-	ViewRequirementBuilder builder;
-	optional<AssertViewUUID> assert_view_uuid_tmp;
-	if (assert_view_uuid.has_value()) {
-		assert_view_uuid_tmp.emplace((*assert_view_uuid).Copy());
-	}
-	if (assert_view_uuid_tmp.has_value()) {
-		builder.SetAssertViewUuid(std::move(*assert_view_uuid_tmp));
-	}
-	return builder.Build();
+	return ViewRequirement(*this);
 }
 
 string ViewRequirement::Validate() const {

@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 FloatTypeValue::FloatTypeValue(double value_p) : value(std::move(value_p)) {
 }
+FloatTypeValue::FloatTypeValue(const FloatTypeValue &other) : value(other.value) {
+}
+FloatTypeValue::FloatTypeValue(FloatTypeValue &&other) : FloatTypeValue(static_cast<const FloatTypeValue &>(other)) {
+}
 
 string FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &result) {
 	try {
@@ -49,9 +53,7 @@ FloatTypeValue FloatTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 FloatTypeValue FloatTypeValue::Copy() const {
-	double value_tmp;
-	value_tmp = value;
-	return FloatTypeValue(std::move(value_tmp));
+	return FloatTypeValue(*this);
 }
 
 string FloatTypeValue::Validate() const {

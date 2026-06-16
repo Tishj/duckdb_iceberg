@@ -20,17 +20,17 @@ class CompletedPlanningResultBuilder;
 
 class CompletedPlanningResult {
 public:
-	CompletedPlanningResult(const CompletedPlanningResult &) = delete;
+	CompletedPlanningResult(const CompletedPlanningResult &);
 	CompletedPlanningResult &operator=(const CompletedPlanningResult &) = delete;
-	CompletedPlanningResult(CompletedPlanningResult &&) = default;
+	CompletedPlanningResult(CompletedPlanningResult &&);
 	CompletedPlanningResult &operator=(CompletedPlanningResult &&) = delete;
 	class Object5Builder;
 
 	class Object5 {
 	public:
-		Object5(const Object5 &) = delete;
+		Object5(const Object5 &);
 		Object5 &operator=(const Object5 &) = delete;
-		Object5(Object5 &&) = default;
+		Object5(Object5 &&);
 		Object5 &operator=(Object5 &&) = delete;
 
 	private:
@@ -51,8 +51,8 @@ public:
 		yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 	public:
-		PlanStatus status;
-		optional<vector<StorageCredential>> storage_credentials;
+		const PlanStatus status;
+		const optional<vector<StorageCredential>> storage_credentials;
 	};
 
 	class Object5Builder {
@@ -87,8 +87,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ScanTasks scan_tasks;
-	Object5 object_5;
+	const ScanTasks scan_tasks;
+	const Object5 object_5;
 };
 
 class CompletedPlanningResultBuilder {

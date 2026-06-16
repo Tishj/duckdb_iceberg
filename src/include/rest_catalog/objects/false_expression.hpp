@@ -18,9 +18,9 @@ class FalseExpressionBuilder;
 
 class FalseExpression {
 public:
-	FalseExpression(const FalseExpression &) = delete;
+	FalseExpression(const FalseExpression &);
 	FalseExpression &operator=(const FalseExpression &) = delete;
-	FalseExpression(FalseExpression &&) = default;
+	FalseExpression(FalseExpression &&);
 	FalseExpression &operator=(FalseExpression &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
+	const ExpressionType type;
 };
 
 class FalseExpressionBuilder {

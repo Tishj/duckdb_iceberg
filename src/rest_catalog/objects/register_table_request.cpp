@@ -18,6 +18,13 @@ namespace rest_api_objects {
 RegisterTableRequest::RegisterTableRequest(string name_p, string metadata_location_p, optional<bool> overwrite_p)
     : name(std::move(name_p)), metadata_location(std::move(metadata_location_p)), overwrite(std::move(overwrite_p)) {
 }
+RegisterTableRequest::RegisterTableRequest(const RegisterTableRequest &other)
+    : name(other.name), metadata_location(other.metadata_location),
+      overwrite((other.overwrite.has_value() ? optional<bool>((*other.overwrite)) : optional<bool>())) {
+}
+RegisterTableRequest::RegisterTableRequest(RegisterTableRequest &&other)
+    : RegisterTableRequest(static_cast<const RegisterTableRequest &>(other)) {
+}
 
 RegisterTableRequestBuilder::RegisterTableRequestBuilder() {
 }
@@ -123,22 +130,7 @@ RegisterTableRequest RegisterTableRequest::FromJSON(yyjson_val *obj) {
 }
 
 RegisterTableRequest RegisterTableRequest::Copy() const {
-	RegisterTableRequestBuilder builder;
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	string metadata_location_tmp;
-	metadata_location_tmp = metadata_location;
-	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	optional<bool> overwrite_tmp;
-	if (overwrite.has_value()) {
-		overwrite_tmp.emplace();
-		(*overwrite_tmp) = (*overwrite);
-	}
-	if (overwrite_tmp.has_value()) {
-		builder.SetOverwrite(std::move((*overwrite_tmp)));
-	}
-	return builder.Build();
+	return RegisterTableRequest(*this);
 }
 
 string RegisterTableRequest::Validate() const {

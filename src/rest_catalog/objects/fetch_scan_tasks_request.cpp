@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 FetchScanTasksRequest::FetchScanTasksRequest(PlanTask plan_task_p) : plan_task(std::move(plan_task_p)) {
 }
+FetchScanTasksRequest::FetchScanTasksRequest(const FetchScanTasksRequest &other) : plan_task(other.plan_task.Copy()) {
+}
+FetchScanTasksRequest::FetchScanTasksRequest(FetchScanTasksRequest &&other)
+    : FetchScanTasksRequest(static_cast<const FetchScanTasksRequest &>(other)) {
+}
 
 FetchScanTasksRequestBuilder::FetchScanTasksRequestBuilder() {
 }
@@ -74,10 +79,7 @@ FetchScanTasksRequest FetchScanTasksRequest::FromJSON(yyjson_val *obj) {
 }
 
 FetchScanTasksRequest FetchScanTasksRequest::Copy() const {
-	FetchScanTasksRequestBuilder builder;
-	auto plan_task_tmp = plan_task.Copy();
-	builder.SetPlanTask(std::move(plan_task_tmp));
-	return builder.Build();
+	return FetchScanTasksRequest(*this);
 }
 
 string FetchScanTasksRequest::Validate() const {

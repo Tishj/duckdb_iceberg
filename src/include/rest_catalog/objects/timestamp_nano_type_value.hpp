@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class TimestampNanoTypeValue {
 public:
-	TimestampNanoTypeValue(const TimestampNanoTypeValue &) = delete;
+	TimestampNanoTypeValue(const TimestampNanoTypeValue &);
 	TimestampNanoTypeValue &operator=(const TimestampNanoTypeValue &) = delete;
-	TimestampNanoTypeValue(TimestampNanoTypeValue &&) = default;
+	TimestampNanoTypeValue(TimestampNanoTypeValue &&);
 	TimestampNanoTypeValue &operator=(TimestampNanoTypeValue &&) = delete;
 	TimestampNanoTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

@@ -18,6 +18,19 @@ namespace rest_api_objects {
 RemovePartitionSpecsUpdate::RemovePartitionSpecsUpdate(BaseUpdate base_update_p, vector<int32_t> spec_ids_p)
     : base_update(std::move(base_update_p)), spec_ids(std::move(spec_ids_p)) {
 }
+RemovePartitionSpecsUpdate::RemovePartitionSpecsUpdate(const RemovePartitionSpecsUpdate &other)
+    : base_update(other.base_update.Copy()), spec_ids(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve(other.spec_ids.size());
+	      for (const auto &item : other.spec_ids) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())) {
+}
+RemovePartitionSpecsUpdate::RemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate &&other)
+    : RemovePartitionSpecsUpdate(static_cast<const RemovePartitionSpecsUpdate &>(other)) {
+}
 
 RemovePartitionSpecsUpdateBuilder::RemovePartitionSpecsUpdateBuilder() {
 }
@@ -101,16 +114,7 @@ RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj)
 }
 
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::Copy() const {
-	RemovePartitionSpecsUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	vector<int32_t> spec_ids_tmp;
-	spec_ids_tmp.reserve(spec_ids.size());
-	for (auto &item : spec_ids) {
-		spec_ids_tmp.emplace_back(item);
-	}
-	builder.SetSpecIds(std::move(spec_ids_tmp));
-	return builder.Build();
+	return RemovePartitionSpecsUpdate(*this);
 }
 
 string RemovePartitionSpecsUpdate::Validate() const {

@@ -19,9 +19,9 @@ class AddSortOrderUpdateBuilder;
 
 class AddSortOrderUpdate {
 public:
-	AddSortOrderUpdate(const AddSortOrderUpdate &) = delete;
+	AddSortOrderUpdate(const AddSortOrderUpdate &);
 	AddSortOrderUpdate &operator=(const AddSortOrderUpdate &) = delete;
-	AddSortOrderUpdate(AddSortOrderUpdate &&) = default;
+	AddSortOrderUpdate(AddSortOrderUpdate &&);
 	AddSortOrderUpdate &operator=(AddSortOrderUpdate &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	SortOrder sort_order;
+	const BaseUpdate base_update;
+	const SortOrder sort_order;
 };
 
 class AddSortOrderUpdateBuilder {

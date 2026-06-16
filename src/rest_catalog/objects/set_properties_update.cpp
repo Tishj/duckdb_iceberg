@@ -18,6 +18,18 @@ namespace rest_api_objects {
 SetPropertiesUpdate::SetPropertiesUpdate(BaseUpdate base_update_p, case_insensitive_map_t<string> updates_p)
     : base_update(std::move(base_update_p)), updates(std::move(updates_p)) {
 }
+SetPropertiesUpdate::SetPropertiesUpdate(const SetPropertiesUpdate &other)
+    : base_update(other.base_update.Copy()), updates(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.updates) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())) {
+}
+SetPropertiesUpdate::SetPropertiesUpdate(SetPropertiesUpdate &&other)
+    : SetPropertiesUpdate(static_cast<const SetPropertiesUpdate &>(other)) {
+}
 
 SetPropertiesUpdateBuilder::SetPropertiesUpdateBuilder() {
 }
@@ -100,15 +112,7 @@ SetPropertiesUpdate SetPropertiesUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetPropertiesUpdate SetPropertiesUpdate::Copy() const {
-	SetPropertiesUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	case_insensitive_map_t<string> updates_tmp;
-	for (auto &entry : updates) {
-		updates_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetUpdates(std::move(updates_tmp));
-	return builder.Build();
+	return SetPropertiesUpdate(*this);
 }
 
 string SetPropertiesUpdate::Validate() const {

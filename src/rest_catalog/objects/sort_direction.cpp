@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 SortDirection::SortDirection(string value_p) : value(std::move(value_p)) {
 }
+SortDirection::SortDirection(const SortDirection &other) : value(other.value) {
+}
+SortDirection::SortDirection(SortDirection &&other) : SortDirection(static_cast<const SortDirection &>(other)) {
+}
 
 string SortDirection::TryFromJSON(yyjson_val *obj, optional<SortDirection> &result) {
 	try {
@@ -49,9 +53,7 @@ SortDirection SortDirection::FromJSON(yyjson_val *obj) {
 }
 
 SortDirection SortDirection::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return SortDirection(std::move(value_tmp));
+	return SortDirection(*this);
 }
 
 string SortDirection::Validate() const {

@@ -18,9 +18,9 @@ class AsyncPlanningResultBuilder;
 
 class AsyncPlanningResult {
 public:
-	AsyncPlanningResult(const AsyncPlanningResult &) = delete;
+	AsyncPlanningResult(const AsyncPlanningResult &);
 	AsyncPlanningResult &operator=(const AsyncPlanningResult &) = delete;
-	AsyncPlanningResult(AsyncPlanningResult &&) = default;
+	AsyncPlanningResult(AsyncPlanningResult &&);
 	AsyncPlanningResult &operator=(AsyncPlanningResult &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	PlanStatus status;
-	string plan_id;
+	const PlanStatus status;
+	const string plan_id;
 };
 
 class AsyncPlanningResultBuilder {

@@ -20,9 +20,9 @@ class CommitTableRequestBuilder;
 
 class CommitTableRequest {
 public:
-	CommitTableRequest(const CommitTableRequest &) = delete;
+	CommitTableRequest(const CommitTableRequest &);
 	CommitTableRequest &operator=(const CommitTableRequest &) = delete;
-	CommitTableRequest(CommitTableRequest &&) = default;
+	CommitTableRequest(CommitTableRequest &&);
 	CommitTableRequest &operator=(CommitTableRequest &&) = delete;
 
 private:
@@ -44,9 +44,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<TableRequirement> requirements;
-	vector<TableUpdate> updates;
-	optional<TableIdentifier> identifier;
+	const vector<TableRequirement> requirements;
+	const vector<TableUpdate> updates;
+	const optional<TableIdentifier> identifier;
 };
 
 class CommitTableRequestBuilder {

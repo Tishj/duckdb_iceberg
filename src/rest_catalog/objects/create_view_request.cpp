@@ -20,6 +20,19 @@ CreateViewRequest::CreateViewRequest(string name_p, Schema schema_p, ViewVersion
     : name(std::move(name_p)), schema(std::move(schema_p)), view_version(std::move(view_version_p)),
       properties(std::move(properties_p)), location(std::move(location_p)) {
 }
+CreateViewRequest::CreateViewRequest(const CreateViewRequest &other)
+    : name(other.name), schema(other.schema.Copy()), view_version(other.view_version.Copy()), properties(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.properties) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())),
+      location((other.location.has_value() ? optional<string>((*other.location)) : optional<string>())) {
+}
+CreateViewRequest::CreateViewRequest(CreateViewRequest &&other)
+    : CreateViewRequest(static_cast<const CreateViewRequest &>(other)) {
+}
 
 CreateViewRequestBuilder::CreateViewRequestBuilder() {
 }
@@ -167,28 +180,7 @@ CreateViewRequest CreateViewRequest::FromJSON(yyjson_val *obj) {
 }
 
 CreateViewRequest CreateViewRequest::Copy() const {
-	CreateViewRequestBuilder builder;
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	auto schema_tmp = schema.Copy();
-	builder.SetSchema(std::move(schema_tmp));
-	auto view_version_tmp = view_version.Copy();
-	builder.SetViewVersion(std::move(view_version_tmp));
-	case_insensitive_map_t<string> properties_tmp;
-	for (auto &entry : properties) {
-		properties_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetProperties(std::move(properties_tmp));
-	optional<string> location_tmp;
-	if (location.has_value()) {
-		location_tmp.emplace();
-		(*location_tmp) = (*location);
-	}
-	if (location_tmp.has_value()) {
-		builder.SetLocation(std::move((*location_tmp)));
-	}
-	return builder.Build();
+	return CreateViewRequest(*this);
 }
 
 string CreateViewRequest::Validate() const {

@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AsyncPlanningResult::AsyncPlanningResult(PlanStatus status_p, string plan_id_p)
     : status(std::move(status_p)), plan_id(std::move(plan_id_p)) {
 }
+AsyncPlanningResult::AsyncPlanningResult(const AsyncPlanningResult &other)
+    : status(other.status.Copy()), plan_id(other.plan_id) {
+}
+AsyncPlanningResult::AsyncPlanningResult(AsyncPlanningResult &&other)
+    : AsyncPlanningResult(static_cast<const AsyncPlanningResult &>(other)) {
+}
 
 AsyncPlanningResultBuilder::AsyncPlanningResultBuilder() {
 }
@@ -98,13 +104,7 @@ AsyncPlanningResult AsyncPlanningResult::FromJSON(yyjson_val *obj) {
 }
 
 AsyncPlanningResult AsyncPlanningResult::Copy() const {
-	AsyncPlanningResultBuilder builder;
-	auto status_tmp = status.Copy();
-	builder.SetStatus(std::move(status_tmp));
-	string plan_id_tmp;
-	plan_id_tmp = plan_id;
-	builder.SetPlanId(std::move(plan_id_tmp));
-	return builder.Build();
+	return AsyncPlanningResult(*this);
 }
 
 string AsyncPlanningResult::Validate() const {

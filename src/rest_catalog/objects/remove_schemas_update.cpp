@@ -18,6 +18,19 @@ namespace rest_api_objects {
 RemoveSchemasUpdate::RemoveSchemasUpdate(BaseUpdate base_update_p, vector<int32_t> schema_ids_p)
     : base_update(std::move(base_update_p)), schema_ids(std::move(schema_ids_p)) {
 }
+RemoveSchemasUpdate::RemoveSchemasUpdate(const RemoveSchemasUpdate &other)
+    : base_update(other.base_update.Copy()), schema_ids(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve(other.schema_ids.size());
+	      for (const auto &item : other.schema_ids) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())) {
+}
+RemoveSchemasUpdate::RemoveSchemasUpdate(RemoveSchemasUpdate &&other)
+    : RemoveSchemasUpdate(static_cast<const RemoveSchemasUpdate &>(other)) {
+}
 
 RemoveSchemasUpdateBuilder::RemoveSchemasUpdateBuilder() {
 }
@@ -101,16 +114,7 @@ RemoveSchemasUpdate RemoveSchemasUpdate::FromJSON(yyjson_val *obj) {
 }
 
 RemoveSchemasUpdate RemoveSchemasUpdate::Copy() const {
-	RemoveSchemasUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	vector<int32_t> schema_ids_tmp;
-	schema_ids_tmp.reserve(schema_ids.size());
-	for (auto &item : schema_ids) {
-		schema_ids_tmp.emplace_back(item);
-	}
-	builder.SetSchemaIds(std::move(schema_ids_tmp));
-	return builder.Build();
+	return RemoveSchemasUpdate(*this);
 }
 
 string RemoveSchemasUpdate::Validate() const {

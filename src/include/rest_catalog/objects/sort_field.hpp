@@ -20,9 +20,9 @@ class SortFieldBuilder;
 
 class SortField {
 public:
-	SortField(const SortField &) = delete;
+	SortField(const SortField &);
 	SortField &operator=(const SortField &) = delete;
-	SortField(SortField &&) = default;
+	SortField(SortField &&);
 	SortField &operator=(SortField &&) = delete;
 
 private:
@@ -43,10 +43,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t source_id;
-	Transform transform;
-	SortDirection direction;
-	NullOrder null_order;
+	const int32_t source_id;
+	const Transform transform;
+	const SortDirection direction;
+	const NullOrder null_order;
 };
 
 class SortFieldBuilder {

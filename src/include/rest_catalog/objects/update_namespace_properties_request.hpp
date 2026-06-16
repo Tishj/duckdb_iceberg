@@ -17,9 +17,9 @@ class UpdateNamespacePropertiesRequestBuilder;
 
 class UpdateNamespacePropertiesRequest {
 public:
-	UpdateNamespacePropertiesRequest(const UpdateNamespacePropertiesRequest &) = delete;
+	UpdateNamespacePropertiesRequest(const UpdateNamespacePropertiesRequest &);
 	UpdateNamespacePropertiesRequest &operator=(const UpdateNamespacePropertiesRequest &) = delete;
-	UpdateNamespacePropertiesRequest(UpdateNamespacePropertiesRequest &&) = default;
+	UpdateNamespacePropertiesRequest(UpdateNamespacePropertiesRequest &&);
 	UpdateNamespacePropertiesRequest &operator=(UpdateNamespacePropertiesRequest &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<vector<string>> removals;
-	optional<case_insensitive_map_t<string>> updates;
+	const optional<vector<string>> removals;
+	const optional<case_insensitive_map_t<string>> updates;
 };
 
 class UpdateNamespacePropertiesRequestBuilder {

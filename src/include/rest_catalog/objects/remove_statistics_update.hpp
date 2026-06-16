@@ -18,9 +18,9 @@ class RemoveStatisticsUpdateBuilder;
 
 class RemoveStatisticsUpdate {
 public:
-	RemoveStatisticsUpdate(const RemoveStatisticsUpdate &) = delete;
+	RemoveStatisticsUpdate(const RemoveStatisticsUpdate &);
 	RemoveStatisticsUpdate &operator=(const RemoveStatisticsUpdate &) = delete;
-	RemoveStatisticsUpdate(RemoveStatisticsUpdate &&) = default;
+	RemoveStatisticsUpdate(RemoveStatisticsUpdate &&);
 	RemoveStatisticsUpdate &operator=(RemoveStatisticsUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	int64_t snapshot_id;
+	const BaseUpdate base_update;
+	const int64_t snapshot_id;
 };
 
 class RemoveStatisticsUpdateBuilder {

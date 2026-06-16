@@ -17,6 +17,18 @@ namespace rest_api_objects {
 
 Namespace::Namespace(vector<string> value_p) : value(std::move(value_p)) {
 }
+Namespace::Namespace(const Namespace &other)
+    : value(([&]() {
+	      vector<string> copied;
+	      copied.reserve(other.value.size());
+	      for (const auto &item : other.value) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())) {
+}
+Namespace::Namespace(Namespace &&other) : Namespace(static_cast<const Namespace &>(other)) {
+}
 
 string Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
 	try {
@@ -60,12 +72,7 @@ Namespace Namespace::FromJSON(yyjson_val *obj) {
 }
 
 Namespace Namespace::Copy() const {
-	vector<string> value_tmp;
-	value_tmp.reserve(value.size());
-	for (auto &item : value) {
-		value_tmp.emplace_back(item);
-	}
-	return Namespace(std::move(value_tmp));
+	return Namespace(*this);
 }
 
 string Namespace::Validate() const {

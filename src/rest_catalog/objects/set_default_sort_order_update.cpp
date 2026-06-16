@@ -18,6 +18,12 @@ namespace rest_api_objects {
 SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate(BaseUpdate base_update_p, int32_t sort_order_id_p)
     : base_update(std::move(base_update_p)), sort_order_id(std::move(sort_order_id_p)) {
 }
+SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate(const SetDefaultSortOrderUpdate &other)
+    : base_update(other.base_update.Copy()), sort_order_id(other.sort_order_id) {
+}
+SetDefaultSortOrderUpdate::SetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate &&other)
+    : SetDefaultSortOrderUpdate(static_cast<const SetDefaultSortOrderUpdate &>(other)) {
+}
 
 SetDefaultSortOrderUpdateBuilder::SetDefaultSortOrderUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::Copy() const {
-	SetDefaultSortOrderUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	int32_t sort_order_id_tmp;
-	sort_order_id_tmp = sort_order_id;
-	builder.SetSortOrderId(std::move(sort_order_id_tmp));
-	return builder.Build();
+	return SetDefaultSortOrderUpdate(*this);
 }
 
 string SetDefaultSortOrderUpdate::Validate() const {

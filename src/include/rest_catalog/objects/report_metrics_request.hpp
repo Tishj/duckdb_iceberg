@@ -19,9 +19,9 @@ class ReportMetricsRequestBuilder;
 
 class ReportMetricsRequest {
 public:
-	ReportMetricsRequest(const ReportMetricsRequest &) = delete;
+	ReportMetricsRequest(const ReportMetricsRequest &);
 	ReportMetricsRequest &operator=(const ReportMetricsRequest &) = delete;
-	ReportMetricsRequest(ReportMetricsRequest &&) = default;
+	ReportMetricsRequest(ReportMetricsRequest &&);
 	ReportMetricsRequest &operator=(ReportMetricsRequest &&) = delete;
 
 private:
@@ -43,9 +43,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<ScanReport> scan_report;
-	optional<CommitReport> commit_report;
-	string report_type;
+	const optional<ScanReport> scan_report;
+	const optional<CommitReport> commit_report;
+	const string report_type;
 };
 
 class ReportMetricsRequestBuilder {

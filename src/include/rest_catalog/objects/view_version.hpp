@@ -19,9 +19,9 @@ class ViewVersionBuilder;
 
 class ViewVersion {
 public:
-	ViewVersion(const ViewVersion &) = delete;
+	ViewVersion(const ViewVersion &);
 	ViewVersion &operator=(const ViewVersion &) = delete;
-	ViewVersion(ViewVersion &&) = default;
+	ViewVersion(ViewVersion &&);
 	ViewVersion &operator=(ViewVersion &&) = delete;
 
 private:
@@ -44,13 +44,13 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t version_id;
-	int64_t timestamp_ms;
-	int32_t schema_id;
-	case_insensitive_map_t<string> summary;
-	vector<ViewRepresentation> representations;
-	Namespace default_namespace;
-	optional<string> default_catalog;
+	const int32_t version_id;
+	const int64_t timestamp_ms;
+	const int32_t schema_id;
+	const case_insensitive_map_t<string> summary;
+	const vector<ViewRepresentation> representations;
+	const Namespace default_namespace;
+	const optional<string> default_catalog;
 };
 
 class ViewVersionBuilder {

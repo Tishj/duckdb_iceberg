@@ -17,9 +17,9 @@ class UpdateNamespacePropertiesResponseBuilder;
 
 class UpdateNamespacePropertiesResponse {
 public:
-	UpdateNamespacePropertiesResponse(const UpdateNamespacePropertiesResponse &) = delete;
+	UpdateNamespacePropertiesResponse(const UpdateNamespacePropertiesResponse &);
 	UpdateNamespacePropertiesResponse &operator=(const UpdateNamespacePropertiesResponse &) = delete;
-	UpdateNamespacePropertiesResponse(UpdateNamespacePropertiesResponse &&) = default;
+	UpdateNamespacePropertiesResponse(UpdateNamespacePropertiesResponse &&);
 	UpdateNamespacePropertiesResponse &operator=(UpdateNamespacePropertiesResponse &&) = delete;
 
 private:
@@ -41,9 +41,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<string> updated;
-	vector<string> removed;
-	optional<vector<string>> missing;
+	const vector<string> updated;
+	const vector<string> removed;
+	const optional<vector<string>> missing;
 };
 
 class UpdateNamespacePropertiesResponseBuilder {

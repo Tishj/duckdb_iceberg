@@ -18,6 +18,18 @@ namespace rest_api_objects {
 SetExpression::SetExpression(ExpressionType type_p, Term term_p, vector<PrimitiveTypeValue> values_p)
     : type(std::move(type_p)), term(std::move(term_p)), values(std::move(values_p)) {
 }
+SetExpression::SetExpression(const SetExpression &other)
+    : type(other.type.Copy()), term(other.term.Copy()), values(([&]() {
+	      vector<PrimitiveTypeValue> copied;
+	      copied.reserve(other.values.size());
+	      for (const auto &item : other.values) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+SetExpression::SetExpression(SetExpression &&other) : SetExpression(static_cast<const SetExpression &>(other)) {
+}
 
 SetExpressionBuilder::SetExpressionBuilder() {
 }
@@ -118,18 +130,7 @@ SetExpression SetExpression::FromJSON(yyjson_val *obj) {
 }
 
 SetExpression SetExpression::Copy() const {
-	SetExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	auto term_tmp = term.Copy();
-	builder.SetTerm(std::move(term_tmp));
-	vector<PrimitiveTypeValue> values_tmp;
-	values_tmp.reserve(values.size());
-	for (auto &item : values) {
-		values_tmp.emplace_back(item.Copy());
-	}
-	builder.SetValues(std::move(values_tmp));
-	return builder.Build();
+	return SetExpression(*this);
 }
 
 string SetExpression::Validate() const {

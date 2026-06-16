@@ -18,9 +18,9 @@ class EqualityDeleteFileBuilder;
 
 class EqualityDeleteFile {
 public:
-	EqualityDeleteFile(const EqualityDeleteFile &) = delete;
+	EqualityDeleteFile(const EqualityDeleteFile &);
 	EqualityDeleteFile &operator=(const EqualityDeleteFile &) = delete;
-	EqualityDeleteFile(EqualityDeleteFile &&) = default;
+	EqualityDeleteFile(EqualityDeleteFile &&);
 	EqualityDeleteFile &operator=(EqualityDeleteFile &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ContentFile content_file;
-	optional<vector<int32_t>> equality_ids;
+	const ContentFile content_file;
+	const optional<vector<int32_t>> equality_ids;
 };
 
 class EqualityDeleteFileBuilder {

@@ -18,9 +18,9 @@ class RemovePropertiesUpdateBuilder;
 
 class RemovePropertiesUpdate {
 public:
-	RemovePropertiesUpdate(const RemovePropertiesUpdate &) = delete;
+	RemovePropertiesUpdate(const RemovePropertiesUpdate &);
 	RemovePropertiesUpdate &operator=(const RemovePropertiesUpdate &) = delete;
-	RemovePropertiesUpdate(RemovePropertiesUpdate &&) = default;
+	RemovePropertiesUpdate(RemovePropertiesUpdate &&);
 	RemovePropertiesUpdate &operator=(RemovePropertiesUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	vector<string> removals;
+	const BaseUpdate base_update;
+	const vector<string> removals;
 };
 
 class RemovePropertiesUpdateBuilder {

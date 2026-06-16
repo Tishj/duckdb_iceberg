@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class TokenType {
 public:
-	TokenType(const TokenType &) = delete;
+	TokenType(const TokenType &);
 	TokenType &operator=(const TokenType &) = delete;
-	TokenType(TokenType &&) = default;
+	TokenType(TokenType &&);
 	TokenType &operator=(TokenType &&) = delete;
 	TokenType(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

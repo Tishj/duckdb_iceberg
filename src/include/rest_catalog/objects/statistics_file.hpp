@@ -18,9 +18,9 @@ class StatisticsFileBuilder;
 
 class StatisticsFile {
 public:
-	StatisticsFile(const StatisticsFile &) = delete;
+	StatisticsFile(const StatisticsFile &);
 	StatisticsFile &operator=(const StatisticsFile &) = delete;
-	StatisticsFile(StatisticsFile &&) = default;
+	StatisticsFile(StatisticsFile &&);
 	StatisticsFile &operator=(StatisticsFile &&) = delete;
 
 private:
@@ -42,11 +42,11 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int64_t snapshot_id;
-	string statistics_path;
-	int64_t file_size_in_bytes;
-	int64_t file_footer_size_in_bytes;
-	vector<BlobMetadata> blob_metadata;
+	const int64_t snapshot_id;
+	const string statistics_path;
+	const int64_t file_size_in_bytes;
+	const int64_t file_footer_size_in_bytes;
+	const vector<BlobMetadata> blob_metadata;
 };
 
 class StatisticsFileBuilder {

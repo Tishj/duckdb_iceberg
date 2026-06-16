@@ -18,6 +18,19 @@ namespace rest_api_objects {
 PartitionSpec::PartitionSpec(vector<PartitionField> fields_p, optional<int32_t> spec_id_p)
     : fields(std::move(fields_p)), spec_id(std::move(spec_id_p)) {
 }
+PartitionSpec::PartitionSpec(const PartitionSpec &other)
+    : fields(([&]() {
+	      vector<PartitionField> copied;
+	      copied.reserve(other.fields.size());
+	      for (const auto &item : other.fields) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      spec_id((other.spec_id.has_value() ? optional<int32_t>((*other.spec_id)) : optional<int32_t>())) {
+}
+PartitionSpec::PartitionSpec(PartitionSpec &&other) : PartitionSpec(static_cast<const PartitionSpec &>(other)) {
+}
 
 PartitionSpecBuilder::PartitionSpecBuilder() {
 }
@@ -105,22 +118,7 @@ PartitionSpec PartitionSpec::FromJSON(yyjson_val *obj) {
 }
 
 PartitionSpec PartitionSpec::Copy() const {
-	PartitionSpecBuilder builder;
-	vector<PartitionField> fields_tmp;
-	fields_tmp.reserve(fields.size());
-	for (auto &item : fields) {
-		fields_tmp.emplace_back(item.Copy());
-	}
-	builder.SetFields(std::move(fields_tmp));
-	optional<int32_t> spec_id_tmp;
-	if (spec_id.has_value()) {
-		spec_id_tmp.emplace();
-		(*spec_id_tmp) = (*spec_id);
-	}
-	if (spec_id_tmp.has_value()) {
-		builder.SetSpecId(std::move((*spec_id_tmp)));
-	}
-	return builder.Build();
+	return PartitionSpec(*this);
 }
 
 string PartitionSpec::Validate() const {

@@ -17,9 +17,9 @@ class CatalogConfigBuilder;
 
 class CatalogConfig {
 public:
-	CatalogConfig(const CatalogConfig &) = delete;
+	CatalogConfig(const CatalogConfig &);
 	CatalogConfig &operator=(const CatalogConfig &) = delete;
-	CatalogConfig(CatalogConfig &&) = default;
+	CatalogConfig(CatalogConfig &&);
 	CatalogConfig &operator=(CatalogConfig &&) = delete;
 
 private:
@@ -41,10 +41,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	case_insensitive_map_t<string> defaults;
-	case_insensitive_map_t<string> overrides;
-	optional<vector<string>> endpoints;
-	optional<string> idempotency_key_lifetime;
+	const case_insensitive_map_t<string> defaults;
+	const case_insensitive_map_t<string> overrides;
+	const optional<vector<string>> endpoints;
+	const optional<string> idempotency_key_lifetime;
 };
 
 class CatalogConfigBuilder {

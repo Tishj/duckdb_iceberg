@@ -18,9 +18,9 @@ class AssertCurrentSchemaIdBuilder;
 
 class AssertCurrentSchemaId {
 public:
-	AssertCurrentSchemaId(const AssertCurrentSchemaId &) = delete;
+	AssertCurrentSchemaId(const AssertCurrentSchemaId &);
 	AssertCurrentSchemaId &operator=(const AssertCurrentSchemaId &) = delete;
-	AssertCurrentSchemaId(AssertCurrentSchemaId &&) = default;
+	AssertCurrentSchemaId(AssertCurrentSchemaId &&);
 	AssertCurrentSchemaId &operator=(AssertCurrentSchemaId &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	int32_t current_schema_id;
+	const TableRequirementType type;
+	const int32_t current_schema_id;
 };
 
 class AssertCurrentSchemaIdBuilder {

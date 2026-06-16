@@ -18,9 +18,9 @@ class OAuthTokenExchangeRequestBuilder;
 
 class OAuthTokenExchangeRequest {
 public:
-	OAuthTokenExchangeRequest(const OAuthTokenExchangeRequest &) = delete;
+	OAuthTokenExchangeRequest(const OAuthTokenExchangeRequest &);
 	OAuthTokenExchangeRequest &operator=(const OAuthTokenExchangeRequest &) = delete;
-	OAuthTokenExchangeRequest(OAuthTokenExchangeRequest &&) = default;
+	OAuthTokenExchangeRequest(OAuthTokenExchangeRequest &&);
 	OAuthTokenExchangeRequest &operator=(OAuthTokenExchangeRequest &&) = delete;
 
 private:
@@ -43,13 +43,13 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string grant_type;
-	string subject_token;
-	TokenType subject_token_type;
-	optional<string> scope;
-	optional<TokenType> requested_token_type;
-	optional<string> actor_token;
-	optional<TokenType> actor_token_type;
+	const string grant_type;
+	const string subject_token;
+	const TokenType subject_token_type;
+	const optional<string> scope;
+	const optional<TokenType> requested_token_type;
+	const optional<string> actor_token;
+	const optional<TokenType> actor_token_type;
 };
 
 class OAuthTokenExchangeRequestBuilder {

@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 TimestampTzTypeValue::TimestampTzTypeValue(string value_p) : value(std::move(value_p)) {
 }
+TimestampTzTypeValue::TimestampTzTypeValue(const TimestampTzTypeValue &other) : value(other.value) {
+}
+TimestampTzTypeValue::TimestampTzTypeValue(TimestampTzTypeValue &&other)
+    : TimestampTzTypeValue(static_cast<const TimestampTzTypeValue &>(other)) {
+}
 
 string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ TimestampTzTypeValue TimestampTzTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 TimestampTzTypeValue TimestampTzTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return TimestampTzTypeValue(std::move(value_tmp));
+	return TimestampTzTypeValue(*this);
 }
 
 string TimestampTzTypeValue::Validate() const {

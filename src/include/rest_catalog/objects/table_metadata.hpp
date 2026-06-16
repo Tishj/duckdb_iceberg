@@ -27,9 +27,9 @@ class TableMetadataBuilder;
 
 class TableMetadata {
 public:
-	TableMetadata(const TableMetadata &) = delete;
+	TableMetadata(const TableMetadata &);
 	TableMetadata &operator=(const TableMetadata &) = delete;
-	TableMetadata(TableMetadata &&) = default;
+	TableMetadata(TableMetadata &&);
 	TableMetadata &operator=(TableMetadata &&) = delete;
 
 private:
@@ -61,29 +61,29 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t format_version;
-	string table_uuid;
-	optional<string> location;
-	optional<int64_t> last_updated_ms;
-	optional<int64_t> next_row_id;
-	optional<case_insensitive_map_t<string>> properties;
-	optional<vector<Schema>> schemas;
-	optional<int32_t> current_schema_id;
-	optional<int32_t> last_column_id;
-	optional<vector<PartitionSpec>> partition_specs;
-	optional<int32_t> default_spec_id;
-	optional<int32_t> last_partition_id;
-	optional<vector<SortOrder>> sort_orders;
-	optional<int32_t> default_sort_order_id;
-	optional<vector<EncryptedKey>> encryption_keys;
-	optional<vector<Snapshot>> snapshots;
-	optional<SnapshotReferences> refs;
-	optional<int64_t> current_snapshot_id;
-	optional<int64_t> last_sequence_number;
-	optional<SnapshotLog> snapshot_log;
-	optional<MetadataLog> metadata_log;
-	optional<vector<StatisticsFile>> statistics;
-	optional<vector<PartitionStatisticsFile>> partition_statistics;
+	const int32_t format_version;
+	const string table_uuid;
+	const optional<string> location;
+	const optional<int64_t> last_updated_ms;
+	const optional<int64_t> next_row_id;
+	const optional<case_insensitive_map_t<string>> properties;
+	const optional<vector<Schema>> schemas;
+	const optional<int32_t> current_schema_id;
+	const optional<int32_t> last_column_id;
+	const optional<vector<PartitionSpec>> partition_specs;
+	const optional<int32_t> default_spec_id;
+	const optional<int32_t> last_partition_id;
+	const optional<vector<SortOrder>> sort_orders;
+	const optional<int32_t> default_sort_order_id;
+	const optional<vector<EncryptedKey>> encryption_keys;
+	const optional<vector<Snapshot>> snapshots;
+	const optional<SnapshotReferences> refs;
+	const optional<int64_t> current_snapshot_id;
+	const optional<int64_t> last_sequence_number;
+	const optional<SnapshotLog> snapshot_log;
+	const optional<MetadataLog> metadata_log;
+	const optional<vector<StatisticsFile>> statistics;
+	const optional<vector<PartitionStatisticsFile>> partition_statistics;
 };
 
 class TableMetadataBuilder {

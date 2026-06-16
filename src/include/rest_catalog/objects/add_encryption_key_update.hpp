@@ -19,9 +19,9 @@ class AddEncryptionKeyUpdateBuilder;
 
 class AddEncryptionKeyUpdate {
 public:
-	AddEncryptionKeyUpdate(const AddEncryptionKeyUpdate &) = delete;
+	AddEncryptionKeyUpdate(const AddEncryptionKeyUpdate &);
 	AddEncryptionKeyUpdate &operator=(const AddEncryptionKeyUpdate &) = delete;
-	AddEncryptionKeyUpdate(AddEncryptionKeyUpdate &&) = default;
+	AddEncryptionKeyUpdate(AddEncryptionKeyUpdate &&);
 	AddEncryptionKeyUpdate &operator=(AddEncryptionKeyUpdate &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	EncryptedKey encryption_key;
+	const BaseUpdate base_update;
+	const EncryptedKey encryption_key;
 };
 
 class AddEncryptionKeyUpdateBuilder {

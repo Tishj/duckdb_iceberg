@@ -18,9 +18,9 @@ class CommitReportBuilder;
 
 class CommitReport {
 public:
-	CommitReport(const CommitReport &) = delete;
+	CommitReport(const CommitReport &);
 	CommitReport &operator=(const CommitReport &) = delete;
-	CommitReport(CommitReport &&) = default;
+	CommitReport(CommitReport &&);
 	CommitReport &operator=(CommitReport &&) = delete;
 
 private:
@@ -42,12 +42,12 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string table_name;
-	int64_t snapshot_id;
-	int64_t sequence_number;
-	string operation;
-	Metrics metrics;
-	optional<case_insensitive_map_t<string>> metadata;
+	const string table_name;
+	const int64_t snapshot_id;
+	const int64_t sequence_number;
+	const string operation;
+	const Metrics metrics;
+	const optional<case_insensitive_map_t<string>> metadata;
 };
 
 class CommitReportBuilder {

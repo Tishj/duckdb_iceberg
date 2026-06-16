@@ -25,9 +25,9 @@ class TableRequirementBuilder;
 
 class TableRequirement {
 public:
-	TableRequirement(const TableRequirement &) = delete;
+	TableRequirement(const TableRequirement &);
 	TableRequirement &operator=(const TableRequirement &) = delete;
-	TableRequirement(TableRequirement &&) = default;
+	TableRequirement(TableRequirement &&);
 	TableRequirement &operator=(TableRequirement &&) = delete;
 
 private:
@@ -54,14 +54,14 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<AssertCreate> assert_create;
-	optional<AssertTableUUID> assert_table_uuid;
-	optional<AssertRefSnapshotId> assert_ref_snapshot_id;
-	optional<AssertLastAssignedFieldId> assert_last_assigned_field_id;
-	optional<AssertCurrentSchemaId> assert_current_schema_id;
-	optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id;
-	optional<AssertDefaultSpecId> assert_default_spec_id;
-	optional<AssertDefaultSortOrderId> assert_default_sort_order_id;
+	const optional<AssertCreate> assert_create;
+	const optional<AssertTableUUID> assert_table_uuid;
+	const optional<AssertRefSnapshotId> assert_ref_snapshot_id;
+	const optional<AssertLastAssignedFieldId> assert_last_assigned_field_id;
+	const optional<AssertCurrentSchemaId> assert_current_schema_id;
+	const optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id;
+	const optional<AssertDefaultSpecId> assert_default_spec_id;
+	const optional<AssertDefaultSortOrderId> assert_default_sort_order_id;
 };
 
 class TableRequirementBuilder {

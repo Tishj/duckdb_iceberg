@@ -18,6 +18,12 @@ namespace rest_api_objects {
 RegisterViewRequest::RegisterViewRequest(string name_p, string metadata_location_p)
     : name(std::move(name_p)), metadata_location(std::move(metadata_location_p)) {
 }
+RegisterViewRequest::RegisterViewRequest(const RegisterViewRequest &other)
+    : name(other.name), metadata_location(other.metadata_location) {
+}
+RegisterViewRequest::RegisterViewRequest(RegisterViewRequest &&other)
+    : RegisterViewRequest(static_cast<const RegisterViewRequest &>(other)) {
+}
 
 RegisterViewRequestBuilder::RegisterViewRequestBuilder() {
 }
@@ -106,14 +112,7 @@ RegisterViewRequest RegisterViewRequest::FromJSON(yyjson_val *obj) {
 }
 
 RegisterViewRequest RegisterViewRequest::Copy() const {
-	RegisterViewRequestBuilder builder;
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	string metadata_location_tmp;
-	metadata_location_tmp = metadata_location;
-	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	return builder.Build();
+	return RegisterViewRequest(*this);
 }
 
 string RegisterViewRequest::Validate() const {

@@ -36,6 +36,54 @@ PrimitiveTypeValue::PrimitiveTypeValue(
       timestamp_tz_nano_type_value(std::move(timestamp_tz_nano_type_value_p)),
       fixed_type_value(std::move(fixed_type_value_p)), binary_type_value(std::move(binary_type_value_p)) {
 }
+PrimitiveTypeValue::PrimitiveTypeValue(const PrimitiveTypeValue &other)
+    : boolean_type_value((other.boolean_type_value.has_value()
+                              ? optional<BooleanTypeValue>((*other.boolean_type_value).Copy())
+                              : optional<BooleanTypeValue>())),
+      integer_type_value((other.integer_type_value.has_value()
+                              ? optional<IntegerTypeValue>((*other.integer_type_value).Copy())
+                              : optional<IntegerTypeValue>())),
+      long_type_value((other.long_type_value.has_value() ? optional<LongTypeValue>((*other.long_type_value).Copy())
+                                                         : optional<LongTypeValue>())),
+      float_type_value((other.float_type_value.has_value() ? optional<FloatTypeValue>((*other.float_type_value).Copy())
+                                                           : optional<FloatTypeValue>())),
+      double_type_value((other.double_type_value.has_value()
+                             ? optional<DoubleTypeValue>((*other.double_type_value).Copy())
+                             : optional<DoubleTypeValue>())),
+      decimal_type_value((other.decimal_type_value.has_value()
+                              ? optional<DecimalTypeValue>((*other.decimal_type_value).Copy())
+                              : optional<DecimalTypeValue>())),
+      string_type_value((other.string_type_value.has_value()
+                             ? optional<StringTypeValue>((*other.string_type_value).Copy())
+                             : optional<StringTypeValue>())),
+      uuidtype_value((other.uuidtype_value.has_value() ? optional<UUIDTypeValue>((*other.uuidtype_value).Copy())
+                                                       : optional<UUIDTypeValue>())),
+      date_type_value((other.date_type_value.has_value() ? optional<DateTypeValue>((*other.date_type_value).Copy())
+                                                         : optional<DateTypeValue>())),
+      time_type_value((other.time_type_value.has_value() ? optional<TimeTypeValue>((*other.time_type_value).Copy())
+                                                         : optional<TimeTypeValue>())),
+      timestamp_type_value((other.timestamp_type_value.has_value()
+                                ? optional<TimestampTypeValue>((*other.timestamp_type_value).Copy())
+                                : optional<TimestampTypeValue>())),
+      timestamp_tz_type_value((other.timestamp_tz_type_value.has_value()
+                                   ? optional<TimestampTzTypeValue>((*other.timestamp_tz_type_value).Copy())
+                                   : optional<TimestampTzTypeValue>())),
+      timestamp_nano_type_value((other.timestamp_nano_type_value.has_value()
+                                     ? optional<TimestampNanoTypeValue>((*other.timestamp_nano_type_value).Copy())
+                                     : optional<TimestampNanoTypeValue>())),
+      timestamp_tz_nano_type_value(
+          (other.timestamp_tz_nano_type_value.has_value()
+               ? optional<TimestampTzNanoTypeValue>((*other.timestamp_tz_nano_type_value).Copy())
+               : optional<TimestampTzNanoTypeValue>())),
+      fixed_type_value((other.fixed_type_value.has_value() ? optional<FixedTypeValue>((*other.fixed_type_value).Copy())
+                                                           : optional<FixedTypeValue>())),
+      binary_type_value((other.binary_type_value.has_value()
+                             ? optional<BinaryTypeValue>((*other.binary_type_value).Copy())
+                             : optional<BinaryTypeValue>())) {
+}
+PrimitiveTypeValue::PrimitiveTypeValue(PrimitiveTypeValue &&other)
+    : PrimitiveTypeValue(static_cast<const PrimitiveTypeValue &>(other)) {
+}
 
 PrimitiveTypeValueBuilder::PrimitiveTypeValueBuilder() {
 }
@@ -248,120 +296,7 @@ PrimitiveTypeValue PrimitiveTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 PrimitiveTypeValue PrimitiveTypeValue::Copy() const {
-	PrimitiveTypeValueBuilder builder;
-	optional<BooleanTypeValue> boolean_type_value_tmp;
-	if (boolean_type_value.has_value()) {
-		boolean_type_value_tmp.emplace((*boolean_type_value).Copy());
-	}
-	if (boolean_type_value_tmp.has_value()) {
-		builder.SetBooleanTypeValue(std::move(*boolean_type_value_tmp));
-	}
-	optional<IntegerTypeValue> integer_type_value_tmp;
-	if (integer_type_value.has_value()) {
-		integer_type_value_tmp.emplace((*integer_type_value).Copy());
-	}
-	if (integer_type_value_tmp.has_value()) {
-		builder.SetIntegerTypeValue(std::move(*integer_type_value_tmp));
-	}
-	optional<LongTypeValue> long_type_value_tmp;
-	if (long_type_value.has_value()) {
-		long_type_value_tmp.emplace((*long_type_value).Copy());
-	}
-	if (long_type_value_tmp.has_value()) {
-		builder.SetLongTypeValue(std::move(*long_type_value_tmp));
-	}
-	optional<FloatTypeValue> float_type_value_tmp;
-	if (float_type_value.has_value()) {
-		float_type_value_tmp.emplace((*float_type_value).Copy());
-	}
-	if (float_type_value_tmp.has_value()) {
-		builder.SetFloatTypeValue(std::move(*float_type_value_tmp));
-	}
-	optional<DoubleTypeValue> double_type_value_tmp;
-	if (double_type_value.has_value()) {
-		double_type_value_tmp.emplace((*double_type_value).Copy());
-	}
-	if (double_type_value_tmp.has_value()) {
-		builder.SetDoubleTypeValue(std::move(*double_type_value_tmp));
-	}
-	optional<DecimalTypeValue> decimal_type_value_tmp;
-	if (decimal_type_value.has_value()) {
-		decimal_type_value_tmp.emplace((*decimal_type_value).Copy());
-	}
-	if (decimal_type_value_tmp.has_value()) {
-		builder.SetDecimalTypeValue(std::move(*decimal_type_value_tmp));
-	}
-	optional<StringTypeValue> string_type_value_tmp;
-	if (string_type_value.has_value()) {
-		string_type_value_tmp.emplace((*string_type_value).Copy());
-	}
-	if (string_type_value_tmp.has_value()) {
-		builder.SetStringTypeValue(std::move(*string_type_value_tmp));
-	}
-	optional<UUIDTypeValue> uuidtype_value_tmp;
-	if (uuidtype_value.has_value()) {
-		uuidtype_value_tmp.emplace((*uuidtype_value).Copy());
-	}
-	if (uuidtype_value_tmp.has_value()) {
-		builder.SetUuidtypeValue(std::move(*uuidtype_value_tmp));
-	}
-	optional<DateTypeValue> date_type_value_tmp;
-	if (date_type_value.has_value()) {
-		date_type_value_tmp.emplace((*date_type_value).Copy());
-	}
-	if (date_type_value_tmp.has_value()) {
-		builder.SetDateTypeValue(std::move(*date_type_value_tmp));
-	}
-	optional<TimeTypeValue> time_type_value_tmp;
-	if (time_type_value.has_value()) {
-		time_type_value_tmp.emplace((*time_type_value).Copy());
-	}
-	if (time_type_value_tmp.has_value()) {
-		builder.SetTimeTypeValue(std::move(*time_type_value_tmp));
-	}
-	optional<TimestampTypeValue> timestamp_type_value_tmp;
-	if (timestamp_type_value.has_value()) {
-		timestamp_type_value_tmp.emplace((*timestamp_type_value).Copy());
-	}
-	if (timestamp_type_value_tmp.has_value()) {
-		builder.SetTimestampTypeValue(std::move(*timestamp_type_value_tmp));
-	}
-	optional<TimestampTzTypeValue> timestamp_tz_type_value_tmp;
-	if (timestamp_tz_type_value.has_value()) {
-		timestamp_tz_type_value_tmp.emplace((*timestamp_tz_type_value).Copy());
-	}
-	if (timestamp_tz_type_value_tmp.has_value()) {
-		builder.SetTimestampTzTypeValue(std::move(*timestamp_tz_type_value_tmp));
-	}
-	optional<TimestampNanoTypeValue> timestamp_nano_type_value_tmp;
-	if (timestamp_nano_type_value.has_value()) {
-		timestamp_nano_type_value_tmp.emplace((*timestamp_nano_type_value).Copy());
-	}
-	if (timestamp_nano_type_value_tmp.has_value()) {
-		builder.SetTimestampNanoTypeValue(std::move(*timestamp_nano_type_value_tmp));
-	}
-	optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value_tmp;
-	if (timestamp_tz_nano_type_value.has_value()) {
-		timestamp_tz_nano_type_value_tmp.emplace((*timestamp_tz_nano_type_value).Copy());
-	}
-	if (timestamp_tz_nano_type_value_tmp.has_value()) {
-		builder.SetTimestampTzNanoTypeValue(std::move(*timestamp_tz_nano_type_value_tmp));
-	}
-	optional<FixedTypeValue> fixed_type_value_tmp;
-	if (fixed_type_value.has_value()) {
-		fixed_type_value_tmp.emplace((*fixed_type_value).Copy());
-	}
-	if (fixed_type_value_tmp.has_value()) {
-		builder.SetFixedTypeValue(std::move(*fixed_type_value_tmp));
-	}
-	optional<BinaryTypeValue> binary_type_value_tmp;
-	if (binary_type_value.has_value()) {
-		binary_type_value_tmp.emplace((*binary_type_value).Copy());
-	}
-	if (binary_type_value_tmp.has_value()) {
-		builder.SetBinaryTypeValue(std::move(*binary_type_value_tmp));
-	}
-	return builder.Build();
+	return PrimitiveTypeValue(*this);
 }
 
 string PrimitiveTypeValue::Validate() const {

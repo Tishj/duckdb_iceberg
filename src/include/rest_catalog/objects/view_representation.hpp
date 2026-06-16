@@ -18,9 +18,9 @@ class ViewRepresentationBuilder;
 
 class ViewRepresentation {
 public:
-	ViewRepresentation(const ViewRepresentation &) = delete;
+	ViewRepresentation(const ViewRepresentation &);
 	ViewRepresentation &operator=(const ViewRepresentation &) = delete;
-	ViewRepresentation(ViewRepresentation &&) = default;
+	ViewRepresentation(ViewRepresentation &&);
 	ViewRepresentation &operator=(ViewRepresentation &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<SQLViewRepresentation> sqlview_representation;
+	const optional<SQLViewRepresentation> sqlview_representation;
 };
 
 class ViewRepresentationBuilder {

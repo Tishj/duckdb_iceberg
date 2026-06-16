@@ -17,9 +17,9 @@ class BaseUpdateBuilder;
 
 class BaseUpdate {
 public:
-	BaseUpdate(const BaseUpdate &) = delete;
+	BaseUpdate(const BaseUpdate &);
 	BaseUpdate &operator=(const BaseUpdate &) = delete;
-	BaseUpdate(BaseUpdate &&) = default;
+	BaseUpdate(BaseUpdate &&);
 	BaseUpdate &operator=(BaseUpdate &&) = delete;
 
 private:
@@ -40,7 +40,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string action;
+	const string action;
 };
 
 class BaseUpdateBuilder {

@@ -18,9 +18,9 @@ class AssertLastAssignedPartitionIdBuilder;
 
 class AssertLastAssignedPartitionId {
 public:
-	AssertLastAssignedPartitionId(const AssertLastAssignedPartitionId &) = delete;
+	AssertLastAssignedPartitionId(const AssertLastAssignedPartitionId &);
 	AssertLastAssignedPartitionId &operator=(const AssertLastAssignedPartitionId &) = delete;
-	AssertLastAssignedPartitionId(AssertLastAssignedPartitionId &&) = default;
+	AssertLastAssignedPartitionId(AssertLastAssignedPartitionId &&);
 	AssertLastAssignedPartitionId &operator=(AssertLastAssignedPartitionId &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	int32_t last_assigned_partition_id;
+	const TableRequirementType type;
+	const int32_t last_assigned_partition_id;
 };
 
 class AssertLastAssignedPartitionIdBuilder {

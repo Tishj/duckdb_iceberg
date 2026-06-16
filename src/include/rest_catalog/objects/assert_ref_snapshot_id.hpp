@@ -18,9 +18,9 @@ class AssertRefSnapshotIdBuilder;
 
 class AssertRefSnapshotId {
 public:
-	AssertRefSnapshotId(const AssertRefSnapshotId &) = delete;
+	AssertRefSnapshotId(const AssertRefSnapshotId &);
 	AssertRefSnapshotId &operator=(const AssertRefSnapshotId &) = delete;
-	AssertRefSnapshotId(AssertRefSnapshotId &&) = default;
+	AssertRefSnapshotId(AssertRefSnapshotId &&);
 	AssertRefSnapshotId &operator=(AssertRefSnapshotId &&) = delete;
 
 private:
@@ -41,9 +41,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	string ref;
-	optional<int64_t> snapshot_id;
+	const TableRequirementType type;
+	const string ref;
+	const optional<int64_t> snapshot_id;
 };
 
 class AssertRefSnapshotIdBuilder {

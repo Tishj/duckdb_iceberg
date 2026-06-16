@@ -19,6 +19,36 @@ UpdateNamespacePropertiesResponse::UpdateNamespacePropertiesResponse(vector<stri
                                                                      optional<vector<string>> missing_p)
     : updated(std::move(updated_p)), removed(std::move(removed_p)), missing(std::move(missing_p)) {
 }
+UpdateNamespacePropertiesResponse::UpdateNamespacePropertiesResponse(const UpdateNamespacePropertiesResponse &other)
+    : updated(([&]() {
+	      vector<string> copied;
+	      copied.reserve(other.updated.size());
+	      for (const auto &item : other.updated) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())),
+      removed(([&]() {
+	      vector<string> copied;
+	      copied.reserve(other.removed.size());
+	      for (const auto &item : other.removed) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())),
+      missing((other.missing.has_value() ? optional<vector<string>>(([&]() {
+	      vector<string> copied;
+	      copied.reserve((*other.missing).size());
+	      for (const auto &item : (*other.missing)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                         : optional<vector<string>>())) {
+}
+UpdateNamespacePropertiesResponse::UpdateNamespacePropertiesResponse(UpdateNamespacePropertiesResponse &&other)
+    : UpdateNamespacePropertiesResponse(static_cast<const UpdateNamespacePropertiesResponse &>(other)) {
+}
 
 UpdateNamespacePropertiesResponseBuilder::UpdateNamespacePropertiesResponseBuilder() {
 }
@@ -169,31 +199,7 @@ UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::FromJSON(yy
 }
 
 UpdateNamespacePropertiesResponse UpdateNamespacePropertiesResponse::Copy() const {
-	UpdateNamespacePropertiesResponseBuilder builder;
-	vector<string> updated_tmp;
-	updated_tmp.reserve(updated.size());
-	for (auto &item : updated) {
-		updated_tmp.emplace_back(item);
-	}
-	builder.SetUpdated(std::move(updated_tmp));
-	vector<string> removed_tmp;
-	removed_tmp.reserve(removed.size());
-	for (auto &item : removed) {
-		removed_tmp.emplace_back(item);
-	}
-	builder.SetRemoved(std::move(removed_tmp));
-	optional<vector<string>> missing_tmp;
-	if (missing.has_value()) {
-		missing_tmp.emplace();
-		(*missing_tmp).reserve((*missing).size());
-		for (auto &item : (*missing)) {
-			(*missing_tmp).emplace_back(item);
-		}
-	}
-	if (missing_tmp.has_value()) {
-		builder.SetMissing(std::move((*missing_tmp)));
-	}
-	return builder.Build();
+	return UpdateNamespacePropertiesResponse(*this);
 }
 
 string UpdateNamespacePropertiesResponse::Validate() const {

@@ -17,9 +17,9 @@ class ViewHistoryEntryBuilder;
 
 class ViewHistoryEntry {
 public:
-	ViewHistoryEntry(const ViewHistoryEntry &) = delete;
+	ViewHistoryEntry(const ViewHistoryEntry &);
 	ViewHistoryEntry &operator=(const ViewHistoryEntry &) = delete;
-	ViewHistoryEntry(ViewHistoryEntry &&) = default;
+	ViewHistoryEntry(ViewHistoryEntry &&);
 	ViewHistoryEntry &operator=(ViewHistoryEntry &&) = delete;
 
 private:
@@ -40,8 +40,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t version_id;
-	int64_t timestamp_ms;
+	const int32_t version_id;
+	const int64_t timestamp_ms;
 };
 
 class ViewHistoryEntryBuilder {

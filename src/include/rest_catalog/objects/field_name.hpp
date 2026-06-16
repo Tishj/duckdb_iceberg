@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class FieldName {
 public:
-	FieldName(const FieldName &) = delete;
+	FieldName(const FieldName &);
 	FieldName &operator=(const FieldName &) = delete;
-	FieldName(FieldName &&) = default;
+	FieldName(FieldName &&);
 	FieldName &operator=(FieldName &&) = delete;
 	FieldName(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

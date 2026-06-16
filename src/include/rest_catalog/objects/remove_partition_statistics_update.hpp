@@ -18,9 +18,9 @@ class RemovePartitionStatisticsUpdateBuilder;
 
 class RemovePartitionStatisticsUpdate {
 public:
-	RemovePartitionStatisticsUpdate(const RemovePartitionStatisticsUpdate &) = delete;
+	RemovePartitionStatisticsUpdate(const RemovePartitionStatisticsUpdate &);
 	RemovePartitionStatisticsUpdate &operator=(const RemovePartitionStatisticsUpdate &) = delete;
-	RemovePartitionStatisticsUpdate(RemovePartitionStatisticsUpdate &&) = default;
+	RemovePartitionStatisticsUpdate(RemovePartitionStatisticsUpdate &&);
 	RemovePartitionStatisticsUpdate &operator=(RemovePartitionStatisticsUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	int64_t snapshot_id;
+	const BaseUpdate base_update;
+	const int64_t snapshot_id;
 };
 
 class RemovePartitionStatisticsUpdateBuilder {

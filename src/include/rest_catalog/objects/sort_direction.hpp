@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class SortDirection {
 public:
-	SortDirection(const SortDirection &) = delete;
+	SortDirection(const SortDirection &);
 	SortDirection &operator=(const SortDirection &) = delete;
-	SortDirection(SortDirection &&) = default;
+	SortDirection(SortDirection &&);
 	SortDirection &operator=(SortDirection &&) = delete;
 	SortDirection(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

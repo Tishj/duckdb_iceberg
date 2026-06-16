@@ -18,6 +18,12 @@ namespace rest_api_objects {
 RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate(BaseUpdate base_update_p, int64_t snapshot_id_p)
     : base_update(std::move(base_update_p)), snapshot_id(std::move(snapshot_id_p)) {
 }
+RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate(const RemovePartitionStatisticsUpdate &other)
+    : base_update(other.base_update.Copy()), snapshot_id(other.snapshot_id) {
+}
+RemovePartitionStatisticsUpdate::RemovePartitionStatisticsUpdate(RemovePartitionStatisticsUpdate &&other)
+    : RemovePartitionStatisticsUpdate(static_cast<const RemovePartitionStatisticsUpdate &>(other)) {
+}
 
 RemovePartitionStatisticsUpdateBuilder::RemovePartitionStatisticsUpdateBuilder() {
 }
@@ -91,13 +97,7 @@ RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::FromJSON(yyjson
 }
 
 RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::Copy() const {
-	RemovePartitionStatisticsUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	return builder.Build();
+	return RemovePartitionStatisticsUpdate(*this);
 }
 
 string RemovePartitionStatisticsUpdate::Validate() const {

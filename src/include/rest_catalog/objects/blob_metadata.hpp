@@ -17,9 +17,9 @@ class BlobMetadataBuilder;
 
 class BlobMetadata {
 public:
-	BlobMetadata(const BlobMetadata &) = delete;
+	BlobMetadata(const BlobMetadata &);
 	BlobMetadata &operator=(const BlobMetadata &) = delete;
-	BlobMetadata(BlobMetadata &&) = default;
+	BlobMetadata(BlobMetadata &&);
 	BlobMetadata &operator=(BlobMetadata &&) = delete;
 
 private:
@@ -41,11 +41,11 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	int64_t snapshot_id;
-	int64_t sequence_number;
-	vector<int32_t> fields;
-	optional<case_insensitive_map_t<string>> properties;
+	const string type;
+	const int64_t snapshot_id;
+	const int64_t sequence_number;
+	const vector<int32_t> fields;
+	const optional<case_insensitive_map_t<string>> properties;
 };
 
 class BlobMetadataBuilder {

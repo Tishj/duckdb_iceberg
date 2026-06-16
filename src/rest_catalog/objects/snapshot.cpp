@@ -23,8 +23,32 @@ Snapshot::Snapshot(int64_t snapshot_id_p, int64_t timestamp_ms_p, string manifes
       parent_snapshot_id(std::move(parent_snapshot_id_p)), sequence_number(std::move(sequence_number_p)),
       first_row_id(std::move(first_row_id_p)), added_rows(std::move(added_rows_p)), schema_id(std::move(schema_id_p)) {
 }
+Snapshot::Snapshot(const Snapshot &other)
+    : snapshot_id(other.snapshot_id), timestamp_ms(other.timestamp_ms), manifest_list(other.manifest_list),
+      summary(other.summary.Copy()),
+      parent_snapshot_id((other.parent_snapshot_id.has_value() ? optional<int64_t>((*other.parent_snapshot_id))
+                                                               : optional<int64_t>())),
+      sequence_number(
+          (other.sequence_number.has_value() ? optional<int64_t>((*other.sequence_number)) : optional<int64_t>())),
+      first_row_id((other.first_row_id.has_value() ? optional<int64_t>((*other.first_row_id)) : optional<int64_t>())),
+      added_rows((other.added_rows.has_value() ? optional<int64_t>((*other.added_rows)) : optional<int64_t>())),
+      schema_id((other.schema_id.has_value() ? optional<int32_t>((*other.schema_id)) : optional<int32_t>())) {
+}
+Snapshot::Snapshot(Snapshot &&other) : Snapshot(static_cast<const Snapshot &>(other)) {
+}
 Snapshot::Object2::Object2(string operation_p, case_insensitive_map_t<string> additional_properties_p)
     : operation(std::move(operation_p)), additional_properties(std::move(additional_properties_p)) {
+}
+Snapshot::Object2::Object2(const Snapshot::Object2 &other)
+    : operation(other.operation), additional_properties(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.additional_properties) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())) {
+}
+Snapshot::Object2::Object2(Snapshot::Object2 &&other) : Object2(static_cast<const Snapshot::Object2 &>(other)) {
 }
 
 Snapshot::Object2Builder::Object2Builder() {
@@ -117,16 +141,7 @@ Snapshot::Object2 Snapshot::Object2::FromJSON(yyjson_val *obj) {
 }
 
 Snapshot::Object2 Snapshot::Object2::Copy() const {
-	Object2Builder builder;
-	string operation_tmp;
-	operation_tmp = operation;
-	builder.SetOperation(std::move(operation_tmp));
-	case_insensitive_map_t<string> additional_properties_tmp;
-	for (auto &entry : additional_properties) {
-		additional_properties_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetAdditionalProperties(std::move(additional_properties_tmp));
-	return builder.Build();
+	return Snapshot::Object2(*this);
 }
 
 string Snapshot::Object2::Validate() const {
@@ -386,59 +401,7 @@ Snapshot Snapshot::FromJSON(yyjson_val *obj) {
 }
 
 Snapshot Snapshot::Copy() const {
-	SnapshotBuilder builder;
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	int64_t timestamp_ms_tmp;
-	timestamp_ms_tmp = timestamp_ms;
-	builder.SetTimestampMs(std::move(timestamp_ms_tmp));
-	string manifest_list_tmp;
-	manifest_list_tmp = manifest_list;
-	builder.SetManifestList(std::move(manifest_list_tmp));
-	auto summary_tmp = summary.Copy();
-	builder.SetSummary(std::move(summary_tmp));
-	optional<int64_t> parent_snapshot_id_tmp;
-	if (parent_snapshot_id.has_value()) {
-		parent_snapshot_id_tmp.emplace();
-		(*parent_snapshot_id_tmp) = (*parent_snapshot_id);
-	}
-	if (parent_snapshot_id_tmp.has_value()) {
-		builder.SetParentSnapshotId(std::move((*parent_snapshot_id_tmp)));
-	}
-	optional<int64_t> sequence_number_tmp;
-	if (sequence_number.has_value()) {
-		sequence_number_tmp.emplace();
-		(*sequence_number_tmp) = (*sequence_number);
-	}
-	if (sequence_number_tmp.has_value()) {
-		builder.SetSequenceNumber(std::move((*sequence_number_tmp)));
-	}
-	optional<int64_t> first_row_id_tmp;
-	if (first_row_id.has_value()) {
-		first_row_id_tmp.emplace();
-		(*first_row_id_tmp) = (*first_row_id);
-	}
-	if (first_row_id_tmp.has_value()) {
-		builder.SetFirstRowId(std::move((*first_row_id_tmp)));
-	}
-	optional<int64_t> added_rows_tmp;
-	if (added_rows.has_value()) {
-		added_rows_tmp.emplace();
-		(*added_rows_tmp) = (*added_rows);
-	}
-	if (added_rows_tmp.has_value()) {
-		builder.SetAddedRows(std::move((*added_rows_tmp)));
-	}
-	optional<int32_t> schema_id_tmp;
-	if (schema_id.has_value()) {
-		schema_id_tmp.emplace();
-		(*schema_id_tmp) = (*schema_id);
-	}
-	if (schema_id_tmp.has_value()) {
-		builder.SetSchemaId(std::move((*schema_id_tmp)));
-	}
-	return builder.Build();
+	return Snapshot(*this);
 }
 
 string Snapshot::Validate() const {

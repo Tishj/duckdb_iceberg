@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 PageToken::PageToken(string value_p) : value(std::move(value_p)) {
 }
+PageToken::PageToken(const PageToken &other) : value(other.value) {
+}
+PageToken::PageToken(PageToken &&other) : PageToken(static_cast<const PageToken &>(other)) {
+}
 
 string PageToken::TryFromJSON(yyjson_val *obj, optional<PageToken> &result) {
 	try {
@@ -50,9 +54,7 @@ PageToken PageToken::FromJSON(yyjson_val *obj) {
 }
 
 PageToken PageToken::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return PageToken(std::move(value_tmp));
+	return PageToken(*this);
 }
 
 string PageToken::Validate() const {

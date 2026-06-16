@@ -18,9 +18,9 @@ class CreateNamespaceRequestBuilder;
 
 class CreateNamespaceRequest {
 public:
-	CreateNamespaceRequest(const CreateNamespaceRequest &) = delete;
+	CreateNamespaceRequest(const CreateNamespaceRequest &);
 	CreateNamespaceRequest &operator=(const CreateNamespaceRequest &) = delete;
-	CreateNamespaceRequest(CreateNamespaceRequest &&) = default;
+	CreateNamespaceRequest(CreateNamespaceRequest &&);
 	CreateNamespaceRequest &operator=(CreateNamespaceRequest &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	Namespace _namespace;
-	optional<case_insensitive_map_t<string>> properties;
+	const Namespace _namespace;
+	const optional<case_insensitive_map_t<string>> properties;
 };
 
 class CreateNamespaceRequestBuilder {

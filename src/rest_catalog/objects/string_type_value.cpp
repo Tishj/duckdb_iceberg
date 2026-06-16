@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 StringTypeValue::StringTypeValue(string value_p) : value(std::move(value_p)) {
 }
+StringTypeValue::StringTypeValue(const StringTypeValue &other) : value(other.value) {
+}
+StringTypeValue::StringTypeValue(StringTypeValue &&other)
+    : StringTypeValue(static_cast<const StringTypeValue &>(other)) {
+}
 
 string StringTypeValue::TryFromJSON(yyjson_val *obj, optional<StringTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ StringTypeValue StringTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 StringTypeValue StringTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return StringTypeValue(std::move(value_tmp));
+	return StringTypeValue(*this);
 }
 
 string StringTypeValue::Validate() const {

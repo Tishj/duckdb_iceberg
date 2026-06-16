@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AddViewVersionUpdate::AddViewVersionUpdate(BaseUpdate base_update_p, ViewVersion view_version_p)
     : base_update(std::move(base_update_p)), view_version(std::move(view_version_p)) {
 }
+AddViewVersionUpdate::AddViewVersionUpdate(const AddViewVersionUpdate &other)
+    : base_update(other.base_update.Copy()), view_version(other.view_version.Copy()) {
+}
+AddViewVersionUpdate::AddViewVersionUpdate(AddViewVersionUpdate &&other)
+    : AddViewVersionUpdate(static_cast<const AddViewVersionUpdate &>(other)) {
+}
 
 AddViewVersionUpdateBuilder::AddViewVersionUpdateBuilder() {
 }
@@ -81,12 +87,7 @@ AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AddViewVersionUpdate AddViewVersionUpdate::Copy() const {
-	AddViewVersionUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto view_version_tmp = view_version.Copy();
-	builder.SetViewVersion(std::move(view_version_tmp));
-	return builder.Build();
+	return AddViewVersionUpdate(*this);
 }
 
 string AddViewVersionUpdate::Validate() const {

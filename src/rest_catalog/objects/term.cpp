@@ -18,6 +18,13 @@ namespace rest_api_objects {
 Term::Term(optional<Reference> reference_p, optional<TransformTerm> transform_term_p)
     : reference(std::move(reference_p)), transform_term(std::move(transform_term_p)) {
 }
+Term::Term(const Term &other)
+    : reference((other.reference.has_value() ? optional<Reference>((*other.reference).Copy()) : optional<Reference>())),
+      transform_term((other.transform_term.has_value() ? optional<TransformTerm>((*other.transform_term).Copy())
+                                                       : optional<TransformTerm>())) {
+}
+Term::Term(Term &&other) : Term(static_cast<const Term &>(other)) {
+}
 
 TermBuilder::TermBuilder() {
 }
@@ -83,22 +90,7 @@ Term Term::FromJSON(yyjson_val *obj) {
 }
 
 Term Term::Copy() const {
-	TermBuilder builder;
-	optional<Reference> reference_tmp;
-	if (reference.has_value()) {
-		reference_tmp.emplace((*reference).Copy());
-	}
-	if (reference_tmp.has_value()) {
-		builder.SetReference(std::move(*reference_tmp));
-	}
-	optional<TransformTerm> transform_term_tmp;
-	if (transform_term.has_value()) {
-		transform_term_tmp.emplace((*transform_term).Copy());
-	}
-	if (transform_term_tmp.has_value()) {
-		builder.SetTransformTerm(std::move(*transform_term_tmp));
-	}
-	return builder.Build();
+	return Term(*this);
 }
 
 string Term::Validate() const {

@@ -19,7 +19,19 @@ CompletedPlanningWithIDResult::CompletedPlanningWithIDResult(CompletedPlanningRe
                                                              Object6 object_6_p)
     : completed_planning_result(std::move(completed_planning_result_p)), object_6(std::move(object_6_p)) {
 }
+CompletedPlanningWithIDResult::CompletedPlanningWithIDResult(const CompletedPlanningWithIDResult &other)
+    : completed_planning_result(other.completed_planning_result.Copy()), object_6(other.object_6.Copy()) {
+}
+CompletedPlanningWithIDResult::CompletedPlanningWithIDResult(CompletedPlanningWithIDResult &&other)
+    : CompletedPlanningWithIDResult(static_cast<const CompletedPlanningWithIDResult &>(other)) {
+}
 CompletedPlanningWithIDResult::Object6::Object6(string plan_id_p) : plan_id(std::move(plan_id_p)) {
+}
+CompletedPlanningWithIDResult::Object6::Object6(const CompletedPlanningWithIDResult::Object6 &other)
+    : plan_id(other.plan_id) {
+}
+CompletedPlanningWithIDResult::Object6::Object6(CompletedPlanningWithIDResult::Object6 &&other)
+    : Object6(static_cast<const CompletedPlanningWithIDResult::Object6 &>(other)) {
 }
 
 CompletedPlanningWithIDResult::Object6Builder::Object6Builder() {
@@ -87,11 +99,7 @@ CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::F
 }
 
 CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::Copy() const {
-	Object6Builder builder;
-	string plan_id_tmp;
-	plan_id_tmp = plan_id;
-	builder.SetPlanId(std::move(plan_id_tmp));
-	return builder.Build();
+	return CompletedPlanningWithIDResult::Object6(*this);
 }
 
 string CompletedPlanningWithIDResult::Object6::Validate() const {
@@ -169,12 +177,7 @@ CompletedPlanningWithIDResult CompletedPlanningWithIDResult::FromJSON(yyjson_val
 }
 
 CompletedPlanningWithIDResult CompletedPlanningWithIDResult::Copy() const {
-	CompletedPlanningWithIDResultBuilder builder;
-	auto completed_planning_result_tmp = completed_planning_result.Copy();
-	builder.SetCompletedPlanningResult(std::move(completed_planning_result_tmp));
-	auto object_6_tmp = object_6.Copy();
-	builder.SetObject6(std::move(object_6_tmp));
-	return builder.Build();
+	return CompletedPlanningWithIDResult(*this);
 }
 
 string CompletedPlanningWithIDResult::Validate() const {

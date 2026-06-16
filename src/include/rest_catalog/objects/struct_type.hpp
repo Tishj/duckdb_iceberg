@@ -19,9 +19,9 @@ class StructTypeBuilder;
 
 class StructType {
 public:
-	StructType(const StructType &) = delete;
+	StructType(const StructType &);
 	StructType &operator=(const StructType &) = delete;
-	StructType(StructType &&) = default;
+	StructType(StructType &&);
 	StructType &operator=(StructType &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	vector<unique_ptr<StructField>> fields;
+	const string type;
+	const vector<unique_ptr<StructField>> fields;
 };
 
 class StructTypeBuilder {

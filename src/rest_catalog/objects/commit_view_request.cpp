@@ -19,6 +19,30 @@ CommitViewRequest::CommitViewRequest(vector<ViewUpdate> updates_p, optional<Tabl
                                      optional<vector<ViewRequirement>> requirements_p)
     : updates(std::move(updates_p)), identifier(std::move(identifier_p)), requirements(std::move(requirements_p)) {
 }
+CommitViewRequest::CommitViewRequest(const CommitViewRequest &other)
+    : updates(([&]() {
+	      vector<ViewUpdate> copied;
+	      copied.reserve(other.updates.size());
+	      for (const auto &item : other.updates) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      identifier((other.identifier.has_value() ? optional<TableIdentifier>((*other.identifier).Copy())
+                                               : optional<TableIdentifier>())),
+      requirements((other.requirements.has_value() ? optional<vector<ViewRequirement>>(([&]() {
+	      vector<ViewRequirement> copied;
+	      copied.reserve((*other.requirements).size());
+	      for (const auto &item : (*other.requirements)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                   : optional<vector<ViewRequirement>>())) {
+}
+CommitViewRequest::CommitViewRequest(CommitViewRequest &&other)
+    : CommitViewRequest(static_cast<const CommitViewRequest &>(other)) {
+}
 
 CommitViewRequestBuilder::CommitViewRequestBuilder() {
 }
@@ -120,32 +144,7 @@ CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
 }
 
 CommitViewRequest CommitViewRequest::Copy() const {
-	CommitViewRequestBuilder builder;
-	vector<ViewUpdate> updates_tmp;
-	updates_tmp.reserve(updates.size());
-	for (auto &item : updates) {
-		updates_tmp.emplace_back(item.Copy());
-	}
-	builder.SetUpdates(std::move(updates_tmp));
-	optional<TableIdentifier> identifier_tmp;
-	if (identifier.has_value()) {
-		identifier_tmp.emplace((*identifier).Copy());
-	}
-	if (identifier_tmp.has_value()) {
-		builder.SetIdentifier(std::move(*identifier_tmp));
-	}
-	optional<vector<ViewRequirement>> requirements_tmp;
-	if (requirements.has_value()) {
-		requirements_tmp.emplace();
-		(*requirements_tmp).reserve((*requirements).size());
-		for (auto &item : (*requirements)) {
-			(*requirements_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (requirements_tmp.has_value()) {
-		builder.SetRequirements(std::move((*requirements_tmp)));
-	}
-	return builder.Build();
+	return CommitViewRequest(*this);
 }
 
 string CommitViewRequest::Validate() const {

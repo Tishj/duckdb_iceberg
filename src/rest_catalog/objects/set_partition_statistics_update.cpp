@@ -19,6 +19,12 @@ SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate(BaseUpdate base_updat
                                                            PartitionStatisticsFile partition_statistics_p)
     : base_update(std::move(base_update_p)), partition_statistics(std::move(partition_statistics_p)) {
 }
+SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate(const SetPartitionStatisticsUpdate &other)
+    : base_update(other.base_update.Copy()), partition_statistics(other.partition_statistics.Copy()) {
+}
+SetPartitionStatisticsUpdate::SetPartitionStatisticsUpdate(SetPartitionStatisticsUpdate &&other)
+    : SetPartitionStatisticsUpdate(static_cast<const SetPartitionStatisticsUpdate &>(other)) {
+}
 
 SetPartitionStatisticsUpdateBuilder::SetPartitionStatisticsUpdateBuilder() {
 }
@@ -84,12 +90,7 @@ SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *
 }
 
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::Copy() const {
-	SetPartitionStatisticsUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto partition_statistics_tmp = partition_statistics.Copy();
-	builder.SetPartitionStatistics(std::move(partition_statistics_tmp));
-	return builder.Build();
+	return SetPartitionStatisticsUpdate(*this);
 }
 
 string SetPartitionStatisticsUpdate::Validate() const {

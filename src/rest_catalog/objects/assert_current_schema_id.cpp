@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AssertCurrentSchemaId::AssertCurrentSchemaId(TableRequirementType type_p, int32_t current_schema_id_p)
     : type(std::move(type_p)), current_schema_id(std::move(current_schema_id_p)) {
 }
+AssertCurrentSchemaId::AssertCurrentSchemaId(const AssertCurrentSchemaId &other)
+    : type(other.type.Copy()), current_schema_id(other.current_schema_id) {
+}
+AssertCurrentSchemaId::AssertCurrentSchemaId(AssertCurrentSchemaId &&other)
+    : AssertCurrentSchemaId(static_cast<const AssertCurrentSchemaId &>(other)) {
+}
 
 AssertCurrentSchemaIdBuilder::AssertCurrentSchemaIdBuilder() {
 }
@@ -98,13 +104,7 @@ AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
 }
 
 AssertCurrentSchemaId AssertCurrentSchemaId::Copy() const {
-	AssertCurrentSchemaIdBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	int32_t current_schema_id_tmp;
-	current_schema_id_tmp = current_schema_id;
-	builder.SetCurrentSchemaId(std::move(current_schema_id_tmp));
-	return builder.Build();
+	return AssertCurrentSchemaId(*this);
 }
 
 string AssertCurrentSchemaId::Validate() const {

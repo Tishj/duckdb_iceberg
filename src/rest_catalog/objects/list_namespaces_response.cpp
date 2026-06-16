@@ -19,6 +19,22 @@ ListNamespacesResponse::ListNamespacesResponse(optional<PageToken> next_page_tok
                                                optional<vector<Namespace>> namespaces_p)
     : next_page_token(std::move(next_page_token_p)), namespaces(std::move(namespaces_p)) {
 }
+ListNamespacesResponse::ListNamespacesResponse(const ListNamespacesResponse &other)
+    : next_page_token((other.next_page_token.has_value() ? optional<PageToken>((*other.next_page_token).Copy())
+                                                         : optional<PageToken>())),
+      namespaces((other.namespaces.has_value() ? optional<vector<Namespace>>(([&]() {
+	      vector<Namespace> copied;
+	      copied.reserve((*other.namespaces).size());
+	      for (const auto &item : (*other.namespaces)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                               : optional<vector<Namespace>>())) {
+}
+ListNamespacesResponse::ListNamespacesResponse(ListNamespacesResponse &&other)
+    : ListNamespacesResponse(static_cast<const ListNamespacesResponse &>(other)) {
+}
 
 ListNamespacesResponseBuilder::ListNamespacesResponseBuilder() {
 }
@@ -92,26 +108,7 @@ ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
 }
 
 ListNamespacesResponse ListNamespacesResponse::Copy() const {
-	ListNamespacesResponseBuilder builder;
-	optional<PageToken> next_page_token_tmp;
-	if (next_page_token.has_value()) {
-		next_page_token_tmp.emplace((*next_page_token).Copy());
-	}
-	if (next_page_token_tmp.has_value()) {
-		builder.SetNextPageToken(std::move(*next_page_token_tmp));
-	}
-	optional<vector<Namespace>> namespaces_tmp;
-	if (namespaces.has_value()) {
-		namespaces_tmp.emplace();
-		(*namespaces_tmp).reserve((*namespaces).size());
-		for (auto &item : (*namespaces)) {
-			(*namespaces_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (namespaces_tmp.has_value()) {
-		builder.SetNamespaces(std::move((*namespaces_tmp)));
-	}
-	return builder.Build();
+	return ListNamespacesResponse(*this);
 }
 
 string ListNamespacesResponse::Validate() const {

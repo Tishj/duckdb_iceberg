@@ -20,6 +20,37 @@ ScanTasks::ScanTasks(optional<vector<DeleteFile>> delete_files_p, optional<vecto
     : delete_files(std::move(delete_files_p)), file_scan_tasks(std::move(file_scan_tasks_p)),
       plan_tasks(std::move(plan_tasks_p)) {
 }
+ScanTasks::ScanTasks(const ScanTasks &other)
+    : delete_files((other.delete_files.has_value() ? optional<vector<DeleteFile>>(([&]() {
+	      vector<DeleteFile> copied;
+	      copied.reserve((*other.delete_files).size());
+	      for (const auto &item : (*other.delete_files)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                   : optional<vector<DeleteFile>>())),
+      file_scan_tasks((other.file_scan_tasks.has_value() ? optional<vector<FileScanTask>>(([&]() {
+	      vector<FileScanTask> copied;
+	      copied.reserve((*other.file_scan_tasks).size());
+	      for (const auto &item : (*other.file_scan_tasks)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                         : optional<vector<FileScanTask>>())),
+      plan_tasks((other.plan_tasks.has_value() ? optional<vector<PlanTask>>(([&]() {
+	      vector<PlanTask> copied;
+	      copied.reserve((*other.plan_tasks).size());
+	      for (const auto &item : (*other.plan_tasks)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                               : optional<vector<PlanTask>>())) {
+}
+ScanTasks::ScanTasks(ScanTasks &&other) : ScanTasks(static_cast<const ScanTasks &>(other)) {
+}
 
 ScanTasksBuilder::ScanTasksBuilder() {
 }
@@ -128,41 +159,7 @@ ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
 }
 
 ScanTasks ScanTasks::Copy() const {
-	ScanTasksBuilder builder;
-	optional<vector<DeleteFile>> delete_files_tmp;
-	if (delete_files.has_value()) {
-		delete_files_tmp.emplace();
-		(*delete_files_tmp).reserve((*delete_files).size());
-		for (auto &item : (*delete_files)) {
-			(*delete_files_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (delete_files_tmp.has_value()) {
-		builder.SetDeleteFiles(std::move((*delete_files_tmp)));
-	}
-	optional<vector<FileScanTask>> file_scan_tasks_tmp;
-	if (file_scan_tasks.has_value()) {
-		file_scan_tasks_tmp.emplace();
-		(*file_scan_tasks_tmp).reserve((*file_scan_tasks).size());
-		for (auto &item : (*file_scan_tasks)) {
-			(*file_scan_tasks_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (file_scan_tasks_tmp.has_value()) {
-		builder.SetFileScanTasks(std::move((*file_scan_tasks_tmp)));
-	}
-	optional<vector<PlanTask>> plan_tasks_tmp;
-	if (plan_tasks.has_value()) {
-		plan_tasks_tmp.emplace();
-		(*plan_tasks_tmp).reserve((*plan_tasks).size());
-		for (auto &item : (*plan_tasks)) {
-			(*plan_tasks_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (plan_tasks_tmp.has_value()) {
-		builder.SetPlanTasks(std::move((*plan_tasks_tmp)));
-	}
-	return builder.Build();
+	return ScanTasks(*this);
 }
 
 string ScanTasks::Validate() const {

@@ -20,9 +20,9 @@ class ContentFileBuilder;
 
 class ContentFile {
 public:
-	ContentFile(const ContentFile &) = delete;
+	ContentFile(const ContentFile &);
 	ContentFile &operator=(const ContentFile &) = delete;
-	ContentFile(ContentFile &&) = default;
+	ContentFile(ContentFile &&);
 	ContentFile &operator=(ContentFile &&) = delete;
 
 private:
@@ -46,16 +46,16 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t spec_id;
-	vector<PrimitiveTypeValue> partition;
-	string content;
-	string file_path;
-	FileFormat file_format;
-	int64_t file_size_in_bytes;
-	int64_t record_count;
-	optional<BinaryTypeValue> key_metadata;
-	optional<vector<int64_t>> split_offsets;
-	optional<int32_t> sort_order_id;
+	const int32_t spec_id;
+	const vector<PrimitiveTypeValue> partition;
+	const string content;
+	const string file_path;
+	const FileFormat file_format;
+	const int64_t file_size_in_bytes;
+	const int64_t record_count;
+	const optional<BinaryTypeValue> key_metadata;
+	const optional<vector<int64_t>> split_offsets;
+	const optional<int32_t> sort_order_id;
 };
 
 class ContentFileBuilder {

@@ -23,6 +23,43 @@ ViewMetadata::ViewMetadata(string view_uuid_p, int32_t format_version_p, string 
       current_version_id(std::move(current_version_id_p)), versions(std::move(versions_p)),
       version_log(std::move(version_log_p)), schemas(std::move(schemas_p)), properties(std::move(properties_p)) {
 }
+ViewMetadata::ViewMetadata(const ViewMetadata &other)
+    : view_uuid(other.view_uuid), format_version(other.format_version), location(other.location),
+      current_version_id(other.current_version_id), versions(([&]() {
+	      vector<ViewVersion> copied;
+	      copied.reserve(other.versions.size());
+	      for (const auto &item : other.versions) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      version_log(([&]() {
+	      vector<ViewHistoryEntry> copied;
+	      copied.reserve(other.version_log.size());
+	      for (const auto &item : other.version_log) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      schemas(([&]() {
+	      vector<Schema> copied;
+	      copied.reserve(other.schemas.size());
+	      for (const auto &item : other.schemas) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      properties((other.properties.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.properties)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                               : optional<case_insensitive_map_t<string>>())) {
+}
+ViewMetadata::ViewMetadata(ViewMetadata &&other) : ViewMetadata(static_cast<const ViewMetadata &>(other)) {
+}
 
 ViewMetadataBuilder::ViewMetadataBuilder() {
 }
@@ -271,48 +308,7 @@ ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
 }
 
 ViewMetadata ViewMetadata::Copy() const {
-	ViewMetadataBuilder builder;
-	string view_uuid_tmp;
-	view_uuid_tmp = view_uuid;
-	builder.SetViewUuid(std::move(view_uuid_tmp));
-	int32_t format_version_tmp;
-	format_version_tmp = format_version;
-	builder.SetFormatVersion(std::move(format_version_tmp));
-	string location_tmp;
-	location_tmp = location;
-	builder.SetLocation(std::move(location_tmp));
-	int32_t current_version_id_tmp;
-	current_version_id_tmp = current_version_id;
-	builder.SetCurrentVersionId(std::move(current_version_id_tmp));
-	vector<ViewVersion> versions_tmp;
-	versions_tmp.reserve(versions.size());
-	for (auto &item : versions) {
-		versions_tmp.emplace_back(item.Copy());
-	}
-	builder.SetVersions(std::move(versions_tmp));
-	vector<ViewHistoryEntry> version_log_tmp;
-	version_log_tmp.reserve(version_log.size());
-	for (auto &item : version_log) {
-		version_log_tmp.emplace_back(item.Copy());
-	}
-	builder.SetVersionLog(std::move(version_log_tmp));
-	vector<Schema> schemas_tmp;
-	schemas_tmp.reserve(schemas.size());
-	for (auto &item : schemas) {
-		schemas_tmp.emplace_back(item.Copy());
-	}
-	builder.SetSchemas(std::move(schemas_tmp));
-	optional<case_insensitive_map_t<string>> properties_tmp;
-	if (properties.has_value()) {
-		properties_tmp.emplace();
-		for (auto &entry : (*properties)) {
-			(*properties_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move((*properties_tmp)));
-	}
-	return builder.Build();
+	return ViewMetadata(*this);
 }
 
 string ViewMetadata::Validate() const {

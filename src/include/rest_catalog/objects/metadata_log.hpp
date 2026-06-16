@@ -15,17 +15,17 @@ namespace rest_api_objects {
 
 class MetadataLog {
 public:
-	MetadataLog(const MetadataLog &) = delete;
+	MetadataLog(const MetadataLog &);
 	MetadataLog &operator=(const MetadataLog &) = delete;
-	MetadataLog(MetadataLog &&) = default;
+	MetadataLog(MetadataLog &&);
 	MetadataLog &operator=(MetadataLog &&) = delete;
 	class Object4Builder;
 
 	class Object4 {
 	public:
-		Object4(const Object4 &) = delete;
+		Object4(const Object4 &);
 		Object4 &operator=(const Object4 &) = delete;
-		Object4(Object4 &&) = default;
+		Object4(Object4 &&);
 		Object4 &operator=(Object4 &&) = delete;
 
 	private:
@@ -46,8 +46,8 @@ public:
 		yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 	public:
-		string metadata_file;
-		int64_t timestamp_ms;
+		const string metadata_file;
+		const int64_t timestamp_ms;
 	};
 
 	class Object4Builder {
@@ -80,7 +80,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<Object4> value;
+	const vector<Object4> value;
 };
 
 } // namespace rest_api_objects

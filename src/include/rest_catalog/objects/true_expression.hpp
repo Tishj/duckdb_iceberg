@@ -18,9 +18,9 @@ class TrueExpressionBuilder;
 
 class TrueExpression {
 public:
-	TrueExpression(const TrueExpression &) = delete;
+	TrueExpression(const TrueExpression &);
 	TrueExpression &operator=(const TrueExpression &) = delete;
-	TrueExpression(TrueExpression &&) = default;
+	TrueExpression(TrueExpression &&);
 	TrueExpression &operator=(TrueExpression &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
+	const ExpressionType type;
 };
 
 class TrueExpressionBuilder {

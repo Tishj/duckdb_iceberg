@@ -18,6 +18,17 @@ namespace rest_api_objects {
 Metrics::Metrics(case_insensitive_map_t<MetricResult> additional_properties_p)
     : additional_properties(std::move(additional_properties_p)) {
 }
+Metrics::Metrics(const Metrics &other)
+    : additional_properties(([&]() {
+	      case_insensitive_map_t<MetricResult> copied;
+	      for (const auto &entry : other.additional_properties) {
+		      copied.emplace(entry.first, entry.second.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+Metrics::Metrics(Metrics &&other) : Metrics(static_cast<const Metrics &>(other)) {
+}
 
 MetricsBuilder::MetricsBuilder() {
 }
@@ -75,13 +86,7 @@ Metrics Metrics::FromJSON(yyjson_val *obj) {
 }
 
 Metrics Metrics::Copy() const {
-	MetricsBuilder builder;
-	case_insensitive_map_t<MetricResult> additional_properties_tmp;
-	for (auto &entry : additional_properties) {
-		additional_properties_tmp.emplace(entry.first, entry.second.Copy());
-	}
-	builder.SetAdditionalProperties(std::move(additional_properties_tmp));
-	return builder.Build();
+	return Metrics(*this);
 }
 
 string Metrics::Validate() const {

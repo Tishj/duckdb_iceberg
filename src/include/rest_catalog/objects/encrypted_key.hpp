@@ -17,9 +17,9 @@ class EncryptedKeyBuilder;
 
 class EncryptedKey {
 public:
-	EncryptedKey(const EncryptedKey &) = delete;
+	EncryptedKey(const EncryptedKey &);
 	EncryptedKey &operator=(const EncryptedKey &) = delete;
-	EncryptedKey(EncryptedKey &&) = default;
+	EncryptedKey(EncryptedKey &&);
 	EncryptedKey &operator=(EncryptedKey &&) = delete;
 
 private:
@@ -41,10 +41,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string key_id;
-	string encrypted_key_metadata;
-	optional<string> encrypted_by_id;
-	optional<case_insensitive_map_t<string>> properties;
+	const string key_id;
+	const string encrypted_key_metadata;
+	const optional<string> encrypted_by_id;
+	const optional<case_insensitive_map_t<string>> properties;
 };
 
 class EncryptedKeyBuilder {

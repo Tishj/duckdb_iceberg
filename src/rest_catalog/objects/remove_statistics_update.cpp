@@ -18,6 +18,12 @@ namespace rest_api_objects {
 RemoveStatisticsUpdate::RemoveStatisticsUpdate(BaseUpdate base_update_p, int64_t snapshot_id_p)
     : base_update(std::move(base_update_p)), snapshot_id(std::move(snapshot_id_p)) {
 }
+RemoveStatisticsUpdate::RemoveStatisticsUpdate(const RemoveStatisticsUpdate &other)
+    : base_update(other.base_update.Copy()), snapshot_id(other.snapshot_id) {
+}
+RemoveStatisticsUpdate::RemoveStatisticsUpdate(RemoveStatisticsUpdate &&other)
+    : RemoveStatisticsUpdate(static_cast<const RemoveStatisticsUpdate &>(other)) {
+}
 
 RemoveStatisticsUpdateBuilder::RemoveStatisticsUpdateBuilder() {
 }
@@ -91,13 +97,7 @@ RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
 }
 
 RemoveStatisticsUpdate RemoveStatisticsUpdate::Copy() const {
-	RemoveStatisticsUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	return builder.Build();
+	return RemoveStatisticsUpdate(*this);
 }
 
 string RemoveStatisticsUpdate::Validate() const {

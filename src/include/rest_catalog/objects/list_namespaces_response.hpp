@@ -19,9 +19,9 @@ class ListNamespacesResponseBuilder;
 
 class ListNamespacesResponse {
 public:
-	ListNamespacesResponse(const ListNamespacesResponse &) = delete;
+	ListNamespacesResponse(const ListNamespacesResponse &);
 	ListNamespacesResponse &operator=(const ListNamespacesResponse &) = delete;
-	ListNamespacesResponse(ListNamespacesResponse &&) = default;
+	ListNamespacesResponse(ListNamespacesResponse &&);
 	ListNamespacesResponse &operator=(ListNamespacesResponse &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<PageToken> next_page_token;
-	optional<vector<Namespace>> namespaces;
+	const optional<PageToken> next_page_token;
+	const optional<vector<Namespace>> namespaces;
 };
 
 class ListNamespacesResponseBuilder {

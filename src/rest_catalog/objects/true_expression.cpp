@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 TrueExpression::TrueExpression(ExpressionType type_p) : type(std::move(type_p)) {
 }
+TrueExpression::TrueExpression(const TrueExpression &other) : type(other.type.Copy()) {
+}
+TrueExpression::TrueExpression(TrueExpression &&other) : TrueExpression(static_cast<const TrueExpression &>(other)) {
+}
 
 TrueExpressionBuilder::TrueExpressionBuilder() {
 }
@@ -74,10 +78,7 @@ TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
 }
 
 TrueExpression TrueExpression::Copy() const {
-	TrueExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	return builder.Build();
+	return TrueExpression(*this);
 }
 
 string TrueExpression::Validate() const {

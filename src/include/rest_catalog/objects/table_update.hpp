@@ -38,9 +38,9 @@ class TableUpdateBuilder;
 
 class TableUpdate {
 public:
-	TableUpdate(const TableUpdate &) = delete;
+	TableUpdate(const TableUpdate &);
 	TableUpdate &operator=(const TableUpdate &) = delete;
-	TableUpdate(TableUpdate &&) = default;
+	TableUpdate(TableUpdate &&);
 	TableUpdate &operator=(TableUpdate &&) = delete;
 
 private:
@@ -78,27 +78,27 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<AssignUUIDUpdate> assign_uuidupdate;
-	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update;
-	optional<AddSchemaUpdate> add_schema_update;
-	optional<SetCurrentSchemaUpdate> set_current_schema_update;
-	optional<AddPartitionSpecUpdate> add_partition_spec_update;
-	optional<SetDefaultSpecUpdate> set_default_spec_update;
-	optional<AddSortOrderUpdate> add_sort_order_update;
-	optional<SetDefaultSortOrderUpdate> set_default_sort_order_update;
-	optional<AddSnapshotUpdate> add_snapshot_update;
-	optional<SetSnapshotRefUpdate> set_snapshot_ref_update;
-	optional<RemoveSnapshotsUpdate> remove_snapshots_update;
-	optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update;
-	optional<SetLocationUpdate> set_location_update;
-	optional<SetPropertiesUpdate> set_properties_update;
-	optional<RemovePropertiesUpdate> remove_properties_update;
-	optional<SetStatisticsUpdate> set_statistics_update;
-	optional<RemoveStatisticsUpdate> remove_statistics_update;
-	optional<RemovePartitionSpecsUpdate> remove_partition_specs_update;
-	optional<RemoveSchemasUpdate> remove_schemas_update;
-	optional<AddEncryptionKeyUpdate> add_encryption_key_update;
-	optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update;
+	const optional<AssignUUIDUpdate> assign_uuidupdate;
+	const optional<UpgradeFormatVersionUpdate> upgrade_format_version_update;
+	const optional<AddSchemaUpdate> add_schema_update;
+	const optional<SetCurrentSchemaUpdate> set_current_schema_update;
+	const optional<AddPartitionSpecUpdate> add_partition_spec_update;
+	const optional<SetDefaultSpecUpdate> set_default_spec_update;
+	const optional<AddSortOrderUpdate> add_sort_order_update;
+	const optional<SetDefaultSortOrderUpdate> set_default_sort_order_update;
+	const optional<AddSnapshotUpdate> add_snapshot_update;
+	const optional<SetSnapshotRefUpdate> set_snapshot_ref_update;
+	const optional<RemoveSnapshotsUpdate> remove_snapshots_update;
+	const optional<RemoveSnapshotRefUpdate> remove_snapshot_ref_update;
+	const optional<SetLocationUpdate> set_location_update;
+	const optional<SetPropertiesUpdate> set_properties_update;
+	const optional<RemovePropertiesUpdate> remove_properties_update;
+	const optional<SetStatisticsUpdate> set_statistics_update;
+	const optional<RemoveStatisticsUpdate> remove_statistics_update;
+	const optional<RemovePartitionSpecsUpdate> remove_partition_specs_update;
+	const optional<RemoveSchemasUpdate> remove_schemas_update;
+	const optional<AddEncryptionKeyUpdate> add_encryption_key_update;
+	const optional<RemoveEncryptionKeyUpdate> remove_encryption_key_update;
 };
 
 class TableUpdateBuilder {

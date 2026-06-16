@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AddSortOrderUpdate::AddSortOrderUpdate(BaseUpdate base_update_p, SortOrder sort_order_p)
     : base_update(std::move(base_update_p)), sort_order(std::move(sort_order_p)) {
 }
+AddSortOrderUpdate::AddSortOrderUpdate(const AddSortOrderUpdate &other)
+    : base_update(other.base_update.Copy()), sort_order(other.sort_order.Copy()) {
+}
+AddSortOrderUpdate::AddSortOrderUpdate(AddSortOrderUpdate &&other)
+    : AddSortOrderUpdate(static_cast<const AddSortOrderUpdate &>(other)) {
+}
 
 AddSortOrderUpdateBuilder::AddSortOrderUpdateBuilder() {
 }
@@ -81,12 +87,7 @@ AddSortOrderUpdate AddSortOrderUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AddSortOrderUpdate AddSortOrderUpdate::Copy() const {
-	AddSortOrderUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto sort_order_tmp = sort_order.Copy();
-	builder.SetSortOrder(std::move(sort_order_tmp));
-	return builder.Build();
+	return AddSortOrderUpdate(*this);
 }
 
 string AddSortOrderUpdate::Validate() const {

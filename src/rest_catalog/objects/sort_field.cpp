@@ -19,6 +19,12 @@ SortField::SortField(int32_t source_id_p, Transform transform_p, SortDirection d
     : source_id(std::move(source_id_p)), transform(std::move(transform_p)), direction(std::move(direction_p)),
       null_order(std::move(null_order_p)) {
 }
+SortField::SortField(const SortField &other)
+    : source_id(other.source_id), transform(other.transform.Copy()), direction(other.direction.Copy()),
+      null_order(other.null_order.Copy()) {
+}
+SortField::SortField(SortField &&other) : SortField(static_cast<const SortField &>(other)) {
+}
 
 SortFieldBuilder::SortFieldBuilder() {
 }
@@ -130,17 +136,7 @@ SortField SortField::FromJSON(yyjson_val *obj) {
 }
 
 SortField SortField::Copy() const {
-	SortFieldBuilder builder;
-	int32_t source_id_tmp;
-	source_id_tmp = source_id;
-	builder.SetSourceId(std::move(source_id_tmp));
-	auto transform_tmp = transform.Copy();
-	builder.SetTransform(std::move(transform_tmp));
-	auto direction_tmp = direction.Copy();
-	builder.SetDirection(std::move(direction_tmp));
-	auto null_order_tmp = null_order.Copy();
-	builder.SetNullOrder(std::move(null_order_tmp));
-	return builder.Build();
+	return SortField(*this);
 }
 
 string SortField::Validate() const {

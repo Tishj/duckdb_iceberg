@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 DateTypeValue::DateTypeValue(string value_p) : value(std::move(value_p)) {
 }
+DateTypeValue::DateTypeValue(const DateTypeValue &other) : value(other.value) {
+}
+DateTypeValue::DateTypeValue(DateTypeValue &&other) : DateTypeValue(static_cast<const DateTypeValue &>(other)) {
+}
 
 string DateTypeValue::TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &result) {
 	try {
@@ -49,9 +53,7 @@ DateTypeValue DateTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 DateTypeValue DateTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return DateTypeValue(std::move(value_tmp));
+	return DateTypeValue(*this);
 }
 
 string DateTypeValue::Validate() const {

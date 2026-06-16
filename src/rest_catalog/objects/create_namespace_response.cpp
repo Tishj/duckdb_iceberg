@@ -19,6 +19,20 @@ CreateNamespaceResponse::CreateNamespaceResponse(Namespace _namespace_p,
                                                  optional<case_insensitive_map_t<string>> properties_p)
     : _namespace(std::move(_namespace_p)), properties(std::move(properties_p)) {
 }
+CreateNamespaceResponse::CreateNamespaceResponse(const CreateNamespaceResponse &other)
+    : _namespace(other._namespace.Copy()),
+      properties((other.properties.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.properties)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                               : optional<case_insensitive_map_t<string>>())) {
+}
+CreateNamespaceResponse::CreateNamespaceResponse(CreateNamespaceResponse &&other)
+    : CreateNamespaceResponse(static_cast<const CreateNamespaceResponse &>(other)) {
+}
 
 CreateNamespaceResponseBuilder::CreateNamespaceResponseBuilder() {
 }
@@ -104,20 +118,7 @@ CreateNamespaceResponse CreateNamespaceResponse::FromJSON(yyjson_val *obj) {
 }
 
 CreateNamespaceResponse CreateNamespaceResponse::Copy() const {
-	CreateNamespaceResponseBuilder builder;
-	auto _namespace_tmp = _namespace.Copy();
-	builder.SetNamespace(std::move(_namespace_tmp));
-	optional<case_insensitive_map_t<string>> properties_tmp;
-	if (properties.has_value()) {
-		properties_tmp.emplace();
-		for (auto &entry : (*properties)) {
-			(*properties_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move((*properties_tmp)));
-	}
-	return builder.Build();
+	return CreateNamespaceResponse(*this);
 }
 
 string CreateNamespaceResponse::Validate() const {

@@ -18,9 +18,9 @@ class ViewRequirementBuilder;
 
 class ViewRequirement {
 public:
-	ViewRequirement(const ViewRequirement &) = delete;
+	ViewRequirement(const ViewRequirement &);
 	ViewRequirement &operator=(const ViewRequirement &) = delete;
-	ViewRequirement(ViewRequirement &&) = default;
+	ViewRequirement(ViewRequirement &&);
 	ViewRequirement &operator=(ViewRequirement &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<AssertViewUUID> assert_view_uuid;
+	const optional<AssertViewUUID> assert_view_uuid;
 };
 
 class ViewRequirementBuilder {

@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AddSnapshotUpdate::AddSnapshotUpdate(BaseUpdate base_update_p, Snapshot snapshot_p)
     : base_update(std::move(base_update_p)), snapshot(std::move(snapshot_p)) {
 }
+AddSnapshotUpdate::AddSnapshotUpdate(const AddSnapshotUpdate &other)
+    : base_update(other.base_update.Copy()), snapshot(other.snapshot.Copy()) {
+}
+AddSnapshotUpdate::AddSnapshotUpdate(AddSnapshotUpdate &&other)
+    : AddSnapshotUpdate(static_cast<const AddSnapshotUpdate &>(other)) {
+}
 
 AddSnapshotUpdateBuilder::AddSnapshotUpdateBuilder() {
 }
@@ -81,12 +87,7 @@ AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AddSnapshotUpdate AddSnapshotUpdate::Copy() const {
-	AddSnapshotUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto snapshot_tmp = snapshot.Copy();
-	builder.SetSnapshot(std::move(snapshot_tmp));
-	return builder.Build();
+	return AddSnapshotUpdate(*this);
 }
 
 string AddSnapshotUpdate::Validate() const {

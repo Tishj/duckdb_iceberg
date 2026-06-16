@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 DoubleTypeValue::DoubleTypeValue(double value_p) : value(std::move(value_p)) {
 }
+DoubleTypeValue::DoubleTypeValue(const DoubleTypeValue &other) : value(other.value) {
+}
+DoubleTypeValue::DoubleTypeValue(DoubleTypeValue &&other)
+    : DoubleTypeValue(static_cast<const DoubleTypeValue &>(other)) {
+}
 
 string DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ DoubleTypeValue DoubleTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 DoubleTypeValue DoubleTypeValue::Copy() const {
-	double value_tmp;
-	value_tmp = value;
-	return DoubleTypeValue(std::move(value_tmp));
+	return DoubleTypeValue(*this);
 }
 
 string DoubleTypeValue::Validate() const {

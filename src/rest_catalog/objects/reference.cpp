@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 Reference::Reference(string value_p) : value(std::move(value_p)) {
 }
+Reference::Reference(const Reference &other) : value(other.value) {
+}
+Reference::Reference(Reference &&other) : Reference(static_cast<const Reference &>(other)) {
+}
 
 string Reference::TryFromJSON(yyjson_val *obj, optional<Reference> &result) {
 	try {
@@ -48,9 +52,7 @@ Reference Reference::FromJSON(yyjson_val *obj) {
 }
 
 Reference Reference::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return Reference(std::move(value_tmp));
+	return Reference(*this);
 }
 
 string Reference::Validate() const {

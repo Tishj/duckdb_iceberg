@@ -21,6 +21,31 @@ LoadTableResult::LoadTableResult(TableMetadata metadata_p, optional<string> meta
     : metadata(std::move(metadata_p)), metadata_location(std::move(metadata_location_p)), config(std::move(config_p)),
       storage_credentials(std::move(storage_credentials_p)) {
 }
+LoadTableResult::LoadTableResult(const LoadTableResult &other)
+    : metadata(other.metadata.Copy()),
+      metadata_location(
+          (other.metadata_location.has_value() ? optional<string>((*other.metadata_location)) : optional<string>())),
+      config((other.config.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.config)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                       : optional<case_insensitive_map_t<string>>())),
+      storage_credentials((other.storage_credentials.has_value() ? optional<vector<StorageCredential>>(([&]() {
+	      vector<StorageCredential> copied;
+	      copied.reserve((*other.storage_credentials).size());
+	      for (const auto &item : (*other.storage_credentials)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                                 : optional<vector<StorageCredential>>())) {
+}
+LoadTableResult::LoadTableResult(LoadTableResult &&other)
+    : LoadTableResult(static_cast<const LoadTableResult &>(other)) {
+}
 
 LoadTableResultBuilder::LoadTableResultBuilder() {
 }
@@ -150,39 +175,7 @@ LoadTableResult LoadTableResult::FromJSON(yyjson_val *obj) {
 }
 
 LoadTableResult LoadTableResult::Copy() const {
-	LoadTableResultBuilder builder;
-	auto metadata_tmp = metadata.Copy();
-	builder.SetMetadata(std::move(metadata_tmp));
-	optional<string> metadata_location_tmp;
-	if (metadata_location.has_value()) {
-		metadata_location_tmp.emplace();
-		(*metadata_location_tmp) = (*metadata_location);
-	}
-	if (metadata_location_tmp.has_value()) {
-		builder.SetMetadataLocation(std::move((*metadata_location_tmp)));
-	}
-	optional<case_insensitive_map_t<string>> config_tmp;
-	if (config.has_value()) {
-		config_tmp.emplace();
-		for (auto &entry : (*config)) {
-			(*config_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (config_tmp.has_value()) {
-		builder.SetConfig(std::move((*config_tmp)));
-	}
-	optional<vector<StorageCredential>> storage_credentials_tmp;
-	if (storage_credentials.has_value()) {
-		storage_credentials_tmp.emplace();
-		(*storage_credentials_tmp).reserve((*storage_credentials).size());
-		for (auto &item : (*storage_credentials)) {
-			(*storage_credentials_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (storage_credentials_tmp.has_value()) {
-		builder.SetStorageCredentials(std::move((*storage_credentials_tmp)));
-	}
-	return builder.Build();
+	return LoadTableResult(*this);
 }
 
 string LoadTableResult::Validate() const {

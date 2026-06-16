@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class BinaryTypeValue {
 public:
-	BinaryTypeValue(const BinaryTypeValue &) = delete;
+	BinaryTypeValue(const BinaryTypeValue &);
 	BinaryTypeValue &operator=(const BinaryTypeValue &) = delete;
-	BinaryTypeValue(BinaryTypeValue &&) = default;
+	BinaryTypeValue(BinaryTypeValue &&);
 	BinaryTypeValue &operator=(BinaryTypeValue &&) = delete;
 	BinaryTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class PlanStatus {
 public:
-	PlanStatus(const PlanStatus &) = delete;
+	PlanStatus(const PlanStatus &);
 	PlanStatus &operator=(const PlanStatus &) = delete;
-	PlanStatus(PlanStatus &&) = default;
+	PlanStatus(PlanStatus &&);
 	PlanStatus &operator=(PlanStatus &&) = delete;
 	PlanStatus(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

@@ -23,6 +23,37 @@ ScanReport::ScanReport(string table_name_p, int64_t snapshot_id_p, unique_ptr<Ex
       projected_field_names(std::move(projected_field_names_p)), metrics(std::move(metrics_p)),
       metadata(std::move(metadata_p)) {
 }
+ScanReport::ScanReport(const ScanReport &other)
+    : table_name(other.table_name), snapshot_id(other.snapshot_id),
+      filter(other.filter ? make_uniq<Expression>(other.filter->Copy()) : nullptr), schema_id(other.schema_id),
+      projected_field_ids(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve(other.projected_field_ids.size());
+	      for (const auto &item : other.projected_field_ids) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())),
+      projected_field_names(([&]() {
+	      vector<string> copied;
+	      copied.reserve(other.projected_field_names.size());
+	      for (const auto &item : other.projected_field_names) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())),
+      metrics(other.metrics.Copy()),
+      metadata((other.metadata.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.metadata)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                           : optional<case_insensitive_map_t<string>>())) {
+}
+ScanReport::ScanReport(ScanReport &&other) : ScanReport(static_cast<const ScanReport &>(other)) {
+}
 
 ScanReportBuilder::ScanReportBuilder() {
 }
@@ -268,44 +299,7 @@ ScanReport ScanReport::FromJSON(yyjson_val *obj) {
 }
 
 ScanReport ScanReport::Copy() const {
-	ScanReportBuilder builder;
-	string table_name_tmp;
-	table_name_tmp = table_name;
-	builder.SetTableName(std::move(table_name_tmp));
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	unique_ptr<Expression> filter_tmp;
-	filter_tmp = filter ? make_uniq<Expression>(filter->Copy()) : nullptr;
-	builder.SetFilter(std::move(filter_tmp));
-	int32_t schema_id_tmp;
-	schema_id_tmp = schema_id;
-	builder.SetSchemaId(std::move(schema_id_tmp));
-	vector<int32_t> projected_field_ids_tmp;
-	projected_field_ids_tmp.reserve(projected_field_ids.size());
-	for (auto &item : projected_field_ids) {
-		projected_field_ids_tmp.emplace_back(item);
-	}
-	builder.SetProjectedFieldIds(std::move(projected_field_ids_tmp));
-	vector<string> projected_field_names_tmp;
-	projected_field_names_tmp.reserve(projected_field_names.size());
-	for (auto &item : projected_field_names) {
-		projected_field_names_tmp.emplace_back(item);
-	}
-	builder.SetProjectedFieldNames(std::move(projected_field_names_tmp));
-	auto metrics_tmp = metrics.Copy();
-	builder.SetMetrics(std::move(metrics_tmp));
-	optional<case_insensitive_map_t<string>> metadata_tmp;
-	if (metadata.has_value()) {
-		metadata_tmp.emplace();
-		for (auto &entry : (*metadata)) {
-			(*metadata_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (metadata_tmp.has_value()) {
-		builder.SetMetadata(std::move((*metadata_tmp)));
-	}
-	return builder.Build();
+	return ScanReport(*this);
 }
 
 string ScanReport::Validate() const {

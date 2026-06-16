@@ -24,6 +24,26 @@ Expression::Expression(optional<TrueExpression> true_expression_p, optional<Fals
       set_expression(std::move(set_expression_p)), literal_expression(std::move(literal_expression_p)),
       unary_expression(std::move(unary_expression_p)) {
 }
+Expression::Expression(const Expression &other)
+    : true_expression((other.true_expression.has_value() ? optional<TrueExpression>((*other.true_expression).Copy())
+                                                         : optional<TrueExpression>())),
+      false_expression((other.false_expression.has_value() ? optional<FalseExpression>((*other.false_expression).Copy())
+                                                           : optional<FalseExpression>())),
+      and_or_expression((other.and_or_expression.has_value()
+                             ? optional<AndOrExpression>((*other.and_or_expression).Copy())
+                             : optional<AndOrExpression>())),
+      not_expression((other.not_expression.has_value() ? optional<NotExpression>((*other.not_expression).Copy())
+                                                       : optional<NotExpression>())),
+      set_expression((other.set_expression.has_value() ? optional<SetExpression>((*other.set_expression).Copy())
+                                                       : optional<SetExpression>())),
+      literal_expression((other.literal_expression.has_value()
+                              ? optional<LiteralExpression>((*other.literal_expression).Copy())
+                              : optional<LiteralExpression>())),
+      unary_expression((other.unary_expression.has_value() ? optional<UnaryExpression>((*other.unary_expression).Copy())
+                                                           : optional<UnaryExpression>())) {
+}
+Expression::Expression(Expression &&other) : Expression(static_cast<const Expression &>(other)) {
+}
 
 ExpressionBuilder::ExpressionBuilder() {
 }
@@ -141,57 +161,7 @@ Expression Expression::FromJSON(yyjson_val *obj) {
 }
 
 Expression Expression::Copy() const {
-	ExpressionBuilder builder;
-	optional<TrueExpression> true_expression_tmp;
-	if (true_expression.has_value()) {
-		true_expression_tmp.emplace((*true_expression).Copy());
-	}
-	if (true_expression_tmp.has_value()) {
-		builder.SetTrueExpression(std::move(*true_expression_tmp));
-	}
-	optional<FalseExpression> false_expression_tmp;
-	if (false_expression.has_value()) {
-		false_expression_tmp.emplace((*false_expression).Copy());
-	}
-	if (false_expression_tmp.has_value()) {
-		builder.SetFalseExpression(std::move(*false_expression_tmp));
-	}
-	optional<AndOrExpression> and_or_expression_tmp;
-	if (and_or_expression.has_value()) {
-		and_or_expression_tmp.emplace((*and_or_expression).Copy());
-	}
-	if (and_or_expression_tmp.has_value()) {
-		builder.SetAndOrExpression(std::move(*and_or_expression_tmp));
-	}
-	optional<NotExpression> not_expression_tmp;
-	if (not_expression.has_value()) {
-		not_expression_tmp.emplace((*not_expression).Copy());
-	}
-	if (not_expression_tmp.has_value()) {
-		builder.SetNotExpression(std::move(*not_expression_tmp));
-	}
-	optional<SetExpression> set_expression_tmp;
-	if (set_expression.has_value()) {
-		set_expression_tmp.emplace((*set_expression).Copy());
-	}
-	if (set_expression_tmp.has_value()) {
-		builder.SetSetExpression(std::move(*set_expression_tmp));
-	}
-	optional<LiteralExpression> literal_expression_tmp;
-	if (literal_expression.has_value()) {
-		literal_expression_tmp.emplace((*literal_expression).Copy());
-	}
-	if (literal_expression_tmp.has_value()) {
-		builder.SetLiteralExpression(std::move(*literal_expression_tmp));
-	}
-	optional<UnaryExpression> unary_expression_tmp;
-	if (unary_expression.has_value()) {
-		unary_expression_tmp.emplace((*unary_expression).Copy());
-	}
-	if (unary_expression_tmp.has_value()) {
-		builder.SetUnaryExpression(std::move(*unary_expression_tmp));
-	}
-	return builder.Build();
+	return Expression(*this);
 }
 
 string Expression::Validate() const {

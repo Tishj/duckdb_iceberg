@@ -17,9 +17,9 @@ class RegisterViewRequestBuilder;
 
 class RegisterViewRequest {
 public:
-	RegisterViewRequest(const RegisterViewRequest &) = delete;
+	RegisterViewRequest(const RegisterViewRequest &);
 	RegisterViewRequest &operator=(const RegisterViewRequest &) = delete;
-	RegisterViewRequest(RegisterViewRequest &&) = default;
+	RegisterViewRequest(RegisterViewRequest &&);
 	RegisterViewRequest &operator=(RegisterViewRequest &&) = delete;
 
 private:
@@ -40,8 +40,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string name;
-	string metadata_location;
+	const string name;
+	const string metadata_location;
 };
 
 class RegisterViewRequestBuilder {

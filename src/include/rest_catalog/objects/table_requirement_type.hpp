@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class TableRequirementType {
 public:
-	TableRequirementType(const TableRequirementType &) = delete;
+	TableRequirementType(const TableRequirementType &);
 	TableRequirementType &operator=(const TableRequirementType &) = delete;
-	TableRequirementType(TableRequirementType &&) = default;
+	TableRequirementType(TableRequirementType &&);
 	TableRequirementType &operator=(TableRequirementType &&) = delete;
 	TableRequirementType(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

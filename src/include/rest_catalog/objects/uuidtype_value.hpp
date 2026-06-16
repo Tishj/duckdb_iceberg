@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class UUIDTypeValue {
 public:
-	UUIDTypeValue(const UUIDTypeValue &) = delete;
+	UUIDTypeValue(const UUIDTypeValue &);
 	UUIDTypeValue &operator=(const UUIDTypeValue &) = delete;
-	UUIDTypeValue(UUIDTypeValue &&) = default;
+	UUIDTypeValue(UUIDTypeValue &&);
 	UUIDTypeValue &operator=(UUIDTypeValue &&) = delete;
 	UUIDTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

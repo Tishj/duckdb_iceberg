@@ -21,9 +21,9 @@ class TypeBuilder;
 
 class Type {
 public:
-	Type(const Type &) = delete;
+	Type(const Type &);
 	Type &operator=(const Type &) = delete;
-	Type(Type &&) = default;
+	Type(Type &&);
 	Type &operator=(Type &&) = delete;
 
 private:
@@ -44,10 +44,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<PrimitiveType> primitive_type;
-	optional<StructType> struct_type;
-	optional<ListType> list_type;
-	optional<MapType> map_type;
+	const optional<PrimitiveType> primitive_type;
+	const optional<StructType> struct_type;
+	const optional<ListType> list_type;
+	const optional<MapType> map_type;
 };
 
 class TypeBuilder {

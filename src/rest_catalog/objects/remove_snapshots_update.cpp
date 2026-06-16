@@ -18,6 +18,19 @@ namespace rest_api_objects {
 RemoveSnapshotsUpdate::RemoveSnapshotsUpdate(BaseUpdate base_update_p, vector<int64_t> snapshot_ids_p)
     : base_update(std::move(base_update_p)), snapshot_ids(std::move(snapshot_ids_p)) {
 }
+RemoveSnapshotsUpdate::RemoveSnapshotsUpdate(const RemoveSnapshotsUpdate &other)
+    : base_update(other.base_update.Copy()), snapshot_ids(([&]() {
+	      vector<int64_t> copied;
+	      copied.reserve(other.snapshot_ids.size());
+	      for (const auto &item : other.snapshot_ids) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())) {
+}
+RemoveSnapshotsUpdate::RemoveSnapshotsUpdate(RemoveSnapshotsUpdate &&other)
+    : RemoveSnapshotsUpdate(static_cast<const RemoveSnapshotsUpdate &>(other)) {
+}
 
 RemoveSnapshotsUpdateBuilder::RemoveSnapshotsUpdateBuilder() {
 }
@@ -103,16 +116,7 @@ RemoveSnapshotsUpdate RemoveSnapshotsUpdate::FromJSON(yyjson_val *obj) {
 }
 
 RemoveSnapshotsUpdate RemoveSnapshotsUpdate::Copy() const {
-	RemoveSnapshotsUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	vector<int64_t> snapshot_ids_tmp;
-	snapshot_ids_tmp.reserve(snapshot_ids.size());
-	for (auto &item : snapshot_ids) {
-		snapshot_ids_tmp.emplace_back(item);
-	}
-	builder.SetSnapshotIds(std::move(snapshot_ids_tmp));
-	return builder.Build();
+	return RemoveSnapshotsUpdate(*this);
 }
 
 string RemoveSnapshotsUpdate::Validate() const {

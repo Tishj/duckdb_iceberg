@@ -18,9 +18,9 @@ class AssertLastAssignedFieldIdBuilder;
 
 class AssertLastAssignedFieldId {
 public:
-	AssertLastAssignedFieldId(const AssertLastAssignedFieldId &) = delete;
+	AssertLastAssignedFieldId(const AssertLastAssignedFieldId &);
 	AssertLastAssignedFieldId &operator=(const AssertLastAssignedFieldId &) = delete;
-	AssertLastAssignedFieldId(AssertLastAssignedFieldId &&) = default;
+	AssertLastAssignedFieldId(AssertLastAssignedFieldId &&);
 	AssertLastAssignedFieldId &operator=(AssertLastAssignedFieldId &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	int32_t last_assigned_field_id;
+	const TableRequirementType type;
+	const int32_t last_assigned_field_id;
 };
 
 class AssertLastAssignedFieldIdBuilder {

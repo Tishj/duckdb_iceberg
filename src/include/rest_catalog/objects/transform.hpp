@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class Transform {
 public:
-	Transform(const Transform &) = delete;
+	Transform(const Transform &);
 	Transform &operator=(const Transform &) = delete;
-	Transform(Transform &&) = default;
+	Transform(Transform &&);
 	Transform &operator=(Transform &&) = delete;
 	Transform(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

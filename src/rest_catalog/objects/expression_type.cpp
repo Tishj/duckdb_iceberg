@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 ExpressionType::ExpressionType(string value_p) : value(std::move(value_p)) {
 }
+ExpressionType::ExpressionType(const ExpressionType &other) : value(other.value) {
+}
+ExpressionType::ExpressionType(ExpressionType &&other) : ExpressionType(static_cast<const ExpressionType &>(other)) {
+}
 
 string ExpressionType::TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result) {
 	try {
@@ -49,9 +53,7 @@ ExpressionType ExpressionType::FromJSON(yyjson_val *obj) {
 }
 
 ExpressionType ExpressionType::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return ExpressionType(std::move(value_tmp));
+	return ExpressionType(*this);
 }
 
 string ExpressionType::Validate() const {

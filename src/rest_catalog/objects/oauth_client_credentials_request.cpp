@@ -20,6 +20,13 @@ OAuthClientCredentialsRequest::OAuthClientCredentialsRequest(string grant_type_p
     : grant_type(std::move(grant_type_p)), client_id(std::move(client_id_p)), client_secret(std::move(client_secret_p)),
       scope(std::move(scope_p)) {
 }
+OAuthClientCredentialsRequest::OAuthClientCredentialsRequest(const OAuthClientCredentialsRequest &other)
+    : grant_type(other.grant_type), client_id(other.client_id), client_secret(other.client_secret),
+      scope((other.scope.has_value() ? optional<string>((*other.scope)) : optional<string>())) {
+}
+OAuthClientCredentialsRequest::OAuthClientCredentialsRequest(OAuthClientCredentialsRequest &&other)
+    : OAuthClientCredentialsRequest(static_cast<const OAuthClientCredentialsRequest &>(other)) {
+}
 
 OAuthClientCredentialsRequestBuilder::OAuthClientCredentialsRequestBuilder() {
 }
@@ -149,25 +156,7 @@ OAuthClientCredentialsRequest OAuthClientCredentialsRequest::FromJSON(yyjson_val
 }
 
 OAuthClientCredentialsRequest OAuthClientCredentialsRequest::Copy() const {
-	OAuthClientCredentialsRequestBuilder builder;
-	string grant_type_tmp;
-	grant_type_tmp = grant_type;
-	builder.SetGrantType(std::move(grant_type_tmp));
-	string client_id_tmp;
-	client_id_tmp = client_id;
-	builder.SetClientId(std::move(client_id_tmp));
-	string client_secret_tmp;
-	client_secret_tmp = client_secret;
-	builder.SetClientSecret(std::move(client_secret_tmp));
-	optional<string> scope_tmp;
-	if (scope.has_value()) {
-		scope_tmp.emplace();
-		(*scope_tmp) = (*scope);
-	}
-	if (scope_tmp.has_value()) {
-		builder.SetScope(std::move((*scope_tmp)));
-	}
-	return builder.Build();
+	return OAuthClientCredentialsRequest(*this);
 }
 
 string OAuthClientCredentialsRequest::Validate() const {

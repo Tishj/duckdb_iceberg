@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class Namespace {
 public:
-	Namespace(const Namespace &) = delete;
+	Namespace(const Namespace &);
 	Namespace &operator=(const Namespace &) = delete;
-	Namespace(Namespace &&) = default;
+	Namespace(Namespace &&);
 	Namespace &operator=(Namespace &&) = delete;
 	Namespace(vector<string> value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<string> value;
+	const vector<string> value;
 };
 
 } // namespace rest_api_objects

@@ -19,9 +19,9 @@ class MetricResultBuilder;
 
 class MetricResult {
 public:
-	MetricResult(const MetricResult &) = delete;
+	MetricResult(const MetricResult &);
 	MetricResult &operator=(const MetricResult &) = delete;
-	MetricResult(MetricResult &&) = default;
+	MetricResult(MetricResult &&);
 	MetricResult &operator=(MetricResult &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<CounterResult> counter_result;
-	optional<TimerResult> timer_result;
+	const optional<CounterResult> counter_result;
+	const optional<TimerResult> timer_result;
 };
 
 class MetricResultBuilder {

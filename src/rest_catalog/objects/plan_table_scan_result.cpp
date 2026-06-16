@@ -24,6 +24,24 @@ PlanTableScanResult::PlanTableScanResult(optional<CompletedPlanningWithIDResult>
       async_planning_result(std::move(async_planning_result_p)),
       empty_planning_result(std::move(empty_planning_result_p)) {
 }
+PlanTableScanResult::PlanTableScanResult(const PlanTableScanResult &other)
+    : completed_planning_with_idresult(
+          (other.completed_planning_with_idresult.has_value()
+               ? optional<CompletedPlanningWithIDResult>((*other.completed_planning_with_idresult).Copy())
+               : optional<CompletedPlanningWithIDResult>())),
+      failed_planning_result((other.failed_planning_result.has_value()
+                                  ? optional<FailedPlanningResult>((*other.failed_planning_result).Copy())
+                                  : optional<FailedPlanningResult>())),
+      async_planning_result((other.async_planning_result.has_value()
+                                 ? optional<AsyncPlanningResult>((*other.async_planning_result).Copy())
+                                 : optional<AsyncPlanningResult>())),
+      empty_planning_result((other.empty_planning_result.has_value()
+                                 ? optional<EmptyPlanningResult>((*other.empty_planning_result).Copy())
+                                 : optional<EmptyPlanningResult>())) {
+}
+PlanTableScanResult::PlanTableScanResult(PlanTableScanResult &&other)
+    : PlanTableScanResult(static_cast<const PlanTableScanResult &>(other)) {
+}
 
 PlanTableScanResultBuilder::PlanTableScanResultBuilder() {
 }
@@ -111,36 +129,7 @@ PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
 }
 
 PlanTableScanResult PlanTableScanResult::Copy() const {
-	PlanTableScanResultBuilder builder;
-	optional<CompletedPlanningWithIDResult> completed_planning_with_idresult_tmp;
-	if (completed_planning_with_idresult.has_value()) {
-		completed_planning_with_idresult_tmp.emplace((*completed_planning_with_idresult).Copy());
-	}
-	if (completed_planning_with_idresult_tmp.has_value()) {
-		builder.SetCompletedPlanningWithIdresult(std::move(*completed_planning_with_idresult_tmp));
-	}
-	optional<FailedPlanningResult> failed_planning_result_tmp;
-	if (failed_planning_result.has_value()) {
-		failed_planning_result_tmp.emplace((*failed_planning_result).Copy());
-	}
-	if (failed_planning_result_tmp.has_value()) {
-		builder.SetFailedPlanningResult(std::move(*failed_planning_result_tmp));
-	}
-	optional<AsyncPlanningResult> async_planning_result_tmp;
-	if (async_planning_result.has_value()) {
-		async_planning_result_tmp.emplace((*async_planning_result).Copy());
-	}
-	if (async_planning_result_tmp.has_value()) {
-		builder.SetAsyncPlanningResult(std::move(*async_planning_result_tmp));
-	}
-	optional<EmptyPlanningResult> empty_planning_result_tmp;
-	if (empty_planning_result.has_value()) {
-		empty_planning_result_tmp.emplace((*empty_planning_result).Copy());
-	}
-	if (empty_planning_result_tmp.has_value()) {
-		builder.SetEmptyPlanningResult(std::move(*empty_planning_result_tmp));
-	}
-	return builder.Build();
+	return PlanTableScanResult(*this);
 }
 
 string PlanTableScanResult::Validate() const {

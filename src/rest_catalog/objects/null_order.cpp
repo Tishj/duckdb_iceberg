@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 NullOrder::NullOrder(string value_p) : value(std::move(value_p)) {
 }
+NullOrder::NullOrder(const NullOrder &other) : value(other.value) {
+}
+NullOrder::NullOrder(NullOrder &&other) : NullOrder(static_cast<const NullOrder &>(other)) {
+}
 
 string NullOrder::TryFromJSON(yyjson_val *obj, optional<NullOrder> &result) {
 	try {
@@ -48,9 +52,7 @@ NullOrder NullOrder::FromJSON(yyjson_val *obj) {
 }
 
 NullOrder NullOrder::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return NullOrder(std::move(value_tmp));
+	return NullOrder(*this);
 }
 
 string NullOrder::Validate() const {

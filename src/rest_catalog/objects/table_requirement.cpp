@@ -31,6 +31,37 @@ TableRequirement::TableRequirement(optional<AssertCreate> assert_create_p,
       assert_default_spec_id(std::move(assert_default_spec_id_p)),
       assert_default_sort_order_id(std::move(assert_default_sort_order_id_p)) {
 }
+TableRequirement::TableRequirement(const TableRequirement &other)
+    : assert_create((other.assert_create.has_value() ? optional<AssertCreate>((*other.assert_create).Copy())
+                                                     : optional<AssertCreate>())),
+      assert_table_uuid((other.assert_table_uuid.has_value()
+                             ? optional<AssertTableUUID>((*other.assert_table_uuid).Copy())
+                             : optional<AssertTableUUID>())),
+      assert_ref_snapshot_id((other.assert_ref_snapshot_id.has_value()
+                                  ? optional<AssertRefSnapshotId>((*other.assert_ref_snapshot_id).Copy())
+                                  : optional<AssertRefSnapshotId>())),
+      assert_last_assigned_field_id(
+          (other.assert_last_assigned_field_id.has_value()
+               ? optional<AssertLastAssignedFieldId>((*other.assert_last_assigned_field_id).Copy())
+               : optional<AssertLastAssignedFieldId>())),
+      assert_current_schema_id((other.assert_current_schema_id.has_value()
+                                    ? optional<AssertCurrentSchemaId>((*other.assert_current_schema_id).Copy())
+                                    : optional<AssertCurrentSchemaId>())),
+      assert_last_assigned_partition_id(
+          (other.assert_last_assigned_partition_id.has_value()
+               ? optional<AssertLastAssignedPartitionId>((*other.assert_last_assigned_partition_id).Copy())
+               : optional<AssertLastAssignedPartitionId>())),
+      assert_default_spec_id((other.assert_default_spec_id.has_value()
+                                  ? optional<AssertDefaultSpecId>((*other.assert_default_spec_id).Copy())
+                                  : optional<AssertDefaultSpecId>())),
+      assert_default_sort_order_id(
+          (other.assert_default_sort_order_id.has_value()
+               ? optional<AssertDefaultSortOrderId>((*other.assert_default_sort_order_id).Copy())
+               : optional<AssertDefaultSortOrderId>())) {
+}
+TableRequirement::TableRequirement(TableRequirement &&other)
+    : TableRequirement(static_cast<const TableRequirement &>(other)) {
+}
 
 TableRequirementBuilder::TableRequirementBuilder() {
 }
@@ -160,64 +191,7 @@ TableRequirement TableRequirement::FromJSON(yyjson_val *obj) {
 }
 
 TableRequirement TableRequirement::Copy() const {
-	TableRequirementBuilder builder;
-	optional<AssertCreate> assert_create_tmp;
-	if (assert_create.has_value()) {
-		assert_create_tmp.emplace((*assert_create).Copy());
-	}
-	if (assert_create_tmp.has_value()) {
-		builder.SetAssertCreate(std::move(*assert_create_tmp));
-	}
-	optional<AssertTableUUID> assert_table_uuid_tmp;
-	if (assert_table_uuid.has_value()) {
-		assert_table_uuid_tmp.emplace((*assert_table_uuid).Copy());
-	}
-	if (assert_table_uuid_tmp.has_value()) {
-		builder.SetAssertTableUuid(std::move(*assert_table_uuid_tmp));
-	}
-	optional<AssertRefSnapshotId> assert_ref_snapshot_id_tmp;
-	if (assert_ref_snapshot_id.has_value()) {
-		assert_ref_snapshot_id_tmp.emplace((*assert_ref_snapshot_id).Copy());
-	}
-	if (assert_ref_snapshot_id_tmp.has_value()) {
-		builder.SetAssertRefSnapshotId(std::move(*assert_ref_snapshot_id_tmp));
-	}
-	optional<AssertLastAssignedFieldId> assert_last_assigned_field_id_tmp;
-	if (assert_last_assigned_field_id.has_value()) {
-		assert_last_assigned_field_id_tmp.emplace((*assert_last_assigned_field_id).Copy());
-	}
-	if (assert_last_assigned_field_id_tmp.has_value()) {
-		builder.SetAssertLastAssignedFieldId(std::move(*assert_last_assigned_field_id_tmp));
-	}
-	optional<AssertCurrentSchemaId> assert_current_schema_id_tmp;
-	if (assert_current_schema_id.has_value()) {
-		assert_current_schema_id_tmp.emplace((*assert_current_schema_id).Copy());
-	}
-	if (assert_current_schema_id_tmp.has_value()) {
-		builder.SetAssertCurrentSchemaId(std::move(*assert_current_schema_id_tmp));
-	}
-	optional<AssertLastAssignedPartitionId> assert_last_assigned_partition_id_tmp;
-	if (assert_last_assigned_partition_id.has_value()) {
-		assert_last_assigned_partition_id_tmp.emplace((*assert_last_assigned_partition_id).Copy());
-	}
-	if (assert_last_assigned_partition_id_tmp.has_value()) {
-		builder.SetAssertLastAssignedPartitionId(std::move(*assert_last_assigned_partition_id_tmp));
-	}
-	optional<AssertDefaultSpecId> assert_default_spec_id_tmp;
-	if (assert_default_spec_id.has_value()) {
-		assert_default_spec_id_tmp.emplace((*assert_default_spec_id).Copy());
-	}
-	if (assert_default_spec_id_tmp.has_value()) {
-		builder.SetAssertDefaultSpecId(std::move(*assert_default_spec_id_tmp));
-	}
-	optional<AssertDefaultSortOrderId> assert_default_sort_order_id_tmp;
-	if (assert_default_sort_order_id.has_value()) {
-		assert_default_sort_order_id_tmp.emplace((*assert_default_sort_order_id).Copy());
-	}
-	if (assert_default_sort_order_id_tmp.has_value()) {
-		builder.SetAssertDefaultSortOrderId(std::move(*assert_default_sort_order_id_tmp));
-	}
-	return builder.Build();
+	return TableRequirement(*this);
 }
 
 string TableRequirement::Validate() const {

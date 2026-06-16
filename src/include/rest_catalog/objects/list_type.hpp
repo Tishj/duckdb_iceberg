@@ -19,9 +19,9 @@ class ListTypeBuilder;
 
 class ListType {
 public:
-	ListType(const ListType &) = delete;
+	ListType(const ListType &);
 	ListType &operator=(const ListType &) = delete;
-	ListType(ListType &&) = default;
+	ListType(ListType &&);
 	ListType &operator=(ListType &&) = delete;
 
 private:
@@ -42,10 +42,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	int32_t element_id;
-	unique_ptr<Type> element;
-	bool element_required;
+	const string type;
+	const int32_t element_id;
+	const unique_ptr<Type> element;
+	const bool element_required;
 };
 
 class ListTypeBuilder {

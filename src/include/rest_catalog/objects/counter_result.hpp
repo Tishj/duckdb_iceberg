@@ -17,9 +17,9 @@ class CounterResultBuilder;
 
 class CounterResult {
 public:
-	CounterResult(const CounterResult &) = delete;
+	CounterResult(const CounterResult &);
 	CounterResult &operator=(const CounterResult &) = delete;
-	CounterResult(CounterResult &&) = default;
+	CounterResult(CounterResult &&);
 	CounterResult &operator=(CounterResult &&) = delete;
 
 private:
@@ -40,8 +40,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string unit;
-	int64_t value;
+	const string unit;
+	const int64_t value;
 };
 
 class CounterResultBuilder {

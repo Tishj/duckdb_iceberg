@@ -20,6 +20,36 @@ CatalogConfig::CatalogConfig(case_insensitive_map_t<string> defaults_p, case_ins
     : defaults(std::move(defaults_p)), overrides(std::move(overrides_p)), endpoints(std::move(endpoints_p)),
       idempotency_key_lifetime(std::move(idempotency_key_lifetime_p)) {
 }
+CatalogConfig::CatalogConfig(const CatalogConfig &other)
+    : defaults(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.defaults) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())),
+      overrides(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.overrides) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())),
+      endpoints((other.endpoints.has_value() ? optional<vector<string>>(([&]() {
+	      vector<string> copied;
+	      copied.reserve((*other.endpoints).size());
+	      for (const auto &item : (*other.endpoints)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                             : optional<vector<string>>())),
+      idempotency_key_lifetime((other.idempotency_key_lifetime.has_value()
+                                    ? optional<string>((*other.idempotency_key_lifetime))
+                                    : optional<string>())) {
+}
+CatalogConfig::CatalogConfig(CatalogConfig &&other) : CatalogConfig(static_cast<const CatalogConfig &>(other)) {
+}
 
 CatalogConfigBuilder::CatalogConfigBuilder() {
 }
@@ -177,37 +207,7 @@ CatalogConfig CatalogConfig::FromJSON(yyjson_val *obj) {
 }
 
 CatalogConfig CatalogConfig::Copy() const {
-	CatalogConfigBuilder builder;
-	case_insensitive_map_t<string> defaults_tmp;
-	for (auto &entry : defaults) {
-		defaults_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetDefaults(std::move(defaults_tmp));
-	case_insensitive_map_t<string> overrides_tmp;
-	for (auto &entry : overrides) {
-		overrides_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetOverrides(std::move(overrides_tmp));
-	optional<vector<string>> endpoints_tmp;
-	if (endpoints.has_value()) {
-		endpoints_tmp.emplace();
-		(*endpoints_tmp).reserve((*endpoints).size());
-		for (auto &item : (*endpoints)) {
-			(*endpoints_tmp).emplace_back(item);
-		}
-	}
-	if (endpoints_tmp.has_value()) {
-		builder.SetEndpoints(std::move((*endpoints_tmp)));
-	}
-	optional<string> idempotency_key_lifetime_tmp;
-	if (idempotency_key_lifetime.has_value()) {
-		idempotency_key_lifetime_tmp.emplace();
-		(*idempotency_key_lifetime_tmp) = (*idempotency_key_lifetime);
-	}
-	if (idempotency_key_lifetime_tmp.has_value()) {
-		builder.SetIdempotencyKeyLifetime(std::move((*idempotency_key_lifetime_tmp)));
-	}
-	return builder.Build();
+	return CatalogConfig(*this);
 }
 
 string CatalogConfig::Validate() const {

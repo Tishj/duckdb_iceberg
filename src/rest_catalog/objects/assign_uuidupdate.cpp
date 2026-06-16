@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AssignUUIDUpdate::AssignUUIDUpdate(BaseUpdate base_update_p, string uuid_p)
     : base_update(std::move(base_update_p)), uuid(std::move(uuid_p)) {
 }
+AssignUUIDUpdate::AssignUUIDUpdate(const AssignUUIDUpdate &other)
+    : base_update(other.base_update.Copy()), uuid(other.uuid) {
+}
+AssignUUIDUpdate::AssignUUIDUpdate(AssignUUIDUpdate &&other)
+    : AssignUUIDUpdate(static_cast<const AssignUUIDUpdate &>(other)) {
+}
 
 AssignUUIDUpdateBuilder::AssignUUIDUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AssignUUIDUpdate AssignUUIDUpdate::Copy() const {
-	AssignUUIDUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	string uuid_tmp;
-	uuid_tmp = uuid;
-	builder.SetUuid(std::move(uuid_tmp));
-	return builder.Build();
+	return AssignUUIDUpdate(*this);
 }
 
 string AssignUUIDUpdate::Validate() const {

@@ -18,9 +18,9 @@ class AssignUUIDUpdateBuilder;
 
 class AssignUUIDUpdate {
 public:
-	AssignUUIDUpdate(const AssignUUIDUpdate &) = delete;
+	AssignUUIDUpdate(const AssignUUIDUpdate &);
 	AssignUUIDUpdate &operator=(const AssignUUIDUpdate &) = delete;
-	AssignUUIDUpdate(AssignUUIDUpdate &&) = default;
+	AssignUUIDUpdate(AssignUUIDUpdate &&);
 	AssignUUIDUpdate &operator=(AssignUUIDUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	string uuid;
+	const BaseUpdate base_update;
+	const string uuid;
 };
 
 class AssignUUIDUpdateBuilder {

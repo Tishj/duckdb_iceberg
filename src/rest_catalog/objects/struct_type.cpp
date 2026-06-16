@@ -18,6 +18,18 @@ namespace rest_api_objects {
 StructType::StructType(string type_p, vector<unique_ptr<StructField>> fields_p)
     : type(std::move(type_p)), fields(std::move(fields_p)) {
 }
+StructType::StructType(const StructType &other)
+    : type(other.type), fields(([&]() {
+	      vector<unique_ptr<StructField>> copied;
+	      copied.reserve(other.fields.size());
+	      for (const auto &item : other.fields) {
+		      copied.emplace_back(item ? make_uniq<StructField>(item->Copy()) : nullptr);
+	      }
+	      return copied;
+      }())) {
+}
+StructType::StructType(StructType &&other) : StructType(static_cast<const StructType &>(other)) {
+}
 
 StructTypeBuilder::StructTypeBuilder() {
 }
@@ -111,17 +123,7 @@ StructType StructType::FromJSON(yyjson_val *obj) {
 }
 
 StructType StructType::Copy() const {
-	StructTypeBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	vector<unique_ptr<StructField>> fields_tmp;
-	fields_tmp.reserve(fields.size());
-	for (auto &item : fields) {
-		fields_tmp.emplace_back(item ? make_uniq<StructField>(item->Copy()) : nullptr);
-	}
-	builder.SetFields(std::move(fields_tmp));
-	return builder.Build();
+	return StructType(*this);
 }
 
 string StructType::Validate() const {

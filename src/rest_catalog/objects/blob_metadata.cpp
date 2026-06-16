@@ -20,6 +20,26 @@ BlobMetadata::BlobMetadata(string type_p, int64_t snapshot_id_p, int64_t sequenc
     : type(std::move(type_p)), snapshot_id(std::move(snapshot_id_p)), sequence_number(std::move(sequence_number_p)),
       fields(std::move(fields_p)), properties(std::move(properties_p)) {
 }
+BlobMetadata::BlobMetadata(const BlobMetadata &other)
+    : type(other.type), snapshot_id(other.snapshot_id), sequence_number(other.sequence_number), fields(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve(other.fields.size());
+	      for (const auto &item : other.fields) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())),
+      properties((other.properties.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.properties)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                               : optional<case_insensitive_map_t<string>>())) {
+}
+BlobMetadata::BlobMetadata(BlobMetadata &&other) : BlobMetadata(static_cast<const BlobMetadata &>(other)) {
+}
 
 BlobMetadataBuilder::BlobMetadataBuilder() {
 }
@@ -199,33 +219,7 @@ BlobMetadata BlobMetadata::FromJSON(yyjson_val *obj) {
 }
 
 BlobMetadata BlobMetadata::Copy() const {
-	BlobMetadataBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	int64_t sequence_number_tmp;
-	sequence_number_tmp = sequence_number;
-	builder.SetSequenceNumber(std::move(sequence_number_tmp));
-	vector<int32_t> fields_tmp;
-	fields_tmp.reserve(fields.size());
-	for (auto &item : fields) {
-		fields_tmp.emplace_back(item);
-	}
-	builder.SetFields(std::move(fields_tmp));
-	optional<case_insensitive_map_t<string>> properties_tmp;
-	if (properties.has_value()) {
-		properties_tmp.emplace();
-		for (auto &entry : (*properties)) {
-			(*properties_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move((*properties_tmp)));
-	}
-	return builder.Build();
+	return BlobMetadata(*this);
 }
 
 string BlobMetadata::Validate() const {

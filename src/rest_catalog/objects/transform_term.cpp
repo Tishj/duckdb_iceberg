@@ -18,6 +18,11 @@ namespace rest_api_objects {
 TransformTerm::TransformTerm(string type_p, Transform transform_p, Reference term_p)
     : type(std::move(type_p)), transform(std::move(transform_p)), term(std::move(term_p)) {
 }
+TransformTerm::TransformTerm(const TransformTerm &other)
+    : type(other.type), transform(other.transform.Copy()), term(other.term.Copy()) {
+}
+TransformTerm::TransformTerm(TransformTerm &&other) : TransformTerm(static_cast<const TransformTerm &>(other)) {
+}
 
 TransformTermBuilder::TransformTermBuilder() {
 }
@@ -113,15 +118,7 @@ TransformTerm TransformTerm::FromJSON(yyjson_val *obj) {
 }
 
 TransformTerm TransformTerm::Copy() const {
-	TransformTermBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	auto transform_tmp = transform.Copy();
-	builder.SetTransform(std::move(transform_tmp));
-	auto term_tmp = term.Copy();
-	builder.SetTerm(std::move(term_tmp));
-	return builder.Build();
+	return TransformTerm(*this);
 }
 
 string TransformTerm::Validate() const {

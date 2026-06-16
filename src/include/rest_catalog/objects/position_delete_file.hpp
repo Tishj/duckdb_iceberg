@@ -18,9 +18,9 @@ class PositionDeleteFileBuilder;
 
 class PositionDeleteFile {
 public:
-	PositionDeleteFile(const PositionDeleteFile &) = delete;
+	PositionDeleteFile(const PositionDeleteFile &);
 	PositionDeleteFile &operator=(const PositionDeleteFile &) = delete;
-	PositionDeleteFile(PositionDeleteFile &&) = default;
+	PositionDeleteFile(PositionDeleteFile &&);
 	PositionDeleteFile &operator=(PositionDeleteFile &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ContentFile content_file;
-	optional<int64_t> content_offset;
-	optional<int64_t> content_size_in_bytes;
+	const ContentFile content_file;
+	const optional<int64_t> content_offset;
+	const optional<int64_t> content_size_in_bytes;
 };
 
 class PositionDeleteFileBuilder {

@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 UUIDTypeValue::UUIDTypeValue(string value_p) : value(std::move(value_p)) {
 }
+UUIDTypeValue::UUIDTypeValue(const UUIDTypeValue &other) : value(other.value) {
+}
+UUIDTypeValue::UUIDTypeValue(UUIDTypeValue &&other) : UUIDTypeValue(static_cast<const UUIDTypeValue &>(other)) {
+}
 
 string UUIDTypeValue::TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &result) {
 	try {
@@ -49,9 +53,7 @@ UUIDTypeValue UUIDTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 UUIDTypeValue UUIDTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return UUIDTypeValue(std::move(value_tmp));
+	return UUIDTypeValue(*this);
 }
 
 string UUIDTypeValue::Validate() const {

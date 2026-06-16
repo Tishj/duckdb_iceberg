@@ -18,6 +18,19 @@ namespace rest_api_objects {
 RemovePropertiesUpdate::RemovePropertiesUpdate(BaseUpdate base_update_p, vector<string> removals_p)
     : base_update(std::move(base_update_p)), removals(std::move(removals_p)) {
 }
+RemovePropertiesUpdate::RemovePropertiesUpdate(const RemovePropertiesUpdate &other)
+    : base_update(other.base_update.Copy()), removals(([&]() {
+	      vector<string> copied;
+	      copied.reserve(other.removals.size());
+	      for (const auto &item : other.removals) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }())) {
+}
+RemovePropertiesUpdate::RemovePropertiesUpdate(RemovePropertiesUpdate &&other)
+    : RemovePropertiesUpdate(static_cast<const RemovePropertiesUpdate &>(other)) {
+}
 
 RemovePropertiesUpdateBuilder::RemovePropertiesUpdateBuilder() {
 }
@@ -101,16 +114,7 @@ RemovePropertiesUpdate RemovePropertiesUpdate::FromJSON(yyjson_val *obj) {
 }
 
 RemovePropertiesUpdate RemovePropertiesUpdate::Copy() const {
-	RemovePropertiesUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	vector<string> removals_tmp;
-	removals_tmp.reserve(removals.size());
-	for (auto &item : removals) {
-		removals_tmp.emplace_back(item);
-	}
-	builder.SetRemovals(std::move(removals_tmp));
-	return builder.Build();
+	return RemovePropertiesUpdate(*this);
 }
 
 string RemovePropertiesUpdate::Validate() const {

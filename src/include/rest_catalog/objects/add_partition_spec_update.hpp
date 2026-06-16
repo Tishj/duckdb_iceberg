@@ -19,9 +19,9 @@ class AddPartitionSpecUpdateBuilder;
 
 class AddPartitionSpecUpdate {
 public:
-	AddPartitionSpecUpdate(const AddPartitionSpecUpdate &) = delete;
+	AddPartitionSpecUpdate(const AddPartitionSpecUpdate &);
 	AddPartitionSpecUpdate &operator=(const AddPartitionSpecUpdate &) = delete;
-	AddPartitionSpecUpdate(AddPartitionSpecUpdate &&) = default;
+	AddPartitionSpecUpdate(AddPartitionSpecUpdate &&);
 	AddPartitionSpecUpdate &operator=(AddPartitionSpecUpdate &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	PartitionSpec spec;
+	const BaseUpdate base_update;
+	const PartitionSpec spec;
 };
 
 class AddPartitionSpecUpdateBuilder {

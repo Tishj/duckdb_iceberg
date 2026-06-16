@@ -18,9 +18,9 @@ class CommitTableResponseBuilder;
 
 class CommitTableResponse {
 public:
-	CommitTableResponse(const CommitTableResponse &) = delete;
+	CommitTableResponse(const CommitTableResponse &);
 	CommitTableResponse &operator=(const CommitTableResponse &) = delete;
-	CommitTableResponse(CommitTableResponse &&) = default;
+	CommitTableResponse(CommitTableResponse &&);
 	CommitTableResponse &operator=(CommitTableResponse &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string metadata_location;
-	TableMetadata metadata;
+	const string metadata_location;
+	const TableMetadata metadata;
 };
 
 class CommitTableResponseBuilder {

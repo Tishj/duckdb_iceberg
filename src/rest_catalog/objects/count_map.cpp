@@ -18,6 +18,28 @@ namespace rest_api_objects {
 CountMap::CountMap(optional<vector<IntegerTypeValue>> keys_p, optional<vector<LongTypeValue>> values_p)
     : keys(std::move(keys_p)), values(std::move(values_p)) {
 }
+CountMap::CountMap(const CountMap &other)
+    : keys((other.keys.has_value() ? optional<vector<IntegerTypeValue>>(([&]() {
+	      vector<IntegerTypeValue> copied;
+	      copied.reserve((*other.keys).size());
+	      for (const auto &item : (*other.keys)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                   : optional<vector<IntegerTypeValue>>())),
+      values((other.values.has_value() ? optional<vector<LongTypeValue>>(([&]() {
+	      vector<LongTypeValue> copied;
+	      copied.reserve((*other.values).size());
+	      for (const auto &item : (*other.values)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                       : optional<vector<LongTypeValue>>())) {
+}
+CountMap::CountMap(CountMap &&other) : CountMap(static_cast<const CountMap &>(other)) {
+}
 
 CountMapBuilder::CountMapBuilder() {
 }
@@ -104,30 +126,7 @@ CountMap CountMap::FromJSON(yyjson_val *obj) {
 }
 
 CountMap CountMap::Copy() const {
-	CountMapBuilder builder;
-	optional<vector<IntegerTypeValue>> keys_tmp;
-	if (keys.has_value()) {
-		keys_tmp.emplace();
-		(*keys_tmp).reserve((*keys).size());
-		for (auto &item : (*keys)) {
-			(*keys_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (keys_tmp.has_value()) {
-		builder.SetKeys(std::move((*keys_tmp)));
-	}
-	optional<vector<LongTypeValue>> values_tmp;
-	if (values.has_value()) {
-		values_tmp.emplace();
-		(*values_tmp).reserve((*values).size());
-		for (auto &item : (*values)) {
-			(*values_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (values_tmp.has_value()) {
-		builder.SetValues(std::move((*values_tmp)));
-	}
-	return builder.Build();
+	return CountMap(*this);
 }
 
 string CountMap::Validate() const {

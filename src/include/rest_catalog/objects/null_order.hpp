@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class NullOrder {
 public:
-	NullOrder(const NullOrder &) = delete;
+	NullOrder(const NullOrder &);
 	NullOrder &operator=(const NullOrder &) = delete;
-	NullOrder(NullOrder &&) = default;
+	NullOrder(NullOrder &&);
 	NullOrder &operator=(NullOrder &&) = delete;
 	NullOrder(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

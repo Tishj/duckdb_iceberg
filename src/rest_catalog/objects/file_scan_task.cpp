@@ -20,6 +20,21 @@ FileScanTask::FileScanTask(DataFile data_file_p, optional<vector<int32_t>> delet
     : data_file(std::move(data_file_p)), delete_file_references(std::move(delete_file_references_p)),
       residual_filter(std::move(residual_filter_p)) {
 }
+FileScanTask::FileScanTask(const FileScanTask &other)
+    : data_file(other.data_file.Copy()),
+      delete_file_references((other.delete_file_references.has_value() ? optional<vector<int32_t>>(([&]() {
+	      vector<int32_t> copied;
+	      copied.reserve((*other.delete_file_references).size());
+	      for (const auto &item : (*other.delete_file_references)) {
+		      copied.emplace_back(item);
+	      }
+	      return copied;
+      }()))
+                                                                       : optional<vector<int32_t>>())),
+      residual_filter(other.residual_filter ? make_uniq<Expression>(other.residual_filter->Copy()) : nullptr) {
+}
+FileScanTask::FileScanTask(FileScanTask &&other) : FileScanTask(static_cast<const FileScanTask &>(other)) {
+}
 
 FileScanTaskBuilder::FileScanTaskBuilder() {
 }
@@ -117,29 +132,7 @@ FileScanTask FileScanTask::FromJSON(yyjson_val *obj) {
 }
 
 FileScanTask FileScanTask::Copy() const {
-	FileScanTaskBuilder builder;
-	auto data_file_tmp = data_file.Copy();
-	builder.SetDataFile(std::move(data_file_tmp));
-	optional<vector<int32_t>> delete_file_references_tmp;
-	if (delete_file_references.has_value()) {
-		delete_file_references_tmp.emplace();
-		(*delete_file_references_tmp).reserve((*delete_file_references).size());
-		for (auto &item : (*delete_file_references)) {
-			(*delete_file_references_tmp).emplace_back(item);
-		}
-	}
-	if (delete_file_references_tmp.has_value()) {
-		builder.SetDeleteFileReferences(std::move((*delete_file_references_tmp)));
-	}
-	unique_ptr<Expression> residual_filter_tmp;
-	if (residual_filter != nullptr) {
-		residual_filter_tmp = nullptr;
-		residual_filter_tmp = residual_filter ? make_uniq<Expression>(residual_filter->Copy()) : nullptr;
-	}
-	if (residual_filter_tmp != nullptr) {
-		builder.SetResidualFilter(std::move(residual_filter_tmp));
-	}
-	return builder.Build();
+	return FileScanTask(*this);
 }
 
 string FileScanTask::Validate() const {

@@ -17,8 +17,26 @@ namespace rest_api_objects {
 
 SnapshotLog::SnapshotLog(vector<Object3> value_p) : value(std::move(value_p)) {
 }
+SnapshotLog::SnapshotLog(const SnapshotLog &other)
+    : value(([&]() {
+	      vector<Object3> copied;
+	      copied.reserve(other.value.size());
+	      for (const auto &item : other.value) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+SnapshotLog::SnapshotLog(SnapshotLog &&other) : SnapshotLog(static_cast<const SnapshotLog &>(other)) {
+}
 SnapshotLog::Object3::Object3(int64_t snapshot_id_p, int64_t timestamp_ms_p)
     : snapshot_id(std::move(snapshot_id_p)), timestamp_ms(std::move(timestamp_ms_p)) {
+}
+SnapshotLog::Object3::Object3(const SnapshotLog::Object3 &other)
+    : snapshot_id(other.snapshot_id), timestamp_ms(other.timestamp_ms) {
+}
+SnapshotLog::Object3::Object3(SnapshotLog::Object3 &&other)
+    : Object3(static_cast<const SnapshotLog::Object3 &>(other)) {
 }
 
 SnapshotLog::Object3Builder::Object3Builder() {
@@ -112,14 +130,7 @@ SnapshotLog::Object3 SnapshotLog::Object3::FromJSON(yyjson_val *obj) {
 }
 
 SnapshotLog::Object3 SnapshotLog::Object3::Copy() const {
-	Object3Builder builder;
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	int64_t timestamp_ms_tmp;
-	timestamp_ms_tmp = timestamp_ms;
-	builder.SetTimestampMs(std::move(timestamp_ms_tmp));
-	return builder.Build();
+	return SnapshotLog::Object3(*this);
 }
 
 string SnapshotLog::Object3::Validate() const {
@@ -180,12 +191,7 @@ SnapshotLog SnapshotLog::FromJSON(yyjson_val *obj) {
 }
 
 SnapshotLog SnapshotLog::Copy() const {
-	vector<Object3> value_tmp;
-	value_tmp.reserve(value.size());
-	for (auto &item : value) {
-		value_tmp.emplace_back(item.Copy());
-	}
-	return SnapshotLog(std::move(value_tmp));
+	return SnapshotLog(*this);
 }
 
 string SnapshotLog::Validate() const {

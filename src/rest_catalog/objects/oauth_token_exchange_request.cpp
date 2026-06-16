@@ -25,6 +25,20 @@ OAuthTokenExchangeRequest::OAuthTokenExchangeRequest(string grant_type_p, string
       requested_token_type(std::move(requested_token_type_p)), actor_token(std::move(actor_token_p)),
       actor_token_type(std::move(actor_token_type_p)) {
 }
+OAuthTokenExchangeRequest::OAuthTokenExchangeRequest(const OAuthTokenExchangeRequest &other)
+    : grant_type(other.grant_type), subject_token(other.subject_token),
+      subject_token_type(other.subject_token_type.Copy()),
+      scope((other.scope.has_value() ? optional<string>((*other.scope)) : optional<string>())),
+      requested_token_type((other.requested_token_type.has_value()
+                                ? optional<TokenType>((*other.requested_token_type).Copy())
+                                : optional<TokenType>())),
+      actor_token((other.actor_token.has_value() ? optional<string>((*other.actor_token)) : optional<string>())),
+      actor_token_type((other.actor_token_type.has_value() ? optional<TokenType>((*other.actor_token_type).Copy())
+                                                           : optional<TokenType>())) {
+}
+OAuthTokenExchangeRequest::OAuthTokenExchangeRequest(OAuthTokenExchangeRequest &&other)
+    : OAuthTokenExchangeRequest(static_cast<const OAuthTokenExchangeRequest &>(other)) {
+}
 
 OAuthTokenExchangeRequestBuilder::OAuthTokenExchangeRequestBuilder() {
 }
@@ -182,46 +196,7 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::FromJSON(yyjson_val *obj) {
 }
 
 OAuthTokenExchangeRequest OAuthTokenExchangeRequest::Copy() const {
-	OAuthTokenExchangeRequestBuilder builder;
-	string grant_type_tmp;
-	grant_type_tmp = grant_type;
-	builder.SetGrantType(std::move(grant_type_tmp));
-	string subject_token_tmp;
-	subject_token_tmp = subject_token;
-	builder.SetSubjectToken(std::move(subject_token_tmp));
-	auto subject_token_type_tmp = subject_token_type.Copy();
-	builder.SetSubjectTokenType(std::move(subject_token_type_tmp));
-	optional<string> scope_tmp;
-	if (scope.has_value()) {
-		scope_tmp.emplace();
-		(*scope_tmp) = (*scope);
-	}
-	if (scope_tmp.has_value()) {
-		builder.SetScope(std::move((*scope_tmp)));
-	}
-	optional<TokenType> requested_token_type_tmp;
-	if (requested_token_type.has_value()) {
-		requested_token_type_tmp.emplace((*requested_token_type).Copy());
-	}
-	if (requested_token_type_tmp.has_value()) {
-		builder.SetRequestedTokenType(std::move(*requested_token_type_tmp));
-	}
-	optional<string> actor_token_tmp;
-	if (actor_token.has_value()) {
-		actor_token_tmp.emplace();
-		(*actor_token_tmp) = (*actor_token);
-	}
-	if (actor_token_tmp.has_value()) {
-		builder.SetActorToken(std::move((*actor_token_tmp)));
-	}
-	optional<TokenType> actor_token_type_tmp;
-	if (actor_token_type.has_value()) {
-		actor_token_type_tmp.emplace((*actor_token_type).Copy());
-	}
-	if (actor_token_type_tmp.has_value()) {
-		builder.SetActorTokenType(std::move(*actor_token_type_tmp));
-	}
-	return builder.Build();
+	return OAuthTokenExchangeRequest(*this);
 }
 
 string OAuthTokenExchangeRequest::Validate() const {

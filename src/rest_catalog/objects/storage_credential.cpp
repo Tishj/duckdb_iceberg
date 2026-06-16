@@ -18,6 +18,18 @@ namespace rest_api_objects {
 StorageCredential::StorageCredential(string prefix_p, case_insensitive_map_t<string> config_p)
     : prefix(std::move(prefix_p)), config(std::move(config_p)) {
 }
+StorageCredential::StorageCredential(const StorageCredential &other)
+    : prefix(other.prefix), config(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : other.config) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }())) {
+}
+StorageCredential::StorageCredential(StorageCredential &&other)
+    : StorageCredential(static_cast<const StorageCredential &>(other)) {
+}
 
 StorageCredentialBuilder::StorageCredentialBuilder() {
 }
@@ -117,16 +129,7 @@ StorageCredential StorageCredential::FromJSON(yyjson_val *obj) {
 }
 
 StorageCredential StorageCredential::Copy() const {
-	StorageCredentialBuilder builder;
-	string prefix_tmp;
-	prefix_tmp = prefix;
-	builder.SetPrefix(std::move(prefix_tmp));
-	case_insensitive_map_t<string> config_tmp;
-	for (auto &entry : config) {
-		config_tmp.emplace(entry.first, entry.second);
-	}
-	builder.SetConfig(std::move(config_tmp));
-	return builder.Build();
+	return StorageCredential(*this);
 }
 
 string StorageCredential::Validate() const {

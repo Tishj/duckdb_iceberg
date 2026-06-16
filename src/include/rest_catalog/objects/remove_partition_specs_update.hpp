@@ -18,9 +18,9 @@ class RemovePartitionSpecsUpdateBuilder;
 
 class RemovePartitionSpecsUpdate {
 public:
-	RemovePartitionSpecsUpdate(const RemovePartitionSpecsUpdate &) = delete;
+	RemovePartitionSpecsUpdate(const RemovePartitionSpecsUpdate &);
 	RemovePartitionSpecsUpdate &operator=(const RemovePartitionSpecsUpdate &) = delete;
-	RemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate &&) = default;
+	RemovePartitionSpecsUpdate(RemovePartitionSpecsUpdate &&);
 	RemovePartitionSpecsUpdate &operator=(RemovePartitionSpecsUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	vector<int32_t> spec_ids;
+	const BaseUpdate base_update;
+	const vector<int32_t> spec_ids;
 };
 
 class RemovePartitionSpecsUpdateBuilder {

@@ -19,9 +19,9 @@ class ValueMapBuilder;
 
 class ValueMap {
 public:
-	ValueMap(const ValueMap &) = delete;
+	ValueMap(const ValueMap &);
 	ValueMap &operator=(const ValueMap &) = delete;
-	ValueMap(ValueMap &&) = default;
+	ValueMap(ValueMap &&);
 	ValueMap &operator=(ValueMap &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<vector<IntegerTypeValue>> keys;
-	optional<vector<PrimitiveTypeValue>> values;
+	const optional<vector<IntegerTypeValue>> keys;
+	const optional<vector<PrimitiveTypeValue>> values;
 };
 
 class ValueMapBuilder {

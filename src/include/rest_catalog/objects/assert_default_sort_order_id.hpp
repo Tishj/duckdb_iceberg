@@ -18,9 +18,9 @@ class AssertDefaultSortOrderIdBuilder;
 
 class AssertDefaultSortOrderId {
 public:
-	AssertDefaultSortOrderId(const AssertDefaultSortOrderId &) = delete;
+	AssertDefaultSortOrderId(const AssertDefaultSortOrderId &);
 	AssertDefaultSortOrderId &operator=(const AssertDefaultSortOrderId &) = delete;
-	AssertDefaultSortOrderId(AssertDefaultSortOrderId &&) = default;
+	AssertDefaultSortOrderId(AssertDefaultSortOrderId &&);
 	AssertDefaultSortOrderId &operator=(AssertDefaultSortOrderId &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	int32_t default_sort_order_id;
+	const TableRequirementType type;
+	const int32_t default_sort_order_id;
 };
 
 class AssertDefaultSortOrderIdBuilder {

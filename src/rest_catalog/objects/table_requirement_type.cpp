@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 TableRequirementType::TableRequirementType(string value_p) : value(std::move(value_p)) {
 }
+TableRequirementType::TableRequirementType(const TableRequirementType &other) : value(other.value) {
+}
+TableRequirementType::TableRequirementType(TableRequirementType &&other)
+    : TableRequirementType(static_cast<const TableRequirementType &>(other)) {
+}
 
 string TableRequirementType::TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result) {
 	try {
@@ -49,9 +54,7 @@ TableRequirementType TableRequirementType::FromJSON(yyjson_val *obj) {
 }
 
 TableRequirementType TableRequirementType::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return TableRequirementType(std::move(value_tmp));
+	return TableRequirementType(*this);
 }
 
 string TableRequirementType::Validate() const {

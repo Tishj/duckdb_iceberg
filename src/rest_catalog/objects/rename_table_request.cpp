@@ -18,6 +18,12 @@ namespace rest_api_objects {
 RenameTableRequest::RenameTableRequest(TableIdentifier source_p, TableIdentifier destination_p)
     : source(std::move(source_p)), destination(std::move(destination_p)) {
 }
+RenameTableRequest::RenameTableRequest(const RenameTableRequest &other)
+    : source(other.source.Copy()), destination(other.destination.Copy()) {
+}
+RenameTableRequest::RenameTableRequest(RenameTableRequest &&other)
+    : RenameTableRequest(static_cast<const RenameTableRequest &>(other)) {
+}
 
 RenameTableRequestBuilder::RenameTableRequestBuilder() {
 }
@@ -90,12 +96,7 @@ RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
 }
 
 RenameTableRequest RenameTableRequest::Copy() const {
-	RenameTableRequestBuilder builder;
-	auto source_tmp = source.Copy();
-	builder.SetSource(std::move(source_tmp));
-	auto destination_tmp = destination.Copy();
-	builder.SetDestination(std::move(destination_tmp));
-	return builder.Build();
+	return RenameTableRequest(*this);
 }
 
 string RenameTableRequest::Validate() const {

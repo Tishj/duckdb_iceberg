@@ -21,6 +21,20 @@ CommitReport::CommitReport(string table_name_p, int64_t snapshot_id_p, int64_t s
       sequence_number(std::move(sequence_number_p)), operation(std::move(operation_p)), metrics(std::move(metrics_p)),
       metadata(std::move(metadata_p)) {
 }
+CommitReport::CommitReport(const CommitReport &other)
+    : table_name(other.table_name), snapshot_id(other.snapshot_id), sequence_number(other.sequence_number),
+      operation(other.operation), metrics(other.metrics.Copy()),
+      metadata((other.metadata.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.metadata)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                           : optional<case_insensitive_map_t<string>>())) {
+}
+CommitReport::CommitReport(CommitReport &&other) : CommitReport(static_cast<const CommitReport &>(other)) {
+}
 
 CommitReportBuilder::CommitReportBuilder() {
 }
@@ -203,32 +217,7 @@ CommitReport CommitReport::FromJSON(yyjson_val *obj) {
 }
 
 CommitReport CommitReport::Copy() const {
-	CommitReportBuilder builder;
-	string table_name_tmp;
-	table_name_tmp = table_name;
-	builder.SetTableName(std::move(table_name_tmp));
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	int64_t sequence_number_tmp;
-	sequence_number_tmp = sequence_number;
-	builder.SetSequenceNumber(std::move(sequence_number_tmp));
-	string operation_tmp;
-	operation_tmp = operation;
-	builder.SetOperation(std::move(operation_tmp));
-	auto metrics_tmp = metrics.Copy();
-	builder.SetMetrics(std::move(metrics_tmp));
-	optional<case_insensitive_map_t<string>> metadata_tmp;
-	if (metadata.has_value()) {
-		metadata_tmp.emplace();
-		for (auto &entry : (*metadata)) {
-			(*metadata_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (metadata_tmp.has_value()) {
-		builder.SetMetadata(std::move((*metadata_tmp)));
-	}
-	return builder.Build();
+	return CommitReport(*this);
 }
 
 string CommitReport::Validate() const {

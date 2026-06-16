@@ -20,9 +20,9 @@ class ScanReportBuilder;
 
 class ScanReport {
 public:
-	ScanReport(const ScanReport &) = delete;
+	ScanReport(const ScanReport &);
 	ScanReport &operator=(const ScanReport &) = delete;
-	ScanReport(ScanReport &&) = default;
+	ScanReport(ScanReport &&);
 	ScanReport &operator=(ScanReport &&) = delete;
 
 private:
@@ -45,14 +45,14 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string table_name;
-	int64_t snapshot_id;
-	unique_ptr<Expression> filter;
-	int32_t schema_id;
-	vector<int32_t> projected_field_ids;
-	vector<string> projected_field_names;
-	Metrics metrics;
-	optional<case_insensitive_map_t<string>> metadata;
+	const string table_name;
+	const int64_t snapshot_id;
+	const unique_ptr<Expression> filter;
+	const int32_t schema_id;
+	const vector<int32_t> projected_field_ids;
+	const vector<string> projected_field_names;
+	const Metrics metrics;
+	const optional<case_insensitive_map_t<string>> metadata;
 };
 
 class ScanReportBuilder {

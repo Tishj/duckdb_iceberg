@@ -18,9 +18,9 @@ class RemoveEncryptionKeyUpdateBuilder;
 
 class RemoveEncryptionKeyUpdate {
 public:
-	RemoveEncryptionKeyUpdate(const RemoveEncryptionKeyUpdate &) = delete;
+	RemoveEncryptionKeyUpdate(const RemoveEncryptionKeyUpdate &);
 	RemoveEncryptionKeyUpdate &operator=(const RemoveEncryptionKeyUpdate &) = delete;
-	RemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate &&) = default;
+	RemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate &&);
 	RemoveEncryptionKeyUpdate &operator=(RemoveEncryptionKeyUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	string key_id;
+	const BaseUpdate base_update;
+	const string key_id;
 };
 
 class RemoveEncryptionKeyUpdateBuilder {

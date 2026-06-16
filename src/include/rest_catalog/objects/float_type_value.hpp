@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class FloatTypeValue {
 public:
-	FloatTypeValue(const FloatTypeValue &) = delete;
+	FloatTypeValue(const FloatTypeValue &);
 	FloatTypeValue &operator=(const FloatTypeValue &) = delete;
-	FloatTypeValue(FloatTypeValue &&) = default;
+	FloatTypeValue(FloatTypeValue &&);
 	FloatTypeValue &operator=(FloatTypeValue &&) = delete;
 	FloatTypeValue(double value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	double value;
+	const double value;
 };
 
 } // namespace rest_api_objects

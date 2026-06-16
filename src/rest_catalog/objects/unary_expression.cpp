@@ -18,6 +18,11 @@ namespace rest_api_objects {
 UnaryExpression::UnaryExpression(ExpressionType type_p, Term term_p)
     : type(std::move(type_p)), term(std::move(term_p)) {
 }
+UnaryExpression::UnaryExpression(const UnaryExpression &other) : type(other.type.Copy()), term(other.term.Copy()) {
+}
+UnaryExpression::UnaryExpression(UnaryExpression &&other)
+    : UnaryExpression(static_cast<const UnaryExpression &>(other)) {
+}
 
 UnaryExpressionBuilder::UnaryExpressionBuilder() {
 }
@@ -90,12 +95,7 @@ UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
 }
 
 UnaryExpression UnaryExpression::Copy() const {
-	UnaryExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	auto term_tmp = term.Copy();
-	builder.SetTerm(std::move(term_tmp));
-	return builder.Build();
+	return UnaryExpression(*this);
 }
 
 string UnaryExpression::Validate() const {

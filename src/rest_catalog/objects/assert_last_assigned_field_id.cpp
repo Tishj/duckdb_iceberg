@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AssertLastAssignedFieldId::AssertLastAssignedFieldId(TableRequirementType type_p, int32_t last_assigned_field_id_p)
     : type(std::move(type_p)), last_assigned_field_id(std::move(last_assigned_field_id_p)) {
 }
+AssertLastAssignedFieldId::AssertLastAssignedFieldId(const AssertLastAssignedFieldId &other)
+    : type(other.type.Copy()), last_assigned_field_id(other.last_assigned_field_id) {
+}
+AssertLastAssignedFieldId::AssertLastAssignedFieldId(AssertLastAssignedFieldId &&other)
+    : AssertLastAssignedFieldId(static_cast<const AssertLastAssignedFieldId &>(other)) {
+}
 
 AssertLastAssignedFieldIdBuilder::AssertLastAssignedFieldIdBuilder() {
 }
@@ -100,13 +106,7 @@ AssertLastAssignedFieldId AssertLastAssignedFieldId::FromJSON(yyjson_val *obj) {
 }
 
 AssertLastAssignedFieldId AssertLastAssignedFieldId::Copy() const {
-	AssertLastAssignedFieldIdBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	int32_t last_assigned_field_id_tmp;
-	last_assigned_field_id_tmp = last_assigned_field_id;
-	builder.SetLastAssignedFieldId(std::move(last_assigned_field_id_tmp));
-	return builder.Build();
+	return AssertLastAssignedFieldId(*this);
 }
 
 string AssertLastAssignedFieldId::Validate() const {

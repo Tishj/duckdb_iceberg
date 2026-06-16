@@ -19,6 +19,22 @@ ListTablesResponse::ListTablesResponse(optional<PageToken> next_page_token_p,
                                        optional<vector<TableIdentifier>> identifiers_p)
     : next_page_token(std::move(next_page_token_p)), identifiers(std::move(identifiers_p)) {
 }
+ListTablesResponse::ListTablesResponse(const ListTablesResponse &other)
+    : next_page_token((other.next_page_token.has_value() ? optional<PageToken>((*other.next_page_token).Copy())
+                                                         : optional<PageToken>())),
+      identifiers((other.identifiers.has_value() ? optional<vector<TableIdentifier>>(([&]() {
+	      vector<TableIdentifier> copied;
+	      copied.reserve((*other.identifiers).size());
+	      for (const auto &item : (*other.identifiers)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                 : optional<vector<TableIdentifier>>())) {
+}
+ListTablesResponse::ListTablesResponse(ListTablesResponse &&other)
+    : ListTablesResponse(static_cast<const ListTablesResponse &>(other)) {
+}
 
 ListTablesResponseBuilder::ListTablesResponseBuilder() {
 }
@@ -92,26 +108,7 @@ ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
 }
 
 ListTablesResponse ListTablesResponse::Copy() const {
-	ListTablesResponseBuilder builder;
-	optional<PageToken> next_page_token_tmp;
-	if (next_page_token.has_value()) {
-		next_page_token_tmp.emplace((*next_page_token).Copy());
-	}
-	if (next_page_token_tmp.has_value()) {
-		builder.SetNextPageToken(std::move(*next_page_token_tmp));
-	}
-	optional<vector<TableIdentifier>> identifiers_tmp;
-	if (identifiers.has_value()) {
-		identifiers_tmp.emplace();
-		(*identifiers_tmp).reserve((*identifiers).size());
-		for (auto &item : (*identifiers)) {
-			(*identifiers_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (identifiers_tmp.has_value()) {
-		builder.SetIdentifiers(std::move((*identifiers_tmp)));
-	}
-	return builder.Build();
+	return ListTablesResponse(*this);
 }
 
 string ListTablesResponse::Validate() const {

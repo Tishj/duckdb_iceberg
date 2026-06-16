@@ -19,9 +19,9 @@ class AddViewVersionUpdateBuilder;
 
 class AddViewVersionUpdate {
 public:
-	AddViewVersionUpdate(const AddViewVersionUpdate &) = delete;
+	AddViewVersionUpdate(const AddViewVersionUpdate &);
 	AddViewVersionUpdate &operator=(const AddViewVersionUpdate &) = delete;
-	AddViewVersionUpdate(AddViewVersionUpdate &&) = default;
+	AddViewVersionUpdate(AddViewVersionUpdate &&);
 	AddViewVersionUpdate &operator=(AddViewVersionUpdate &&) = delete;
 
 private:
@@ -42,8 +42,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	ViewVersion view_version;
+	const BaseUpdate base_update;
+	const ViewVersion view_version;
 };
 
 class AddViewVersionUpdateBuilder {

@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 EmptyPlanningResult::EmptyPlanningResult(PlanStatus status_p) : status(std::move(status_p)) {
 }
+EmptyPlanningResult::EmptyPlanningResult(const EmptyPlanningResult &other) : status(other.status.Copy()) {
+}
+EmptyPlanningResult::EmptyPlanningResult(EmptyPlanningResult &&other)
+    : EmptyPlanningResult(static_cast<const EmptyPlanningResult &>(other)) {
+}
 
 EmptyPlanningResultBuilder::EmptyPlanningResultBuilder() {
 }
@@ -74,10 +79,7 @@ EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
 }
 
 EmptyPlanningResult EmptyPlanningResult::Copy() const {
-	EmptyPlanningResultBuilder builder;
-	auto status_tmp = status.Copy();
-	builder.SetStatus(std::move(status_tmp));
-	return builder.Build();
+	return EmptyPlanningResult(*this);
 }
 
 string EmptyPlanningResult::Validate() const {

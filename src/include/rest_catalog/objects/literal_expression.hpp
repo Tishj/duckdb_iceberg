@@ -20,9 +20,9 @@ class LiteralExpressionBuilder;
 
 class LiteralExpression {
 public:
-	LiteralExpression(const LiteralExpression &) = delete;
+	LiteralExpression(const LiteralExpression &);
 	LiteralExpression &operator=(const LiteralExpression &) = delete;
-	LiteralExpression(LiteralExpression &&) = default;
+	LiteralExpression(LiteralExpression &&);
 	LiteralExpression &operator=(LiteralExpression &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
-	Term term;
-	PrimitiveTypeValue value;
+	const ExpressionType type;
+	const Term term;
+	const PrimitiveTypeValue value;
 };
 
 class LiteralExpressionBuilder {

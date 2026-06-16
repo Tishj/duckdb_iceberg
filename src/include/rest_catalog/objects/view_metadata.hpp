@@ -20,9 +20,9 @@ class ViewMetadataBuilder;
 
 class ViewMetadata {
 public:
-	ViewMetadata(const ViewMetadata &) = delete;
+	ViewMetadata(const ViewMetadata &);
 	ViewMetadata &operator=(const ViewMetadata &) = delete;
-	ViewMetadata(ViewMetadata &&) = default;
+	ViewMetadata(ViewMetadata &&);
 	ViewMetadata &operator=(ViewMetadata &&) = delete;
 
 private:
@@ -45,14 +45,14 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string view_uuid;
-	int32_t format_version;
-	string location;
-	int32_t current_version_id;
-	vector<ViewVersion> versions;
-	vector<ViewHistoryEntry> version_log;
-	vector<Schema> schemas;
-	optional<case_insensitive_map_t<string>> properties;
+	const string view_uuid;
+	const int32_t format_version;
+	const string location;
+	const int32_t current_version_id;
+	const vector<ViewVersion> versions;
+	const vector<ViewHistoryEntry> version_log;
+	const vector<Schema> schemas;
+	const optional<case_insensitive_map_t<string>> properties;
 };
 
 class ViewMetadataBuilder {

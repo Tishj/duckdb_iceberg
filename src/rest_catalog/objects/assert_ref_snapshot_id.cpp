@@ -18,6 +18,13 @@ namespace rest_api_objects {
 AssertRefSnapshotId::AssertRefSnapshotId(TableRequirementType type_p, string ref_p, optional<int64_t> snapshot_id_p)
     : type(std::move(type_p)), ref(std::move(ref_p)), snapshot_id(std::move(snapshot_id_p)) {
 }
+AssertRefSnapshotId::AssertRefSnapshotId(const AssertRefSnapshotId &other)
+    : type(other.type.Copy()), ref(other.ref),
+      snapshot_id((other.snapshot_id.has_value() ? optional<int64_t>((*other.snapshot_id)) : optional<int64_t>())) {
+}
+AssertRefSnapshotId::AssertRefSnapshotId(AssertRefSnapshotId &&other)
+    : AssertRefSnapshotId(static_cast<const AssertRefSnapshotId &>(other)) {
+}
 
 AssertRefSnapshotIdBuilder::AssertRefSnapshotIdBuilder() {
 }
@@ -121,21 +128,7 @@ AssertRefSnapshotId AssertRefSnapshotId::FromJSON(yyjson_val *obj) {
 }
 
 AssertRefSnapshotId AssertRefSnapshotId::Copy() const {
-	AssertRefSnapshotIdBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	string ref_tmp;
-	ref_tmp = ref;
-	builder.SetRef(std::move(ref_tmp));
-	optional<int64_t> snapshot_id_tmp;
-	if (snapshot_id.has_value()) {
-		snapshot_id_tmp.emplace();
-		(*snapshot_id_tmp) = (*snapshot_id);
-	}
-	if (snapshot_id_tmp.has_value()) {
-		builder.SetSnapshotId(std::move((*snapshot_id_tmp)));
-	}
-	return builder.Build();
+	return AssertRefSnapshotId(*this);
 }
 
 string AssertRefSnapshotId::Validate() const {

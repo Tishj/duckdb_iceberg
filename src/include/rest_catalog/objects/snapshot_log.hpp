@@ -15,17 +15,17 @@ namespace rest_api_objects {
 
 class SnapshotLog {
 public:
-	SnapshotLog(const SnapshotLog &) = delete;
+	SnapshotLog(const SnapshotLog &);
 	SnapshotLog &operator=(const SnapshotLog &) = delete;
-	SnapshotLog(SnapshotLog &&) = default;
+	SnapshotLog(SnapshotLog &&);
 	SnapshotLog &operator=(SnapshotLog &&) = delete;
 	class Object3Builder;
 
 	class Object3 {
 	public:
-		Object3(const Object3 &) = delete;
+		Object3(const Object3 &);
 		Object3 &operator=(const Object3 &) = delete;
-		Object3(Object3 &&) = default;
+		Object3(Object3 &&);
 		Object3 &operator=(Object3 &&) = delete;
 
 	private:
@@ -46,8 +46,8 @@ public:
 		yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 	public:
-		int64_t snapshot_id;
-		int64_t timestamp_ms;
+		const int64_t snapshot_id;
+		const int64_t timestamp_ms;
 	};
 
 	class Object3Builder {
@@ -80,7 +80,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<Object3> value;
+	const vector<Object3> value;
 };
 
 } // namespace rest_api_objects

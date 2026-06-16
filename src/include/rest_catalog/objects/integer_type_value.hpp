@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class IntegerTypeValue {
 public:
-	IntegerTypeValue(const IntegerTypeValue &) = delete;
+	IntegerTypeValue(const IntegerTypeValue &);
 	IntegerTypeValue &operator=(const IntegerTypeValue &) = delete;
-	IntegerTypeValue(IntegerTypeValue &&) = default;
+	IntegerTypeValue(IntegerTypeValue &&);
 	IntegerTypeValue &operator=(IntegerTypeValue &&) = delete;
 	IntegerTypeValue(int32_t value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t value;
+	const int32_t value;
 };
 
 } // namespace rest_api_objects

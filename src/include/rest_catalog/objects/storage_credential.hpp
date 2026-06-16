@@ -17,9 +17,9 @@ class StorageCredentialBuilder;
 
 class StorageCredential {
 public:
-	StorageCredential(const StorageCredential &) = delete;
+	StorageCredential(const StorageCredential &);
 	StorageCredential &operator=(const StorageCredential &) = delete;
-	StorageCredential(StorageCredential &&) = default;
+	StorageCredential(StorageCredential &&);
 	StorageCredential &operator=(StorageCredential &&) = delete;
 
 private:
@@ -40,8 +40,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string prefix;
-	case_insensitive_map_t<string> config;
+	const string prefix;
+	const case_insensitive_map_t<string> config;
 };
 
 class StorageCredentialBuilder {

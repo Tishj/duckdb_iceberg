@@ -18,9 +18,9 @@ class AssertDefaultSpecIdBuilder;
 
 class AssertDefaultSpecId {
 public:
-	AssertDefaultSpecId(const AssertDefaultSpecId &) = delete;
+	AssertDefaultSpecId(const AssertDefaultSpecId &);
 	AssertDefaultSpecId &operator=(const AssertDefaultSpecId &) = delete;
-	AssertDefaultSpecId(AssertDefaultSpecId &&) = default;
+	AssertDefaultSpecId(AssertDefaultSpecId &&);
 	AssertDefaultSpecId &operator=(AssertDefaultSpecId &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	TableRequirementType type;
-	int32_t default_spec_id;
+	const TableRequirementType type;
+	const int32_t default_spec_id;
 };
 
 class AssertDefaultSpecIdBuilder {

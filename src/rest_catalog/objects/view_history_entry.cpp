@@ -18,6 +18,12 @@ namespace rest_api_objects {
 ViewHistoryEntry::ViewHistoryEntry(int32_t version_id_p, int64_t timestamp_ms_p)
     : version_id(std::move(version_id_p)), timestamp_ms(std::move(timestamp_ms_p)) {
 }
+ViewHistoryEntry::ViewHistoryEntry(const ViewHistoryEntry &other)
+    : version_id(other.version_id), timestamp_ms(other.timestamp_ms) {
+}
+ViewHistoryEntry::ViewHistoryEntry(ViewHistoryEntry &&other)
+    : ViewHistoryEntry(static_cast<const ViewHistoryEntry &>(other)) {
+}
 
 ViewHistoryEntryBuilder::ViewHistoryEntryBuilder() {
 }
@@ -108,14 +114,7 @@ ViewHistoryEntry ViewHistoryEntry::FromJSON(yyjson_val *obj) {
 }
 
 ViewHistoryEntry ViewHistoryEntry::Copy() const {
-	ViewHistoryEntryBuilder builder;
-	int32_t version_id_tmp;
-	version_id_tmp = version_id;
-	builder.SetVersionId(std::move(version_id_tmp));
-	int64_t timestamp_ms_tmp;
-	timestamp_ms_tmp = timestamp_ms;
-	builder.SetTimestampMs(std::move(timestamp_ms_tmp));
-	return builder.Build();
+	return ViewHistoryEntry(*this);
 }
 
 string ViewHistoryEntry::Validate() const {

@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 PrimitiveType::PrimitiveType(string value_p) : value(std::move(value_p)) {
 }
+PrimitiveType::PrimitiveType(const PrimitiveType &other) : value(other.value) {
+}
+PrimitiveType::PrimitiveType(PrimitiveType &&other) : PrimitiveType(static_cast<const PrimitiveType &>(other)) {
+}
 
 string PrimitiveType::TryFromJSON(yyjson_val *obj, optional<PrimitiveType> &result) {
 	try {
@@ -49,9 +53,7 @@ PrimitiveType PrimitiveType::FromJSON(yyjson_val *obj) {
 }
 
 PrimitiveType PrimitiveType::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return PrimitiveType(std::move(value_tmp));
+	return PrimitiveType(*this);
 }
 
 string PrimitiveType::Validate() const {

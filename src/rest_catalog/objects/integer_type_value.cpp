@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 IntegerTypeValue::IntegerTypeValue(int32_t value_p) : value(std::move(value_p)) {
 }
+IntegerTypeValue::IntegerTypeValue(const IntegerTypeValue &other) : value(other.value) {
+}
+IntegerTypeValue::IntegerTypeValue(IntegerTypeValue &&other)
+    : IntegerTypeValue(static_cast<const IntegerTypeValue &>(other)) {
+}
 
 string IntegerTypeValue::TryFromJSON(yyjson_val *obj, optional<IntegerTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ IntegerTypeValue IntegerTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 IntegerTypeValue IntegerTypeValue::Copy() const {
-	int32_t value_tmp;
-	value_tmp = value;
-	return IntegerTypeValue(std::move(value_tmp));
+	return IntegerTypeValue(*this);
 }
 
 string IntegerTypeValue::Validate() const {

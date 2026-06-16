@@ -19,9 +19,9 @@ class SetStatisticsUpdateBuilder;
 
 class SetStatisticsUpdate {
 public:
-	SetStatisticsUpdate(const SetStatisticsUpdate &) = delete;
+	SetStatisticsUpdate(const SetStatisticsUpdate &);
 	SetStatisticsUpdate &operator=(const SetStatisticsUpdate &) = delete;
-	SetStatisticsUpdate(SetStatisticsUpdate &&) = default;
+	SetStatisticsUpdate(SetStatisticsUpdate &&);
 	SetStatisticsUpdate &operator=(SetStatisticsUpdate &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	StatisticsFile statistics;
-	optional<int64_t> snapshot_id;
+	const BaseUpdate base_update;
+	const StatisticsFile statistics;
+	const optional<int64_t> snapshot_id;
 };
 
 class SetStatisticsUpdateBuilder {

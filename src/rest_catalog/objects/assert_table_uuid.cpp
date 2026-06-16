@@ -18,6 +18,11 @@ namespace rest_api_objects {
 AssertTableUUID::AssertTableUUID(TableRequirementType type_p, string uuid_p)
     : type(std::move(type_p)), uuid(std::move(uuid_p)) {
 }
+AssertTableUUID::AssertTableUUID(const AssertTableUUID &other) : type(other.type.Copy()), uuid(other.uuid) {
+}
+AssertTableUUID::AssertTableUUID(AssertTableUUID &&other)
+    : AssertTableUUID(static_cast<const AssertTableUUID &>(other)) {
+}
 
 AssertTableUUIDBuilder::AssertTableUUIDBuilder() {
 }
@@ -98,13 +103,7 @@ AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
 }
 
 AssertTableUUID AssertTableUUID::Copy() const {
-	AssertTableUUIDBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	string uuid_tmp;
-	uuid_tmp = uuid;
-	builder.SetUuid(std::move(uuid_tmp));
-	return builder.Build();
+	return AssertTableUUID(*this);
 }
 
 string AssertTableUUID::Validate() const {

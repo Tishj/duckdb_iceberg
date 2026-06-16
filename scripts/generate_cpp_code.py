@@ -280,7 +280,7 @@ class CPPClass:
         uses_optional_wrapper: bool = False,
     ) -> None:
         initializer_text = f' = {initializer}' if initializer is not None else ''
-        self.variables.append(f'\t{variable_type} {variable_name}{initializer_text};')
+        self.variables.append(f'\tconst {variable_type} {variable_name}{initializer_text};')
         self.members.append(
             CPPMember(
                 variable_name=variable_name,
@@ -763,86 +763,56 @@ class CPPClass:
                 ]
         return [f'{target} = {self.direct_copy_expression(source, schema)};']
 
+    def copy_value_expression_for_schema(self, schema: Property, source: str) -> str:
+        if schema.type == Property.Type.PRIMITIVE:
+            return source
+        if schema.type == Property.Type.SCHEMA_REFERENCE:
+            return self.direct_copy_expression(source, schema)
+        if schema.type == Property.Type.ARRAY:
+            array_property = cast(ArrayProperty, schema)
+            item_copy = self.direct_copy_expression('item', array_property.item_type)
+            array_type = self.generate_variable_type(schema)
+            return (
+                f'([&]() {{ {array_type} copied; copied.reserve({source}.size()); '
+                f'for (const auto &item : {source}) {{ copied.emplace_back({item_copy}); }} return copied; }}())'
+            )
+        if schema.type == Property.Type.OBJECT:
+            object_property = cast(ObjectProperty, schema)
+            object_type = self.generate_variable_type(schema)
+            if object_property.additional_properties:
+                value_copy = self.direct_copy_expression('entry.second', object_property.additional_properties)
+                return (
+                    f'([&]() {{ {object_type} copied; '
+                    f'for (const auto &entry : {source}) {{ copied.emplace(entry.first, {value_copy}); }} '
+                    f'return copied; }}())'
+                )
+            return source
+        print(f"Unhandled copy value expression type for '{source}': {schema.type}")
+        exit(1)
+
+    def copy_expression_for_member(self, member: CPPMember, source: str) -> str:
+        if member.schema is None:
+            return source
+        if member.copy_guard is not None:
+            if member.uses_optional_wrapper:
+                inner_type = self.generate_variable_type(member.schema)
+                inner_copy = self.copy_value_expression_for_schema(member.schema, f'(*{source})')
+                return f'({source}.has_value() ? optional<{inner_type}>({inner_copy}) : optional<{inner_type}>())'
+            return self.copy_value_expression_for_schema(member.schema, source)
+        return self.copy_value_expression_for_schema(member.schema, source)
+
+    def copy_constructor_initializer_list(self, source_name: str) -> List[str]:
+        return [
+            f'{member.variable_name}({self.copy_expression_for_member(member, f"{source_name}.{member.variable_name}")})'
+            for member in self.members
+        ]
+
     def write_copy_method_source(self, base: str) -> List[str]:
         res = [
             '',
             f'{base}{self.name} {base}{self.name}::Copy() const {{',
         ]
-        if self.is_object_schema():
-            res.append(f'\t{self.builder_class_name()} builder;')
-        constructor_args: List[str] = []
-        for member in self.members:
-            local_name = self.parse_local_name(member.variable_name)
-            if member.schema is not None:
-                if member.schema.type == Property.Type.SCHEMA_REFERENCE and not self.uses_pointer_storage(member.schema):
-                    schema_property = cast(SchemaReferenceProperty, member.schema)
-                    if member.copy_guard is not None:
-                        res.append(f'\toptional<{schema_property.ref}> {local_name};')
-                        res.append(f'\tif ({member.copy_guard}) {{')
-                        res.append(
-                            f'\t\t{local_name}.emplace({self.value_access_expression(member.variable_name, member.uses_optional_wrapper)}.Copy());'
-                        )
-                        res.append('\t}')
-                    else:
-                        res.append(f'\tauto {local_name} = {member.variable_name}.Copy();')
-                    if self.is_object_schema():
-                        setter_name = f'Set{to_pascal_case(member.variable_name)}'
-                        if member.copy_guard is not None:
-                            res.append(f'\tif ({local_name}.has_value()) {{')
-                            res.append(f'\t\tbuilder.{setter_name}(std::move(*{local_name}));')
-                            res.append('\t}')
-                        else:
-                            res.append(f'\tbuilder.{setter_name}(std::move({local_name}));')
-                    else:
-                        constructor_args.append(
-                            f'std::move(*{local_name})' if member.copy_guard is not None else f'std::move({local_name})'
-                        )
-                    continue
-                local_declaration_type = (
-                    self.optional_member_type(member.schema)
-                    if member.copy_guard is not None
-                    else self.parse_local_type(member.schema)
-                )
-                res.append(f'\t{local_declaration_type} {local_name};')
-                target = local_name if member.copy_guard is None else self.value_access_expression(local_name, member.uses_optional_wrapper)
-                source = member.variable_name if member.copy_guard is None else self.value_access_expression(member.variable_name, member.uses_optional_wrapper)
-                lines = self.write_copy_assignment_lines(target, source, member.schema)
-                if member.copy_guard is not None:
-                    if member.uses_optional_wrapper:
-                        init_line = f'{local_name}.emplace();'
-                    else:
-                        init_line = f'{local_name} = nullptr;'
-                    lines = [f'if ({member.copy_guard}) {{', f'\t{init_line}'] + [f'\t{x}' for x in lines] + ['}']
-                res.extend([f'\t{x}' for x in lines])
-                if self.is_object_schema():
-                    setter_name = f'Set{to_pascal_case(member.variable_name)}'
-                    if member.copy_guard is not None:
-                        presence = self.presence_condition(local_name, member.uses_optional_wrapper)
-                        setter_value = self.value_access_expression(local_name, member.uses_optional_wrapper)
-                        if member.uses_optional_wrapper:
-                            setter_value = f'std::move({setter_value})'
-                        else:
-                            setter_value = f'std::move({local_name})'
-                        res.append(f'\tif ({presence}) {{')
-                        res.append(f'\t\tbuilder.{setter_name}({setter_value});')
-                        res.append('\t}')
-                    else:
-                        res.append(
-                            f'\tbuilder.{setter_name}({self.parse_local_value_expression(member.schema, local_name)});'
-                        )
-                else:
-                    constructor_args.append(self.parse_local_value_expression(member.schema, local_name))
-            else:
-                res.append(f'\tauto {local_name} = {member.variable_name};')
-                if self.is_object_schema():
-                    setter_name = f'Set{to_pascal_case(member.variable_name)}'
-                    res.append(f'\tbuilder.{setter_name}(std::move({local_name}));')
-                else:
-                    constructor_args.append(f'std::move({local_name})')
-        if self.is_object_schema():
-            res.append('\treturn builder.Build();')
-        else:
-            res.append(f'\treturn {base}{self.name}({", ".join(constructor_args)});')
+        res.append(f'\treturn {base}{self.name}(*this);')
         res.append('}')
         return res
 
@@ -1241,6 +1211,12 @@ class CPPClass:
         if member_initializers:
             constructor_signature += f' : {", ".join(member_initializers)}'
         res.append(f'{constructor_signature} {{}}')
+        copy_constructor_signature = f'{qualified_name}::{self.name}(const {qualified_name} &other)'
+        copy_member_initializers = self.copy_constructor_initializer_list('other')
+        if copy_member_initializers:
+            copy_constructor_signature += f' : {", ".join(copy_member_initializers)}'
+        res.append(f'{copy_constructor_signature} {{}}')
+        res.append(f'{qualified_name}::{self.name}({qualified_name} &&other) : {self.name}(static_cast<const {qualified_name} &>(other)) {{}}')
         res.extend(self.write_nested_classes_source(base_class))
         res.extend(self.write_builder_source(base, qualified_name))
 
@@ -1340,9 +1316,9 @@ class CPPClass:
             [
                 f'class {self.name} {{',
                 'public:',
-                f'\t{self.name}(const {self.name}&) = delete;',
+                f'\t{self.name}(const {self.name}&);',
                 f'\t{self.name}& operator=(const {self.name}&) = delete;',
-                f'\t{self.name}({self.name}&&) = default;',
+                f'\t{self.name}({self.name}&&);',
                 f'\t{self.name} &operator=({self.name}&&) = delete;',
             ]
         )

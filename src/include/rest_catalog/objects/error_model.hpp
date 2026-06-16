@@ -17,9 +17,9 @@ class ErrorModelBuilder;
 
 class ErrorModel {
 public:
-	ErrorModel(const ErrorModel &) = delete;
+	ErrorModel(const ErrorModel &);
 	ErrorModel &operator=(const ErrorModel &) = delete;
-	ErrorModel(ErrorModel &&) = default;
+	ErrorModel(ErrorModel &&);
 	ErrorModel &operator=(ErrorModel &&) = delete;
 
 private:
@@ -40,10 +40,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string message;
-	string type;
-	int32_t code;
-	optional<vector<string>> stack;
+	const string message;
+	const string type;
+	const int32_t code;
+	const optional<vector<string>> stack;
 };
 
 class ErrorModelBuilder {

@@ -19,9 +19,9 @@ class UnaryExpressionBuilder;
 
 class UnaryExpression {
 public:
-	UnaryExpression(const UnaryExpression &) = delete;
+	UnaryExpression(const UnaryExpression &);
 	UnaryExpression &operator=(const UnaryExpression &) = delete;
-	UnaryExpression(UnaryExpression &&) = default;
+	UnaryExpression(UnaryExpression &&);
 	UnaryExpression &operator=(UnaryExpression &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	ExpressionType type;
-	Term term;
+	const ExpressionType type;
+	const Term term;
 };
 
 class UnaryExpressionBuilder {

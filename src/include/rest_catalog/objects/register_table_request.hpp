@@ -17,9 +17,9 @@ class RegisterTableRequestBuilder;
 
 class RegisterTableRequest {
 public:
-	RegisterTableRequest(const RegisterTableRequest &) = delete;
+	RegisterTableRequest(const RegisterTableRequest &);
 	RegisterTableRequest &operator=(const RegisterTableRequest &) = delete;
-	RegisterTableRequest(RegisterTableRequest &&) = default;
+	RegisterTableRequest(RegisterTableRequest &&);
 	RegisterTableRequest &operator=(RegisterTableRequest &&) = delete;
 
 private:
@@ -40,9 +40,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string name;
-	string metadata_location;
-	optional<bool> overwrite;
+	const string name;
+	const string metadata_location;
+	const optional<bool> overwrite;
 };
 
 class RegisterTableRequestBuilder {

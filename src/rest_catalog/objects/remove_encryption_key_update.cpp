@@ -18,6 +18,12 @@ namespace rest_api_objects {
 RemoveEncryptionKeyUpdate::RemoveEncryptionKeyUpdate(BaseUpdate base_update_p, string key_id_p)
     : base_update(std::move(base_update_p)), key_id(std::move(key_id_p)) {
 }
+RemoveEncryptionKeyUpdate::RemoveEncryptionKeyUpdate(const RemoveEncryptionKeyUpdate &other)
+    : base_update(other.base_update.Copy()), key_id(other.key_id) {
+}
+RemoveEncryptionKeyUpdate::RemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate &&other)
+    : RemoveEncryptionKeyUpdate(static_cast<const RemoveEncryptionKeyUpdate &>(other)) {
+}
 
 RemoveEncryptionKeyUpdateBuilder::RemoveEncryptionKeyUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
 }
 
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::Copy() const {
-	RemoveEncryptionKeyUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	string key_id_tmp;
-	key_id_tmp = key_id;
-	builder.SetKeyId(std::move(key_id_tmp));
-	return builder.Build();
+	return RemoveEncryptionKeyUpdate(*this);
 }
 
 string RemoveEncryptionKeyUpdate::Validate() const {

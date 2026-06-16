@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class PageToken {
 public:
-	PageToken(const PageToken &) = delete;
+	PageToken(const PageToken &);
 	PageToken &operator=(const PageToken &) = delete;
-	PageToken(PageToken &&) = default;
+	PageToken(PageToken &&);
 	PageToken &operator=(PageToken &&) = delete;
 	PageToken(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

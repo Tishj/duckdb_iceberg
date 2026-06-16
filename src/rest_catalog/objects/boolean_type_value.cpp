@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 BooleanTypeValue::BooleanTypeValue(bool value_p) : value(std::move(value_p)) {
 }
+BooleanTypeValue::BooleanTypeValue(const BooleanTypeValue &other) : value(other.value) {
+}
+BooleanTypeValue::BooleanTypeValue(BooleanTypeValue &&other)
+    : BooleanTypeValue(static_cast<const BooleanTypeValue &>(other)) {
+}
 
 string BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ BooleanTypeValue BooleanTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 BooleanTypeValue BooleanTypeValue::Copy() const {
-	bool value_tmp;
-	value_tmp = value;
-	return BooleanTypeValue(std::move(value_tmp));
+	return BooleanTypeValue(*this);
 }
 
 string BooleanTypeValue::Validate() const {

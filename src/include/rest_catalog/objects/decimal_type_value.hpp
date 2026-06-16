@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class DecimalTypeValue {
 public:
-	DecimalTypeValue(const DecimalTypeValue &) = delete;
+	DecimalTypeValue(const DecimalTypeValue &);
 	DecimalTypeValue &operator=(const DecimalTypeValue &) = delete;
-	DecimalTypeValue(DecimalTypeValue &&) = default;
+	DecimalTypeValue(DecimalTypeValue &&);
 	DecimalTypeValue &operator=(DecimalTypeValue &&) = delete;
 	DecimalTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

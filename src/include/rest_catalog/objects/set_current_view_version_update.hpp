@@ -18,9 +18,9 @@ class SetCurrentViewVersionUpdateBuilder;
 
 class SetCurrentViewVersionUpdate {
 public:
-	SetCurrentViewVersionUpdate(const SetCurrentViewVersionUpdate &) = delete;
+	SetCurrentViewVersionUpdate(const SetCurrentViewVersionUpdate &);
 	SetCurrentViewVersionUpdate &operator=(const SetCurrentViewVersionUpdate &) = delete;
-	SetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate &&) = default;
+	SetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate &&);
 	SetCurrentViewVersionUpdate &operator=(SetCurrentViewVersionUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	int32_t view_version_id;
+	const BaseUpdate base_update;
+	const int32_t view_version_id;
 };
 
 class SetCurrentViewVersionUpdateBuilder {

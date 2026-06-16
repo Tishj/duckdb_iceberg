@@ -20,6 +20,18 @@ SnapshotReference::SnapshotReference(string type_p, int64_t snapshot_id_p, optio
     : type(std::move(type_p)), snapshot_id(std::move(snapshot_id_p)), max_ref_age_ms(std::move(max_ref_age_ms_p)),
       max_snapshot_age_ms(std::move(max_snapshot_age_ms_p)), min_snapshots_to_keep(std::move(min_snapshots_to_keep_p)) {
 }
+SnapshotReference::SnapshotReference(const SnapshotReference &other)
+    : type(other.type), snapshot_id(other.snapshot_id),
+      max_ref_age_ms(
+          (other.max_ref_age_ms.has_value() ? optional<int64_t>((*other.max_ref_age_ms)) : optional<int64_t>())),
+      max_snapshot_age_ms((other.max_snapshot_age_ms.has_value() ? optional<int64_t>((*other.max_snapshot_age_ms))
+                                                                 : optional<int64_t>())),
+      min_snapshots_to_keep((other.min_snapshots_to_keep.has_value() ? optional<int32_t>((*other.min_snapshots_to_keep))
+                                                                     : optional<int32_t>())) {
+}
+SnapshotReference::SnapshotReference(SnapshotReference &&other)
+    : SnapshotReference(static_cast<const SnapshotReference &>(other)) {
+}
 
 SnapshotReferenceBuilder::SnapshotReferenceBuilder() {
 }
@@ -166,38 +178,7 @@ SnapshotReference SnapshotReference::FromJSON(yyjson_val *obj) {
 }
 
 SnapshotReference SnapshotReference::Copy() const {
-	SnapshotReferenceBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	optional<int64_t> max_ref_age_ms_tmp;
-	if (max_ref_age_ms.has_value()) {
-		max_ref_age_ms_tmp.emplace();
-		(*max_ref_age_ms_tmp) = (*max_ref_age_ms);
-	}
-	if (max_ref_age_ms_tmp.has_value()) {
-		builder.SetMaxRefAgeMs(std::move((*max_ref_age_ms_tmp)));
-	}
-	optional<int64_t> max_snapshot_age_ms_tmp;
-	if (max_snapshot_age_ms.has_value()) {
-		max_snapshot_age_ms_tmp.emplace();
-		(*max_snapshot_age_ms_tmp) = (*max_snapshot_age_ms);
-	}
-	if (max_snapshot_age_ms_tmp.has_value()) {
-		builder.SetMaxSnapshotAgeMs(std::move((*max_snapshot_age_ms_tmp)));
-	}
-	optional<int32_t> min_snapshots_to_keep_tmp;
-	if (min_snapshots_to_keep.has_value()) {
-		min_snapshots_to_keep_tmp.emplace();
-		(*min_snapshots_to_keep_tmp) = (*min_snapshots_to_keep);
-	}
-	if (min_snapshots_to_keep_tmp.has_value()) {
-		builder.SetMinSnapshotsToKeep(std::move((*min_snapshots_to_keep_tmp)));
-	}
-	return builder.Build();
+	return SnapshotReference(*this);
 }
 
 string SnapshotReference::Validate() const {

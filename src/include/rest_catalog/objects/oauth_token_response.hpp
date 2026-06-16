@@ -18,9 +18,9 @@ class OAuthTokenResponseBuilder;
 
 class OAuthTokenResponse {
 public:
-	OAuthTokenResponse(const OAuthTokenResponse &) = delete;
+	OAuthTokenResponse(const OAuthTokenResponse &);
 	OAuthTokenResponse &operator=(const OAuthTokenResponse &) = delete;
-	OAuthTokenResponse(OAuthTokenResponse &&) = default;
+	OAuthTokenResponse(OAuthTokenResponse &&);
 	OAuthTokenResponse &operator=(OAuthTokenResponse &&) = delete;
 
 private:
@@ -43,12 +43,12 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string access_token;
-	string token_type;
-	optional<int32_t> expires_in;
-	optional<TokenType> issued_token_type;
-	optional<string> refresh_token;
-	optional<string> scope;
+	const string access_token;
+	const string token_type;
+	const optional<int32_t> expires_in;
+	const optional<TokenType> issued_token_type;
+	const optional<string> refresh_token;
+	const optional<string> scope;
 };
 
 class OAuthTokenResponseBuilder {

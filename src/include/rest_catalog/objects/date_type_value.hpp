@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class DateTypeValue {
 public:
-	DateTypeValue(const DateTypeValue &) = delete;
+	DateTypeValue(const DateTypeValue &);
 	DateTypeValue &operator=(const DateTypeValue &) = delete;
-	DateTypeValue(DateTypeValue &&) = default;
+	DateTypeValue(DateTypeValue &&);
 	DateTypeValue &operator=(DateTypeValue &&) = delete;
 	DateTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

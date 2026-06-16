@@ -18,6 +18,12 @@ namespace rest_api_objects {
 UpgradeFormatVersionUpdate::UpgradeFormatVersionUpdate(BaseUpdate base_update_p, int32_t format_version_p)
     : base_update(std::move(base_update_p)), format_version(std::move(format_version_p)) {
 }
+UpgradeFormatVersionUpdate::UpgradeFormatVersionUpdate(const UpgradeFormatVersionUpdate &other)
+    : base_update(other.base_update.Copy()), format_version(other.format_version) {
+}
+UpgradeFormatVersionUpdate::UpgradeFormatVersionUpdate(UpgradeFormatVersionUpdate &&other)
+    : UpgradeFormatVersionUpdate(static_cast<const UpgradeFormatVersionUpdate &>(other)) {
+}
 
 UpgradeFormatVersionUpdateBuilder::UpgradeFormatVersionUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::FromJSON(yyjson_val *obj)
 }
 
 UpgradeFormatVersionUpdate UpgradeFormatVersionUpdate::Copy() const {
-	UpgradeFormatVersionUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	int32_t format_version_tmp;
-	format_version_tmp = format_version;
-	builder.SetFormatVersion(std::move(format_version_tmp));
-	return builder.Build();
+	return UpgradeFormatVersionUpdate(*this);
 }
 
 string UpgradeFormatVersionUpdate::Validate() const {

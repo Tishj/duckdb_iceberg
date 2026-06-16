@@ -20,6 +20,16 @@ ReportMetricsRequest::ReportMetricsRequest(optional<ScanReport> scan_report_p, o
     : scan_report(std::move(scan_report_p)), commit_report(std::move(commit_report_p)),
       report_type(std::move(report_type_p)) {
 }
+ReportMetricsRequest::ReportMetricsRequest(const ReportMetricsRequest &other)
+    : scan_report(
+          (other.scan_report.has_value() ? optional<ScanReport>((*other.scan_report).Copy()) : optional<ScanReport>())),
+      commit_report((other.commit_report.has_value() ? optional<CommitReport>((*other.commit_report).Copy())
+                                                     : optional<CommitReport>())),
+      report_type(other.report_type) {
+}
+ReportMetricsRequest::ReportMetricsRequest(ReportMetricsRequest &&other)
+    : ReportMetricsRequest(static_cast<const ReportMetricsRequest &>(other)) {
+}
 
 ReportMetricsRequestBuilder::ReportMetricsRequestBuilder() {
 }
@@ -109,25 +119,7 @@ ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
 }
 
 ReportMetricsRequest ReportMetricsRequest::Copy() const {
-	ReportMetricsRequestBuilder builder;
-	optional<ScanReport> scan_report_tmp;
-	if (scan_report.has_value()) {
-		scan_report_tmp.emplace((*scan_report).Copy());
-	}
-	if (scan_report_tmp.has_value()) {
-		builder.SetScanReport(std::move(*scan_report_tmp));
-	}
-	optional<CommitReport> commit_report_tmp;
-	if (commit_report.has_value()) {
-		commit_report_tmp.emplace((*commit_report).Copy());
-	}
-	if (commit_report_tmp.has_value()) {
-		builder.SetCommitReport(std::move(*commit_report_tmp));
-	}
-	string report_type_tmp;
-	report_type_tmp = report_type;
-	builder.SetReportType(std::move(report_type_tmp));
-	return builder.Build();
+	return ReportMetricsRequest(*this);
 }
 
 string ReportMetricsRequest::Validate() const {

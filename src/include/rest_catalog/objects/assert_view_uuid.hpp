@@ -17,9 +17,9 @@ class AssertViewUUIDBuilder;
 
 class AssertViewUUID {
 public:
-	AssertViewUUID(const AssertViewUUID &) = delete;
+	AssertViewUUID(const AssertViewUUID &);
 	AssertViewUUID &operator=(const AssertViewUUID &) = delete;
-	AssertViewUUID(AssertViewUUID &&) = default;
+	AssertViewUUID(AssertViewUUID &&);
 	AssertViewUUID &operator=(AssertViewUUID &&) = delete;
 
 private:
@@ -40,8 +40,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	string uuid;
+	const string type;
+	const string uuid;
 };
 
 class AssertViewUUIDBuilder {

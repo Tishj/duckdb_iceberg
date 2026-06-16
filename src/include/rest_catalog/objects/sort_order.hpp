@@ -18,9 +18,9 @@ class SortOrderBuilder;
 
 class SortOrder {
 public:
-	SortOrder(const SortOrder &) = delete;
+	SortOrder(const SortOrder &);
 	SortOrder &operator=(const SortOrder &) = delete;
-	SortOrder(SortOrder &&) = default;
+	SortOrder(SortOrder &&);
 	SortOrder &operator=(SortOrder &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t order_id;
-	vector<SortField> fields;
+	const int32_t order_id;
+	const vector<SortField> fields;
 };
 
 class SortOrderBuilder {

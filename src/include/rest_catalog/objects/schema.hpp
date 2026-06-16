@@ -18,17 +18,17 @@ class SchemaBuilder;
 
 class Schema {
 public:
-	Schema(const Schema &) = delete;
+	Schema(const Schema &);
 	Schema &operator=(const Schema &) = delete;
-	Schema(Schema &&) = default;
+	Schema(Schema &&);
 	Schema &operator=(Schema &&) = delete;
 	class Object1Builder;
 
 	class Object1 {
 	public:
-		Object1(const Object1 &) = delete;
+		Object1(const Object1 &);
 		Object1 &operator=(const Object1 &) = delete;
-		Object1(Object1 &&) = default;
+		Object1(Object1 &&);
 		Object1 &operator=(Object1 &&) = delete;
 
 	private:
@@ -49,8 +49,8 @@ public:
 		yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 	public:
-		optional<int32_t> schema_id;
-		optional<vector<int32_t>> identifier_field_ids;
+		const optional<int32_t> schema_id;
+		const optional<vector<int32_t>> identifier_field_ids;
 	};
 
 	class Object1Builder {
@@ -84,8 +84,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	StructType struct_type;
-	Object1 object_1;
+	const StructType struct_type;
+	const Object1 object_1;
 };
 
 class SchemaBuilder {

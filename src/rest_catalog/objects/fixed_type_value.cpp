@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 FixedTypeValue::FixedTypeValue(string value_p) : value(std::move(value_p)) {
 }
+FixedTypeValue::FixedTypeValue(const FixedTypeValue &other) : value(other.value) {
+}
+FixedTypeValue::FixedTypeValue(FixedTypeValue &&other) : FixedTypeValue(static_cast<const FixedTypeValue &>(other)) {
+}
 
 string FixedTypeValue::TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &result) {
 	try {
@@ -49,9 +53,7 @@ FixedTypeValue FixedTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 FixedTypeValue FixedTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return FixedTypeValue(std::move(value_tmp));
+	return FixedTypeValue(*this);
 }
 
 string FixedTypeValue::Validate() const {

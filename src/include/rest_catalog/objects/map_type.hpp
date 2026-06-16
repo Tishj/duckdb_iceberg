@@ -19,9 +19,9 @@ class MapTypeBuilder;
 
 class MapType {
 public:
-	MapType(const MapType &) = delete;
+	MapType(const MapType &);
 	MapType &operator=(const MapType &) = delete;
-	MapType(MapType &&) = default;
+	MapType(MapType &&);
 	MapType &operator=(MapType &&) = delete;
 
 private:
@@ -43,12 +43,12 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string type;
-	int32_t key_id;
-	unique_ptr<Type> key;
-	int32_t value_id;
-	unique_ptr<Type> value;
-	bool value_required;
+	const string type;
+	const int32_t key_id;
+	const unique_ptr<Type> key;
+	const int32_t value_id;
+	const unique_ptr<Type> value;
+	const bool value_required;
 };
 
 class MapTypeBuilder {

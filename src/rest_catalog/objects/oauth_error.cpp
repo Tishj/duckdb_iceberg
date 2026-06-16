@@ -19,6 +19,14 @@ OAuthError::OAuthError(string _error_p, optional<string> error_description_p, op
     : _error(std::move(_error_p)), error_description(std::move(error_description_p)),
       error_uri(std::move(error_uri_p)) {
 }
+OAuthError::OAuthError(const OAuthError &other)
+    : _error(other._error),
+      error_description(
+          (other.error_description.has_value() ? optional<string>((*other.error_description)) : optional<string>())),
+      error_uri((other.error_uri.has_value() ? optional<string>((*other.error_uri)) : optional<string>())) {
+}
+OAuthError::OAuthError(OAuthError &&other) : OAuthError(static_cast<const OAuthError &>(other)) {
+}
 
 OAuthErrorBuilder::OAuthErrorBuilder() {
 }
@@ -118,27 +126,7 @@ OAuthError OAuthError::FromJSON(yyjson_val *obj) {
 }
 
 OAuthError OAuthError::Copy() const {
-	OAuthErrorBuilder builder;
-	string _error_tmp;
-	_error_tmp = _error;
-	builder.SetError(std::move(_error_tmp));
-	optional<string> error_description_tmp;
-	if (error_description.has_value()) {
-		error_description_tmp.emplace();
-		(*error_description_tmp) = (*error_description);
-	}
-	if (error_description_tmp.has_value()) {
-		builder.SetErrorDescription(std::move((*error_description_tmp)));
-	}
-	optional<string> error_uri_tmp;
-	if (error_uri.has_value()) {
-		error_uri_tmp.emplace();
-		(*error_uri_tmp) = (*error_uri);
-	}
-	if (error_uri_tmp.has_value()) {
-		builder.SetErrorUri(std::move((*error_uri_tmp)));
-	}
-	return builder.Build();
+	return OAuthError(*this);
 }
 
 string OAuthError::Validate() const {

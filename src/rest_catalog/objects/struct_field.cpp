@@ -21,6 +21,16 @@ StructField::StructField(int32_t id_p, string name_p, unique_ptr<Type> type_p, b
       _doc(std::move(_doc_p)), initial_default(std::move(initial_default_p)),
       write_default(std::move(write_default_p)) {
 }
+StructField::StructField(const StructField &other)
+    : id(other.id), name(other.name), type(other.type ? make_uniq<Type>(other.type->Copy()) : nullptr),
+      required(other.required), _doc((other._doc.has_value() ? optional<string>((*other._doc)) : optional<string>())),
+      initial_default((other.initial_default.has_value() ? optional<PrimitiveTypeValue>((*other.initial_default).Copy())
+                                                         : optional<PrimitiveTypeValue>())),
+      write_default((other.write_default.has_value() ? optional<PrimitiveTypeValue>((*other.write_default).Copy())
+                                                     : optional<PrimitiveTypeValue>())) {
+}
+StructField::StructField(StructField &&other) : StructField(static_cast<const StructField &>(other)) {
+}
 
 StructFieldBuilder::StructFieldBuilder() {
 }
@@ -185,42 +195,7 @@ StructField StructField::FromJSON(yyjson_val *obj) {
 }
 
 StructField StructField::Copy() const {
-	StructFieldBuilder builder;
-	int32_t id_tmp;
-	id_tmp = id;
-	builder.SetId(std::move(id_tmp));
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	unique_ptr<Type> type_tmp;
-	type_tmp = type ? make_uniq<Type>(type->Copy()) : nullptr;
-	builder.SetType(std::move(type_tmp));
-	bool required_tmp;
-	required_tmp = required;
-	builder.SetRequired(std::move(required_tmp));
-	optional<string> _doc_tmp;
-	if (_doc.has_value()) {
-		_doc_tmp.emplace();
-		(*_doc_tmp) = (*_doc);
-	}
-	if (_doc_tmp.has_value()) {
-		builder.SetDoc(std::move((*_doc_tmp)));
-	}
-	optional<PrimitiveTypeValue> initial_default_tmp;
-	if (initial_default.has_value()) {
-		initial_default_tmp.emplace((*initial_default).Copy());
-	}
-	if (initial_default_tmp.has_value()) {
-		builder.SetInitialDefault(std::move(*initial_default_tmp));
-	}
-	optional<PrimitiveTypeValue> write_default_tmp;
-	if (write_default.has_value()) {
-		write_default_tmp.emplace((*write_default).Copy());
-	}
-	if (write_default_tmp.has_value()) {
-		builder.SetWriteDefault(std::move(*write_default_tmp));
-	}
-	return builder.Build();
+	return StructField(*this);
 }
 
 string StructField::Validate() const {

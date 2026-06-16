@@ -19,6 +19,12 @@ AssertLastAssignedPartitionId::AssertLastAssignedPartitionId(TableRequirementTyp
                                                              int32_t last_assigned_partition_id_p)
     : type(std::move(type_p)), last_assigned_partition_id(std::move(last_assigned_partition_id_p)) {
 }
+AssertLastAssignedPartitionId::AssertLastAssignedPartitionId(const AssertLastAssignedPartitionId &other)
+    : type(other.type.Copy()), last_assigned_partition_id(other.last_assigned_partition_id) {
+}
+AssertLastAssignedPartitionId::AssertLastAssignedPartitionId(AssertLastAssignedPartitionId &&other)
+    : AssertLastAssignedPartitionId(static_cast<const AssertLastAssignedPartitionId &>(other)) {
+}
 
 AssertLastAssignedPartitionIdBuilder::AssertLastAssignedPartitionIdBuilder() {
 }
@@ -102,13 +108,7 @@ AssertLastAssignedPartitionId AssertLastAssignedPartitionId::FromJSON(yyjson_val
 }
 
 AssertLastAssignedPartitionId AssertLastAssignedPartitionId::Copy() const {
-	AssertLastAssignedPartitionIdBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	int32_t last_assigned_partition_id_tmp;
-	last_assigned_partition_id_tmp = last_assigned_partition_id;
-	builder.SetLastAssignedPartitionId(std::move(last_assigned_partition_id_tmp));
-	return builder.Build();
+	return AssertLastAssignedPartitionId(*this);
 }
 
 string AssertLastAssignedPartitionId::Validate() const {

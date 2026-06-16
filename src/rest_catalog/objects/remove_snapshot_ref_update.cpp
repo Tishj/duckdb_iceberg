@@ -18,6 +18,12 @@ namespace rest_api_objects {
 RemoveSnapshotRefUpdate::RemoveSnapshotRefUpdate(BaseUpdate base_update_p, string ref_name_p)
     : base_update(std::move(base_update_p)), ref_name(std::move(ref_name_p)) {
 }
+RemoveSnapshotRefUpdate::RemoveSnapshotRefUpdate(const RemoveSnapshotRefUpdate &other)
+    : base_update(other.base_update.Copy()), ref_name(other.ref_name) {
+}
+RemoveSnapshotRefUpdate::RemoveSnapshotRefUpdate(RemoveSnapshotRefUpdate &&other)
+    : RemoveSnapshotRefUpdate(static_cast<const RemoveSnapshotRefUpdate &>(other)) {
+}
 
 RemoveSnapshotRefUpdateBuilder::RemoveSnapshotRefUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
 }
 
 RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::Copy() const {
-	RemoveSnapshotRefUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	string ref_name_tmp;
-	ref_name_tmp = ref_name;
-	builder.SetRefName(std::move(ref_name_tmp));
-	return builder.Build();
+	return RemoveSnapshotRefUpdate(*this);
 }
 
 string RemoveSnapshotRefUpdate::Validate() const {

@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class StringTypeValue {
 public:
-	StringTypeValue(const StringTypeValue &) = delete;
+	StringTypeValue(const StringTypeValue &);
 	StringTypeValue &operator=(const StringTypeValue &) = delete;
-	StringTypeValue(StringTypeValue &&) = default;
+	StringTypeValue(StringTypeValue &&);
 	StringTypeValue &operator=(StringTypeValue &&) = delete;
 	StringTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

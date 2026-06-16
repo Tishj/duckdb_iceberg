@@ -18,6 +18,14 @@ namespace rest_api_objects {
 AddSchemaUpdate::AddSchemaUpdate(BaseUpdate base_update_p, Schema schema_p, optional<int32_t> last_column_id_p)
     : base_update(std::move(base_update_p)), schema(std::move(schema_p)), last_column_id(std::move(last_column_id_p)) {
 }
+AddSchemaUpdate::AddSchemaUpdate(const AddSchemaUpdate &other)
+    : base_update(other.base_update.Copy()), schema(other.schema.Copy()),
+      last_column_id(
+          (other.last_column_id.has_value() ? optional<int32_t>((*other.last_column_id)) : optional<int32_t>())) {
+}
+AddSchemaUpdate::AddSchemaUpdate(AddSchemaUpdate &&other)
+    : AddSchemaUpdate(static_cast<const AddSchemaUpdate &>(other)) {
+}
 
 AddSchemaUpdateBuilder::AddSchemaUpdateBuilder() {
 }
@@ -98,20 +106,7 @@ AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AddSchemaUpdate AddSchemaUpdate::Copy() const {
-	AddSchemaUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto schema_tmp = schema.Copy();
-	builder.SetSchema(std::move(schema_tmp));
-	optional<int32_t> last_column_id_tmp;
-	if (last_column_id.has_value()) {
-		last_column_id_tmp.emplace();
-		(*last_column_id_tmp) = (*last_column_id);
-	}
-	if (last_column_id_tmp.has_value()) {
-		builder.SetLastColumnId(std::move((*last_column_id_tmp)));
-	}
-	return builder.Build();
+	return AddSchemaUpdate(*this);
 }
 
 string AddSchemaUpdate::Validate() const {

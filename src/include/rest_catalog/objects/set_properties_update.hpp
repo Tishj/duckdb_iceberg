@@ -18,9 +18,9 @@ class SetPropertiesUpdateBuilder;
 
 class SetPropertiesUpdate {
 public:
-	SetPropertiesUpdate(const SetPropertiesUpdate &) = delete;
+	SetPropertiesUpdate(const SetPropertiesUpdate &);
 	SetPropertiesUpdate &operator=(const SetPropertiesUpdate &) = delete;
-	SetPropertiesUpdate(SetPropertiesUpdate &&) = default;
+	SetPropertiesUpdate(SetPropertiesUpdate &&);
 	SetPropertiesUpdate &operator=(SetPropertiesUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	case_insensitive_map_t<string> updates;
+	const BaseUpdate base_update;
+	const case_insensitive_map_t<string> updates;
 };
 
 class SetPropertiesUpdateBuilder {

@@ -20,9 +20,9 @@ class CommitViewRequestBuilder;
 
 class CommitViewRequest {
 public:
-	CommitViewRequest(const CommitViewRequest &) = delete;
+	CommitViewRequest(const CommitViewRequest &);
 	CommitViewRequest &operator=(const CommitViewRequest &) = delete;
-	CommitViewRequest(CommitViewRequest &&) = default;
+	CommitViewRequest(CommitViewRequest &&);
 	CommitViewRequest &operator=(CommitViewRequest &&) = delete;
 
 private:
@@ -44,9 +44,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<ViewUpdate> updates;
-	optional<TableIdentifier> identifier;
-	optional<vector<ViewRequirement>> requirements;
+	const vector<ViewUpdate> updates;
+	const optional<TableIdentifier> identifier;
+	const optional<vector<ViewRequirement>> requirements;
 };
 
 class CommitViewRequestBuilder {

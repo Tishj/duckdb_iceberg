@@ -18,9 +18,9 @@ class SetDefaultSortOrderUpdateBuilder;
 
 class SetDefaultSortOrderUpdate {
 public:
-	SetDefaultSortOrderUpdate(const SetDefaultSortOrderUpdate &) = delete;
+	SetDefaultSortOrderUpdate(const SetDefaultSortOrderUpdate &);
 	SetDefaultSortOrderUpdate &operator=(const SetDefaultSortOrderUpdate &) = delete;
-	SetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate &&) = default;
+	SetDefaultSortOrderUpdate(SetDefaultSortOrderUpdate &&);
 	SetDefaultSortOrderUpdate &operator=(SetDefaultSortOrderUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	int32_t sort_order_id;
+	const BaseUpdate base_update;
+	const int32_t sort_order_id;
 };
 
 class SetDefaultSortOrderUpdateBuilder {

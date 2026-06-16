@@ -18,9 +18,9 @@ class CommitTransactionRequestBuilder;
 
 class CommitTransactionRequest {
 public:
-	CommitTransactionRequest(const CommitTransactionRequest &) = delete;
+	CommitTransactionRequest(const CommitTransactionRequest &);
 	CommitTransactionRequest &operator=(const CommitTransactionRequest &) = delete;
-	CommitTransactionRequest(CommitTransactionRequest &&) = default;
+	CommitTransactionRequest(CommitTransactionRequest &&);
 	CommitTransactionRequest &operator=(CommitTransactionRequest &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<CommitTableRequest> table_changes;
+	const vector<CommitTableRequest> table_changes;
 };
 
 class CommitTransactionRequestBuilder {

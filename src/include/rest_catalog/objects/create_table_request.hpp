@@ -20,9 +20,9 @@ class CreateTableRequestBuilder;
 
 class CreateTableRequest {
 public:
-	CreateTableRequest(const CreateTableRequest &) = delete;
+	CreateTableRequest(const CreateTableRequest &);
 	CreateTableRequest &operator=(const CreateTableRequest &) = delete;
-	CreateTableRequest(CreateTableRequest &&) = default;
+	CreateTableRequest(CreateTableRequest &&);
 	CreateTableRequest &operator=(CreateTableRequest &&) = delete;
 
 private:
@@ -45,13 +45,13 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string name;
-	Schema schema;
-	optional<string> location;
-	optional<PartitionSpec> partition_spec;
-	optional<SortOrder> write_order;
-	optional<bool> stage_create;
-	optional<case_insensitive_map_t<string>> properties;
+	const string name;
+	const Schema schema;
+	const optional<string> location;
+	const optional<PartitionSpec> partition_spec;
+	const optional<SortOrder> write_order;
+	const optional<bool> stage_create;
+	const optional<case_insensitive_map_t<string>> properties;
 };
 
 class CreateTableRequestBuilder {

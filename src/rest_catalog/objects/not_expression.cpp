@@ -18,6 +18,11 @@ namespace rest_api_objects {
 NotExpression::NotExpression(ExpressionType type_p, unique_ptr<Expression> child_p)
     : type(std::move(type_p)), child(std::move(child_p)) {
 }
+NotExpression::NotExpression(const NotExpression &other)
+    : type(other.type.Copy()), child(other.child ? make_uniq<Expression>(other.child->Copy()) : nullptr) {
+}
+NotExpression::NotExpression(NotExpression &&other) : NotExpression(static_cast<const NotExpression &>(other)) {
+}
 
 NotExpressionBuilder::NotExpressionBuilder() {
 }
@@ -92,13 +97,7 @@ NotExpression NotExpression::FromJSON(yyjson_val *obj) {
 }
 
 NotExpression NotExpression::Copy() const {
-	NotExpressionBuilder builder;
-	auto type_tmp = type.Copy();
-	builder.SetType(std::move(type_tmp));
-	unique_ptr<Expression> child_tmp;
-	child_tmp = child ? make_uniq<Expression>(child->Copy()) : nullptr;
-	builder.SetChild(std::move(child_tmp));
-	return builder.Build();
+	return NotExpression(*this);
 }
 
 string NotExpression::Validate() const {

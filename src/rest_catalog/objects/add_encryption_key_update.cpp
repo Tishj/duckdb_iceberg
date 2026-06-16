@@ -18,6 +18,12 @@ namespace rest_api_objects {
 AddEncryptionKeyUpdate::AddEncryptionKeyUpdate(BaseUpdate base_update_p, EncryptedKey encryption_key_p)
     : base_update(std::move(base_update_p)), encryption_key(std::move(encryption_key_p)) {
 }
+AddEncryptionKeyUpdate::AddEncryptionKeyUpdate(const AddEncryptionKeyUpdate &other)
+    : base_update(other.base_update.Copy()), encryption_key(other.encryption_key.Copy()) {
+}
+AddEncryptionKeyUpdate::AddEncryptionKeyUpdate(AddEncryptionKeyUpdate &&other)
+    : AddEncryptionKeyUpdate(static_cast<const AddEncryptionKeyUpdate &>(other)) {
+}
 
 AddEncryptionKeyUpdateBuilder::AddEncryptionKeyUpdateBuilder() {
 }
@@ -81,12 +87,7 @@ AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
 }
 
 AddEncryptionKeyUpdate AddEncryptionKeyUpdate::Copy() const {
-	AddEncryptionKeyUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto encryption_key_tmp = encryption_key.Copy();
-	builder.SetEncryptionKey(std::move(encryption_key_tmp));
-	return builder.Build();
+	return AddEncryptionKeyUpdate(*this);
 }
 
 string AddEncryptionKeyUpdate::Validate() const {

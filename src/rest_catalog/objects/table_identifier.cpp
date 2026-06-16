@@ -18,6 +18,11 @@ namespace rest_api_objects {
 TableIdentifier::TableIdentifier(Namespace _namespace_p, string name_p)
     : _namespace(std::move(_namespace_p)), name(std::move(name_p)) {
 }
+TableIdentifier::TableIdentifier(const TableIdentifier &other) : _namespace(other._namespace.Copy()), name(other.name) {
+}
+TableIdentifier::TableIdentifier(TableIdentifier &&other)
+    : TableIdentifier(static_cast<const TableIdentifier &>(other)) {
+}
 
 TableIdentifierBuilder::TableIdentifierBuilder() {
 }
@@ -100,13 +105,7 @@ TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
 }
 
 TableIdentifier TableIdentifier::Copy() const {
-	TableIdentifierBuilder builder;
-	auto _namespace_tmp = _namespace.Copy();
-	builder.SetNamespace(std::move(_namespace_tmp));
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	return builder.Build();
+	return TableIdentifier(*this);
 }
 
 string TableIdentifier::Validate() const {

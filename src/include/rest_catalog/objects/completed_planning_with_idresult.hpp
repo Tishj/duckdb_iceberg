@@ -18,17 +18,17 @@ class CompletedPlanningWithIDResultBuilder;
 
 class CompletedPlanningWithIDResult {
 public:
-	CompletedPlanningWithIDResult(const CompletedPlanningWithIDResult &) = delete;
+	CompletedPlanningWithIDResult(const CompletedPlanningWithIDResult &);
 	CompletedPlanningWithIDResult &operator=(const CompletedPlanningWithIDResult &) = delete;
-	CompletedPlanningWithIDResult(CompletedPlanningWithIDResult &&) = default;
+	CompletedPlanningWithIDResult(CompletedPlanningWithIDResult &&);
 	CompletedPlanningWithIDResult &operator=(CompletedPlanningWithIDResult &&) = delete;
 	class Object6Builder;
 
 	class Object6 {
 	public:
-		Object6(const Object6 &) = delete;
+		Object6(const Object6 &);
 		Object6 &operator=(const Object6 &) = delete;
-		Object6(Object6 &&) = default;
+		Object6(Object6 &&);
 		Object6 &operator=(Object6 &&) = delete;
 
 	private:
@@ -49,7 +49,7 @@ public:
 		yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 	public:
-		string plan_id;
+		const string plan_id;
 	};
 
 	class Object6Builder {
@@ -82,8 +82,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	CompletedPlanningResult completed_planning_result;
-	Object6 object_6;
+	const CompletedPlanningResult completed_planning_result;
+	const Object6 object_6;
 };
 
 class CompletedPlanningWithIDResultBuilder {

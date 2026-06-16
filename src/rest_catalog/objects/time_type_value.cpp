@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 TimeTypeValue::TimeTypeValue(string value_p) : value(std::move(value_p)) {
 }
+TimeTypeValue::TimeTypeValue(const TimeTypeValue &other) : value(other.value) {
+}
+TimeTypeValue::TimeTypeValue(TimeTypeValue &&other) : TimeTypeValue(static_cast<const TimeTypeValue &>(other)) {
+}
 
 string TimeTypeValue::TryFromJSON(yyjson_val *obj, optional<TimeTypeValue> &result) {
 	try {
@@ -49,9 +53,7 @@ TimeTypeValue TimeTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 TimeTypeValue TimeTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return TimeTypeValue(std::move(value_tmp));
+	return TimeTypeValue(*this);
 }
 
 string TimeTypeValue::Validate() const {

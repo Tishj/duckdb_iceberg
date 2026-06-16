@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 FetchScanTasksResult::FetchScanTasksResult(ScanTasks scan_tasks_p) : scan_tasks(std::move(scan_tasks_p)) {
 }
+FetchScanTasksResult::FetchScanTasksResult(const FetchScanTasksResult &other) : scan_tasks(other.scan_tasks.Copy()) {
+}
+FetchScanTasksResult::FetchScanTasksResult(FetchScanTasksResult &&other)
+    : FetchScanTasksResult(static_cast<const FetchScanTasksResult &>(other)) {
+}
 
 FetchScanTasksResultBuilder::FetchScanTasksResultBuilder() {
 }
@@ -65,10 +70,7 @@ FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
 }
 
 FetchScanTasksResult FetchScanTasksResult::Copy() const {
-	FetchScanTasksResultBuilder builder;
-	auto scan_tasks_tmp = scan_tasks.Copy();
-	builder.SetScanTasks(std::move(scan_tasks_tmp));
-	return builder.Build();
+	return FetchScanTasksResult(*this);
 }
 
 string FetchScanTasksResult::Validate() const {

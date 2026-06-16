@@ -17,6 +17,11 @@ namespace rest_api_objects {
 
 TimestampNanoTypeValue::TimestampNanoTypeValue(string value_p) : value(std::move(value_p)) {
 }
+TimestampNanoTypeValue::TimestampNanoTypeValue(const TimestampNanoTypeValue &other) : value(other.value) {
+}
+TimestampNanoTypeValue::TimestampNanoTypeValue(TimestampNanoTypeValue &&other)
+    : TimestampNanoTypeValue(static_cast<const TimestampNanoTypeValue &>(other)) {
+}
 
 string TimestampNanoTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampNanoTypeValue> &result) {
 	try {
@@ -49,9 +54,7 @@ TimestampNanoTypeValue TimestampNanoTypeValue::FromJSON(yyjson_val *obj) {
 }
 
 TimestampNanoTypeValue TimestampNanoTypeValue::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return TimestampNanoTypeValue(std::move(value_tmp));
+	return TimestampNanoTypeValue(*this);
 }
 
 string TimestampNanoTypeValue::Validate() const {

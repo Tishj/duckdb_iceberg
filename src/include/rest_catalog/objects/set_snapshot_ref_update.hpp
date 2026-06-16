@@ -19,9 +19,9 @@ class SetSnapshotRefUpdateBuilder;
 
 class SetSnapshotRefUpdate {
 public:
-	SetSnapshotRefUpdate(const SetSnapshotRefUpdate &) = delete;
+	SetSnapshotRefUpdate(const SetSnapshotRefUpdate &);
 	SetSnapshotRefUpdate &operator=(const SetSnapshotRefUpdate &) = delete;
-	SetSnapshotRefUpdate(SetSnapshotRefUpdate &&) = default;
+	SetSnapshotRefUpdate(SetSnapshotRefUpdate &&);
 	SetSnapshotRefUpdate &operator=(SetSnapshotRefUpdate &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	SnapshotReference snapshot_reference;
-	string ref_name;
+	const BaseUpdate base_update;
+	const SnapshotReference snapshot_reference;
+	const string ref_name;
 };
 
 class SetSnapshotRefUpdateBuilder {

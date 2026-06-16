@@ -18,6 +18,28 @@ namespace rest_api_objects {
 ValueMap::ValueMap(optional<vector<IntegerTypeValue>> keys_p, optional<vector<PrimitiveTypeValue>> values_p)
     : keys(std::move(keys_p)), values(std::move(values_p)) {
 }
+ValueMap::ValueMap(const ValueMap &other)
+    : keys((other.keys.has_value() ? optional<vector<IntegerTypeValue>>(([&]() {
+	      vector<IntegerTypeValue> copied;
+	      copied.reserve((*other.keys).size());
+	      for (const auto &item : (*other.keys)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                   : optional<vector<IntegerTypeValue>>())),
+      values((other.values.has_value() ? optional<vector<PrimitiveTypeValue>>(([&]() {
+	      vector<PrimitiveTypeValue> copied;
+	      copied.reserve((*other.values).size());
+	      for (const auto &item : (*other.values)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                       : optional<vector<PrimitiveTypeValue>>())) {
+}
+ValueMap::ValueMap(ValueMap &&other) : ValueMap(static_cast<const ValueMap &>(other)) {
+}
 
 ValueMapBuilder::ValueMapBuilder() {
 }
@@ -104,30 +126,7 @@ ValueMap ValueMap::FromJSON(yyjson_val *obj) {
 }
 
 ValueMap ValueMap::Copy() const {
-	ValueMapBuilder builder;
-	optional<vector<IntegerTypeValue>> keys_tmp;
-	if (keys.has_value()) {
-		keys_tmp.emplace();
-		(*keys_tmp).reserve((*keys).size());
-		for (auto &item : (*keys)) {
-			(*keys_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (keys_tmp.has_value()) {
-		builder.SetKeys(std::move((*keys_tmp)));
-	}
-	optional<vector<PrimitiveTypeValue>> values_tmp;
-	if (values.has_value()) {
-		values_tmp.emplace();
-		(*values_tmp).reserve((*values).size());
-		for (auto &item : (*values)) {
-			(*values_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (values_tmp.has_value()) {
-		builder.SetValues(std::move((*values_tmp)));
-	}
-	return builder.Build();
+	return ValueMap(*this);
 }
 
 string ValueMap::Validate() const {

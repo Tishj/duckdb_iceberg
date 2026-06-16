@@ -17,9 +17,9 @@ class OAuthClientCredentialsRequestBuilder;
 
 class OAuthClientCredentialsRequest {
 public:
-	OAuthClientCredentialsRequest(const OAuthClientCredentialsRequest &) = delete;
+	OAuthClientCredentialsRequest(const OAuthClientCredentialsRequest &);
 	OAuthClientCredentialsRequest &operator=(const OAuthClientCredentialsRequest &) = delete;
-	OAuthClientCredentialsRequest(OAuthClientCredentialsRequest &&) = default;
+	OAuthClientCredentialsRequest(OAuthClientCredentialsRequest &&);
 	OAuthClientCredentialsRequest &operator=(OAuthClientCredentialsRequest &&) = delete;
 
 private:
@@ -41,10 +41,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string grant_type;
-	string client_id;
-	string client_secret;
-	optional<string> scope;
+	const string grant_type;
+	const string client_id;
+	const string client_secret;
+	const optional<string> scope;
 };
 
 class OAuthClientCredentialsRequestBuilder {

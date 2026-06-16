@@ -18,7 +18,18 @@ namespace rest_api_objects {
 FailedPlanningResult::FailedPlanningResult(IcebergErrorResponse iceberg_error_response_p, Object7 object_7_p)
     : iceberg_error_response(std::move(iceberg_error_response_p)), object_7(std::move(object_7_p)) {
 }
+FailedPlanningResult::FailedPlanningResult(const FailedPlanningResult &other)
+    : iceberg_error_response(other.iceberg_error_response.Copy()), object_7(other.object_7.Copy()) {
+}
+FailedPlanningResult::FailedPlanningResult(FailedPlanningResult &&other)
+    : FailedPlanningResult(static_cast<const FailedPlanningResult &>(other)) {
+}
 FailedPlanningResult::Object7::Object7(PlanStatus status_p) : status(std::move(status_p)) {
+}
+FailedPlanningResult::Object7::Object7(const FailedPlanningResult::Object7 &other) : status(other.status.Copy()) {
+}
+FailedPlanningResult::Object7::Object7(FailedPlanningResult::Object7 &&other)
+    : Object7(static_cast<const FailedPlanningResult::Object7 &>(other)) {
 }
 
 FailedPlanningResult::Object7Builder::Object7Builder() {
@@ -77,10 +88,7 @@ FailedPlanningResult::Object7 FailedPlanningResult::Object7::FromJSON(yyjson_val
 }
 
 FailedPlanningResult::Object7 FailedPlanningResult::Object7::Copy() const {
-	Object7Builder builder;
-	auto status_tmp = status.Copy();
-	builder.SetStatus(std::move(status_tmp));
-	return builder.Build();
+	return FailedPlanningResult::Object7(*this);
 }
 
 string FailedPlanningResult::Object7::Validate() const {
@@ -164,12 +172,7 @@ FailedPlanningResult FailedPlanningResult::FromJSON(yyjson_val *obj) {
 }
 
 FailedPlanningResult FailedPlanningResult::Copy() const {
-	FailedPlanningResultBuilder builder;
-	auto iceberg_error_response_tmp = iceberg_error_response.Copy();
-	builder.SetIcebergErrorResponse(std::move(iceberg_error_response_tmp));
-	auto object_7_tmp = object_7.Copy();
-	builder.SetObject7(std::move(object_7_tmp));
-	return builder.Build();
+	return FailedPlanningResult(*this);
 }
 
 string FailedPlanningResult::Validate() const {

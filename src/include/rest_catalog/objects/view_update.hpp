@@ -25,9 +25,9 @@ class ViewUpdateBuilder;
 
 class ViewUpdate {
 public:
-	ViewUpdate(const ViewUpdate &) = delete;
+	ViewUpdate(const ViewUpdate &);
 	ViewUpdate &operator=(const ViewUpdate &) = delete;
-	ViewUpdate(ViewUpdate &&) = default;
+	ViewUpdate(ViewUpdate &&);
 	ViewUpdate &operator=(ViewUpdate &&) = delete;
 
 private:
@@ -54,14 +54,14 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<AssignUUIDUpdate> assign_uuidupdate;
-	optional<UpgradeFormatVersionUpdate> upgrade_format_version_update;
-	optional<AddSchemaUpdate> add_schema_update;
-	optional<SetLocationUpdate> set_location_update;
-	optional<SetPropertiesUpdate> set_properties_update;
-	optional<RemovePropertiesUpdate> remove_properties_update;
-	optional<AddViewVersionUpdate> add_view_version_update;
-	optional<SetCurrentViewVersionUpdate> set_current_view_version_update;
+	const optional<AssignUUIDUpdate> assign_uuidupdate;
+	const optional<UpgradeFormatVersionUpdate> upgrade_format_version_update;
+	const optional<AddSchemaUpdate> add_schema_update;
+	const optional<SetLocationUpdate> set_location_update;
+	const optional<SetPropertiesUpdate> set_properties_update;
+	const optional<RemovePropertiesUpdate> remove_properties_update;
+	const optional<AddViewVersionUpdate> add_view_version_update;
+	const optional<SetCurrentViewVersionUpdate> set_current_view_version_update;
 };
 
 class ViewUpdateBuilder {

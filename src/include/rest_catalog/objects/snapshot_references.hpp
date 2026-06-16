@@ -18,9 +18,9 @@ class SnapshotReferencesBuilder;
 
 class SnapshotReferences {
 public:
-	SnapshotReferences(const SnapshotReferences &) = delete;
+	SnapshotReferences(const SnapshotReferences &);
 	SnapshotReferences &operator=(const SnapshotReferences &) = delete;
-	SnapshotReferences(SnapshotReferences &&) = default;
+	SnapshotReferences(SnapshotReferences &&);
 	SnapshotReferences &operator=(SnapshotReferences &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	case_insensitive_map_t<SnapshotReference> additional_properties;
+	const case_insensitive_map_t<SnapshotReference> additional_properties;
 };
 
 class SnapshotReferencesBuilder {

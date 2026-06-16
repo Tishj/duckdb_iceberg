@@ -20,6 +20,16 @@ Type::Type(optional<PrimitiveType> primitive_type_p, optional<StructType> struct
     : primitive_type(std::move(primitive_type_p)), struct_type(std::move(struct_type_p)),
       list_type(std::move(list_type_p)), map_type(std::move(map_type_p)) {
 }
+Type::Type(const Type &other)
+    : primitive_type((other.primitive_type.has_value() ? optional<PrimitiveType>((*other.primitive_type).Copy())
+                                                       : optional<PrimitiveType>())),
+      struct_type(
+          (other.struct_type.has_value() ? optional<StructType>((*other.struct_type).Copy()) : optional<StructType>())),
+      list_type((other.list_type.has_value() ? optional<ListType>((*other.list_type).Copy()) : optional<ListType>())),
+      map_type((other.map_type.has_value() ? optional<MapType>((*other.map_type).Copy()) : optional<MapType>())) {
+}
+Type::Type(Type &&other) : Type(static_cast<const Type &>(other)) {
+}
 
 TypeBuilder::TypeBuilder() {
 }
@@ -106,36 +116,7 @@ Type Type::FromJSON(yyjson_val *obj) {
 }
 
 Type Type::Copy() const {
-	TypeBuilder builder;
-	optional<PrimitiveType> primitive_type_tmp;
-	if (primitive_type.has_value()) {
-		primitive_type_tmp.emplace((*primitive_type).Copy());
-	}
-	if (primitive_type_tmp.has_value()) {
-		builder.SetPrimitiveType(std::move(*primitive_type_tmp));
-	}
-	optional<StructType> struct_type_tmp;
-	if (struct_type.has_value()) {
-		struct_type_tmp.emplace((*struct_type).Copy());
-	}
-	if (struct_type_tmp.has_value()) {
-		builder.SetStructType(std::move(*struct_type_tmp));
-	}
-	optional<ListType> list_type_tmp;
-	if (list_type.has_value()) {
-		list_type_tmp.emplace((*list_type).Copy());
-	}
-	if (list_type_tmp.has_value()) {
-		builder.SetListType(std::move(*list_type_tmp));
-	}
-	optional<MapType> map_type_tmp;
-	if (map_type.has_value()) {
-		map_type_tmp.emplace((*map_type).Copy());
-	}
-	if (map_type_tmp.has_value()) {
-		builder.SetMapType(std::move(*map_type_tmp));
-	}
-	return builder.Build();
+	return Type(*this);
 }
 
 string Type::Validate() const {

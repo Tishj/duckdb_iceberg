@@ -20,9 +20,9 @@ class FileScanTaskBuilder;
 
 class FileScanTask {
 public:
-	FileScanTask(const FileScanTask &) = delete;
+	FileScanTask(const FileScanTask &);
 	FileScanTask &operator=(const FileScanTask &) = delete;
-	FileScanTask(FileScanTask &&) = default;
+	FileScanTask(FileScanTask &&);
 	FileScanTask &operator=(FileScanTask &&) = delete;
 
 private:
@@ -44,9 +44,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	DataFile data_file;
-	optional<vector<int32_t>> delete_file_references;
-	unique_ptr<Expression> residual_filter;
+	const DataFile data_file;
+	const optional<vector<int32_t>> delete_file_references;
+	const unique_ptr<Expression> residual_filter;
 };
 
 class FileScanTaskBuilder {

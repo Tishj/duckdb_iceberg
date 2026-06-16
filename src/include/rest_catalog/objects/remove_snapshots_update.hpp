@@ -18,9 +18,9 @@ class RemoveSnapshotsUpdateBuilder;
 
 class RemoveSnapshotsUpdate {
 public:
-	RemoveSnapshotsUpdate(const RemoveSnapshotsUpdate &) = delete;
+	RemoveSnapshotsUpdate(const RemoveSnapshotsUpdate &);
 	RemoveSnapshotsUpdate &operator=(const RemoveSnapshotsUpdate &) = delete;
-	RemoveSnapshotsUpdate(RemoveSnapshotsUpdate &&) = default;
+	RemoveSnapshotsUpdate(RemoveSnapshotsUpdate &&);
 	RemoveSnapshotsUpdate &operator=(RemoveSnapshotsUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	vector<int64_t> snapshot_ids;
+	const BaseUpdate base_update;
+	const vector<int64_t> snapshot_ids;
 };
 
 class RemoveSnapshotsUpdateBuilder {

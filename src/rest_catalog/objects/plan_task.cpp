@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 PlanTask::PlanTask(string value_p) : value(std::move(value_p)) {
 }
+PlanTask::PlanTask(const PlanTask &other) : value(other.value) {
+}
+PlanTask::PlanTask(PlanTask &&other) : PlanTask(static_cast<const PlanTask &>(other)) {
+}
 
 string PlanTask::TryFromJSON(yyjson_val *obj, optional<PlanTask> &result) {
 	try {
@@ -48,9 +52,7 @@ PlanTask PlanTask::FromJSON(yyjson_val *obj) {
 }
 
 PlanTask PlanTask::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return PlanTask(std::move(value_tmp));
+	return PlanTask(*this);
 }
 
 string PlanTask::Validate() const {

@@ -19,6 +19,19 @@ LoadViewResult::LoadViewResult(string metadata_location_p, ViewMetadata metadata
                                optional<case_insensitive_map_t<string>> config_p)
     : metadata_location(std::move(metadata_location_p)), metadata(std::move(metadata_p)), config(std::move(config_p)) {
 }
+LoadViewResult::LoadViewResult(const LoadViewResult &other)
+    : metadata_location(other.metadata_location), metadata(other.metadata.Copy()),
+      config((other.config.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.config)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                       : optional<case_insensitive_map_t<string>>())) {
+}
+LoadViewResult::LoadViewResult(LoadViewResult &&other) : LoadViewResult(static_cast<const LoadViewResult &>(other)) {
+}
 
 LoadViewResultBuilder::LoadViewResultBuilder() {
 }
@@ -127,23 +140,7 @@ LoadViewResult LoadViewResult::FromJSON(yyjson_val *obj) {
 }
 
 LoadViewResult LoadViewResult::Copy() const {
-	LoadViewResultBuilder builder;
-	string metadata_location_tmp;
-	metadata_location_tmp = metadata_location;
-	builder.SetMetadataLocation(std::move(metadata_location_tmp));
-	auto metadata_tmp = metadata.Copy();
-	builder.SetMetadata(std::move(metadata_tmp));
-	optional<case_insensitive_map_t<string>> config_tmp;
-	if (config.has_value()) {
-		config_tmp.emplace();
-		for (auto &entry : (*config)) {
-			(*config_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (config_tmp.has_value()) {
-		builder.SetConfig(std::move((*config_tmp)));
-	}
-	return builder.Build();
+	return LoadViewResult(*this);
 }
 
 string LoadViewResult::Validate() const {

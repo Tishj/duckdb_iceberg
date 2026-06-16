@@ -25,6 +25,40 @@ PlanTableScanRequest::PlanTableScanRequest(optional<int64_t> snapshot_id_p, opti
       use_snapshot_schema(std::move(use_snapshot_schema_p)), start_snapshot_id(std::move(start_snapshot_id_p)),
       end_snapshot_id(std::move(end_snapshot_id_p)), stats_fields(std::move(stats_fields_p)) {
 }
+PlanTableScanRequest::PlanTableScanRequest(const PlanTableScanRequest &other)
+    : snapshot_id((other.snapshot_id.has_value() ? optional<int64_t>((*other.snapshot_id)) : optional<int64_t>())),
+      select((other.select.has_value() ? optional<vector<FieldName>>(([&]() {
+	      vector<FieldName> copied;
+	      copied.reserve((*other.select).size());
+	      for (const auto &item : (*other.select)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                       : optional<vector<FieldName>>())),
+      filter(other.filter ? make_uniq<Expression>(other.filter->Copy()) : nullptr),
+      min_rows_requested((other.min_rows_requested.has_value() ? optional<int64_t>((*other.min_rows_requested))
+                                                               : optional<int64_t>())),
+      case_sensitive((other.case_sensitive.has_value() ? optional<bool>((*other.case_sensitive)) : optional<bool>())),
+      use_snapshot_schema(
+          (other.use_snapshot_schema.has_value() ? optional<bool>((*other.use_snapshot_schema)) : optional<bool>())),
+      start_snapshot_id(
+          (other.start_snapshot_id.has_value() ? optional<int64_t>((*other.start_snapshot_id)) : optional<int64_t>())),
+      end_snapshot_id(
+          (other.end_snapshot_id.has_value() ? optional<int64_t>((*other.end_snapshot_id)) : optional<int64_t>())),
+      stats_fields((other.stats_fields.has_value() ? optional<vector<FieldName>>(([&]() {
+	      vector<FieldName> copied;
+	      copied.reserve((*other.stats_fields).size());
+	      for (const auto &item : (*other.stats_fields)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                   : optional<vector<FieldName>>())) {
+}
+PlanTableScanRequest::PlanTableScanRequest(PlanTableScanRequest &&other)
+    : PlanTableScanRequest(static_cast<const PlanTableScanRequest &>(other)) {
+}
 
 PlanTableScanRequestBuilder::PlanTableScanRequestBuilder() {
 }
@@ -235,86 +269,7 @@ PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
 }
 
 PlanTableScanRequest PlanTableScanRequest::Copy() const {
-	PlanTableScanRequestBuilder builder;
-	optional<int64_t> snapshot_id_tmp;
-	if (snapshot_id.has_value()) {
-		snapshot_id_tmp.emplace();
-		(*snapshot_id_tmp) = (*snapshot_id);
-	}
-	if (snapshot_id_tmp.has_value()) {
-		builder.SetSnapshotId(std::move((*snapshot_id_tmp)));
-	}
-	optional<vector<FieldName>> select_tmp;
-	if (select.has_value()) {
-		select_tmp.emplace();
-		(*select_tmp).reserve((*select).size());
-		for (auto &item : (*select)) {
-			(*select_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (select_tmp.has_value()) {
-		builder.SetSelect(std::move((*select_tmp)));
-	}
-	unique_ptr<Expression> filter_tmp;
-	if (filter != nullptr) {
-		filter_tmp = nullptr;
-		filter_tmp = filter ? make_uniq<Expression>(filter->Copy()) : nullptr;
-	}
-	if (filter_tmp != nullptr) {
-		builder.SetFilter(std::move(filter_tmp));
-	}
-	optional<int64_t> min_rows_requested_tmp;
-	if (min_rows_requested.has_value()) {
-		min_rows_requested_tmp.emplace();
-		(*min_rows_requested_tmp) = (*min_rows_requested);
-	}
-	if (min_rows_requested_tmp.has_value()) {
-		builder.SetMinRowsRequested(std::move((*min_rows_requested_tmp)));
-	}
-	optional<bool> case_sensitive_tmp;
-	if (case_sensitive.has_value()) {
-		case_sensitive_tmp.emplace();
-		(*case_sensitive_tmp) = (*case_sensitive);
-	}
-	if (case_sensitive_tmp.has_value()) {
-		builder.SetCaseSensitive(std::move((*case_sensitive_tmp)));
-	}
-	optional<bool> use_snapshot_schema_tmp;
-	if (use_snapshot_schema.has_value()) {
-		use_snapshot_schema_tmp.emplace();
-		(*use_snapshot_schema_tmp) = (*use_snapshot_schema);
-	}
-	if (use_snapshot_schema_tmp.has_value()) {
-		builder.SetUseSnapshotSchema(std::move((*use_snapshot_schema_tmp)));
-	}
-	optional<int64_t> start_snapshot_id_tmp;
-	if (start_snapshot_id.has_value()) {
-		start_snapshot_id_tmp.emplace();
-		(*start_snapshot_id_tmp) = (*start_snapshot_id);
-	}
-	if (start_snapshot_id_tmp.has_value()) {
-		builder.SetStartSnapshotId(std::move((*start_snapshot_id_tmp)));
-	}
-	optional<int64_t> end_snapshot_id_tmp;
-	if (end_snapshot_id.has_value()) {
-		end_snapshot_id_tmp.emplace();
-		(*end_snapshot_id_tmp) = (*end_snapshot_id);
-	}
-	if (end_snapshot_id_tmp.has_value()) {
-		builder.SetEndSnapshotId(std::move((*end_snapshot_id_tmp)));
-	}
-	optional<vector<FieldName>> stats_fields_tmp;
-	if (stats_fields.has_value()) {
-		stats_fields_tmp.emplace();
-		(*stats_fields_tmp).reserve((*stats_fields).size());
-		for (auto &item : (*stats_fields)) {
-			(*stats_fields_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (stats_fields_tmp.has_value()) {
-		builder.SetStatsFields(std::move((*stats_fields_tmp)));
-	}
-	return builder.Build();
+	return PlanTableScanRequest(*this);
 }
 
 string PlanTableScanRequest::Validate() const {

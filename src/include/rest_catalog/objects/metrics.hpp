@@ -18,9 +18,9 @@ class MetricsBuilder;
 
 class Metrics {
 public:
-	Metrics(const Metrics &) = delete;
+	Metrics(const Metrics &);
 	Metrics &operator=(const Metrics &) = delete;
-	Metrics(Metrics &&) = default;
+	Metrics(Metrics &&);
 	Metrics &operator=(Metrics &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	case_insensitive_map_t<MetricResult> additional_properties;
+	const case_insensitive_map_t<MetricResult> additional_properties;
 };
 
 class MetricsBuilder {

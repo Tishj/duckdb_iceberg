@@ -20,6 +20,13 @@ SetStatisticsUpdate::SetStatisticsUpdate(BaseUpdate base_update_p, StatisticsFil
     : base_update(std::move(base_update_p)), statistics(std::move(statistics_p)),
       snapshot_id(std::move(snapshot_id_p)) {
 }
+SetStatisticsUpdate::SetStatisticsUpdate(const SetStatisticsUpdate &other)
+    : base_update(other.base_update.Copy()), statistics(other.statistics.Copy()),
+      snapshot_id((other.snapshot_id.has_value() ? optional<int64_t>((*other.snapshot_id)) : optional<int64_t>())) {
+}
+SetStatisticsUpdate::SetStatisticsUpdate(SetStatisticsUpdate &&other)
+    : SetStatisticsUpdate(static_cast<const SetStatisticsUpdate &>(other)) {
+}
 
 SetStatisticsUpdateBuilder::SetStatisticsUpdateBuilder() {
 }
@@ -102,20 +109,7 @@ SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetStatisticsUpdate SetStatisticsUpdate::Copy() const {
-	SetStatisticsUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	auto statistics_tmp = statistics.Copy();
-	builder.SetStatistics(std::move(statistics_tmp));
-	optional<int64_t> snapshot_id_tmp;
-	if (snapshot_id.has_value()) {
-		snapshot_id_tmp.emplace();
-		(*snapshot_id_tmp) = (*snapshot_id);
-	}
-	if (snapshot_id_tmp.has_value()) {
-		builder.SetSnapshotId(std::move((*snapshot_id_tmp)));
-	}
-	return builder.Build();
+	return SetStatisticsUpdate(*this);
 }
 
 string SetStatisticsUpdate::Validate() const {

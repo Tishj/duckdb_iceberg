@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class FixedTypeValue {
 public:
-	FixedTypeValue(const FixedTypeValue &) = delete;
+	FixedTypeValue(const FixedTypeValue &);
 	FixedTypeValue &operator=(const FixedTypeValue &) = delete;
-	FixedTypeValue(FixedTypeValue &&) = default;
+	FixedTypeValue(FixedTypeValue &&);
 	FixedTypeValue &operator=(FixedTypeValue &&) = delete;
 	FixedTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 AssertViewUUID::AssertViewUUID(string type_p, string uuid_p) : type(std::move(type_p)), uuid(std::move(uuid_p)) {
 }
+AssertViewUUID::AssertViewUUID(const AssertViewUUID &other) : type(other.type), uuid(other.uuid) {
+}
+AssertViewUUID::AssertViewUUID(AssertViewUUID &&other) : AssertViewUUID(static_cast<const AssertViewUUID &>(other)) {
+}
 
 AssertViewUUIDBuilder::AssertViewUUIDBuilder() {
 }
@@ -105,14 +109,7 @@ AssertViewUUID AssertViewUUID::FromJSON(yyjson_val *obj) {
 }
 
 AssertViewUUID AssertViewUUID::Copy() const {
-	AssertViewUUIDBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	string uuid_tmp;
-	uuid_tmp = uuid;
-	builder.SetUuid(std::move(uuid_tmp));
-	return builder.Build();
+	return AssertViewUUID(*this);
 }
 
 string AssertViewUUID::Validate() const {

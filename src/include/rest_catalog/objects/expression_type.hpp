@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class ExpressionType {
 public:
-	ExpressionType(const ExpressionType &) = delete;
+	ExpressionType(const ExpressionType &);
 	ExpressionType &operator=(const ExpressionType &) = delete;
-	ExpressionType(ExpressionType &&) = default;
+	ExpressionType(ExpressionType &&);
 	ExpressionType &operator=(ExpressionType &&) = delete;
 	ExpressionType(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

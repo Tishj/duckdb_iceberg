@@ -260,14 +260,15 @@ rest_api_objects::StructField IcebergTypeHelper::CreateIcebergRestType(const str
 		auto value_type = MapType::ValueType(type);
 		auto value_field =
 		    IcebergTypeHelper::CreateIcebergRestType("value", value_type, false, "", Value(), get_next_id);
-		auto map_type = rest_api_objects::MapTypeBuilder()
-		                    .SetType("map")
-		                    .SetKeyId(key_field.id)
-		                    .SetKey(std::move(key_field.type))
-		                    .SetValueId(value_field.id)
-		                    .SetValue(std::move(value_field.type))
-		                    .SetValueRequired(value_field.required)
-		                    .Build();
+		auto map_type =
+		    rest_api_objects::MapTypeBuilder()
+		        .SetType("map")
+		        .SetKeyId(key_field.id)
+		        .SetKey(key_field.type ? make_uniq<rest_api_objects::Type>(key_field.type->Copy()) : nullptr)
+		        .SetValueId(value_field.id)
+		        .SetValue(value_field.type ? make_uniq<rest_api_objects::Type>(value_field.type->Copy()) : nullptr)
+		        .SetValueRequired(value_field.required)
+		        .Build();
 		rest_type =
 		    make_uniq<rest_api_objects::Type>(rest_api_objects::TypeBuilder().SetMapType(std::move(map_type)).Build());
 		break;
@@ -296,12 +297,14 @@ rest_api_objects::StructField IcebergTypeHelper::CreateIcebergRestType(const str
 		auto element_field = IcebergTypeHelper::CreateIcebergRestType("element", element_type, false, "",
 		                                                              Value(), //! FIXME: extract default from parent
 		                                                              get_next_id);
-		auto list_type = rest_api_objects::ListTypeBuilder()
-		                     .SetType("list")
-		                     .SetElementId(element_field.id)
-		                     .SetElement(std::move(element_field.type))
-		                     .SetElementRequired(element_field.required)
-		                     .Build();
+		auto list_type =
+		    rest_api_objects::ListTypeBuilder()
+		        .SetType("list")
+		        .SetElementId(element_field.id)
+		        .SetElement(element_field.type ? make_uniq<rest_api_objects::Type>(element_field.type->Copy())
+		                                       : nullptr)
+		        .SetElementRequired(element_field.required)
+		        .Build();
 		rest_type = make_uniq<rest_api_objects::Type>(
 		    rest_api_objects::TypeBuilder().SetListType(std::move(list_type)).Build());
 		break;
@@ -317,19 +320,15 @@ rest_api_objects::StructField IcebergTypeHelper::CreateIcebergRestType(const str
 		break;
 	}
 
-	auto result = rest_api_objects::StructFieldBuilder()
-	                  .SetId(field_id)
-	                  .SetName(name)
-	                  .SetType(std::move(rest_type))
-	                  .SetRequired(required)
-	                  .Build();
+	rest_api_objects::StructFieldBuilder result_builder;
+	result_builder.SetId(field_id).SetName(name).SetType(std::move(rest_type)).SetRequired(required);
 	if (!doc.empty()) {
-		result._doc = doc;
+		result_builder.SetDoc(doc);
 	}
 	if (initial_default) {
-		result.initial_default.emplace(std::move(*initial_default));
+		result_builder.SetInitialDefault(std::move(*initial_default));
 	}
-	return result;
+	return result_builder.Build();
 }
 
 } // namespace duckdb

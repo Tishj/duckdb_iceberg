@@ -22,6 +22,20 @@ FetchPlanningResult::FetchPlanningResult(optional<CompletedPlanningResult> compl
       failed_planning_result(std::move(failed_planning_result_p)),
       empty_planning_result(std::move(empty_planning_result_p)) {
 }
+FetchPlanningResult::FetchPlanningResult(const FetchPlanningResult &other)
+    : completed_planning_result((other.completed_planning_result.has_value()
+                                     ? optional<CompletedPlanningResult>((*other.completed_planning_result).Copy())
+                                     : optional<CompletedPlanningResult>())),
+      failed_planning_result((other.failed_planning_result.has_value()
+                                  ? optional<FailedPlanningResult>((*other.failed_planning_result).Copy())
+                                  : optional<FailedPlanningResult>())),
+      empty_planning_result((other.empty_planning_result.has_value()
+                                 ? optional<EmptyPlanningResult>((*other.empty_planning_result).Copy())
+                                 : optional<EmptyPlanningResult>())) {
+}
+FetchPlanningResult::FetchPlanningResult(FetchPlanningResult &&other)
+    : FetchPlanningResult(static_cast<const FetchPlanningResult &>(other)) {
+}
 
 FetchPlanningResultBuilder::FetchPlanningResultBuilder() {
 }
@@ -98,29 +112,7 @@ FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
 }
 
 FetchPlanningResult FetchPlanningResult::Copy() const {
-	FetchPlanningResultBuilder builder;
-	optional<CompletedPlanningResult> completed_planning_result_tmp;
-	if (completed_planning_result.has_value()) {
-		completed_planning_result_tmp.emplace((*completed_planning_result).Copy());
-	}
-	if (completed_planning_result_tmp.has_value()) {
-		builder.SetCompletedPlanningResult(std::move(*completed_planning_result_tmp));
-	}
-	optional<FailedPlanningResult> failed_planning_result_tmp;
-	if (failed_planning_result.has_value()) {
-		failed_planning_result_tmp.emplace((*failed_planning_result).Copy());
-	}
-	if (failed_planning_result_tmp.has_value()) {
-		builder.SetFailedPlanningResult(std::move(*failed_planning_result_tmp));
-	}
-	optional<EmptyPlanningResult> empty_planning_result_tmp;
-	if (empty_planning_result.has_value()) {
-		empty_planning_result_tmp.emplace((*empty_planning_result).Copy());
-	}
-	if (empty_planning_result_tmp.has_value()) {
-		builder.SetEmptyPlanningResult(std::move(*empty_planning_result_tmp));
-	}
-	return builder.Build();
+	return FetchPlanningResult(*this);
 }
 
 string FetchPlanningResult::Validate() const {

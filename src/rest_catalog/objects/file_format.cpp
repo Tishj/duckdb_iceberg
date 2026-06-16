@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 FileFormat::FileFormat(string value_p) : value(std::move(value_p)) {
 }
+FileFormat::FileFormat(const FileFormat &other) : value(other.value) {
+}
+FileFormat::FileFormat(FileFormat &&other) : FileFormat(static_cast<const FileFormat &>(other)) {
+}
 
 string FileFormat::TryFromJSON(yyjson_val *obj, optional<FileFormat> &result) {
 	try {
@@ -48,9 +52,7 @@ FileFormat FileFormat::FromJSON(yyjson_val *obj) {
 }
 
 FileFormat FileFormat::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return FileFormat(std::move(value_tmp));
+	return FileFormat(*this);
 }
 
 string FileFormat::Validate() const {

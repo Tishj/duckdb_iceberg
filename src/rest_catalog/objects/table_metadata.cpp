@@ -39,6 +39,106 @@ TableMetadata::TableMetadata(int32_t format_version_p, string table_uuid_p, opti
       metadata_log(std::move(metadata_log_p)), statistics(std::move(statistics_p)),
       partition_statistics(std::move(partition_statistics_p)) {
 }
+TableMetadata::TableMetadata(const TableMetadata &other)
+    : format_version(other.format_version), table_uuid(other.table_uuid),
+      location((other.location.has_value() ? optional<string>((*other.location)) : optional<string>())),
+      last_updated_ms(
+          (other.last_updated_ms.has_value() ? optional<int64_t>((*other.last_updated_ms)) : optional<int64_t>())),
+      next_row_id((other.next_row_id.has_value() ? optional<int64_t>((*other.next_row_id)) : optional<int64_t>())),
+      properties((other.properties.has_value() ? optional<case_insensitive_map_t<string>>(([&]() {
+	      case_insensitive_map_t<string> copied;
+	      for (const auto &entry : (*other.properties)) {
+		      copied.emplace(entry.first, entry.second);
+	      }
+	      return copied;
+      }()))
+                                               : optional<case_insensitive_map_t<string>>())),
+      schemas((other.schemas.has_value() ? optional<vector<Schema>>(([&]() {
+	      vector<Schema> copied;
+	      copied.reserve((*other.schemas).size());
+	      for (const auto &item : (*other.schemas)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                         : optional<vector<Schema>>())),
+      current_schema_id(
+          (other.current_schema_id.has_value() ? optional<int32_t>((*other.current_schema_id)) : optional<int32_t>())),
+      last_column_id(
+          (other.last_column_id.has_value() ? optional<int32_t>((*other.last_column_id)) : optional<int32_t>())),
+      partition_specs((other.partition_specs.has_value() ? optional<vector<PartitionSpec>>(([&]() {
+	      vector<PartitionSpec> copied;
+	      copied.reserve((*other.partition_specs).size());
+	      for (const auto &item : (*other.partition_specs)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                         : optional<vector<PartitionSpec>>())),
+      default_spec_id(
+          (other.default_spec_id.has_value() ? optional<int32_t>((*other.default_spec_id)) : optional<int32_t>())),
+      last_partition_id(
+          (other.last_partition_id.has_value() ? optional<int32_t>((*other.last_partition_id)) : optional<int32_t>())),
+      sort_orders((other.sort_orders.has_value() ? optional<vector<SortOrder>>(([&]() {
+	      vector<SortOrder> copied;
+	      copied.reserve((*other.sort_orders).size());
+	      for (const auto &item : (*other.sort_orders)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                 : optional<vector<SortOrder>>())),
+      default_sort_order_id((other.default_sort_order_id.has_value() ? optional<int32_t>((*other.default_sort_order_id))
+                                                                     : optional<int32_t>())),
+      encryption_keys((other.encryption_keys.has_value() ? optional<vector<EncryptedKey>>(([&]() {
+	      vector<EncryptedKey> copied;
+	      copied.reserve((*other.encryption_keys).size());
+	      for (const auto &item : (*other.encryption_keys)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                         : optional<vector<EncryptedKey>>())),
+      snapshots((other.snapshots.has_value() ? optional<vector<Snapshot>>(([&]() {
+	      vector<Snapshot> copied;
+	      copied.reserve((*other.snapshots).size());
+	      for (const auto &item : (*other.snapshots)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                             : optional<vector<Snapshot>>())),
+      refs((other.refs.has_value() ? optional<SnapshotReferences>((*other.refs).Copy())
+                                   : optional<SnapshotReferences>())),
+      current_snapshot_id((other.current_snapshot_id.has_value() ? optional<int64_t>((*other.current_snapshot_id))
+                                                                 : optional<int64_t>())),
+      last_sequence_number((other.last_sequence_number.has_value() ? optional<int64_t>((*other.last_sequence_number))
+                                                                   : optional<int64_t>())),
+      snapshot_log((other.snapshot_log.has_value() ? optional<SnapshotLog>((*other.snapshot_log).Copy())
+                                                   : optional<SnapshotLog>())),
+      metadata_log((other.metadata_log.has_value() ? optional<MetadataLog>((*other.metadata_log).Copy())
+                                                   : optional<MetadataLog>())),
+      statistics((other.statistics.has_value() ? optional<vector<StatisticsFile>>(([&]() {
+	      vector<StatisticsFile> copied;
+	      copied.reserve((*other.statistics).size());
+	      for (const auto &item : (*other.statistics)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                               : optional<vector<StatisticsFile>>())),
+      partition_statistics((other.partition_statistics.has_value() ? optional<vector<PartitionStatisticsFile>>(([&]() {
+	      vector<PartitionStatisticsFile> copied;
+	      copied.reserve((*other.partition_statistics).size());
+	      for (const auto &item : (*other.partition_statistics)) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }()))
+                                                                   : optional<vector<PartitionStatisticsFile>>())) {
+}
+TableMetadata::TableMetadata(TableMetadata &&other) : TableMetadata(static_cast<const TableMetadata &>(other)) {
+}
 
 TableMetadataBuilder::TableMetadataBuilder() {
 }
@@ -525,202 +625,7 @@ TableMetadata TableMetadata::FromJSON(yyjson_val *obj) {
 }
 
 TableMetadata TableMetadata::Copy() const {
-	TableMetadataBuilder builder;
-	int32_t format_version_tmp;
-	format_version_tmp = format_version;
-	builder.SetFormatVersion(std::move(format_version_tmp));
-	string table_uuid_tmp;
-	table_uuid_tmp = table_uuid;
-	builder.SetTableUuid(std::move(table_uuid_tmp));
-	optional<string> location_tmp;
-	if (location.has_value()) {
-		location_tmp.emplace();
-		(*location_tmp) = (*location);
-	}
-	if (location_tmp.has_value()) {
-		builder.SetLocation(std::move((*location_tmp)));
-	}
-	optional<int64_t> last_updated_ms_tmp;
-	if (last_updated_ms.has_value()) {
-		last_updated_ms_tmp.emplace();
-		(*last_updated_ms_tmp) = (*last_updated_ms);
-	}
-	if (last_updated_ms_tmp.has_value()) {
-		builder.SetLastUpdatedMs(std::move((*last_updated_ms_tmp)));
-	}
-	optional<int64_t> next_row_id_tmp;
-	if (next_row_id.has_value()) {
-		next_row_id_tmp.emplace();
-		(*next_row_id_tmp) = (*next_row_id);
-	}
-	if (next_row_id_tmp.has_value()) {
-		builder.SetNextRowId(std::move((*next_row_id_tmp)));
-	}
-	optional<case_insensitive_map_t<string>> properties_tmp;
-	if (properties.has_value()) {
-		properties_tmp.emplace();
-		for (auto &entry : (*properties)) {
-			(*properties_tmp).emplace(entry.first, entry.second);
-		}
-	}
-	if (properties_tmp.has_value()) {
-		builder.SetProperties(std::move((*properties_tmp)));
-	}
-	optional<vector<Schema>> schemas_tmp;
-	if (schemas.has_value()) {
-		schemas_tmp.emplace();
-		(*schemas_tmp).reserve((*schemas).size());
-		for (auto &item : (*schemas)) {
-			(*schemas_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (schemas_tmp.has_value()) {
-		builder.SetSchemas(std::move((*schemas_tmp)));
-	}
-	optional<int32_t> current_schema_id_tmp;
-	if (current_schema_id.has_value()) {
-		current_schema_id_tmp.emplace();
-		(*current_schema_id_tmp) = (*current_schema_id);
-	}
-	if (current_schema_id_tmp.has_value()) {
-		builder.SetCurrentSchemaId(std::move((*current_schema_id_tmp)));
-	}
-	optional<int32_t> last_column_id_tmp;
-	if (last_column_id.has_value()) {
-		last_column_id_tmp.emplace();
-		(*last_column_id_tmp) = (*last_column_id);
-	}
-	if (last_column_id_tmp.has_value()) {
-		builder.SetLastColumnId(std::move((*last_column_id_tmp)));
-	}
-	optional<vector<PartitionSpec>> partition_specs_tmp;
-	if (partition_specs.has_value()) {
-		partition_specs_tmp.emplace();
-		(*partition_specs_tmp).reserve((*partition_specs).size());
-		for (auto &item : (*partition_specs)) {
-			(*partition_specs_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (partition_specs_tmp.has_value()) {
-		builder.SetPartitionSpecs(std::move((*partition_specs_tmp)));
-	}
-	optional<int32_t> default_spec_id_tmp;
-	if (default_spec_id.has_value()) {
-		default_spec_id_tmp.emplace();
-		(*default_spec_id_tmp) = (*default_spec_id);
-	}
-	if (default_spec_id_tmp.has_value()) {
-		builder.SetDefaultSpecId(std::move((*default_spec_id_tmp)));
-	}
-	optional<int32_t> last_partition_id_tmp;
-	if (last_partition_id.has_value()) {
-		last_partition_id_tmp.emplace();
-		(*last_partition_id_tmp) = (*last_partition_id);
-	}
-	if (last_partition_id_tmp.has_value()) {
-		builder.SetLastPartitionId(std::move((*last_partition_id_tmp)));
-	}
-	optional<vector<SortOrder>> sort_orders_tmp;
-	if (sort_orders.has_value()) {
-		sort_orders_tmp.emplace();
-		(*sort_orders_tmp).reserve((*sort_orders).size());
-		for (auto &item : (*sort_orders)) {
-			(*sort_orders_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (sort_orders_tmp.has_value()) {
-		builder.SetSortOrders(std::move((*sort_orders_tmp)));
-	}
-	optional<int32_t> default_sort_order_id_tmp;
-	if (default_sort_order_id.has_value()) {
-		default_sort_order_id_tmp.emplace();
-		(*default_sort_order_id_tmp) = (*default_sort_order_id);
-	}
-	if (default_sort_order_id_tmp.has_value()) {
-		builder.SetDefaultSortOrderId(std::move((*default_sort_order_id_tmp)));
-	}
-	optional<vector<EncryptedKey>> encryption_keys_tmp;
-	if (encryption_keys.has_value()) {
-		encryption_keys_tmp.emplace();
-		(*encryption_keys_tmp).reserve((*encryption_keys).size());
-		for (auto &item : (*encryption_keys)) {
-			(*encryption_keys_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (encryption_keys_tmp.has_value()) {
-		builder.SetEncryptionKeys(std::move((*encryption_keys_tmp)));
-	}
-	optional<vector<Snapshot>> snapshots_tmp;
-	if (snapshots.has_value()) {
-		snapshots_tmp.emplace();
-		(*snapshots_tmp).reserve((*snapshots).size());
-		for (auto &item : (*snapshots)) {
-			(*snapshots_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (snapshots_tmp.has_value()) {
-		builder.SetSnapshots(std::move((*snapshots_tmp)));
-	}
-	optional<SnapshotReferences> refs_tmp;
-	if (refs.has_value()) {
-		refs_tmp.emplace((*refs).Copy());
-	}
-	if (refs_tmp.has_value()) {
-		builder.SetRefs(std::move(*refs_tmp));
-	}
-	optional<int64_t> current_snapshot_id_tmp;
-	if (current_snapshot_id.has_value()) {
-		current_snapshot_id_tmp.emplace();
-		(*current_snapshot_id_tmp) = (*current_snapshot_id);
-	}
-	if (current_snapshot_id_tmp.has_value()) {
-		builder.SetCurrentSnapshotId(std::move((*current_snapshot_id_tmp)));
-	}
-	optional<int64_t> last_sequence_number_tmp;
-	if (last_sequence_number.has_value()) {
-		last_sequence_number_tmp.emplace();
-		(*last_sequence_number_tmp) = (*last_sequence_number);
-	}
-	if (last_sequence_number_tmp.has_value()) {
-		builder.SetLastSequenceNumber(std::move((*last_sequence_number_tmp)));
-	}
-	optional<SnapshotLog> snapshot_log_tmp;
-	if (snapshot_log.has_value()) {
-		snapshot_log_tmp.emplace((*snapshot_log).Copy());
-	}
-	if (snapshot_log_tmp.has_value()) {
-		builder.SetSnapshotLog(std::move(*snapshot_log_tmp));
-	}
-	optional<MetadataLog> metadata_log_tmp;
-	if (metadata_log.has_value()) {
-		metadata_log_tmp.emplace((*metadata_log).Copy());
-	}
-	if (metadata_log_tmp.has_value()) {
-		builder.SetMetadataLog(std::move(*metadata_log_tmp));
-	}
-	optional<vector<StatisticsFile>> statistics_tmp;
-	if (statistics.has_value()) {
-		statistics_tmp.emplace();
-		(*statistics_tmp).reserve((*statistics).size());
-		for (auto &item : (*statistics)) {
-			(*statistics_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (statistics_tmp.has_value()) {
-		builder.SetStatistics(std::move((*statistics_tmp)));
-	}
-	optional<vector<PartitionStatisticsFile>> partition_statistics_tmp;
-	if (partition_statistics.has_value()) {
-		partition_statistics_tmp.emplace();
-		(*partition_statistics_tmp).reserve((*partition_statistics).size());
-		for (auto &item : (*partition_statistics)) {
-			(*partition_statistics_tmp).emplace_back(item.Copy());
-		}
-	}
-	if (partition_statistics_tmp.has_value()) {
-		builder.SetPartitionStatistics(std::move((*partition_statistics_tmp)));
-	}
-	return builder.Build();
+	return TableMetadata(*this);
 }
 
 string TableMetadata::Validate() const {

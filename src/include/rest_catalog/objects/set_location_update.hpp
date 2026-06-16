@@ -18,9 +18,9 @@ class SetLocationUpdateBuilder;
 
 class SetLocationUpdate {
 public:
-	SetLocationUpdate(const SetLocationUpdate &) = delete;
+	SetLocationUpdate(const SetLocationUpdate &);
 	SetLocationUpdate &operator=(const SetLocationUpdate &) = delete;
-	SetLocationUpdate(SetLocationUpdate &&) = default;
+	SetLocationUpdate(SetLocationUpdate &&);
 	SetLocationUpdate &operator=(SetLocationUpdate &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	BaseUpdate base_update;
-	string location;
+	const BaseUpdate base_update;
+	const string location;
 };
 
 class SetLocationUpdateBuilder {

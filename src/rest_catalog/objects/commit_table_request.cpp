@@ -19,6 +19,29 @@ CommitTableRequest::CommitTableRequest(vector<TableRequirement> requirements_p, 
                                        optional<TableIdentifier> identifier_p)
     : requirements(std::move(requirements_p)), updates(std::move(updates_p)), identifier(std::move(identifier_p)) {
 }
+CommitTableRequest::CommitTableRequest(const CommitTableRequest &other)
+    : requirements(([&]() {
+	      vector<TableRequirement> copied;
+	      copied.reserve(other.requirements.size());
+	      for (const auto &item : other.requirements) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      updates(([&]() {
+	      vector<TableUpdate> copied;
+	      copied.reserve(other.updates.size());
+	      for (const auto &item : other.updates) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())),
+      identifier((other.identifier.has_value() ? optional<TableIdentifier>((*other.identifier).Copy())
+                                               : optional<TableIdentifier>())) {
+}
+CommitTableRequest::CommitTableRequest(CommitTableRequest &&other)
+    : CommitTableRequest(static_cast<const CommitTableRequest &>(other)) {
+}
 
 CommitTableRequestBuilder::CommitTableRequestBuilder() {
 }
@@ -126,27 +149,7 @@ CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
 }
 
 CommitTableRequest CommitTableRequest::Copy() const {
-	CommitTableRequestBuilder builder;
-	vector<TableRequirement> requirements_tmp;
-	requirements_tmp.reserve(requirements.size());
-	for (auto &item : requirements) {
-		requirements_tmp.emplace_back(item.Copy());
-	}
-	builder.SetRequirements(std::move(requirements_tmp));
-	vector<TableUpdate> updates_tmp;
-	updates_tmp.reserve(updates.size());
-	for (auto &item : updates) {
-		updates_tmp.emplace_back(item.Copy());
-	}
-	builder.SetUpdates(std::move(updates_tmp));
-	optional<TableIdentifier> identifier_tmp;
-	if (identifier.has_value()) {
-		identifier_tmp.emplace((*identifier).Copy());
-	}
-	if (identifier_tmp.has_value()) {
-		builder.SetIdentifier(std::move(*identifier_tmp));
-	}
-	return builder.Build();
+	return CommitTableRequest(*this);
 }
 
 string CommitTableRequest::Validate() const {

@@ -19,6 +19,13 @@ ListType::ListType(string type_p, int32_t element_id_p, unique_ptr<Type> element
     : type(std::move(type_p)), element_id(std::move(element_id_p)), element(std::move(element_p)),
       element_required(std::move(element_required_p)) {
 }
+ListType::ListType(const ListType &other)
+    : type(other.type), element_id(other.element_id),
+      element(other.element ? make_uniq<Type>(other.element->Copy()) : nullptr),
+      element_required(other.element_required) {
+}
+ListType::ListType(ListType &&other) : ListType(static_cast<const ListType &>(other)) {
+}
 
 ListTypeBuilder::ListTypeBuilder() {
 }
@@ -148,20 +155,7 @@ ListType ListType::FromJSON(yyjson_val *obj) {
 }
 
 ListType ListType::Copy() const {
-	ListTypeBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	int32_t element_id_tmp;
-	element_id_tmp = element_id;
-	builder.SetElementId(std::move(element_id_tmp));
-	unique_ptr<Type> element_tmp;
-	element_tmp = element ? make_uniq<Type>(element->Copy()) : nullptr;
-	builder.SetElement(std::move(element_tmp));
-	bool element_required_tmp;
-	element_required_tmp = element_required;
-	builder.SetElementRequired(std::move(element_required_tmp));
-	return builder.Build();
+	return ListType(*this);
 }
 
 string ListType::Validate() const {

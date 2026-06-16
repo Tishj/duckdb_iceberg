@@ -18,6 +18,19 @@ namespace rest_api_objects {
 CommitTransactionRequest::CommitTransactionRequest(vector<CommitTableRequest> table_changes_p)
     : table_changes(std::move(table_changes_p)) {
 }
+CommitTransactionRequest::CommitTransactionRequest(const CommitTransactionRequest &other)
+    : table_changes(([&]() {
+	      vector<CommitTableRequest> copied;
+	      copied.reserve(other.table_changes.size());
+	      for (const auto &item : other.table_changes) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+CommitTransactionRequest::CommitTransactionRequest(CommitTransactionRequest &&other)
+    : CommitTransactionRequest(static_cast<const CommitTransactionRequest &>(other)) {
+}
 
 CommitTransactionRequestBuilder::CommitTransactionRequestBuilder() {
 }
@@ -88,14 +101,7 @@ CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
 }
 
 CommitTransactionRequest CommitTransactionRequest::Copy() const {
-	CommitTransactionRequestBuilder builder;
-	vector<CommitTableRequest> table_changes_tmp;
-	table_changes_tmp.reserve(table_changes.size());
-	for (auto &item : table_changes) {
-		table_changes_tmp.emplace_back(item.Copy());
-	}
-	builder.SetTableChanges(std::move(table_changes_tmp));
-	return builder.Build();
+	return CommitTransactionRequest(*this);
 }
 
 string CommitTransactionRequest::Validate() const {

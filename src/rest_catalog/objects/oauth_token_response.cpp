@@ -22,6 +22,17 @@ OAuthTokenResponse::OAuthTokenResponse(string access_token_p, string token_type_
       issued_token_type(std::move(issued_token_type_p)), refresh_token(std::move(refresh_token_p)),
       scope(std::move(scope_p)) {
 }
+OAuthTokenResponse::OAuthTokenResponse(const OAuthTokenResponse &other)
+    : access_token(other.access_token), token_type(other.token_type),
+      expires_in((other.expires_in.has_value() ? optional<int32_t>((*other.expires_in)) : optional<int32_t>())),
+      issued_token_type((other.issued_token_type.has_value() ? optional<TokenType>((*other.issued_token_type).Copy())
+                                                             : optional<TokenType>())),
+      refresh_token((other.refresh_token.has_value() ? optional<string>((*other.refresh_token)) : optional<string>())),
+      scope((other.scope.has_value() ? optional<string>((*other.scope)) : optional<string>())) {
+}
+OAuthTokenResponse::OAuthTokenResponse(OAuthTokenResponse &&other)
+    : OAuthTokenResponse(static_cast<const OAuthTokenResponse &>(other)) {
+}
 
 OAuthTokenResponseBuilder::OAuthTokenResponseBuilder() {
 }
@@ -171,45 +182,7 @@ OAuthTokenResponse OAuthTokenResponse::FromJSON(yyjson_val *obj) {
 }
 
 OAuthTokenResponse OAuthTokenResponse::Copy() const {
-	OAuthTokenResponseBuilder builder;
-	string access_token_tmp;
-	access_token_tmp = access_token;
-	builder.SetAccessToken(std::move(access_token_tmp));
-	string token_type_tmp;
-	token_type_tmp = token_type;
-	builder.SetTokenType(std::move(token_type_tmp));
-	optional<int32_t> expires_in_tmp;
-	if (expires_in.has_value()) {
-		expires_in_tmp.emplace();
-		(*expires_in_tmp) = (*expires_in);
-	}
-	if (expires_in_tmp.has_value()) {
-		builder.SetExpiresIn(std::move((*expires_in_tmp)));
-	}
-	optional<TokenType> issued_token_type_tmp;
-	if (issued_token_type.has_value()) {
-		issued_token_type_tmp.emplace((*issued_token_type).Copy());
-	}
-	if (issued_token_type_tmp.has_value()) {
-		builder.SetIssuedTokenType(std::move(*issued_token_type_tmp));
-	}
-	optional<string> refresh_token_tmp;
-	if (refresh_token.has_value()) {
-		refresh_token_tmp.emplace();
-		(*refresh_token_tmp) = (*refresh_token);
-	}
-	if (refresh_token_tmp.has_value()) {
-		builder.SetRefreshToken(std::move((*refresh_token_tmp)));
-	}
-	optional<string> scope_tmp;
-	if (scope.has_value()) {
-		scope_tmp.emplace();
-		(*scope_tmp) = (*scope);
-	}
-	if (scope_tmp.has_value()) {
-		builder.SetScope(std::move((*scope_tmp)));
-	}
-	return builder.Build();
+	return OAuthTokenResponse(*this);
 }
 
 string OAuthTokenResponse::Validate() const {

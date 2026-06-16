@@ -18,9 +18,9 @@ class FetchScanTasksRequestBuilder;
 
 class FetchScanTasksRequest {
 public:
-	FetchScanTasksRequest(const FetchScanTasksRequest &) = delete;
+	FetchScanTasksRequest(const FetchScanTasksRequest &);
 	FetchScanTasksRequest &operator=(const FetchScanTasksRequest &) = delete;
-	FetchScanTasksRequest(FetchScanTasksRequest &&) = default;
+	FetchScanTasksRequest(FetchScanTasksRequest &&);
 	FetchScanTasksRequest &operator=(FetchScanTasksRequest &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	PlanTask plan_task;
+	const PlanTask plan_task;
 };
 
 class FetchScanTasksRequestBuilder {

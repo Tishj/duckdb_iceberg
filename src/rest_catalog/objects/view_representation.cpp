@@ -18,6 +18,14 @@ namespace rest_api_objects {
 ViewRepresentation::ViewRepresentation(optional<SQLViewRepresentation> sqlview_representation_p)
     : sqlview_representation(std::move(sqlview_representation_p)) {
 }
+ViewRepresentation::ViewRepresentation(const ViewRepresentation &other)
+    : sqlview_representation((other.sqlview_representation.has_value()
+                                  ? optional<SQLViewRepresentation>((*other.sqlview_representation).Copy())
+                                  : optional<SQLViewRepresentation>())) {
+}
+ViewRepresentation::ViewRepresentation(ViewRepresentation &&other)
+    : ViewRepresentation(static_cast<const ViewRepresentation &>(other)) {
+}
 
 ViewRepresentationBuilder::ViewRepresentationBuilder() {
 }
@@ -73,15 +81,7 @@ ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
 }
 
 ViewRepresentation ViewRepresentation::Copy() const {
-	ViewRepresentationBuilder builder;
-	optional<SQLViewRepresentation> sqlview_representation_tmp;
-	if (sqlview_representation.has_value()) {
-		sqlview_representation_tmp.emplace((*sqlview_representation).Copy());
-	}
-	if (sqlview_representation_tmp.has_value()) {
-		builder.SetSqlviewRepresentation(std::move(*sqlview_representation_tmp));
-	}
-	return builder.Build();
+	return ViewRepresentation(*this);
 }
 
 string ViewRepresentation::Validate() const {

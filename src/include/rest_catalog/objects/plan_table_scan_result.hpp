@@ -21,9 +21,9 @@ class PlanTableScanResultBuilder;
 
 class PlanTableScanResult {
 public:
-	PlanTableScanResult(const PlanTableScanResult &) = delete;
+	PlanTableScanResult(const PlanTableScanResult &);
 	PlanTableScanResult &operator=(const PlanTableScanResult &) = delete;
-	PlanTableScanResult(PlanTableScanResult &&) = default;
+	PlanTableScanResult(PlanTableScanResult &&);
 	PlanTableScanResult &operator=(PlanTableScanResult &&) = delete;
 
 private:
@@ -47,10 +47,10 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<CompletedPlanningWithIDResult> completed_planning_with_idresult;
-	optional<FailedPlanningResult> failed_planning_result;
-	optional<AsyncPlanningResult> async_planning_result;
-	optional<EmptyPlanningResult> empty_planning_result;
+	const optional<CompletedPlanningWithIDResult> completed_planning_with_idresult;
+	const optional<FailedPlanningResult> failed_planning_result;
+	const optional<AsyncPlanningResult> async_planning_result;
+	const optional<EmptyPlanningResult> empty_planning_result;
 };
 
 class PlanTableScanResultBuilder {

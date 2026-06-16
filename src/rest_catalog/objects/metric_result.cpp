@@ -18,6 +18,14 @@ namespace rest_api_objects {
 MetricResult::MetricResult(optional<CounterResult> counter_result_p, optional<TimerResult> timer_result_p)
     : counter_result(std::move(counter_result_p)), timer_result(std::move(timer_result_p)) {
 }
+MetricResult::MetricResult(const MetricResult &other)
+    : counter_result((other.counter_result.has_value() ? optional<CounterResult>((*other.counter_result).Copy())
+                                                       : optional<CounterResult>())),
+      timer_result((other.timer_result.has_value() ? optional<TimerResult>((*other.timer_result).Copy())
+                                                   : optional<TimerResult>())) {
+}
+MetricResult::MetricResult(MetricResult &&other) : MetricResult(static_cast<const MetricResult &>(other)) {
+}
 
 MetricResultBuilder::MetricResultBuilder() {
 }
@@ -84,22 +92,7 @@ MetricResult MetricResult::FromJSON(yyjson_val *obj) {
 }
 
 MetricResult MetricResult::Copy() const {
-	MetricResultBuilder builder;
-	optional<CounterResult> counter_result_tmp;
-	if (counter_result.has_value()) {
-		counter_result_tmp.emplace((*counter_result).Copy());
-	}
-	if (counter_result_tmp.has_value()) {
-		builder.SetCounterResult(std::move(*counter_result_tmp));
-	}
-	optional<TimerResult> timer_result_tmp;
-	if (timer_result.has_value()) {
-		timer_result_tmp.emplace((*timer_result).Copy());
-	}
-	if (timer_result_tmp.has_value()) {
-		builder.SetTimerResult(std::move(*timer_result_tmp));
-	}
-	return builder.Build();
+	return MetricResult(*this);
 }
 
 string MetricResult::Validate() const {

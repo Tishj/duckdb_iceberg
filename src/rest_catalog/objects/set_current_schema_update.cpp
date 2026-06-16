@@ -18,6 +18,12 @@ namespace rest_api_objects {
 SetCurrentSchemaUpdate::SetCurrentSchemaUpdate(BaseUpdate base_update_p, int32_t schema_id_p)
     : base_update(std::move(base_update_p)), schema_id(std::move(schema_id_p)) {
 }
+SetCurrentSchemaUpdate::SetCurrentSchemaUpdate(const SetCurrentSchemaUpdate &other)
+    : base_update(other.base_update.Copy()), schema_id(other.schema_id) {
+}
+SetCurrentSchemaUpdate::SetCurrentSchemaUpdate(SetCurrentSchemaUpdate &&other)
+    : SetCurrentSchemaUpdate(static_cast<const SetCurrentSchemaUpdate &>(other)) {
+}
 
 SetCurrentSchemaUpdateBuilder::SetCurrentSchemaUpdateBuilder() {
 }
@@ -89,13 +95,7 @@ SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
 }
 
 SetCurrentSchemaUpdate SetCurrentSchemaUpdate::Copy() const {
-	SetCurrentSchemaUpdateBuilder builder;
-	auto base_update_tmp = base_update.Copy();
-	builder.SetBaseUpdate(std::move(base_update_tmp));
-	int32_t schema_id_tmp;
-	schema_id_tmp = schema_id;
-	builder.SetSchemaId(std::move(schema_id_tmp));
-	return builder.Build();
+	return SetCurrentSchemaUpdate(*this);
 }
 
 string SetCurrentSchemaUpdate::Validate() const {

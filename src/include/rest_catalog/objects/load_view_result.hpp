@@ -18,9 +18,9 @@ class LoadViewResultBuilder;
 
 class LoadViewResult {
 public:
-	LoadViewResult(const LoadViewResult &) = delete;
+	LoadViewResult(const LoadViewResult &);
 	LoadViewResult &operator=(const LoadViewResult &) = delete;
-	LoadViewResult(LoadViewResult &&) = default;
+	LoadViewResult(LoadViewResult &&);
 	LoadViewResult &operator=(LoadViewResult &&) = delete;
 
 private:
@@ -42,9 +42,9 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string metadata_location;
-	ViewMetadata metadata;
-	optional<case_insensitive_map_t<string>> config;
+	const string metadata_location;
+	const ViewMetadata metadata;
+	const optional<case_insensitive_map_t<string>> config;
 };
 
 class LoadViewResultBuilder {

@@ -21,6 +21,20 @@ StatisticsFile::StatisticsFile(int64_t snapshot_id_p, string statistics_path_p, 
       file_size_in_bytes(std::move(file_size_in_bytes_p)),
       file_footer_size_in_bytes(std::move(file_footer_size_in_bytes_p)), blob_metadata(std::move(blob_metadata_p)) {
 }
+StatisticsFile::StatisticsFile(const StatisticsFile &other)
+    : snapshot_id(other.snapshot_id), statistics_path(other.statistics_path),
+      file_size_in_bytes(other.file_size_in_bytes), file_footer_size_in_bytes(other.file_footer_size_in_bytes),
+      blob_metadata(([&]() {
+	      vector<BlobMetadata> copied;
+	      copied.reserve(other.blob_metadata.size());
+	      for (const auto &item : other.blob_metadata) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+StatisticsFile::StatisticsFile(StatisticsFile &&other) : StatisticsFile(static_cast<const StatisticsFile &>(other)) {
+}
 
 StatisticsFileBuilder::StatisticsFileBuilder() {
 }
@@ -191,26 +205,7 @@ StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
 }
 
 StatisticsFile StatisticsFile::Copy() const {
-	StatisticsFileBuilder builder;
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	string statistics_path_tmp;
-	statistics_path_tmp = statistics_path;
-	builder.SetStatisticsPath(std::move(statistics_path_tmp));
-	int64_t file_size_in_bytes_tmp;
-	file_size_in_bytes_tmp = file_size_in_bytes;
-	builder.SetFileSizeInBytes(std::move(file_size_in_bytes_tmp));
-	int64_t file_footer_size_in_bytes_tmp;
-	file_footer_size_in_bytes_tmp = file_footer_size_in_bytes;
-	builder.SetFileFooterSizeInBytes(std::move(file_footer_size_in_bytes_tmp));
-	vector<BlobMetadata> blob_metadata_tmp;
-	blob_metadata_tmp.reserve(blob_metadata.size());
-	for (auto &item : blob_metadata) {
-		blob_metadata_tmp.emplace_back(item.Copy());
-	}
-	builder.SetBlobMetadata(std::move(blob_metadata_tmp));
-	return builder.Build();
+	return StatisticsFile(*this);
 }
 
 string StatisticsFile::Validate() const {

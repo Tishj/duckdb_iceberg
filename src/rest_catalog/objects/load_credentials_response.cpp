@@ -18,6 +18,19 @@ namespace rest_api_objects {
 LoadCredentialsResponse::LoadCredentialsResponse(vector<StorageCredential> storage_credentials_p)
     : storage_credentials(std::move(storage_credentials_p)) {
 }
+LoadCredentialsResponse::LoadCredentialsResponse(const LoadCredentialsResponse &other)
+    : storage_credentials(([&]() {
+	      vector<StorageCredential> copied;
+	      copied.reserve(other.storage_credentials.size());
+	      for (const auto &item : other.storage_credentials) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+LoadCredentialsResponse::LoadCredentialsResponse(LoadCredentialsResponse &&other)
+    : LoadCredentialsResponse(static_cast<const LoadCredentialsResponse &>(other)) {
+}
 
 LoadCredentialsResponseBuilder::LoadCredentialsResponseBuilder() {
 }
@@ -88,14 +101,7 @@ LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
 }
 
 LoadCredentialsResponse LoadCredentialsResponse::Copy() const {
-	LoadCredentialsResponseBuilder builder;
-	vector<StorageCredential> storage_credentials_tmp;
-	storage_credentials_tmp.reserve(storage_credentials.size());
-	for (auto &item : storage_credentials) {
-		storage_credentials_tmp.emplace_back(item.Copy());
-	}
-	builder.SetStorageCredentials(std::move(storage_credentials_tmp));
-	return builder.Build();
+	return LoadCredentialsResponse(*this);
 }
 
 string LoadCredentialsResponse::Validate() const {

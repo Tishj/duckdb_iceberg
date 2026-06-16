@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class TimeTypeValue {
 public:
-	TimeTypeValue(const TimeTypeValue &) = delete;
+	TimeTypeValue(const TimeTypeValue &);
 	TimeTypeValue &operator=(const TimeTypeValue &) = delete;
-	TimeTypeValue(TimeTypeValue &&) = default;
+	TimeTypeValue(TimeTypeValue &&);
 	TimeTypeValue &operator=(TimeTypeValue &&) = delete;
 	TimeTypeValue(string value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	string value;
+	const string value;
 };
 
 } // namespace rest_api_objects

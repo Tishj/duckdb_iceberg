@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 FieldName::FieldName(string value_p) : value(std::move(value_p)) {
 }
+FieldName::FieldName(const FieldName &other) : value(other.value) {
+}
+FieldName::FieldName(FieldName &&other) : FieldName(static_cast<const FieldName &>(other)) {
+}
 
 string FieldName::TryFromJSON(yyjson_val *obj, optional<FieldName> &result) {
 	try {
@@ -48,9 +52,7 @@ FieldName FieldName::FromJSON(yyjson_val *obj) {
 }
 
 FieldName FieldName::Copy() const {
-	string value_tmp;
-	value_tmp = value;
-	return FieldName(std::move(value_tmp));
+	return FieldName(*this);
 }
 
 string FieldName::Validate() const {

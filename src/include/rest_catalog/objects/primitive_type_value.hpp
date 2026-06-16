@@ -33,9 +33,9 @@ class PrimitiveTypeValueBuilder;
 
 class PrimitiveTypeValue {
 public:
-	PrimitiveTypeValue(const PrimitiveTypeValue &) = delete;
+	PrimitiveTypeValue(const PrimitiveTypeValue &);
 	PrimitiveTypeValue &operator=(const PrimitiveTypeValue &) = delete;
-	PrimitiveTypeValue(PrimitiveTypeValue &&) = default;
+	PrimitiveTypeValue(PrimitiveTypeValue &&);
 	PrimitiveTypeValue &operator=(PrimitiveTypeValue &&) = delete;
 
 private:
@@ -64,22 +64,22 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	optional<BooleanTypeValue> boolean_type_value;
-	optional<IntegerTypeValue> integer_type_value;
-	optional<LongTypeValue> long_type_value;
-	optional<FloatTypeValue> float_type_value;
-	optional<DoubleTypeValue> double_type_value;
-	optional<DecimalTypeValue> decimal_type_value;
-	optional<StringTypeValue> string_type_value;
-	optional<UUIDTypeValue> uuidtype_value;
-	optional<DateTypeValue> date_type_value;
-	optional<TimeTypeValue> time_type_value;
-	optional<TimestampTypeValue> timestamp_type_value;
-	optional<TimestampTzTypeValue> timestamp_tz_type_value;
-	optional<TimestampNanoTypeValue> timestamp_nano_type_value;
-	optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value;
-	optional<FixedTypeValue> fixed_type_value;
-	optional<BinaryTypeValue> binary_type_value;
+	const optional<BooleanTypeValue> boolean_type_value;
+	const optional<IntegerTypeValue> integer_type_value;
+	const optional<LongTypeValue> long_type_value;
+	const optional<FloatTypeValue> float_type_value;
+	const optional<DoubleTypeValue> double_type_value;
+	const optional<DecimalTypeValue> decimal_type_value;
+	const optional<StringTypeValue> string_type_value;
+	const optional<UUIDTypeValue> uuidtype_value;
+	const optional<DateTypeValue> date_type_value;
+	const optional<TimeTypeValue> time_type_value;
+	const optional<TimestampTypeValue> timestamp_type_value;
+	const optional<TimestampTzTypeValue> timestamp_tz_type_value;
+	const optional<TimestampNanoTypeValue> timestamp_nano_type_value;
+	const optional<TimestampTzNanoTypeValue> timestamp_tz_nano_type_value;
+	const optional<FixedTypeValue> fixed_type_value;
+	const optional<BinaryTypeValue> binary_type_value;
 };
 
 class PrimitiveTypeValueBuilder {

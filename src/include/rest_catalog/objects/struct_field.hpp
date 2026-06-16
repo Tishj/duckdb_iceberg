@@ -20,9 +20,9 @@ class StructFieldBuilder;
 
 class StructField {
 public:
-	StructField(const StructField &) = delete;
+	StructField(const StructField &);
 	StructField &operator=(const StructField &) = delete;
-	StructField(StructField &&) = default;
+	StructField(StructField &&);
 	StructField &operator=(StructField &&) = delete;
 
 private:
@@ -44,13 +44,13 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	int32_t id;
-	string name;
-	unique_ptr<Type> type;
-	bool required;
-	optional<string> _doc;
-	optional<PrimitiveTypeValue> initial_default;
-	optional<PrimitiveTypeValue> write_default;
+	const int32_t id;
+	const string name;
+	const unique_ptr<Type> type;
+	const bool required;
+	const optional<string> _doc;
+	const optional<PrimitiveTypeValue> initial_default;
+	const optional<PrimitiveTypeValue> write_default;
 };
 
 class StructFieldBuilder {

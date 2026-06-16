@@ -19,6 +19,12 @@ PartitionField::PartitionField(int32_t source_id_p, Transform transform_p, strin
     : source_id(std::move(source_id_p)), transform(std::move(transform_p)), name(std::move(name_p)),
       field_id(std::move(field_id_p)) {
 }
+PartitionField::PartitionField(const PartitionField &other)
+    : source_id(other.source_id), transform(other.transform.Copy()), name(other.name),
+      field_id((other.field_id.has_value() ? optional<int32_t>((*other.field_id)) : optional<int32_t>())) {
+}
+PartitionField::PartitionField(PartitionField &&other) : PartitionField(static_cast<const PartitionField &>(other)) {
+}
 
 PartitionFieldBuilder::PartitionFieldBuilder() {
 }
@@ -140,24 +146,7 @@ PartitionField PartitionField::FromJSON(yyjson_val *obj) {
 }
 
 PartitionField PartitionField::Copy() const {
-	PartitionFieldBuilder builder;
-	int32_t source_id_tmp;
-	source_id_tmp = source_id;
-	builder.SetSourceId(std::move(source_id_tmp));
-	auto transform_tmp = transform.Copy();
-	builder.SetTransform(std::move(transform_tmp));
-	string name_tmp;
-	name_tmp = name;
-	builder.SetName(std::move(name_tmp));
-	optional<int32_t> field_id_tmp;
-	if (field_id.has_value()) {
-		field_id_tmp.emplace();
-		(*field_id_tmp) = (*field_id);
-	}
-	if (field_id_tmp.has_value()) {
-		builder.SetFieldId(std::move((*field_id_tmp)));
-	}
-	return builder.Build();
+	return PartitionField(*this);
 }
 
 string PartitionField::Validate() const {

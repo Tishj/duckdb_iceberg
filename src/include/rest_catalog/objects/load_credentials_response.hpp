@@ -18,9 +18,9 @@ class LoadCredentialsResponseBuilder;
 
 class LoadCredentialsResponse {
 public:
-	LoadCredentialsResponse(const LoadCredentialsResponse &) = delete;
+	LoadCredentialsResponse(const LoadCredentialsResponse &);
 	LoadCredentialsResponse &operator=(const LoadCredentialsResponse &) = delete;
-	LoadCredentialsResponse(LoadCredentialsResponse &&) = default;
+	LoadCredentialsResponse(LoadCredentialsResponse &&);
 	LoadCredentialsResponse &operator=(LoadCredentialsResponse &&) = delete;
 
 private:
@@ -41,7 +41,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	vector<StorageCredential> storage_credentials;
+	const vector<StorageCredential> storage_credentials;
 };
 
 class LoadCredentialsResponseBuilder {

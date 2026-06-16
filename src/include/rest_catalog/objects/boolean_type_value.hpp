@@ -15,9 +15,9 @@ namespace rest_api_objects {
 
 class BooleanTypeValue {
 public:
-	BooleanTypeValue(const BooleanTypeValue &) = delete;
+	BooleanTypeValue(const BooleanTypeValue &);
 	BooleanTypeValue &operator=(const BooleanTypeValue &) = delete;
-	BooleanTypeValue(BooleanTypeValue &&) = default;
+	BooleanTypeValue(BooleanTypeValue &&);
 	BooleanTypeValue &operator=(BooleanTypeValue &&) = delete;
 	BooleanTypeValue(bool value_p);
 
@@ -34,7 +34,7 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	bool value;
+	const bool value;
 };
 
 } // namespace rest_api_objects

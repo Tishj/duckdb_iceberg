@@ -18,6 +18,18 @@ namespace rest_api_objects {
 SortOrder::SortOrder(int32_t order_id_p, vector<SortField> fields_p)
     : order_id(std::move(order_id_p)), fields(std::move(fields_p)) {
 }
+SortOrder::SortOrder(const SortOrder &other)
+    : order_id(other.order_id), fields(([&]() {
+	      vector<SortField> copied;
+	      copied.reserve(other.fields.size());
+	      for (const auto &item : other.fields) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+SortOrder::SortOrder(SortOrder &&other) : SortOrder(static_cast<const SortOrder &>(other)) {
+}
 
 SortOrderBuilder::SortOrderBuilder() {
 }
@@ -111,17 +123,7 @@ SortOrder SortOrder::FromJSON(yyjson_val *obj) {
 }
 
 SortOrder SortOrder::Copy() const {
-	SortOrderBuilder builder;
-	int32_t order_id_tmp;
-	order_id_tmp = order_id;
-	builder.SetOrderId(std::move(order_id_tmp));
-	vector<SortField> fields_tmp;
-	fields_tmp.reserve(fields.size());
-	for (auto &item : fields) {
-		fields_tmp.emplace_back(item.Copy());
-	}
-	builder.SetFields(std::move(fields_tmp));
-	return builder.Build();
+	return SortOrder(*this);
 }
 
 string SortOrder::Validate() const {

@@ -18,9 +18,9 @@ class TableIdentifierBuilder;
 
 class TableIdentifier {
 public:
-	TableIdentifier(const TableIdentifier &) = delete;
+	TableIdentifier(const TableIdentifier &);
 	TableIdentifier &operator=(const TableIdentifier &) = delete;
-	TableIdentifier(TableIdentifier &&) = default;
+	TableIdentifier(TableIdentifier &&);
 	TableIdentifier &operator=(TableIdentifier &&) = delete;
 
 private:
@@ -41,8 +41,8 @@ public:
 	yyjson_mut_val *ToJSON(yyjson_mut_doc *doc) const;
 
 public:
-	Namespace _namespace;
-	string name;
+	const Namespace _namespace;
+	const string name;
 };
 
 class TableIdentifierBuilder {

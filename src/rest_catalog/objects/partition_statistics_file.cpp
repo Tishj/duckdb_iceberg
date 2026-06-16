@@ -20,6 +20,13 @@ PartitionStatisticsFile::PartitionStatisticsFile(int64_t snapshot_id_p, string s
     : snapshot_id(std::move(snapshot_id_p)), statistics_path(std::move(statistics_path_p)),
       file_size_in_bytes(std::move(file_size_in_bytes_p)) {
 }
+PartitionStatisticsFile::PartitionStatisticsFile(const PartitionStatisticsFile &other)
+    : snapshot_id(other.snapshot_id), statistics_path(other.statistics_path),
+      file_size_in_bytes(other.file_size_in_bytes) {
+}
+PartitionStatisticsFile::PartitionStatisticsFile(PartitionStatisticsFile &&other)
+    : PartitionStatisticsFile(static_cast<const PartitionStatisticsFile &>(other)) {
+}
 
 PartitionStatisticsFileBuilder::PartitionStatisticsFileBuilder() {
 }
@@ -136,17 +143,7 @@ PartitionStatisticsFile PartitionStatisticsFile::FromJSON(yyjson_val *obj) {
 }
 
 PartitionStatisticsFile PartitionStatisticsFile::Copy() const {
-	PartitionStatisticsFileBuilder builder;
-	int64_t snapshot_id_tmp;
-	snapshot_id_tmp = snapshot_id;
-	builder.SetSnapshotId(std::move(snapshot_id_tmp));
-	string statistics_path_tmp;
-	statistics_path_tmp = statistics_path;
-	builder.SetStatisticsPath(std::move(statistics_path_tmp));
-	int64_t file_size_in_bytes_tmp;
-	file_size_in_bytes_tmp = file_size_in_bytes;
-	builder.SetFileSizeInBytes(std::move(file_size_in_bytes_tmp));
-	return builder.Build();
+	return PartitionStatisticsFile(*this);
 }
 
 string PartitionStatisticsFile::Validate() const {

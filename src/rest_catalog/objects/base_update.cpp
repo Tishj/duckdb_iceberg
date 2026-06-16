@@ -17,6 +17,10 @@ namespace rest_api_objects {
 
 BaseUpdate::BaseUpdate(string action_p) : action(std::move(action_p)) {
 }
+BaseUpdate::BaseUpdate(const BaseUpdate &other) : action(other.action) {
+}
+BaseUpdate::BaseUpdate(BaseUpdate &&other) : BaseUpdate(static_cast<const BaseUpdate &>(other)) {
+}
 
 BaseUpdateBuilder::BaseUpdateBuilder() {
 }
@@ -82,11 +86,7 @@ BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
 }
 
 BaseUpdate BaseUpdate::Copy() const {
-	BaseUpdateBuilder builder;
-	string action_tmp;
-	action_tmp = action;
-	builder.SetAction(std::move(action_tmp));
-	return builder.Build();
+	return BaseUpdate(*this);
 }
 
 string BaseUpdate::Validate() const {

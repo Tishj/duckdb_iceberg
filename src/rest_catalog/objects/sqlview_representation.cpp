@@ -18,6 +18,12 @@ namespace rest_api_objects {
 SQLViewRepresentation::SQLViewRepresentation(string type_p, string sql_p, string dialect_p)
     : type(std::move(type_p)), sql(std::move(sql_p)), dialect(std::move(dialect_p)) {
 }
+SQLViewRepresentation::SQLViewRepresentation(const SQLViewRepresentation &other)
+    : type(other.type), sql(other.sql), dialect(other.dialect) {
+}
+SQLViewRepresentation::SQLViewRepresentation(SQLViewRepresentation &&other)
+    : SQLViewRepresentation(static_cast<const SQLViewRepresentation &>(other)) {
+}
 
 SQLViewRepresentationBuilder::SQLViewRepresentationBuilder() {
 }
@@ -129,17 +135,7 @@ SQLViewRepresentation SQLViewRepresentation::FromJSON(yyjson_val *obj) {
 }
 
 SQLViewRepresentation SQLViewRepresentation::Copy() const {
-	SQLViewRepresentationBuilder builder;
-	string type_tmp;
-	type_tmp = type;
-	builder.SetType(std::move(type_tmp));
-	string sql_tmp;
-	sql_tmp = sql;
-	builder.SetSql(std::move(sql_tmp));
-	string dialect_tmp;
-	dialect_tmp = dialect;
-	builder.SetDialect(std::move(dialect_tmp));
-	return builder.Build();
+	return SQLViewRepresentation(*this);
 }
 
 string SQLViewRepresentation::Validate() const {

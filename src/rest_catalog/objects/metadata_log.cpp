@@ -17,8 +17,26 @@ namespace rest_api_objects {
 
 MetadataLog::MetadataLog(vector<Object4> value_p) : value(std::move(value_p)) {
 }
+MetadataLog::MetadataLog(const MetadataLog &other)
+    : value(([&]() {
+	      vector<Object4> copied;
+	      copied.reserve(other.value.size());
+	      for (const auto &item : other.value) {
+		      copied.emplace_back(item.Copy());
+	      }
+	      return copied;
+      }())) {
+}
+MetadataLog::MetadataLog(MetadataLog &&other) : MetadataLog(static_cast<const MetadataLog &>(other)) {
+}
 MetadataLog::Object4::Object4(string metadata_file_p, int64_t timestamp_ms_p)
     : metadata_file(std::move(metadata_file_p)), timestamp_ms(std::move(timestamp_ms_p)) {
+}
+MetadataLog::Object4::Object4(const MetadataLog::Object4 &other)
+    : metadata_file(other.metadata_file), timestamp_ms(other.timestamp_ms) {
+}
+MetadataLog::Object4::Object4(MetadataLog::Object4 &&other)
+    : Object4(static_cast<const MetadataLog::Object4 &>(other)) {
 }
 
 MetadataLog::Object4Builder::Object4Builder() {
@@ -110,14 +128,7 @@ MetadataLog::Object4 MetadataLog::Object4::FromJSON(yyjson_val *obj) {
 }
 
 MetadataLog::Object4 MetadataLog::Object4::Copy() const {
-	Object4Builder builder;
-	string metadata_file_tmp;
-	metadata_file_tmp = metadata_file;
-	builder.SetMetadataFile(std::move(metadata_file_tmp));
-	int64_t timestamp_ms_tmp;
-	timestamp_ms_tmp = timestamp_ms;
-	builder.SetTimestampMs(std::move(timestamp_ms_tmp));
-	return builder.Build();
+	return MetadataLog::Object4(*this);
 }
 
 string MetadataLog::Object4::Validate() const {
@@ -178,12 +189,7 @@ MetadataLog MetadataLog::FromJSON(yyjson_val *obj) {
 }
 
 MetadataLog MetadataLog::Copy() const {
-	vector<Object4> value_tmp;
-	value_tmp.reserve(value.size());
-	for (auto &item : value) {
-		value_tmp.emplace_back(item.Copy());
-	}
-	return MetadataLog(std::move(value_tmp));
+	return MetadataLog(*this);
 }
 
 string MetadataLog::Validate() const {
