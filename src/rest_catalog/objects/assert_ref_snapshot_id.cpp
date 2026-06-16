@@ -55,23 +55,29 @@ AssertRefSnapshotId AssertRefSnapshotIdBuilder::Build() {
 	}
 	auto result = AssertRefSnapshotId(std::move(*type_), std::move(*ref_), std::move(snapshot_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertRefSnapshotIdBuilder::TryBuild(optional<AssertRefSnapshotId> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertRefSnapshotIdBuilder::TryBuild(optional<AssertRefSnapshotId> &result) {
+	if (!has_type_) {
+		return "AssertRefSnapshotId required property 'type' is missing";
 	}
+	if (!has_ref_) {
+		return "AssertRefSnapshotId required property 'ref' is missing";
+	}
+	auto built = AssertRefSnapshotId(std::move(*type_), std::move(*ref_), std::move(snapshot_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuilder &builder) {
+optional<string> AssertRefSnapshotId::TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -111,7 +117,7 @@ string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuil
 				builder.SetSnapshotId(std::move(snapshot_id));
 			}
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -121,8 +127,8 @@ string AssertRefSnapshotId::TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuil
 AssertRefSnapshotId AssertRefSnapshotId::FromJSON(yyjson_val *obj) {
 	AssertRefSnapshotIdBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -131,17 +137,17 @@ AssertRefSnapshotId AssertRefSnapshotId::Copy() const {
 	return AssertRefSnapshotId(*this);
 }
 
-string AssertRefSnapshotId::Validate() const {
-	string error;
+optional<string> AssertRefSnapshotId::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-ref-snapshot-id")) {
 		return StringUtil::Format("AssertRefSnapshotId property 'type' must be assert-ref-snapshot-id, not %s",
 		                          type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertRefSnapshotId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

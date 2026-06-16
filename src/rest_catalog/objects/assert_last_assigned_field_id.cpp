@@ -49,23 +49,29 @@ AssertLastAssignedFieldId AssertLastAssignedFieldIdBuilder::Build() {
 	}
 	auto result = AssertLastAssignedFieldId(std::move(*type_), std::move(*last_assigned_field_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertLastAssignedFieldIdBuilder::TryBuild(optional<AssertLastAssignedFieldId> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertLastAssignedFieldIdBuilder::TryBuild(optional<AssertLastAssignedFieldId> &result) {
+	if (!has_type_) {
+		return "AssertLastAssignedFieldId required property 'type' is missing";
 	}
+	if (!has_last_assigned_field_id_) {
+		return "AssertLastAssignedFieldId required property 'last-assigned-field-id' is missing";
+	}
+	auto built = AssertLastAssignedFieldId(std::move(*type_), std::move(*last_assigned_field_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, AssertLastAssignedFieldIdBuilder &builder) {
+optional<string> AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, AssertLastAssignedFieldIdBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -89,7 +95,7 @@ string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, AssertLastAssigne
 			}
 			builder.SetLastAssignedFieldId(std::move(last_assigned_field_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -99,8 +105,8 @@ string AssertLastAssignedFieldId::TryFromJSON(yyjson_val *obj, AssertLastAssigne
 AssertLastAssignedFieldId AssertLastAssignedFieldId::FromJSON(yyjson_val *obj) {
 	AssertLastAssignedFieldIdBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -109,17 +115,17 @@ AssertLastAssignedFieldId AssertLastAssignedFieldId::Copy() const {
 	return AssertLastAssignedFieldId(*this);
 }
 
-string AssertLastAssignedFieldId::Validate() const {
-	string error;
+optional<string> AssertLastAssignedFieldId::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-last-assigned-field-id")) {
 		return StringUtil::Format(
 		    "AssertLastAssignedFieldId property 'type' must be assert-last-assigned-field-id, not %s", type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertLastAssignedFieldId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

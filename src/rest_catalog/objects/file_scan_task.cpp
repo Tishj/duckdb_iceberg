@@ -61,23 +61,26 @@ FileScanTask FileScanTaskBuilder::Build() {
 	}
 	auto result = FileScanTask(std::move(*data_file_), std::move(delete_file_references_), std::move(residual_filter_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string FileScanTaskBuilder::TryBuild(optional<FileScanTask> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> FileScanTaskBuilder::TryBuild(optional<FileScanTask> &result) {
+	if (!has_data_file_) {
+		return "FileScanTask required property 'data-file' is missing";
 	}
+	auto built = FileScanTask(std::move(*data_file_), std::move(delete_file_references_), std::move(residual_filter_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string FileScanTask::TryFromJSON(yyjson_val *obj, FileScanTaskBuilder &builder) {
+optional<string> FileScanTask::TryFromJSON(yyjson_val *obj, FileScanTaskBuilder &builder) {
 	try {
 		auto data_file_val = yyjson_obj_get(obj, "data-file");
 		if (!data_file_val) {
@@ -115,7 +118,7 @@ string FileScanTask::TryFromJSON(yyjson_val *obj, FileScanTaskBuilder &builder) 
 			residual_filter = make_uniq<Expression>(Expression::FromJSON(residual_filter_val));
 			builder.SetResidualFilter(std::move(residual_filter));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -125,8 +128,8 @@ string FileScanTask::TryFromJSON(yyjson_val *obj, FileScanTaskBuilder &builder) 
 FileScanTask FileScanTask::FromJSON(yyjson_val *obj) {
 	FileScanTaskBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -135,19 +138,19 @@ FileScanTask FileScanTask::Copy() const {
 	return FileScanTask(*this);
 }
 
-string FileScanTask::Validate() const {
-	string error;
+optional<string> FileScanTask::Validate() const {
+	optional<string> error;
 	error = data_file.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (residual_filter != nullptr) {
 		error = residual_filter->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void FileScanTask::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

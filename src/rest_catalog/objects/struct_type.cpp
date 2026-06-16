@@ -55,23 +55,29 @@ StructType StructTypeBuilder::Build() {
 	}
 	auto result = StructType(std::move(*type_), std::move(*fields_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string StructTypeBuilder::TryBuild(optional<StructType> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> StructTypeBuilder::TryBuild(optional<StructType> &result) {
+	if (!has_type_) {
+		return "StructType required property 'type' is missing";
 	}
+	if (!has_fields_) {
+		return "StructType required property 'fields' is missing";
+	}
+	auto built = StructType(std::move(*type_), std::move(*fields_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string StructType::TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder) {
+optional<string> StructType::TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -106,7 +112,7 @@ string StructType::TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder) {
 			}
 			builder.SetFields(std::move(fields));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -116,8 +122,8 @@ string StructType::TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder) {
 StructType StructType::FromJSON(yyjson_val *obj) {
 	StructTypeBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -126,18 +132,18 @@ StructType StructType::Copy() const {
 	return StructType(*this);
 }
 
-string StructType::Validate() const {
-	string error;
+optional<string> StructType::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(type, "struct")) {
 		return StringUtil::Format("StructType property 'type' must be struct, not %s", type);
 	}
 	for (const auto &item : fields) {
 		error = item->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void StructType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

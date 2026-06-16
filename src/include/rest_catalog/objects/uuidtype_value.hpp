@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static UUIDTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	UUIDTypeValue Copy() const;

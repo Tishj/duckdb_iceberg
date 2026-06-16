@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static OAuthError FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	OAuthError Copy() const;
@@ -51,7 +51,7 @@ public:
 	OAuthErrorBuilder &SetError(string value);
 	OAuthErrorBuilder &SetErrorDescription(string value);
 	OAuthErrorBuilder &SetErrorUri(string value);
-	string TryBuild(optional<OAuthError> &result);
+	optional<string> TryBuild(optional<OAuthError> &result);
 	OAuthError Build();
 
 private:

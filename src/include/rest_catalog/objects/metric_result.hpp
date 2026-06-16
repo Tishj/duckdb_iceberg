@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static MetricResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	MetricResult Copy() const;
@@ -51,7 +51,7 @@ public:
 	MetricResultBuilder();
 	MetricResultBuilder &SetCounterResult(CounterResult value);
 	MetricResultBuilder &SetTimerResult(TimerResult value);
-	string TryBuild(optional<MetricResult> &result);
+	optional<string> TryBuild(optional<MetricResult> &result);
 	MetricResult Build();
 
 private:

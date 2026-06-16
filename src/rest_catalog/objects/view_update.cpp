@@ -110,23 +110,26 @@ ViewUpdate ViewUpdateBuilder::Build() {
 	                         std::move(set_properties_update_), std::move(remove_properties_update_),
 	                         std::move(add_view_version_update_), std::move(set_current_view_version_update_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ViewUpdateBuilder::TryBuild(optional<ViewUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ViewUpdateBuilder::TryBuild(optional<ViewUpdate> &result) {
+	auto built = ViewUpdate(std::move(assign_uuidupdate_), std::move(upgrade_format_version_update_),
+	                        std::move(add_schema_update_), std::move(set_location_update_),
+	                        std::move(set_properties_update_), std::move(remove_properties_update_),
+	                        std::move(add_view_version_update_), std::move(set_current_view_version_update_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ViewUpdate::TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder) {
+optional<string> ViewUpdate::TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder) {
 	try {
 		int matched_any_of_variants = 0;
 		try {
@@ -172,7 +175,7 @@ string ViewUpdate::TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder) {
 		if (matched_any_of_variants == 0) {
 			throw InvalidInputException("ViewUpdate failed to parse, none of the anyOf candidates matched");
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -182,8 +185,8 @@ string ViewUpdate::TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder) {
 ViewUpdate ViewUpdate::FromJSON(yyjson_val *obj) {
 	ViewUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -192,69 +195,69 @@ ViewUpdate ViewUpdate::Copy() const {
 	return ViewUpdate(*this);
 }
 
-string ViewUpdate::Validate() const {
-	string error;
+optional<string> ViewUpdate::Validate() const {
+	optional<string> error;
 	int matched_any_of_variants = 0;
 	if (assign_uuidupdate.has_value()) {
 		matched_any_of_variants++;
 		error = assign_uuidupdate->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (upgrade_format_version_update.has_value()) {
 		matched_any_of_variants++;
 		error = upgrade_format_version_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_schema_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_schema_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_location_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_location_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_properties_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_properties_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_properties_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_properties_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_view_version_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_view_version_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_current_view_version_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_current_view_version_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_any_of_variants == 0) {
 		return "ViewUpdate must have at least one anyOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void ViewUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

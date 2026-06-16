@@ -37,23 +37,26 @@ TrueExpression TrueExpressionBuilder::Build() {
 	}
 	auto result = TrueExpression(std::move(*type_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TrueExpressionBuilder::TryBuild(optional<TrueExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TrueExpressionBuilder::TryBuild(optional<TrueExpression> &result) {
+	if (!has_type_) {
+		return "TrueExpression required property 'type' is missing";
 	}
+	auto built = TrueExpression(std::move(*type_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TrueExpression::TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &builder) {
+optional<string> TrueExpression::TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -61,7 +64,7 @@ string TrueExpression::TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &build
 		} else {
 			builder.SetType(ExpressionType::FromJSON(type_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -71,8 +74,8 @@ string TrueExpression::TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &build
 TrueExpression TrueExpression::FromJSON(yyjson_val *obj) {
 	TrueExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -81,16 +84,16 @@ TrueExpression TrueExpression::Copy() const {
 	return TrueExpression(*this);
 }
 
-string TrueExpression::Validate() const {
-	string error;
+optional<string> TrueExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "true")) {
 		return StringUtil::Format("TrueExpression property 'type' must be true, not %s", type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void TrueExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

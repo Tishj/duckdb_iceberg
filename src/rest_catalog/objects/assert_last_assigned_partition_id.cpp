@@ -51,23 +51,30 @@ AssertLastAssignedPartitionId AssertLastAssignedPartitionIdBuilder::Build() {
 	}
 	auto result = AssertLastAssignedPartitionId(std::move(*type_), std::move(*last_assigned_partition_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertLastAssignedPartitionIdBuilder::TryBuild(optional<AssertLastAssignedPartitionId> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertLastAssignedPartitionIdBuilder::TryBuild(optional<AssertLastAssignedPartitionId> &result) {
+	if (!has_type_) {
+		return "AssertLastAssignedPartitionId required property 'type' is missing";
 	}
+	if (!has_last_assigned_partition_id_) {
+		return "AssertLastAssignedPartitionId required property 'last-assigned-partition-id' is missing";
+	}
+	auto built = AssertLastAssignedPartitionId(std::move(*type_), std::move(*last_assigned_partition_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj, AssertLastAssignedPartitionIdBuilder &builder) {
+optional<string> AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj,
+                                                            AssertLastAssignedPartitionIdBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -91,7 +98,7 @@ string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj, AssertLastAss
 			}
 			builder.SetLastAssignedPartitionId(std::move(last_assigned_partition_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -101,8 +108,8 @@ string AssertLastAssignedPartitionId::TryFromJSON(yyjson_val *obj, AssertLastAss
 AssertLastAssignedPartitionId AssertLastAssignedPartitionId::FromJSON(yyjson_val *obj) {
 	AssertLastAssignedPartitionIdBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -111,10 +118,10 @@ AssertLastAssignedPartitionId AssertLastAssignedPartitionId::Copy() const {
 	return AssertLastAssignedPartitionId(*this);
 }
 
-string AssertLastAssignedPartitionId::Validate() const {
-	string error;
+optional<string> AssertLastAssignedPartitionId::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-last-assigned-partition-id")) {
@@ -122,7 +129,7 @@ string AssertLastAssignedPartitionId::Validate() const {
 		    "AssertLastAssignedPartitionId property 'type' must be assert-last-assigned-partition-id, not %s",
 		    type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertLastAssignedPartitionId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -59,24 +59,24 @@ UpdateNamespacePropertiesRequestBuilder::SetUpdates(case_insensitive_map_t<strin
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequestBuilder::Build() {
 	auto result = UpdateNamespacePropertiesRequest(std::move(removals_), std::move(updates_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string UpdateNamespacePropertiesRequestBuilder::TryBuild(optional<UpdateNamespacePropertiesRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> UpdateNamespacePropertiesRequestBuilder::TryBuild(optional<UpdateNamespacePropertiesRequest> &result) {
+	auto built = UpdateNamespacePropertiesRequest(std::move(removals_), std::move(updates_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
-                                                     UpdateNamespacePropertiesRequestBuilder &builder) {
+optional<string> UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
+                                                               UpdateNamespacePropertiesRequestBuilder &builder) {
 	try {
 		auto removals_val = yyjson_obj_get(obj, "removals");
 		if (removals_val) {
@@ -128,7 +128,7 @@ string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
 			}
 			builder.SetUpdates(std::move(updates));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -138,8 +138,8 @@ string UpdateNamespacePropertiesRequest::TryFromJSON(yyjson_val *obj,
 UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::FromJSON(yyjson_val *obj) {
 	UpdateNamespacePropertiesRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -148,9 +148,9 @@ UpdateNamespacePropertiesRequest UpdateNamespacePropertiesRequest::Copy() const 
 	return UpdateNamespacePropertiesRequest(*this);
 }
 
-string UpdateNamespacePropertiesRequest::Validate() const {
-	string error;
-	return "";
+optional<string> UpdateNamespacePropertiesRequest::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void UpdateNamespacePropertiesRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

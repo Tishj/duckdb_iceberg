@@ -50,23 +50,23 @@ EqualityDeleteFileBuilder &EqualityDeleteFileBuilder::SetEqualityIds(vector<int3
 EqualityDeleteFile EqualityDeleteFileBuilder::Build() {
 	auto result = EqualityDeleteFile(std::move(*content_file_), std::move(equality_ids_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string EqualityDeleteFileBuilder::TryBuild(optional<EqualityDeleteFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> EqualityDeleteFileBuilder::TryBuild(optional<EqualityDeleteFile> &result) {
+	auto built = EqualityDeleteFile(std::move(*content_file_), std::move(equality_ids_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilder &builder) {
+optional<string> EqualityDeleteFile::TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilder &builder) {
 	try {
 		builder.SetContentFile(ContentFile::FromJSON(obj));
 		auto equality_ids_val = yyjson_obj_get(obj, "equality-ids");
@@ -93,7 +93,7 @@ string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilde
 			}
 			builder.SetEqualityIds(std::move(equality_ids));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -103,8 +103,8 @@ string EqualityDeleteFile::TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilde
 EqualityDeleteFile EqualityDeleteFile::FromJSON(yyjson_val *obj) {
 	EqualityDeleteFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -113,13 +113,13 @@ EqualityDeleteFile EqualityDeleteFile::Copy() const {
 	return EqualityDeleteFile(*this);
 }
 
-string EqualityDeleteFile::Validate() const {
-	string error;
+optional<string> EqualityDeleteFile::Validate() const {
+	optional<string> error;
 	error = content_file.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void EqualityDeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

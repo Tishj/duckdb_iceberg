@@ -42,23 +42,23 @@ TermBuilder &TermBuilder::SetTransformTerm(TransformTerm value) {
 Term TermBuilder::Build() {
 	auto result = Term(std::move(reference_), std::move(transform_term_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TermBuilder::TryBuild(optional<Term> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TermBuilder::TryBuild(optional<Term> &result) {
+	auto built = Term(std::move(reference_), std::move(transform_term_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Term::TryFromJSON(yyjson_val *obj, TermBuilder &builder) {
+optional<string> Term::TryFromJSON(yyjson_val *obj, TermBuilder &builder) {
 	try {
 		do {
 			try {
@@ -73,7 +73,7 @@ string Term::TryFromJSON(yyjson_val *obj, TermBuilder &builder) {
 			}
 			throw InvalidInputException("Term failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -83,8 +83,8 @@ string Term::TryFromJSON(yyjson_val *obj, TermBuilder &builder) {
 Term Term::FromJSON(yyjson_val *obj) {
 	TermBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -93,27 +93,27 @@ Term Term::Copy() const {
 	return Term(*this);
 }
 
-string Term::Validate() const {
-	string error;
+optional<string> Term::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (reference.has_value()) {
 		matched_one_of_variants++;
 		error = reference->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (transform_term.has_value()) {
 		matched_one_of_variants++;
 		error = transform_term->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "Term must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *Term::ToJSON(yyjson_mut_doc *doc) const {

@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static ListNamespacesResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ListNamespacesResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ListNamespacesResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ListNamespacesResponse Copy() const;
@@ -51,7 +51,7 @@ public:
 	ListNamespacesResponseBuilder();
 	ListNamespacesResponseBuilder &SetNextPageToken(PageToken value);
 	ListNamespacesResponseBuilder &SetNamespaces(vector<Namespace> value);
-	string TryBuild(optional<ListNamespacesResponse> &result);
+	optional<string> TryBuild(optional<ListNamespacesResponse> &result);
 	ListNamespacesResponse Build();
 
 private:

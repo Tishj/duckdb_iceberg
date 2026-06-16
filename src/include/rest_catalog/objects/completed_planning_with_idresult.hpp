@@ -38,8 +38,8 @@ public:
 	public:
 		// Deserialization
 		static Object6 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object6Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object6Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object6 Copy() const;
@@ -56,7 +56,7 @@ public:
 	public:
 		Object6Builder();
 		Object6Builder &SetPlanId(string value);
-		string TryBuild(optional<Object6> &result);
+		optional<string> TryBuild(optional<Object6> &result);
 		Object6 Build();
 
 	private:
@@ -71,8 +71,8 @@ private:
 public:
 	// Deserialization
 	static CompletedPlanningWithIDResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CompletedPlanningWithIDResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CompletedPlanningWithIDResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CompletedPlanningWithIDResult Copy() const;
@@ -91,7 +91,7 @@ public:
 	CompletedPlanningWithIDResultBuilder();
 	CompletedPlanningWithIDResultBuilder &SetCompletedPlanningResult(CompletedPlanningResult value);
 	CompletedPlanningWithIDResultBuilder &SetObject6(CompletedPlanningWithIDResult::Object6 value);
-	string TryBuild(optional<CompletedPlanningWithIDResult> &result);
+	optional<string> TryBuild(optional<CompletedPlanningWithIDResult> &result);
 	CompletedPlanningWithIDResult Build();
 
 private:

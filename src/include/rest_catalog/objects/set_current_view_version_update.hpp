@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SetCurrentViewVersionUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SetCurrentViewVersionUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SetCurrentViewVersionUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SetCurrentViewVersionUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	SetCurrentViewVersionUpdateBuilder();
 	SetCurrentViewVersionUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetCurrentViewVersionUpdateBuilder &SetViewVersionId(int32_t value);
-	string TryBuild(optional<SetCurrentViewVersionUpdate> &result);
+	optional<string> TryBuild(optional<SetCurrentViewVersionUpdate> &result);
 	SetCurrentViewVersionUpdate Build();
 
 private:

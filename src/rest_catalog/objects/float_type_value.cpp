@@ -22,7 +22,7 @@ FloatTypeValue::FloatTypeValue(const FloatTypeValue &other) : value(other.value)
 FloatTypeValue::FloatTypeValue(FloatTypeValue &&other) : FloatTypeValue(static_cast<const FloatTypeValue &>(other)) {
 }
 
-string FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &result) {
+optional<string> FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &result) {
 	try {
 		double value;
 		if (yyjson_is_num(obj)) {
@@ -33,7 +33,7 @@ string FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &re
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(FloatTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string FloatTypeValue::TryFromJSON(yyjson_val *obj, optional<FloatTypeValue> &re
 FloatTypeValue FloatTypeValue::FromJSON(yyjson_val *obj) {
 	optional<FloatTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,9 +56,9 @@ FloatTypeValue FloatTypeValue::Copy() const {
 	return FloatTypeValue(*this);
 }
 
-string FloatTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> FloatTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *FloatTypeValue::ToJSON(yyjson_mut_doc *doc) const {

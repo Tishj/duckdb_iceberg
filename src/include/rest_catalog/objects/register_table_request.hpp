@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static RegisterTableRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, RegisterTableRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, RegisterTableRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	RegisterTableRequest Copy() const;
@@ -51,7 +51,7 @@ public:
 	RegisterTableRequestBuilder &SetName(string value);
 	RegisterTableRequestBuilder &SetMetadataLocation(string value);
 	RegisterTableRequestBuilder &SetOverwrite(bool value);
-	string TryBuild(optional<RegisterTableRequest> &result);
+	optional<string> TryBuild(optional<RegisterTableRequest> &result);
 	RegisterTableRequest Build();
 
 private:

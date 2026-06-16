@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertRefSnapshotId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertRefSnapshotIdBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertRefSnapshotId Copy() const;
@@ -52,7 +52,7 @@ public:
 	AssertRefSnapshotIdBuilder &SetType(TableRequirementType value);
 	AssertRefSnapshotIdBuilder &SetRef(string value);
 	AssertRefSnapshotIdBuilder &SetSnapshotId(int64_t value);
-	string TryBuild(optional<AssertRefSnapshotId> &result);
+	optional<string> TryBuild(optional<AssertRefSnapshotId> &result);
 	AssertRefSnapshotId Build();
 
 private:

@@ -47,23 +47,26 @@ LoadCredentialsResponse LoadCredentialsResponseBuilder::Build() {
 	}
 	auto result = LoadCredentialsResponse(std::move(*storage_credentials_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string LoadCredentialsResponseBuilder::TryBuild(optional<LoadCredentialsResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> LoadCredentialsResponseBuilder::TryBuild(optional<LoadCredentialsResponse> &result) {
+	if (!has_storage_credentials_) {
+		return "LoadCredentialsResponse required property 'storage-credentials' is missing";
 	}
+	auto built = LoadCredentialsResponse(std::move(*storage_credentials_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, LoadCredentialsResponseBuilder &builder) {
+optional<string> LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, LoadCredentialsResponseBuilder &builder) {
 	try {
 		auto storage_credentials_val = yyjson_obj_get(obj, "storage-credentials");
 		if (!storage_credentials_val) {
@@ -84,7 +87,7 @@ string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, LoadCredentialsResp
 			}
 			builder.SetStorageCredentials(std::move(storage_credentials));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -94,8 +97,8 @@ string LoadCredentialsResponse::TryFromJSON(yyjson_val *obj, LoadCredentialsResp
 LoadCredentialsResponse LoadCredentialsResponse::FromJSON(yyjson_val *obj) {
 	LoadCredentialsResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -104,15 +107,15 @@ LoadCredentialsResponse LoadCredentialsResponse::Copy() const {
 	return LoadCredentialsResponse(*this);
 }
 
-string LoadCredentialsResponse::Validate() const {
-	string error;
+optional<string> LoadCredentialsResponse::Validate() const {
+	optional<string> error;
 	for (const auto &item : storage_credentials) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void LoadCredentialsResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

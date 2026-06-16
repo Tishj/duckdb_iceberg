@@ -140,23 +140,46 @@ ContentFile ContentFileBuilder::Build() {
 	                std::move(*file_format_), std::move(*file_size_in_bytes_), std::move(*record_count_),
 	                std::move(key_metadata_), std::move(split_offsets_), std::move(sort_order_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ContentFileBuilder::TryBuild(optional<ContentFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ContentFileBuilder::TryBuild(optional<ContentFile> &result) {
+	if (!has_spec_id_) {
+		return "ContentFile required property 'spec-id' is missing";
 	}
+	if (!has_partition_) {
+		return "ContentFile required property 'partition' is missing";
+	}
+	if (!has_content_) {
+		return "ContentFile required property 'content' is missing";
+	}
+	if (!has_file_path_) {
+		return "ContentFile required property 'file-path' is missing";
+	}
+	if (!has_file_format_) {
+		return "ContentFile required property 'file-format' is missing";
+	}
+	if (!has_file_size_in_bytes_) {
+		return "ContentFile required property 'file-size-in-bytes' is missing";
+	}
+	if (!has_record_count_) {
+		return "ContentFile required property 'record-count' is missing";
+	}
+	auto built = ContentFile(std::move(*spec_id_), std::move(*partition_), std::move(*content_), std::move(*file_path_),
+	                         std::move(*file_format_), std::move(*file_size_in_bytes_), std::move(*record_count_),
+	                         std::move(key_metadata_), std::move(split_offsets_), std::move(sort_order_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ContentFile::TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder) {
+optional<string> ContentFile::TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder) {
 	try {
 		auto spec_id_val = yyjson_obj_get(obj, "spec-id");
 		if (!spec_id_val) {
@@ -299,7 +322,7 @@ string ContentFile::TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder) {
 			}
 			builder.SetSortOrderId(std::move(sort_order_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -309,8 +332,8 @@ string ContentFile::TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder) {
 ContentFile ContentFile::FromJSON(yyjson_val *obj) {
 	ContentFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -319,25 +342,25 @@ ContentFile ContentFile::Copy() const {
 	return ContentFile(*this);
 }
 
-string ContentFile::Validate() const {
-	string error;
+optional<string> ContentFile::Validate() const {
+	optional<string> error;
 	for (const auto &item : partition) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	error = file_format.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (key_metadata.has_value()) {
 		error = (*key_metadata).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void ContentFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

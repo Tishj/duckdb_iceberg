@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static UpgradeFormatVersionUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, UpgradeFormatVersionUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, UpgradeFormatVersionUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	UpgradeFormatVersionUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	UpgradeFormatVersionUpdateBuilder();
 	UpgradeFormatVersionUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	UpgradeFormatVersionUpdateBuilder &SetFormatVersion(int32_t value);
-	string TryBuild(optional<UpgradeFormatVersionUpdate> &result);
+	optional<string> TryBuild(optional<UpgradeFormatVersionUpdate> &result);
 	UpgradeFormatVersionUpdate Build();
 
 private:

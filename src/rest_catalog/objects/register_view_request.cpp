@@ -49,23 +49,29 @@ RegisterViewRequest RegisterViewRequestBuilder::Build() {
 	}
 	auto result = RegisterViewRequest(std::move(*name_), std::move(*metadata_location_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RegisterViewRequestBuilder::TryBuild(optional<RegisterViewRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RegisterViewRequestBuilder::TryBuild(optional<RegisterViewRequest> &result) {
+	if (!has_name_) {
+		return "RegisterViewRequest required property 'name' is missing";
 	}
+	if (!has_metadata_location_) {
+		return "RegisterViewRequest required property 'metadata-location' is missing";
+	}
+	auto built = RegisterViewRequest(std::move(*name_), std::move(*metadata_location_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RegisterViewRequest::TryFromJSON(yyjson_val *obj, RegisterViewRequestBuilder &builder) {
+optional<string> RegisterViewRequest::TryFromJSON(yyjson_val *obj, RegisterViewRequestBuilder &builder) {
 	try {
 		auto name_val = yyjson_obj_get(obj, "name");
 		if (!name_val) {
@@ -95,7 +101,7 @@ string RegisterViewRequest::TryFromJSON(yyjson_val *obj, RegisterViewRequestBuil
 			}
 			builder.SetMetadataLocation(std::move(metadata_location));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -105,8 +111,8 @@ string RegisterViewRequest::TryFromJSON(yyjson_val *obj, RegisterViewRequestBuil
 RegisterViewRequest RegisterViewRequest::FromJSON(yyjson_val *obj) {
 	RegisterViewRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -115,9 +121,9 @@ RegisterViewRequest RegisterViewRequest::Copy() const {
 	return RegisterViewRequest(*this);
 }
 
-string RegisterViewRequest::Validate() const {
-	string error;
-	return "";
+optional<string> RegisterViewRequest::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void RegisterViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

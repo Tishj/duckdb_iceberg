@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static FileScanTask FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, FileScanTaskBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, FileScanTaskBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	FileScanTask Copy() const;
@@ -55,7 +55,7 @@ public:
 	FileScanTaskBuilder &SetDataFile(DataFile value);
 	FileScanTaskBuilder &SetDeleteFileReferences(vector<int32_t> value);
 	FileScanTaskBuilder &SetResidualFilter(unique_ptr<Expression> value);
-	string TryBuild(optional<FileScanTask> &result);
+	optional<string> TryBuild(optional<FileScanTask> &result);
 	FileScanTask Build();
 
 private:

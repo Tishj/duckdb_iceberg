@@ -45,23 +45,26 @@ AddSnapshotUpdate AddSnapshotUpdateBuilder::Build() {
 	}
 	auto result = AddSnapshotUpdate(std::move(*base_update_), std::move(*snapshot_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AddSnapshotUpdateBuilder::TryBuild(optional<AddSnapshotUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AddSnapshotUpdateBuilder::TryBuild(optional<AddSnapshotUpdate> &result) {
+	if (!has_snapshot_) {
+		return "AddSnapshotUpdate required property 'snapshot' is missing";
 	}
+	auto built = AddSnapshotUpdate(std::move(*base_update_), std::move(*snapshot_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, AddSnapshotUpdateBuilder &builder) {
+optional<string> AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, AddSnapshotUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto snapshot_val = yyjson_obj_get(obj, "snapshot");
@@ -70,7 +73,7 @@ string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, AddSnapshotUpdateBuilder 
 		} else {
 			builder.SetSnapshot(Snapshot::FromJSON(snapshot_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -80,8 +83,8 @@ string AddSnapshotUpdate::TryFromJSON(yyjson_val *obj, AddSnapshotUpdateBuilder 
 AddSnapshotUpdate AddSnapshotUpdate::FromJSON(yyjson_val *obj) {
 	AddSnapshotUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -90,17 +93,17 @@ AddSnapshotUpdate AddSnapshotUpdate::Copy() const {
 	return AddSnapshotUpdate(*this);
 }
 
-string AddSnapshotUpdate::Validate() const {
-	string error;
+optional<string> AddSnapshotUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = snapshot.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AddSnapshotUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

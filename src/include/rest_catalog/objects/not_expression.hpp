@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static NotExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	NotExpression Copy() const;
@@ -52,7 +52,7 @@ public:
 	NotExpressionBuilder();
 	NotExpressionBuilder &SetType(ExpressionType value);
 	NotExpressionBuilder &SetChild(unique_ptr<Expression> value);
-	string TryBuild(optional<NotExpression> &result);
+	optional<string> TryBuild(optional<NotExpression> &result);
 	NotExpression Build();
 
 private:

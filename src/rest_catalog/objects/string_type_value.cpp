@@ -23,7 +23,7 @@ StringTypeValue::StringTypeValue(StringTypeValue &&other)
     : StringTypeValue(static_cast<const StringTypeValue &>(other)) {
 }
 
-string StringTypeValue::TryFromJSON(yyjson_val *obj, optional<StringTypeValue> &result) {
+optional<string> StringTypeValue::TryFromJSON(yyjson_val *obj, optional<StringTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string StringTypeValue::TryFromJSON(yyjson_val *obj, optional<StringTypeValue> &
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(StringTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string StringTypeValue::TryFromJSON(yyjson_val *obj, optional<StringTypeValue> &
 StringTypeValue StringTypeValue::FromJSON(yyjson_val *obj) {
 	optional<StringTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ StringTypeValue StringTypeValue::Copy() const {
 	return StringTypeValue(*this);
 }
 
-string StringTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> StringTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *StringTypeValue::ToJSON(yyjson_mut_doc *doc) const {

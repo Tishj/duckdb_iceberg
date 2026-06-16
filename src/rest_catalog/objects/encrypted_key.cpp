@@ -71,23 +71,30 @@ EncryptedKey EncryptedKeyBuilder::Build() {
 	auto result = EncryptedKey(std::move(*key_id_), std::move(*encrypted_key_metadata_), std::move(encrypted_by_id_),
 	                           std::move(properties_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string EncryptedKeyBuilder::TryBuild(optional<EncryptedKey> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> EncryptedKeyBuilder::TryBuild(optional<EncryptedKey> &result) {
+	if (!has_key_id_) {
+		return "EncryptedKey required property 'key-id' is missing";
 	}
+	if (!has_encrypted_key_metadata_) {
+		return "EncryptedKey required property 'encrypted-key-metadata' is missing";
+	}
+	auto built = EncryptedKey(std::move(*key_id_), std::move(*encrypted_key_metadata_), std::move(encrypted_by_id_),
+	                          std::move(properties_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string EncryptedKey::TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder) {
+optional<string> EncryptedKey::TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder) {
 	try {
 		auto key_id_val = yyjson_obj_get(obj, "key-id");
 		if (!key_id_val) {
@@ -152,7 +159,7 @@ string EncryptedKey::TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder) 
 			}
 			builder.SetProperties(std::move(properties));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -162,8 +169,8 @@ string EncryptedKey::TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder) 
 EncryptedKey EncryptedKey::FromJSON(yyjson_val *obj) {
 	EncryptedKeyBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -172,9 +179,9 @@ EncryptedKey EncryptedKey::Copy() const {
 	return EncryptedKey(*this);
 }
 
-string EncryptedKey::Validate() const {
-	string error;
-	return "";
+optional<string> EncryptedKey::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void EncryptedKey::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

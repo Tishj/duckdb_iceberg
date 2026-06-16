@@ -49,23 +49,29 @@ AssertDefaultSortOrderId AssertDefaultSortOrderIdBuilder::Build() {
 	}
 	auto result = AssertDefaultSortOrderId(std::move(*type_), std::move(*default_sort_order_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertDefaultSortOrderIdBuilder::TryBuild(optional<AssertDefaultSortOrderId> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertDefaultSortOrderIdBuilder::TryBuild(optional<AssertDefaultSortOrderId> &result) {
+	if (!has_type_) {
+		return "AssertDefaultSortOrderId required property 'type' is missing";
 	}
+	if (!has_default_sort_order_id_) {
+		return "AssertDefaultSortOrderId required property 'default-sort-order-id' is missing";
+	}
+	auto built = AssertDefaultSortOrderId(std::move(*type_), std::move(*default_sort_order_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj, AssertDefaultSortOrderIdBuilder &builder) {
+optional<string> AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj, AssertDefaultSortOrderIdBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -89,7 +95,7 @@ string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj, AssertDefaultSortO
 			}
 			builder.SetDefaultSortOrderId(std::move(default_sort_order_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -99,8 +105,8 @@ string AssertDefaultSortOrderId::TryFromJSON(yyjson_val *obj, AssertDefaultSortO
 AssertDefaultSortOrderId AssertDefaultSortOrderId::FromJSON(yyjson_val *obj) {
 	AssertDefaultSortOrderIdBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -109,17 +115,17 @@ AssertDefaultSortOrderId AssertDefaultSortOrderId::Copy() const {
 	return AssertDefaultSortOrderId(*this);
 }
 
-string AssertDefaultSortOrderId::Validate() const {
-	string error;
+optional<string> AssertDefaultSortOrderId::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-default-sort-order-id")) {
 		return StringUtil::Format(
 		    "AssertDefaultSortOrderId property 'type' must be assert-default-sort-order-id, not %s", type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertDefaultSortOrderId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -35,8 +35,8 @@ private:
 public:
 	// Deserialization
 	static DataFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, DataFileBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, DataFileBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	DataFile Copy() const;
@@ -67,7 +67,7 @@ public:
 	DataFileBuilder &SetNanValueCounts(CountMap value);
 	DataFileBuilder &SetLowerBounds(ValueMap value);
 	DataFileBuilder &SetUpperBounds(ValueMap value);
-	string TryBuild(optional<DataFile> &result);
+	optional<string> TryBuild(optional<DataFile> &result);
 	DataFile Build();
 
 private:

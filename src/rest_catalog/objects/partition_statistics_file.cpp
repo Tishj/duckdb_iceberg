@@ -62,23 +62,33 @@ PartitionStatisticsFile PartitionStatisticsFileBuilder::Build() {
 	auto result = PartitionStatisticsFile(std::move(*snapshot_id_), std::move(*statistics_path_),
 	                                      std::move(*file_size_in_bytes_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PartitionStatisticsFileBuilder::TryBuild(optional<PartitionStatisticsFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PartitionStatisticsFileBuilder::TryBuild(optional<PartitionStatisticsFile> &result) {
+	if (!has_snapshot_id_) {
+		return "PartitionStatisticsFile required property 'snapshot-id' is missing";
 	}
+	if (!has_statistics_path_) {
+		return "PartitionStatisticsFile required property 'statistics-path' is missing";
+	}
+	if (!has_file_size_in_bytes_) {
+		return "PartitionStatisticsFile required property 'file-size-in-bytes' is missing";
+	}
+	auto built = PartitionStatisticsFile(std::move(*snapshot_id_), std::move(*statistics_path_),
+	                                     std::move(*file_size_in_bytes_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj, PartitionStatisticsFileBuilder &builder) {
+optional<string> PartitionStatisticsFile::TryFromJSON(yyjson_val *obj, PartitionStatisticsFileBuilder &builder) {
 	try {
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
 		if (!snapshot_id_val) {
@@ -126,7 +136,7 @@ string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj, PartitionStatistics
 			}
 			builder.SetFileSizeInBytes(std::move(file_size_in_bytes));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -136,8 +146,8 @@ string PartitionStatisticsFile::TryFromJSON(yyjson_val *obj, PartitionStatistics
 PartitionStatisticsFile PartitionStatisticsFile::FromJSON(yyjson_val *obj) {
 	PartitionStatisticsFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -146,9 +156,9 @@ PartitionStatisticsFile PartitionStatisticsFile::Copy() const {
 	return PartitionStatisticsFile(*this);
 }
 
-string PartitionStatisticsFile::Validate() const {
-	string error;
-	return "";
+optional<string> PartitionStatisticsFile::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void PartitionStatisticsFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

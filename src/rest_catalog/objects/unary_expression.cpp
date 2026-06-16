@@ -48,23 +48,29 @@ UnaryExpression UnaryExpressionBuilder::Build() {
 	}
 	auto result = UnaryExpression(std::move(*type_), std::move(*term_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string UnaryExpressionBuilder::TryBuild(optional<UnaryExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> UnaryExpressionBuilder::TryBuild(optional<UnaryExpression> &result) {
+	if (!has_type_) {
+		return "UnaryExpression required property 'type' is missing";
 	}
+	if (!has_term_) {
+		return "UnaryExpression required property 'term' is missing";
+	}
+	auto built = UnaryExpression(std::move(*type_), std::move(*term_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string UnaryExpression::TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &builder) {
+optional<string> UnaryExpression::TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -78,7 +84,7 @@ string UnaryExpression::TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &bui
 		} else {
 			builder.SetTerm(Term::FromJSON(term_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +94,8 @@ string UnaryExpression::TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &bui
 UnaryExpression UnaryExpression::FromJSON(yyjson_val *obj) {
 	UnaryExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,10 +104,10 @@ UnaryExpression UnaryExpression::Copy() const {
 	return UnaryExpression(*this);
 }
 
-string UnaryExpression::Validate() const {
-	string error;
+optional<string> UnaryExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "is-null") && !StringUtil::CIEquals(type.value, "not-null") &&
@@ -110,10 +116,10 @@ string UnaryExpression::Validate() const {
 		    "UnaryExpression property 'type' must be one of [is-null, not-null, is-nan, not-nan], not %s", type.value);
 	}
 	error = term.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *UnaryExpression::ToJSON(yyjson_mut_doc *doc) const {

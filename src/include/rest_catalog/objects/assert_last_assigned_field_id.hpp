@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertLastAssignedFieldId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertLastAssignedFieldIdBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertLastAssignedFieldIdBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertLastAssignedFieldId Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssertLastAssignedFieldIdBuilder();
 	AssertLastAssignedFieldIdBuilder &SetType(TableRequirementType value);
 	AssertLastAssignedFieldIdBuilder &SetLastAssignedFieldId(int32_t value);
-	string TryBuild(optional<AssertLastAssignedFieldId> &result);
+	optional<string> TryBuild(optional<AssertLastAssignedFieldId> &result);
 	AssertLastAssignedFieldId Build();
 
 private:

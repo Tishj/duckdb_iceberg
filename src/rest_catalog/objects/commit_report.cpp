@@ -93,23 +93,39 @@ CommitReport CommitReportBuilder::Build() {
 	auto result = CommitReport(std::move(*table_name_), std::move(*snapshot_id_), std::move(*sequence_number_),
 	                           std::move(*operation_), std::move(*metrics_), std::move(metadata_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CommitReportBuilder::TryBuild(optional<CommitReport> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CommitReportBuilder::TryBuild(optional<CommitReport> &result) {
+	if (!has_table_name_) {
+		return "CommitReport required property 'table-name' is missing";
 	}
+	if (!has_snapshot_id_) {
+		return "CommitReport required property 'snapshot-id' is missing";
+	}
+	if (!has_sequence_number_) {
+		return "CommitReport required property 'sequence-number' is missing";
+	}
+	if (!has_operation_) {
+		return "CommitReport required property 'operation' is missing";
+	}
+	if (!has_metrics_) {
+		return "CommitReport required property 'metrics' is missing";
+	}
+	auto built = CommitReport(std::move(*table_name_), std::move(*snapshot_id_), std::move(*sequence_number_),
+	                          std::move(*operation_), std::move(*metrics_), std::move(metadata_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CommitReport::TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder) {
+optional<string> CommitReport::TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder) {
 	try {
 		auto table_name_val = yyjson_obj_get(obj, "table-name");
 		if (!table_name_val) {
@@ -200,7 +216,7 @@ string CommitReport::TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder) 
 			}
 			builder.SetMetadata(std::move(metadata));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -210,8 +226,8 @@ string CommitReport::TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder) 
 CommitReport CommitReport::FromJSON(yyjson_val *obj) {
 	CommitReportBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -220,13 +236,13 @@ CommitReport CommitReport::Copy() const {
 	return CommitReport(*this);
 }
 
-string CommitReport::Validate() const {
-	string error;
+optional<string> CommitReport::Validate() const {
+	optional<string> error;
 	error = metrics.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CommitReport::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

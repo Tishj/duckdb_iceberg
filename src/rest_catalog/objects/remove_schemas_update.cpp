@@ -52,23 +52,26 @@ RemoveSchemasUpdate RemoveSchemasUpdateBuilder::Build() {
 	}
 	auto result = RemoveSchemasUpdate(std::move(*base_update_), std::move(*schema_ids_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemoveSchemasUpdateBuilder::TryBuild(optional<RemoveSchemasUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemoveSchemasUpdateBuilder::TryBuild(optional<RemoveSchemasUpdate> &result) {
+	if (!has_schema_ids_) {
+		return "RemoveSchemasUpdate required property 'schema-ids' is missing";
 	}
+	auto built = RemoveSchemasUpdate(std::move(*base_update_), std::move(*schema_ids_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuilder &builder) {
+optional<string> RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto schema_ids_val = yyjson_obj_get(obj, "schema-ids");
@@ -97,7 +100,7 @@ string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuil
 			}
 			builder.SetSchemaIds(std::move(schema_ids));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -107,8 +110,8 @@ string RemoveSchemasUpdate::TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuil
 RemoveSchemasUpdate RemoveSchemasUpdate::FromJSON(yyjson_val *obj) {
 	RemoveSchemasUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -117,13 +120,13 @@ RemoveSchemasUpdate RemoveSchemasUpdate::Copy() const {
 	return RemoveSchemasUpdate(*this);
 }
 
-string RemoveSchemasUpdate::Validate() const {
-	string error;
+optional<string> RemoveSchemasUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemoveSchemasUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

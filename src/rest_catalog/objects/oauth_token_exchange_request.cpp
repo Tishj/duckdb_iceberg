@@ -95,23 +95,34 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequestBuilder::Build() {
 	    std::move(*grant_type_), std::move(*subject_token_), std::move(*subject_token_type_), std::move(scope_),
 	    std::move(requested_token_type_), std::move(actor_token_), std::move(actor_token_type_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string OAuthTokenExchangeRequestBuilder::TryBuild(optional<OAuthTokenExchangeRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> OAuthTokenExchangeRequestBuilder::TryBuild(optional<OAuthTokenExchangeRequest> &result) {
+	if (!has_grant_type_) {
+		return "OAuthTokenExchangeRequest required property 'grant_type' is missing";
 	}
+	if (!has_subject_token_) {
+		return "OAuthTokenExchangeRequest required property 'subject_token' is missing";
+	}
+	if (!has_subject_token_type_) {
+		return "OAuthTokenExchangeRequest required property 'subject_token_type' is missing";
+	}
+	auto built = OAuthTokenExchangeRequest(
+	    std::move(*grant_type_), std::move(*subject_token_), std::move(*subject_token_type_), std::move(scope_),
+	    std::move(requested_token_type_), std::move(actor_token_), std::move(actor_token_type_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string OAuthTokenExchangeRequest::TryFromJSON(yyjson_val *obj, OAuthTokenExchangeRequestBuilder &builder) {
+optional<string> OAuthTokenExchangeRequest::TryFromJSON(yyjson_val *obj, OAuthTokenExchangeRequestBuilder &builder) {
 	try {
 		auto grant_type_val = yyjson_obj_get(obj, "grant_type");
 		if (!grant_type_val) {
@@ -179,7 +190,7 @@ string OAuthTokenExchangeRequest::TryFromJSON(yyjson_val *obj, OAuthTokenExchang
 		if (actor_token_type_val) {
 			builder.SetActorTokenType(TokenType::FromJSON(actor_token_type_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -189,8 +200,8 @@ string OAuthTokenExchangeRequest::TryFromJSON(yyjson_val *obj, OAuthTokenExchang
 OAuthTokenExchangeRequest OAuthTokenExchangeRequest::FromJSON(yyjson_val *obj) {
 	OAuthTokenExchangeRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -199,30 +210,30 @@ OAuthTokenExchangeRequest OAuthTokenExchangeRequest::Copy() const {
 	return OAuthTokenExchangeRequest(*this);
 }
 
-string OAuthTokenExchangeRequest::Validate() const {
-	string error;
+optional<string> OAuthTokenExchangeRequest::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(grant_type, "urn:ietf:params:oauth:grant-type:token-exchange")) {
 		return StringUtil::Format("OAuthTokenExchangeRequest property 'grant_type' must be one of "
 		                          "[urn:ietf:params:oauth:grant-type:token-exchange], not %s",
 		                          grant_type);
 	}
 	error = subject_token_type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (requested_token_type.has_value()) {
 		error = (*requested_token_type).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (actor_token_type.has_value()) {
 		error = (*actor_token_type).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void OAuthTokenExchangeRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

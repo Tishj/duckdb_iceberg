@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static Reference FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<Reference> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<Reference> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	Reference Copy() const;

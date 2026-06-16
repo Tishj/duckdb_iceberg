@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static CommitTableResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CommitTableResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CommitTableResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CommitTableResponse Copy() const;
@@ -50,7 +50,7 @@ public:
 	CommitTableResponseBuilder();
 	CommitTableResponseBuilder &SetMetadataLocation(string value);
 	CommitTableResponseBuilder &SetMetadata(TableMetadata value);
-	string TryBuild(optional<CommitTableResponse> &result);
+	optional<string> TryBuild(optional<CommitTableResponse> &result);
 	CommitTableResponse Build();
 
 private:

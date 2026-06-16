@@ -90,23 +90,36 @@ StructField StructFieldBuilder::Build() {
 	auto result = StructField(std::move(*id_), std::move(*name_), std::move(type_), std::move(*required_),
 	                          std::move(_doc_), std::move(initial_default_), std::move(write_default_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string StructFieldBuilder::TryBuild(optional<StructField> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> StructFieldBuilder::TryBuild(optional<StructField> &result) {
+	if (!has_id_) {
+		return "StructField required property 'id' is missing";
 	}
+	if (!has_name_) {
+		return "StructField required property 'name' is missing";
+	}
+	if (!has_type_) {
+		return "StructField required property 'type' is missing";
+	}
+	if (!has_required_) {
+		return "StructField required property 'required' is missing";
+	}
+	auto built = StructField(std::move(*id_), std::move(*name_), std::move(type_), std::move(*required_),
+	                         std::move(_doc_), std::move(initial_default_), std::move(write_default_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string StructField::TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder) {
+optional<string> StructField::TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder) {
 	try {
 		auto id_val = yyjson_obj_get(obj, "id");
 		if (!id_val) {
@@ -178,7 +191,7 @@ string StructField::TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder) {
 		if (write_default_val) {
 			builder.SetWriteDefault(PrimitiveTypeValue::FromJSON(write_default_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -188,8 +201,8 @@ string StructField::TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder) {
 StructField StructField::FromJSON(yyjson_val *obj) {
 	StructFieldBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -198,25 +211,25 @@ StructField StructField::Copy() const {
 	return StructField(*this);
 }
 
-string StructField::Validate() const {
-	string error;
+optional<string> StructField::Validate() const {
+	optional<string> error;
 	error = type->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (initial_default.has_value()) {
 		error = (*initial_default).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (write_default.has_value()) {
 		error = (*write_default).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void StructField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -23,7 +23,7 @@ TimestampTzTypeValue::TimestampTzTypeValue(TimestampTzTypeValue &&other)
     : TimestampTzTypeValue(static_cast<const TimestampTzTypeValue &>(other)) {
 }
 
-string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTypeValue> &result) {
+optional<string> TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTy
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(TimestampTzTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string TimestampTzTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTzTy
 TimestampTzTypeValue TimestampTzTypeValue::FromJSON(yyjson_val *obj) {
 	optional<TimestampTzTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ TimestampTzTypeValue TimestampTzTypeValue::Copy() const {
 	return TimestampTzTypeValue(*this);
 }
 
-string TimestampTzTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> TimestampTzTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *TimestampTzTypeValue::ToJSON(yyjson_mut_doc *doc) const {

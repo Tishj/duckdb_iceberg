@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static CountMap FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CountMapBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CountMapBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CountMap Copy() const;
@@ -51,7 +51,7 @@ public:
 	CountMapBuilder();
 	CountMapBuilder &SetKeys(vector<IntegerTypeValue> value);
 	CountMapBuilder &SetValues(vector<LongTypeValue> value);
-	string TryBuild(optional<CountMap> &result);
+	optional<string> TryBuild(optional<CountMap> &result);
 	CountMap Build();
 
 private:

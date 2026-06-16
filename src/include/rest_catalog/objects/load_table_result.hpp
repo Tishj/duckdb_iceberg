@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static LoadTableResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	LoadTableResult Copy() const;
@@ -57,7 +57,7 @@ public:
 	LoadTableResultBuilder &SetMetadataLocation(string value);
 	LoadTableResultBuilder &SetConfig(case_insensitive_map_t<string> value);
 	LoadTableResultBuilder &SetStorageCredentials(vector<StorageCredential> value);
-	string TryBuild(optional<LoadTableResult> &result);
+	optional<string> TryBuild(optional<LoadTableResult> &result);
 	LoadTableResult Build();
 
 private:

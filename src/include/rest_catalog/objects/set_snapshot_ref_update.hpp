@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static SetSnapshotRefUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SetSnapshotRefUpdate Copy() const;
@@ -53,7 +53,7 @@ public:
 	SetSnapshotRefUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetSnapshotRefUpdateBuilder &SetSnapshotReference(SnapshotReference value);
 	SetSnapshotRefUpdateBuilder &SetRefName(string value);
-	string TryBuild(optional<SetSnapshotRefUpdate> &result);
+	optional<string> TryBuild(optional<SetSnapshotRefUpdate> &result);
 	SetSnapshotRefUpdate Build();
 
 private:

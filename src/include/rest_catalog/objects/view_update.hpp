@@ -43,8 +43,8 @@ private:
 public:
 	// Deserialization
 	static ViewUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ViewUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ViewUpdate Copy() const;
@@ -75,7 +75,7 @@ public:
 	ViewUpdateBuilder &SetRemovePropertiesUpdate(RemovePropertiesUpdate value);
 	ViewUpdateBuilder &SetAddViewVersionUpdate(AddViewVersionUpdate value);
 	ViewUpdateBuilder &SetSetCurrentViewVersionUpdate(SetCurrentViewVersionUpdate value);
-	string TryBuild(optional<ViewUpdate> &result);
+	optional<string> TryBuild(optional<ViewUpdate> &result);
 	ViewUpdate Build();
 
 private:

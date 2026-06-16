@@ -73,23 +73,23 @@ ScanTasksBuilder &ScanTasksBuilder::SetPlanTasks(vector<PlanTask> value) {
 ScanTasks ScanTasksBuilder::Build() {
 	auto result = ScanTasks(std::move(delete_files_), std::move(file_scan_tasks_), std::move(plan_tasks_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ScanTasksBuilder::TryBuild(optional<ScanTasks> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ScanTasksBuilder::TryBuild(optional<ScanTasks> &result) {
+	auto built = ScanTasks(std::move(delete_files_), std::move(file_scan_tasks_), std::move(plan_tasks_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ScanTasks::TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder) {
+optional<string> ScanTasks::TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder) {
 	try {
 		auto delete_files_val = yyjson_obj_get(obj, "delete-files");
 		if (delete_files_val) {
@@ -142,7 +142,7 @@ string ScanTasks::TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder) {
 			}
 			builder.SetPlanTasks(std::move(plan_tasks));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -152,8 +152,8 @@ string ScanTasks::TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder) {
 ScanTasks ScanTasks::FromJSON(yyjson_val *obj) {
 	ScanTasksBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -162,12 +162,12 @@ ScanTasks ScanTasks::Copy() const {
 	return ScanTasks(*this);
 }
 
-string ScanTasks::Validate() const {
-	string error;
+optional<string> ScanTasks::Validate() const {
+	optional<string> error;
 	if (delete_files.has_value()) {
 		for (const auto &item : (*delete_files)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -175,7 +175,7 @@ string ScanTasks::Validate() const {
 	if (file_scan_tasks.has_value()) {
 		for (const auto &item : (*file_scan_tasks)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -183,12 +183,12 @@ string ScanTasks::Validate() const {
 	if (plan_tasks.has_value()) {
 		for (const auto &item : (*plan_tasks)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void ScanTasks::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -45,23 +45,26 @@ SetCurrentSchemaUpdate SetCurrentSchemaUpdateBuilder::Build() {
 	}
 	auto result = SetCurrentSchemaUpdate(std::move(*base_update_), std::move(*schema_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetCurrentSchemaUpdateBuilder::TryBuild(optional<SetCurrentSchemaUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetCurrentSchemaUpdateBuilder::TryBuild(optional<SetCurrentSchemaUpdate> &result) {
+	if (!has_schema_id_) {
+		return "SetCurrentSchemaUpdate required property 'schema-id' is missing";
 	}
+	auto built = SetCurrentSchemaUpdate(std::move(*base_update_), std::move(*schema_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, SetCurrentSchemaUpdateBuilder &builder) {
+optional<string> SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, SetCurrentSchemaUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto schema_id_val = yyjson_obj_get(obj, "schema-id");
@@ -78,7 +81,7 @@ string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, SetCurrentSchemaUpda
 			}
 			builder.SetSchemaId(std::move(schema_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string SetCurrentSchemaUpdate::TryFromJSON(yyjson_val *obj, SetCurrentSchemaUpda
 SetCurrentSchemaUpdate SetCurrentSchemaUpdate::FromJSON(yyjson_val *obj) {
 	SetCurrentSchemaUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ SetCurrentSchemaUpdate SetCurrentSchemaUpdate::Copy() const {
 	return SetCurrentSchemaUpdate(*this);
 }
 
-string SetCurrentSchemaUpdate::Validate() const {
-	string error;
+optional<string> SetCurrentSchemaUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetCurrentSchemaUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

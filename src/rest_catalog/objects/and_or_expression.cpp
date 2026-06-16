@@ -59,23 +59,32 @@ AndOrExpression AndOrExpressionBuilder::Build() {
 	}
 	auto result = AndOrExpression(std::move(*type_), std::move(left_), std::move(right_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AndOrExpressionBuilder::TryBuild(optional<AndOrExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AndOrExpressionBuilder::TryBuild(optional<AndOrExpression> &result) {
+	if (!has_type_) {
+		return "AndOrExpression required property 'type' is missing";
 	}
+	if (!has_left_) {
+		return "AndOrExpression required property 'left' is missing";
+	}
+	if (!has_right_) {
+		return "AndOrExpression required property 'right' is missing";
+	}
+	auto built = AndOrExpression(std::move(*type_), std::move(left_), std::move(right_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AndOrExpression::TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &builder) {
+optional<string> AndOrExpression::TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -99,7 +108,7 @@ string AndOrExpression::TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &bui
 			right = make_uniq<Expression>(Expression::FromJSON(right_val));
 			builder.SetRight(std::move(right));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -109,8 +118,8 @@ string AndOrExpression::TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &bui
 AndOrExpression AndOrExpression::FromJSON(yyjson_val *obj) {
 	AndOrExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -119,24 +128,24 @@ AndOrExpression AndOrExpression::Copy() const {
 	return AndOrExpression(*this);
 }
 
-string AndOrExpression::Validate() const {
-	string error;
+optional<string> AndOrExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "and") && !StringUtil::CIEquals(type.value, "or")) {
 		return StringUtil::Format("AndOrExpression property 'type' must be one of [and, or], not %s", type.value);
 	}
 	error = left->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = right->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AndOrExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

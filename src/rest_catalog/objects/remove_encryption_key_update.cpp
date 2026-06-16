@@ -45,23 +45,26 @@ RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdateBuilder::Build() {
 	}
 	auto result = RemoveEncryptionKeyUpdate(std::move(*base_update_), std::move(*key_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemoveEncryptionKeyUpdateBuilder::TryBuild(optional<RemoveEncryptionKeyUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemoveEncryptionKeyUpdateBuilder::TryBuild(optional<RemoveEncryptionKeyUpdate> &result) {
+	if (!has_key_id_) {
+		return "RemoveEncryptionKeyUpdate required property 'key-id' is missing";
 	}
+	auto built = RemoveEncryptionKeyUpdate(std::move(*base_update_), std::move(*key_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, RemoveEncryptionKeyUpdateBuilder &builder) {
+optional<string> RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, RemoveEncryptionKeyUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto key_id_val = yyjson_obj_get(obj, "key-id");
@@ -78,7 +81,7 @@ string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, RemoveEncryptionK
 			}
 			builder.SetKeyId(std::move(key_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string RemoveEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, RemoveEncryptionK
 RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
 	RemoveEncryptionKeyUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ RemoveEncryptionKeyUpdate RemoveEncryptionKeyUpdate::Copy() const {
 	return RemoveEncryptionKeyUpdate(*this);
 }
 
-string RemoveEncryptionKeyUpdate::Validate() const {
-	string error;
+optional<string> RemoveEncryptionKeyUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemoveEncryptionKeyUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

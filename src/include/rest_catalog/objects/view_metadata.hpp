@@ -34,8 +34,8 @@ private:
 public:
 	// Deserialization
 	static ViewMetadata FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ViewMetadata Copy() const;
@@ -66,7 +66,7 @@ public:
 	ViewMetadataBuilder &SetVersionLog(vector<ViewHistoryEntry> value);
 	ViewMetadataBuilder &SetSchemas(vector<Schema> value);
 	ViewMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(optional<ViewMetadata> &result);
+	optional<string> TryBuild(optional<ViewMetadata> &result);
 	ViewMetadata Build();
 
 private:

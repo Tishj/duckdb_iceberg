@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static ListTablesResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ListTablesResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ListTablesResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ListTablesResponse Copy() const;
@@ -51,7 +51,7 @@ public:
 	ListTablesResponseBuilder();
 	ListTablesResponseBuilder &SetNextPageToken(PageToken value);
 	ListTablesResponseBuilder &SetIdentifiers(vector<TableIdentifier> value);
-	string TryBuild(optional<ListTablesResponse> &result);
+	optional<string> TryBuild(optional<ListTablesResponse> &result);
 	ListTablesResponse Build();
 
 private:

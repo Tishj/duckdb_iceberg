@@ -37,23 +37,26 @@ AssertCreate AssertCreateBuilder::Build() {
 	}
 	auto result = AssertCreate(std::move(*type_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertCreateBuilder::TryBuild(optional<AssertCreate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertCreateBuilder::TryBuild(optional<AssertCreate> &result) {
+	if (!has_type_) {
+		return "AssertCreate required property 'type' is missing";
 	}
+	auto built = AssertCreate(std::move(*type_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertCreate::TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder) {
+optional<string> AssertCreate::TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -61,7 +64,7 @@ string AssertCreate::TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder) 
 		} else {
 			builder.SetType(TableRequirementType::FromJSON(type_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -71,8 +74,8 @@ string AssertCreate::TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder) 
 AssertCreate AssertCreate::FromJSON(yyjson_val *obj) {
 	AssertCreateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -81,16 +84,16 @@ AssertCreate AssertCreate::Copy() const {
 	return AssertCreate(*this);
 }
 
-string AssertCreate::Validate() const {
-	string error;
+optional<string> AssertCreate::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-create")) {
 		return StringUtil::Format("AssertCreate property 'type' must be assert-create, not %s", type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertCreate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

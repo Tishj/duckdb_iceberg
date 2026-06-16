@@ -54,8 +54,8 @@ private:
 public:
 	// Deserialization
 	static PrimitiveTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	PrimitiveTypeValue Copy() const;
@@ -101,7 +101,7 @@ public:
 	PrimitiveTypeValueBuilder &SetTimestampTzNanoTypeValue(TimestampTzNanoTypeValue value);
 	PrimitiveTypeValueBuilder &SetFixedTypeValue(FixedTypeValue value);
 	PrimitiveTypeValueBuilder &SetBinaryTypeValue(BinaryTypeValue value);
-	string TryBuild(optional<PrimitiveTypeValue> &result);
+	optional<string> TryBuild(optional<PrimitiveTypeValue> &result);
 	PrimitiveTypeValue Build();
 
 private:

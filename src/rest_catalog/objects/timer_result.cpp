@@ -57,23 +57,32 @@ TimerResult TimerResultBuilder::Build() {
 	}
 	auto result = TimerResult(std::move(*time_unit_), std::move(*count_), std::move(*total_duration_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TimerResultBuilder::TryBuild(optional<TimerResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TimerResultBuilder::TryBuild(optional<TimerResult> &result) {
+	if (!has_time_unit_) {
+		return "TimerResult required property 'time-unit' is missing";
 	}
+	if (!has_count_) {
+		return "TimerResult required property 'count' is missing";
+	}
+	if (!has_total_duration_) {
+		return "TimerResult required property 'total-duration' is missing";
+	}
+	auto built = TimerResult(std::move(*time_unit_), std::move(*count_), std::move(*total_duration_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TimerResult::TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder) {
+optional<string> TimerResult::TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder) {
 	try {
 		auto time_unit_val = yyjson_obj_get(obj, "time-unit");
 		if (!time_unit_val) {
@@ -121,7 +130,7 @@ string TimerResult::TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder) {
 			}
 			builder.SetTotalDuration(std::move(total_duration));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -131,8 +140,8 @@ string TimerResult::TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder) {
 TimerResult TimerResult::FromJSON(yyjson_val *obj) {
 	TimerResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -141,9 +150,9 @@ TimerResult TimerResult::Copy() const {
 	return TimerResult(*this);
 }
 
-string TimerResult::Validate() const {
-	string error;
-	return "";
+optional<string> TimerResult::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void TimerResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

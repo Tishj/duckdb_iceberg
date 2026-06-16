@@ -95,23 +95,31 @@ CreateTableRequest CreateTableRequestBuilder::Build() {
 	    CreateTableRequest(std::move(*name_), std::move(*schema_), std::move(location_), std::move(partition_spec_),
 	                       std::move(write_order_), std::move(stage_create_), std::move(properties_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CreateTableRequestBuilder::TryBuild(optional<CreateTableRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CreateTableRequestBuilder::TryBuild(optional<CreateTableRequest> &result) {
+	if (!has_name_) {
+		return "CreateTableRequest required property 'name' is missing";
 	}
+	if (!has_schema_) {
+		return "CreateTableRequest required property 'schema' is missing";
+	}
+	auto built =
+	    CreateTableRequest(std::move(*name_), std::move(*schema_), std::move(location_), std::move(partition_spec_),
+	                       std::move(write_order_), std::move(stage_create_), std::move(properties_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CreateTableRequest::TryFromJSON(yyjson_val *obj, CreateTableRequestBuilder &builder) {
+optional<string> CreateTableRequest::TryFromJSON(yyjson_val *obj, CreateTableRequestBuilder &builder) {
 	try {
 		auto name_val = yyjson_obj_get(obj, "name");
 		if (!name_val) {
@@ -188,7 +196,7 @@ string CreateTableRequest::TryFromJSON(yyjson_val *obj, CreateTableRequestBuilde
 			}
 			builder.SetProperties(std::move(properties));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -198,8 +206,8 @@ string CreateTableRequest::TryFromJSON(yyjson_val *obj, CreateTableRequestBuilde
 CreateTableRequest CreateTableRequest::FromJSON(yyjson_val *obj) {
 	CreateTableRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -208,25 +216,25 @@ CreateTableRequest CreateTableRequest::Copy() const {
 	return CreateTableRequest(*this);
 }
 
-string CreateTableRequest::Validate() const {
-	string error;
+optional<string> CreateTableRequest::Validate() const {
+	optional<string> error;
 	error = schema.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (partition_spec.has_value()) {
 		error = (*partition_spec).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (write_order.has_value()) {
 		error = (*write_order).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void CreateTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -38,23 +38,23 @@ ViewRepresentationBuilder &ViewRepresentationBuilder::SetSqlviewRepresentation(S
 ViewRepresentation ViewRepresentationBuilder::Build() {
 	auto result = ViewRepresentation(std::move(sqlview_representation_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ViewRepresentationBuilder::TryBuild(optional<ViewRepresentation> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ViewRepresentationBuilder::TryBuild(optional<ViewRepresentation> &result) {
+	auto built = ViewRepresentation(std::move(sqlview_representation_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ViewRepresentation::TryFromJSON(yyjson_val *obj, ViewRepresentationBuilder &builder) {
+optional<string> ViewRepresentation::TryFromJSON(yyjson_val *obj, ViewRepresentationBuilder &builder) {
 	try {
 		do {
 			try {
@@ -64,7 +64,7 @@ string ViewRepresentation::TryFromJSON(yyjson_val *obj, ViewRepresentationBuilde
 			}
 			throw InvalidInputException("ViewRepresentation failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -74,8 +74,8 @@ string ViewRepresentation::TryFromJSON(yyjson_val *obj, ViewRepresentationBuilde
 ViewRepresentation ViewRepresentation::FromJSON(yyjson_val *obj) {
 	ViewRepresentationBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -84,20 +84,20 @@ ViewRepresentation ViewRepresentation::Copy() const {
 	return ViewRepresentation(*this);
 }
 
-string ViewRepresentation::Validate() const {
-	string error;
+optional<string> ViewRepresentation::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (sqlview_representation.has_value()) {
 		matched_one_of_variants++;
 		error = sqlview_representation->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "ViewRepresentation must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void ViewRepresentation::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

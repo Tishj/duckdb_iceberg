@@ -48,23 +48,29 @@ AssertTableUUID AssertTableUUIDBuilder::Build() {
 	}
 	auto result = AssertTableUUID(std::move(*type_), std::move(*uuid_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertTableUUIDBuilder::TryBuild(optional<AssertTableUUID> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertTableUUIDBuilder::TryBuild(optional<AssertTableUUID> &result) {
+	if (!has_type_) {
+		return "AssertTableUUID required property 'type' is missing";
 	}
+	if (!has_uuid_) {
+		return "AssertTableUUID required property 'uuid' is missing";
+	}
+	auto built = AssertTableUUID(std::move(*type_), std::move(*uuid_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertTableUUID::TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &builder) {
+optional<string> AssertTableUUID::TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -86,7 +92,7 @@ string AssertTableUUID::TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &bui
 			}
 			builder.SetUuid(std::move(uuid));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -96,8 +102,8 @@ string AssertTableUUID::TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &bui
 AssertTableUUID AssertTableUUID::FromJSON(yyjson_val *obj) {
 	AssertTableUUIDBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -106,16 +112,16 @@ AssertTableUUID AssertTableUUID::Copy() const {
 	return AssertTableUUID(*this);
 }
 
-string AssertTableUUID::Validate() const {
-	string error;
+optional<string> AssertTableUUID::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-table-uuid")) {
 		return StringUtil::Format("AssertTableUUID property 'type' must be assert-table-uuid, not %s", type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertTableUUID::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

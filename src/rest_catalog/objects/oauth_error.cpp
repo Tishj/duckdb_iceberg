@@ -53,23 +53,26 @@ OAuthError OAuthErrorBuilder::Build() {
 	}
 	auto result = OAuthError(std::move(*_error_), std::move(error_description_), std::move(error_uri_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string OAuthErrorBuilder::TryBuild(optional<OAuthError> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> OAuthErrorBuilder::TryBuild(optional<OAuthError> &result) {
+	if (!has__error_) {
+		return "OAuthError required property 'error' is missing";
 	}
+	auto built = OAuthError(std::move(*_error_), std::move(error_description_), std::move(error_uri_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string OAuthError::TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder) {
+optional<string> OAuthError::TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder) {
 	try {
 		auto _error_val = yyjson_obj_get(obj, "error");
 		if (!_error_val) {
@@ -109,7 +112,7 @@ string OAuthError::TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder) {
 			}
 			builder.SetErrorUri(std::move(error_uri));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -119,8 +122,8 @@ string OAuthError::TryFromJSON(yyjson_val *obj, OAuthErrorBuilder &builder) {
 OAuthError OAuthError::FromJSON(yyjson_val *obj) {
 	OAuthErrorBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -129,8 +132,8 @@ OAuthError OAuthError::Copy() const {
 	return OAuthError(*this);
 }
 
-string OAuthError::Validate() const {
-	string error;
+optional<string> OAuthError::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(_error, "invalid_request") && !StringUtil::CIEquals(_error, "invalid_client") &&
 	    !StringUtil::CIEquals(_error, "invalid_grant") && !StringUtil::CIEquals(_error, "unauthorized_client") &&
 	    !StringUtil::CIEquals(_error, "unsupported_grant_type") && !StringUtil::CIEquals(_error, "invalid_scope")) {
@@ -138,7 +141,7 @@ string OAuthError::Validate() const {
 		                          "invalid_grant, unauthorized_client, unsupported_grant_type, invalid_scope], not %s",
 		                          _error);
 	}
-	return "";
+	return nullopt;
 }
 
 void OAuthError::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

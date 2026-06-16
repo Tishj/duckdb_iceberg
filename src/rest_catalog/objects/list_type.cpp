@@ -70,23 +70,36 @@ ListType ListTypeBuilder::Build() {
 	auto result =
 	    ListType(std::move(*type_), std::move(*element_id_), std::move(element_), std::move(*element_required_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ListTypeBuilder::TryBuild(optional<ListType> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ListTypeBuilder::TryBuild(optional<ListType> &result) {
+	if (!has_type_) {
+		return "ListType required property 'type' is missing";
 	}
+	if (!has_element_id_) {
+		return "ListType required property 'element-id' is missing";
+	}
+	if (!has_element_) {
+		return "ListType required property 'element' is missing";
+	}
+	if (!has_element_required_) {
+		return "ListType required property 'element-required' is missing";
+	}
+	auto built =
+	    ListType(std::move(*type_), std::move(*element_id_), std::move(element_), std::move(*element_required_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ListType::TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder) {
+optional<string> ListType::TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -138,7 +151,7 @@ string ListType::TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder) {
 			}
 			builder.SetElementRequired(std::move(element_required));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -148,8 +161,8 @@ string ListType::TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder) {
 ListType ListType::FromJSON(yyjson_val *obj) {
 	ListTypeBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -158,16 +171,16 @@ ListType ListType::Copy() const {
 	return ListType(*this);
 }
 
-string ListType::Validate() const {
-	string error;
+optional<string> ListType::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(type, "list")) {
 		return StringUtil::Format("ListType property 'type' must be list, not %s", type);
 	}
 	error = element->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void ListType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

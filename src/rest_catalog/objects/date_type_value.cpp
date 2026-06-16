@@ -22,7 +22,7 @@ DateTypeValue::DateTypeValue(const DateTypeValue &other) : value(other.value) {
 DateTypeValue::DateTypeValue(DateTypeValue &&other) : DateTypeValue(static_cast<const DateTypeValue &>(other)) {
 }
 
-string DateTypeValue::TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &result) {
+optional<string> DateTypeValue::TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -33,7 +33,7 @@ string DateTypeValue::TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &resu
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(DateTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string DateTypeValue::TryFromJSON(yyjson_val *obj, optional<DateTypeValue> &resu
 DateTypeValue DateTypeValue::FromJSON(yyjson_val *obj) {
 	optional<DateTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,9 +56,9 @@ DateTypeValue DateTypeValue::Copy() const {
 	return DateTypeValue(*this);
 }
 
-string DateTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> DateTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *DateTypeValue::ToJSON(yyjson_mut_doc *doc) const {

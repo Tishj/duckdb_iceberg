@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static BaseUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	BaseUpdate Copy() const;
@@ -47,7 +47,7 @@ class BaseUpdateBuilder {
 public:
 	BaseUpdateBuilder();
 	BaseUpdateBuilder &SetAction(string value);
-	string TryBuild(optional<BaseUpdate> &result);
+	optional<string> TryBuild(optional<BaseUpdate> &result);
 	BaseUpdate Build();
 
 private:

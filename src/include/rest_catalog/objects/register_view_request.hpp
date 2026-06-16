@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static RegisterViewRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, RegisterViewRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, RegisterViewRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	RegisterViewRequest Copy() const;
@@ -49,7 +49,7 @@ public:
 	RegisterViewRequestBuilder();
 	RegisterViewRequestBuilder &SetName(string value);
 	RegisterViewRequestBuilder &SetMetadataLocation(string value);
-	string TryBuild(optional<RegisterViewRequest> &result);
+	optional<string> TryBuild(optional<RegisterViewRequest> &result);
 	RegisterViewRequest Build();
 
 private:

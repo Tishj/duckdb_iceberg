@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static StructType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, StructTypeBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	StructType Copy() const;
@@ -51,7 +51,7 @@ public:
 	StructTypeBuilder();
 	StructTypeBuilder &SetType(string value);
 	StructTypeBuilder &SetFields(vector<unique_ptr<StructField>> value);
-	string TryBuild(optional<StructType> &result);
+	optional<string> TryBuild(optional<StructType> &result);
 	StructType Build();
 
 private:

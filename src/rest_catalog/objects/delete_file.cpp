@@ -46,23 +46,23 @@ DeleteFileBuilder &DeleteFileBuilder::SetEqualityDeleteFile(EqualityDeleteFile v
 DeleteFile DeleteFileBuilder::Build() {
 	auto result = DeleteFile(std::move(position_delete_file_), std::move(equality_delete_file_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string DeleteFileBuilder::TryBuild(optional<DeleteFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> DeleteFileBuilder::TryBuild(optional<DeleteFile> &result) {
+	auto built = DeleteFile(std::move(position_delete_file_), std::move(equality_delete_file_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string DeleteFile::TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder) {
+optional<string> DeleteFile::TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder) {
 	try {
 		do {
 			try {
@@ -77,7 +77,7 @@ string DeleteFile::TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder) {
 			}
 			throw InvalidInputException("DeleteFile failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -87,8 +87,8 @@ string DeleteFile::TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder) {
 DeleteFile DeleteFile::FromJSON(yyjson_val *obj) {
 	DeleteFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -97,27 +97,27 @@ DeleteFile DeleteFile::Copy() const {
 	return DeleteFile(*this);
 }
 
-string DeleteFile::Validate() const {
-	string error;
+optional<string> DeleteFile::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (position_delete_file.has_value()) {
 		matched_one_of_variants++;
 		error = position_delete_file->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (equality_delete_file.has_value()) {
 		matched_one_of_variants++;
 		error = equality_delete_file->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "DeleteFile must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void DeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

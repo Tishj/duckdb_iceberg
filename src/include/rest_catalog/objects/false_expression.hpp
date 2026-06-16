@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static FalseExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	FalseExpression Copy() const;
@@ -48,7 +48,7 @@ class FalseExpressionBuilder {
 public:
 	FalseExpressionBuilder();
 	FalseExpressionBuilder &SetType(ExpressionType value);
-	string TryBuild(optional<FalseExpression> &result);
+	optional<string> TryBuild(optional<FalseExpression> &result);
 	FalseExpression Build();
 
 private:

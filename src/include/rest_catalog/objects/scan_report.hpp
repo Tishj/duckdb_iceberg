@@ -34,8 +34,8 @@ private:
 public:
 	// Deserialization
 	static ScanReport FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ScanReport Copy() const;
@@ -66,7 +66,7 @@ public:
 	ScanReportBuilder &SetProjectedFieldNames(vector<string> value);
 	ScanReportBuilder &SetMetrics(Metrics value);
 	ScanReportBuilder &SetMetadata(case_insensitive_map_t<string> value);
-	string TryBuild(optional<ScanReport> &result);
+	optional<string> TryBuild(optional<ScanReport> &result);
 	ScanReport Build();
 
 private:

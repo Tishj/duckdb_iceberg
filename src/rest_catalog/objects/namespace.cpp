@@ -30,7 +30,7 @@ Namespace::Namespace(const Namespace &other)
 Namespace::Namespace(Namespace &&other) : Namespace(static_cast<const Namespace &>(other)) {
 }
 
-string Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
+optional<string> Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
 	try {
 		vector<string> value;
 		if (yyjson_is_arr(obj)) {
@@ -52,7 +52,7 @@ string Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
 			    "Namespace property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(Namespace(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -62,8 +62,8 @@ string Namespace::TryFromJSON(yyjson_val *obj, optional<Namespace> &result) {
 Namespace Namespace::FromJSON(yyjson_val *obj) {
 	optional<Namespace> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -75,9 +75,9 @@ Namespace Namespace::Copy() const {
 	return Namespace(*this);
 }
 
-string Namespace::Validate() const {
-	string error;
-	return "";
+optional<string> Namespace::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *Namespace::ToJSON(yyjson_mut_doc *doc) const {

@@ -22,7 +22,7 @@ SortDirection::SortDirection(const SortDirection &other) : value(other.value) {
 SortDirection::SortDirection(SortDirection &&other) : SortDirection(static_cast<const SortDirection &>(other)) {
 }
 
-string SortDirection::TryFromJSON(yyjson_val *obj, optional<SortDirection> &result) {
+optional<string> SortDirection::TryFromJSON(yyjson_val *obj, optional<SortDirection> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -33,7 +33,7 @@ string SortDirection::TryFromJSON(yyjson_val *obj, optional<SortDirection> &resu
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(SortDirection(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string SortDirection::TryFromJSON(yyjson_val *obj, optional<SortDirection> &resu
 SortDirection SortDirection::FromJSON(yyjson_val *obj) {
 	optional<SortDirection> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,12 +56,12 @@ SortDirection SortDirection::Copy() const {
 	return SortDirection(*this);
 }
 
-string SortDirection::Validate() const {
-	string error;
+optional<string> SortDirection::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(value, "asc") && !StringUtil::CIEquals(value, "desc")) {
 		return StringUtil::Format("SortDirection property 'value' must be one of [asc, desc], not %s", value);
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *SortDirection::ToJSON(yyjson_mut_doc *doc) const {

@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static AddSortOrderUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AddSortOrderUpdate Copy() const;
@@ -51,7 +51,7 @@ public:
 	AddSortOrderUpdateBuilder();
 	AddSortOrderUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddSortOrderUpdateBuilder &SetSortOrder(SortOrder value);
-	string TryBuild(optional<AddSortOrderUpdate> &result);
+	optional<string> TryBuild(optional<AddSortOrderUpdate> &result);
 	AddSortOrderUpdate Build();
 
 private:

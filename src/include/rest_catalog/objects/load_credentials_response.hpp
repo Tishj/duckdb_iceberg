@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static LoadCredentialsResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, LoadCredentialsResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, LoadCredentialsResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	LoadCredentialsResponse Copy() const;
@@ -48,7 +48,7 @@ class LoadCredentialsResponseBuilder {
 public:
 	LoadCredentialsResponseBuilder();
 	LoadCredentialsResponseBuilder &SetStorageCredentials(vector<StorageCredential> value);
-	string TryBuild(optional<LoadCredentialsResponse> &result);
+	optional<string> TryBuild(optional<LoadCredentialsResponse> &result);
 	LoadCredentialsResponse Build();
 
 private:

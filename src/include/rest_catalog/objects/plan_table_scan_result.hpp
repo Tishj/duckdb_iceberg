@@ -36,8 +36,8 @@ private:
 public:
 	// Deserialization
 	static PlanTableScanResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, PlanTableScanResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, PlanTableScanResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	PlanTableScanResult Copy() const;
@@ -60,7 +60,7 @@ public:
 	PlanTableScanResultBuilder &SetFailedPlanningResult(FailedPlanningResult value);
 	PlanTableScanResultBuilder &SetAsyncPlanningResult(AsyncPlanningResult value);
 	PlanTableScanResultBuilder &SetEmptyPlanningResult(EmptyPlanningResult value);
-	string TryBuild(optional<PlanTableScanResult> &result);
+	optional<string> TryBuild(optional<PlanTableScanResult> &result);
 	PlanTableScanResult Build();
 
 private:

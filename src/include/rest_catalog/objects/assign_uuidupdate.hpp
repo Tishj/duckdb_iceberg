@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssignUUIDUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssignUUIDUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssignUUIDUpdateBuilder();
 	AssignUUIDUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AssignUUIDUpdateBuilder &SetUuid(string value);
-	string TryBuild(optional<AssignUUIDUpdate> &result);
+	optional<string> TryBuild(optional<AssignUUIDUpdate> &result);
 	AssignUUIDUpdate Build();
 
 private:

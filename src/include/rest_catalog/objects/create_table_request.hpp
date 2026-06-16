@@ -34,8 +34,8 @@ private:
 public:
 	// Deserialization
 	static CreateTableRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CreateTableRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CreateTableRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CreateTableRequest Copy() const;
@@ -64,7 +64,7 @@ public:
 	CreateTableRequestBuilder &SetWriteOrder(SortOrder value);
 	CreateTableRequestBuilder &SetStageCreate(bool value);
 	CreateTableRequestBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(optional<CreateTableRequest> &result);
+	optional<string> TryBuild(optional<CreateTableRequest> &result);
 	CreateTableRequest Build();
 
 private:

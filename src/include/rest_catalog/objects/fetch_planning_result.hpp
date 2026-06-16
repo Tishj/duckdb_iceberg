@@ -34,8 +34,8 @@ private:
 public:
 	// Deserialization
 	static FetchPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, FetchPlanningResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, FetchPlanningResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	FetchPlanningResult Copy() const;
@@ -56,7 +56,7 @@ public:
 	FetchPlanningResultBuilder &SetCompletedPlanningResult(CompletedPlanningResult value);
 	FetchPlanningResultBuilder &SetFailedPlanningResult(FailedPlanningResult value);
 	FetchPlanningResultBuilder &SetEmptyPlanningResult(EmptyPlanningResult value);
-	string TryBuild(optional<FetchPlanningResult> &result);
+	optional<string> TryBuild(optional<FetchPlanningResult> &result);
 	FetchPlanningResult Build();
 
 private:

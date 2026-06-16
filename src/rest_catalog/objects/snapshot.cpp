@@ -73,23 +73,28 @@ Snapshot::Object2 Snapshot::Object2Builder::Build() {
 	                                                            ? std::move(*additional_properties_)
 	                                                            : case_insensitive_map_t<string>());
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string Snapshot::Object2Builder::TryBuild(optional<Snapshot::Object2> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> Snapshot::Object2Builder::TryBuild(optional<Snapshot::Object2> &result) {
+	if (!has_operation_) {
+		return "Object2 required property 'operation' is missing";
 	}
+	auto built = Snapshot::Object2(std::move(*operation_), additional_properties_.has_value()
+	                                                           ? std::move(*additional_properties_)
+	                                                           : case_insensitive_map_t<string>());
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Snapshot::Object2::TryFromJSON(yyjson_val *obj, Object2Builder &builder) {
+optional<string> Snapshot::Object2::TryFromJSON(yyjson_val *obj, Object2Builder &builder) {
 	try {
 		auto operation_val = yyjson_obj_get(obj, "operation");
 		if (!operation_val) {
@@ -124,7 +129,7 @@ string Snapshot::Object2::TryFromJSON(yyjson_val *obj, Object2Builder &builder) 
 			additional_properties.emplace(key_str, std::move(tmp));
 		}
 		builder.SetAdditionalProperties(std::move(additional_properties));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -134,8 +139,8 @@ string Snapshot::Object2::TryFromJSON(yyjson_val *obj, Object2Builder &builder) 
 Snapshot::Object2 Snapshot::Object2::FromJSON(yyjson_val *obj) {
 	Object2Builder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -144,14 +149,14 @@ Snapshot::Object2 Snapshot::Object2::Copy() const {
 	return Snapshot::Object2(*this);
 }
 
-string Snapshot::Object2::Validate() const {
-	string error;
+optional<string> Snapshot::Object2::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(operation, "append") && !StringUtil::CIEquals(operation, "replace") &&
 	    !StringUtil::CIEquals(operation, "overwrite") && !StringUtil::CIEquals(operation, "delete")) {
 		return StringUtil::Format(
 		    "Object2 property 'operation' must be one of [append, replace, overwrite, delete], not %s", operation);
 	}
-	return "";
+	return nullopt;
 }
 
 void Snapshot::Object2::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -246,23 +251,37 @@ Snapshot SnapshotBuilder::Build() {
 	                       std::move(*summary_), std::move(parent_snapshot_id_), std::move(sequence_number_),
 	                       std::move(first_row_id_), std::move(added_rows_), std::move(schema_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SnapshotBuilder::TryBuild(optional<Snapshot> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SnapshotBuilder::TryBuild(optional<Snapshot> &result) {
+	if (!has_snapshot_id_) {
+		return "Snapshot required property 'snapshot-id' is missing";
 	}
+	if (!has_timestamp_ms_) {
+		return "Snapshot required property 'timestamp-ms' is missing";
+	}
+	if (!has_manifest_list_) {
+		return "Snapshot required property 'manifest-list' is missing";
+	}
+	if (!has_summary_) {
+		return "Snapshot required property 'summary' is missing";
+	}
+	auto built = Snapshot(std::move(*snapshot_id_), std::move(*timestamp_ms_), std::move(*manifest_list_),
+	                      std::move(*summary_), std::move(parent_snapshot_id_), std::move(sequence_number_),
+	                      std::move(first_row_id_), std::move(added_rows_), std::move(schema_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Snapshot::TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder) {
+optional<string> Snapshot::TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder) {
 	try {
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
 		if (!snapshot_id_val) {
@@ -384,7 +403,7 @@ string Snapshot::TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder) {
 			}
 			builder.SetSchemaId(std::move(schema_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -394,8 +413,8 @@ string Snapshot::TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder) {
 Snapshot Snapshot::FromJSON(yyjson_val *obj) {
 	SnapshotBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -404,13 +423,13 @@ Snapshot Snapshot::Copy() const {
 	return Snapshot(*this);
 }
 
-string Snapshot::Validate() const {
-	string error;
+optional<string> Snapshot::Validate() const {
+	optional<string> error;
 	error = summary.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void Snapshot::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

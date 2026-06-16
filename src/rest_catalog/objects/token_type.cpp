@@ -22,7 +22,7 @@ TokenType::TokenType(const TokenType &other) : value(other.value) {
 TokenType::TokenType(TokenType &&other) : TokenType(static_cast<const TokenType &>(other)) {
 }
 
-string TokenType::TryFromJSON(yyjson_val *obj, optional<TokenType> &result) {
+optional<string> TokenType::TryFromJSON(yyjson_val *obj, optional<TokenType> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string TokenType::TryFromJSON(yyjson_val *obj, optional<TokenType> &result) {
 			    "TokenType property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(TokenType(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string TokenType::TryFromJSON(yyjson_val *obj, optional<TokenType> &result) {
 TokenType TokenType::FromJSON(yyjson_val *obj) {
 	optional<TokenType> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,8 +55,8 @@ TokenType TokenType::Copy() const {
 	return TokenType(*this);
 }
 
-string TokenType::Validate() const {
-	string error;
+optional<string> TokenType::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:access_token") &&
 	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:refresh_token") &&
 	    !StringUtil::CIEquals(value, "urn:ietf:params:oauth:token-type:id_token") &&
@@ -70,7 +70,7 @@ string TokenType::Validate() const {
 		    "urn:ietf:params:oauth:token-type:jwt], not %s",
 		    value);
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *TokenType::ToJSON(yyjson_mut_doc *doc) const {

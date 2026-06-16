@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static StructField FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, StructFieldBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	StructField Copy() const;
@@ -63,7 +63,7 @@ public:
 	StructFieldBuilder &SetDoc(string value);
 	StructFieldBuilder &SetInitialDefault(PrimitiveTypeValue value);
 	StructFieldBuilder &SetWriteDefault(PrimitiveTypeValue value);
-	string TryBuild(optional<StructField> &result);
+	optional<string> TryBuild(optional<StructField> &result);
 	StructField Build();
 
 private:

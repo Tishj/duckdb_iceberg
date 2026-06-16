@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static ViewHistoryEntry FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ViewHistoryEntry Copy() const;
@@ -49,7 +49,7 @@ public:
 	ViewHistoryEntryBuilder();
 	ViewHistoryEntryBuilder &SetVersionId(int32_t value);
 	ViewHistoryEntryBuilder &SetTimestampMs(int64_t value);
-	string TryBuild(optional<ViewHistoryEntry> &result);
+	optional<string> TryBuild(optional<ViewHistoryEntry> &result);
 	ViewHistoryEntry Build();
 
 private:

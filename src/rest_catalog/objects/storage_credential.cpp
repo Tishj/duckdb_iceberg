@@ -55,23 +55,29 @@ StorageCredential StorageCredentialBuilder::Build() {
 	}
 	auto result = StorageCredential(std::move(*prefix_), std::move(*config_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string StorageCredentialBuilder::TryBuild(optional<StorageCredential> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> StorageCredentialBuilder::TryBuild(optional<StorageCredential> &result) {
+	if (!has_prefix_) {
+		return "StorageCredential required property 'prefix' is missing";
 	}
+	if (!has_config_) {
+		return "StorageCredential required property 'config' is missing";
+	}
+	auto built = StorageCredential(std::move(*prefix_), std::move(*config_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string StorageCredential::TryFromJSON(yyjson_val *obj, StorageCredentialBuilder &builder) {
+optional<string> StorageCredential::TryFromJSON(yyjson_val *obj, StorageCredentialBuilder &builder) {
 	try {
 		auto prefix_val = yyjson_obj_get(obj, "prefix");
 		if (!prefix_val) {
@@ -112,7 +118,7 @@ string StorageCredential::TryFromJSON(yyjson_val *obj, StorageCredentialBuilder 
 			}
 			builder.SetConfig(std::move(config));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -122,8 +128,8 @@ string StorageCredential::TryFromJSON(yyjson_val *obj, StorageCredentialBuilder 
 StorageCredential StorageCredential::FromJSON(yyjson_val *obj) {
 	StorageCredentialBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -132,9 +138,9 @@ StorageCredential StorageCredential::Copy() const {
 	return StorageCredential(*this);
 }
 
-string StorageCredential::Validate() const {
-	string error;
-	return "";
+optional<string> StorageCredential::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void StorageCredential::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

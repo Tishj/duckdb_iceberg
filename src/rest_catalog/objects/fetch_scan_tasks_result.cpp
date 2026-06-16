@@ -34,26 +34,26 @@ FetchScanTasksResultBuilder &FetchScanTasksResultBuilder::SetScanTasks(ScanTasks
 FetchScanTasksResult FetchScanTasksResultBuilder::Build() {
 	auto result = FetchScanTasksResult(std::move(*scan_tasks_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string FetchScanTasksResultBuilder::TryBuild(optional<FetchScanTasksResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> FetchScanTasksResultBuilder::TryBuild(optional<FetchScanTasksResult> &result) {
+	auto built = FetchScanTasksResult(std::move(*scan_tasks_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string FetchScanTasksResult::TryFromJSON(yyjson_val *obj, FetchScanTasksResultBuilder &builder) {
+optional<string> FetchScanTasksResult::TryFromJSON(yyjson_val *obj, FetchScanTasksResultBuilder &builder) {
 	try {
 		builder.SetScanTasks(ScanTasks::FromJSON(obj));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -63,8 +63,8 @@ string FetchScanTasksResult::TryFromJSON(yyjson_val *obj, FetchScanTasksResultBu
 FetchScanTasksResult FetchScanTasksResult::FromJSON(yyjson_val *obj) {
 	FetchScanTasksResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -73,13 +73,13 @@ FetchScanTasksResult FetchScanTasksResult::Copy() const {
 	return FetchScanTasksResult(*this);
 }
 
-string FetchScanTasksResult::Validate() const {
-	string error;
+optional<string> FetchScanTasksResult::Validate() const {
+	optional<string> error;
 	error = scan_tasks.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void FetchScanTasksResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static RemovePropertiesUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, RemovePropertiesUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, RemovePropertiesUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	RemovePropertiesUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	RemovePropertiesUpdateBuilder();
 	RemovePropertiesUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemovePropertiesUpdateBuilder &SetRemovals(vector<string> value);
-	string TryBuild(optional<RemovePropertiesUpdate> &result);
+	optional<string> TryBuild(optional<RemovePropertiesUpdate> &result);
 	RemovePropertiesUpdate Build();
 
 private:

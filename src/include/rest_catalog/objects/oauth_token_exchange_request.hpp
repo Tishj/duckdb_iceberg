@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static OAuthTokenExchangeRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, OAuthTokenExchangeRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, OAuthTokenExchangeRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	OAuthTokenExchangeRequest Copy() const;
@@ -62,7 +62,7 @@ public:
 	OAuthTokenExchangeRequestBuilder &SetRequestedTokenType(TokenType value);
 	OAuthTokenExchangeRequestBuilder &SetActorToken(string value);
 	OAuthTokenExchangeRequestBuilder &SetActorTokenType(TokenType value);
-	string TryBuild(optional<OAuthTokenExchangeRequest> &result);
+	optional<string> TryBuild(optional<OAuthTokenExchangeRequest> &result);
 	OAuthTokenExchangeRequest Build();
 
 private:

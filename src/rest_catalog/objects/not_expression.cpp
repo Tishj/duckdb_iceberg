@@ -48,23 +48,29 @@ NotExpression NotExpressionBuilder::Build() {
 	}
 	auto result = NotExpression(std::move(*type_), std::move(child_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string NotExpressionBuilder::TryBuild(optional<NotExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> NotExpressionBuilder::TryBuild(optional<NotExpression> &result) {
+	if (!has_type_) {
+		return "NotExpression required property 'type' is missing";
 	}
+	if (!has_child_) {
+		return "NotExpression required property 'child' is missing";
+	}
+	auto built = NotExpression(std::move(*type_), std::move(child_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string NotExpression::TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder) {
+optional<string> NotExpression::TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -80,7 +86,7 @@ string NotExpression::TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder
 			child = make_uniq<Expression>(Expression::FromJSON(child_val));
 			builder.SetChild(std::move(child));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -90,8 +96,8 @@ string NotExpression::TryFromJSON(yyjson_val *obj, NotExpressionBuilder &builder
 NotExpression NotExpression::FromJSON(yyjson_val *obj) {
 	NotExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -100,20 +106,20 @@ NotExpression NotExpression::Copy() const {
 	return NotExpression(*this);
 }
 
-string NotExpression::Validate() const {
-	string error;
+optional<string> NotExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "not")) {
 		return StringUtil::Format("NotExpression property 'type' must be not, not %s", type.value);
 	}
 	error = child->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void NotExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

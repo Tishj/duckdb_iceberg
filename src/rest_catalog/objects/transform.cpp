@@ -22,7 +22,7 @@ Transform::Transform(const Transform &other) : value(other.value) {
 Transform::Transform(Transform &&other) : Transform(static_cast<const Transform &>(other)) {
 }
 
-string Transform::TryFromJSON(yyjson_val *obj, optional<Transform> &result) {
+optional<string> Transform::TryFromJSON(yyjson_val *obj, optional<Transform> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string Transform::TryFromJSON(yyjson_val *obj, optional<Transform> &result) {
 			    "Transform property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(Transform(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string Transform::TryFromJSON(yyjson_val *obj, optional<Transform> &result) {
 Transform Transform::FromJSON(yyjson_val *obj) {
 	optional<Transform> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,9 +55,9 @@ Transform Transform::Copy() const {
 	return Transform(*this);
 }
 
-string Transform::Validate() const {
-	string error;
-	return "";
+optional<string> Transform::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *Transform::ToJSON(yyjson_mut_doc *doc) const {

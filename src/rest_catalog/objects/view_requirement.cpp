@@ -37,23 +37,23 @@ ViewRequirementBuilder &ViewRequirementBuilder::SetAssertViewUuid(AssertViewUUID
 ViewRequirement ViewRequirementBuilder::Build() {
 	auto result = ViewRequirement(std::move(assert_view_uuid_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ViewRequirementBuilder::TryBuild(optional<ViewRequirement> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ViewRequirementBuilder::TryBuild(optional<ViewRequirement> &result) {
+	auto built = ViewRequirement(std::move(assert_view_uuid_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ViewRequirement::TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &builder) {
+optional<string> ViewRequirement::TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &builder) {
 	try {
 		do {
 			try {
@@ -63,7 +63,7 @@ string ViewRequirement::TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &bui
 			}
 			throw InvalidInputException("ViewRequirement failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -73,8 +73,8 @@ string ViewRequirement::TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &bui
 ViewRequirement ViewRequirement::FromJSON(yyjson_val *obj) {
 	ViewRequirementBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -83,20 +83,20 @@ ViewRequirement ViewRequirement::Copy() const {
 	return ViewRequirement(*this);
 }
 
-string ViewRequirement::Validate() const {
-	string error;
+optional<string> ViewRequirement::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (assert_view_uuid.has_value()) {
 		matched_one_of_variants++;
 		error = assert_view_uuid->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "ViewRequirement must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void ViewRequirement::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

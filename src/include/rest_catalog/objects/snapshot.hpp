@@ -37,8 +37,8 @@ public:
 	public:
 		// Deserialization
 		static Object2 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object2Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object2Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object2 Copy() const;
@@ -57,7 +57,7 @@ public:
 		Object2Builder();
 		Object2Builder &SetOperation(string value);
 		Object2Builder &SetAdditionalProperties(case_insensitive_map_t<string> value);
-		string TryBuild(optional<Object2> &result);
+		optional<string> TryBuild(optional<Object2> &result);
 		Object2 Build();
 
 	private:
@@ -75,8 +75,8 @@ private:
 public:
 	// Deserialization
 	static Snapshot FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SnapshotBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	Snapshot Copy() const;
@@ -109,7 +109,7 @@ public:
 	SnapshotBuilder &SetFirstRowId(int64_t value);
 	SnapshotBuilder &SetAddedRows(int64_t value);
 	SnapshotBuilder &SetSchemaId(int32_t value);
-	string TryBuild(optional<Snapshot> &result);
+	optional<string> TryBuild(optional<Snapshot> &result);
 	Snapshot Build();
 
 private:

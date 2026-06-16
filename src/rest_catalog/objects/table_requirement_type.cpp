@@ -23,7 +23,7 @@ TableRequirementType::TableRequirementType(TableRequirementType &&other)
     : TableRequirementType(static_cast<const TableRequirementType &>(other)) {
 }
 
-string TableRequirementType::TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result) {
+optional<string> TableRequirementType::TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string TableRequirementType::TryFromJSON(yyjson_val *obj, optional<TableRequirem
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(TableRequirementType(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string TableRequirementType::TryFromJSON(yyjson_val *obj, optional<TableRequirem
 TableRequirementType TableRequirementType::FromJSON(yyjson_val *obj) {
 	optional<TableRequirementType> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,8 +57,8 @@ TableRequirementType TableRequirementType::Copy() const {
 	return TableRequirementType(*this);
 }
 
-string TableRequirementType::Validate() const {
-	string error;
+optional<string> TableRequirementType::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(value, "assert-create") && !StringUtil::CIEquals(value, "assert-table-uuid") &&
 	    !StringUtil::CIEquals(value, "assert-ref-snapshot-id") &&
 	    !StringUtil::CIEquals(value, "assert-last-assigned-field-id") &&
@@ -72,7 +72,7 @@ string TableRequirementType::Validate() const {
 		    "assert-last-assigned-partition-id, assert-default-spec-id, assert-default-sort-order-id], not %s",
 		    value);
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *TableRequirementType::ToJSON(yyjson_mut_doc *doc) const {

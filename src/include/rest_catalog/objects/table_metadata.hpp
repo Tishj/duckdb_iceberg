@@ -50,8 +50,8 @@ private:
 public:
 	// Deserialization
 	static TableMetadata FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, TableMetadataBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, TableMetadataBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	TableMetadata Copy() const;
@@ -112,7 +112,7 @@ public:
 	TableMetadataBuilder &SetMetadataLog(MetadataLog value);
 	TableMetadataBuilder &SetStatistics(vector<StatisticsFile> value);
 	TableMetadataBuilder &SetPartitionStatistics(vector<PartitionStatisticsFile> value);
-	string TryBuild(optional<TableMetadata> &result);
+	optional<string> TryBuild(optional<TableMetadata> &result);
 	TableMetadata Build();
 
 private:

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SnapshotReference FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SnapshotReference Copy() const;
@@ -56,7 +56,7 @@ public:
 	SnapshotReferenceBuilder &SetMaxRefAgeMs(int64_t value);
 	SnapshotReferenceBuilder &SetMaxSnapshotAgeMs(int64_t value);
 	SnapshotReferenceBuilder &SetMinSnapshotsToKeep(int32_t value);
-	string TryBuild(optional<SnapshotReference> &result);
+	optional<string> TryBuild(optional<SnapshotReference> &result);
 	SnapshotReference Build();
 
 private:

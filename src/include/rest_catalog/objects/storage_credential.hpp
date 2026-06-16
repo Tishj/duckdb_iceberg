@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static StorageCredential FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, StorageCredentialBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, StorageCredentialBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	StorageCredential Copy() const;
@@ -49,7 +49,7 @@ public:
 	StorageCredentialBuilder();
 	StorageCredentialBuilder &SetPrefix(string value);
 	StorageCredentialBuilder &SetConfig(case_insensitive_map_t<string> value);
-	string TryBuild(optional<StorageCredential> &result);
+	optional<string> TryBuild(optional<StorageCredential> &result);
 	StorageCredential Build();
 
 private:

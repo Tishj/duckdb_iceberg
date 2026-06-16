@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static PartitionField FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, PartitionFieldBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, PartitionFieldBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	PartitionField Copy() const;
@@ -54,7 +54,7 @@ public:
 	PartitionFieldBuilder &SetTransform(Transform value);
 	PartitionFieldBuilder &SetName(string value);
 	PartitionFieldBuilder &SetFieldId(int32_t value);
-	string TryBuild(optional<PartitionField> &result);
+	optional<string> TryBuild(optional<PartitionField> &result);
 	PartitionField Build();
 
 private:

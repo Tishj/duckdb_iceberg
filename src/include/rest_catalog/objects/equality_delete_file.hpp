@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static EqualityDeleteFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, EqualityDeleteFileBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	EqualityDeleteFile Copy() const;
@@ -50,7 +50,7 @@ public:
 	EqualityDeleteFileBuilder();
 	EqualityDeleteFileBuilder &SetContentFile(ContentFile value);
 	EqualityDeleteFileBuilder &SetEqualityIds(vector<int32_t> value);
-	string TryBuild(optional<EqualityDeleteFile> &result);
+	optional<string> TryBuild(optional<EqualityDeleteFile> &result);
 	EqualityDeleteFile Build();
 
 private:

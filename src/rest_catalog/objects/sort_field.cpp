@@ -69,23 +69,36 @@ SortField SortFieldBuilder::Build() {
 	auto result =
 	    SortField(std::move(*source_id_), std::move(*transform_), std::move(*direction_), std::move(*null_order_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SortFieldBuilder::TryBuild(optional<SortField> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SortFieldBuilder::TryBuild(optional<SortField> &result) {
+	if (!has_source_id_) {
+		return "SortField required property 'source-id' is missing";
 	}
+	if (!has_transform_) {
+		return "SortField required property 'transform' is missing";
+	}
+	if (!has_direction_) {
+		return "SortField required property 'direction' is missing";
+	}
+	if (!has_null_order_) {
+		return "SortField required property 'null-order' is missing";
+	}
+	auto built =
+	    SortField(std::move(*source_id_), std::move(*transform_), std::move(*direction_), std::move(*null_order_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SortField::TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder) {
+optional<string> SortField::TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder) {
 	try {
 		auto source_id_val = yyjson_obj_get(obj, "source-id");
 		if (!source_id_val) {
@@ -119,7 +132,7 @@ string SortField::TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder) {
 		} else {
 			builder.SetNullOrder(NullOrder::FromJSON(null_order_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -129,8 +142,8 @@ string SortField::TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder) {
 SortField SortField::FromJSON(yyjson_val *obj) {
 	SortFieldBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -139,21 +152,21 @@ SortField SortField::Copy() const {
 	return SortField(*this);
 }
 
-string SortField::Validate() const {
-	string error;
+optional<string> SortField::Validate() const {
+	optional<string> error;
 	error = transform.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = direction.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = null_order.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SortField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

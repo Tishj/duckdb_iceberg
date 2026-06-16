@@ -23,7 +23,7 @@ DoubleTypeValue::DoubleTypeValue(DoubleTypeValue &&other)
     : DoubleTypeValue(static_cast<const DoubleTypeValue &>(other)) {
 }
 
-string DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &result) {
+optional<string> DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &result) {
 	try {
 		double value;
 		if (yyjson_is_num(obj)) {
@@ -34,7 +34,7 @@ string DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(DoubleTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string DoubleTypeValue::TryFromJSON(yyjson_val *obj, optional<DoubleTypeValue> &
 DoubleTypeValue DoubleTypeValue::FromJSON(yyjson_val *obj) {
 	optional<DoubleTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ DoubleTypeValue DoubleTypeValue::Copy() const {
 	return DoubleTypeValue(*this);
 }
 
-string DoubleTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> DoubleTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *DoubleTypeValue::ToJSON(yyjson_mut_doc *doc) const {

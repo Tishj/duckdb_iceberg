@@ -23,7 +23,7 @@ BinaryTypeValue::BinaryTypeValue(BinaryTypeValue &&other)
     : BinaryTypeValue(static_cast<const BinaryTypeValue &>(other)) {
 }
 
-string BinaryTypeValue::TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &result) {
+optional<string> BinaryTypeValue::TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string BinaryTypeValue::TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(BinaryTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string BinaryTypeValue::TryFromJSON(yyjson_val *obj, optional<BinaryTypeValue> &
 BinaryTypeValue BinaryTypeValue::FromJSON(yyjson_val *obj) {
 	optional<BinaryTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ BinaryTypeValue BinaryTypeValue::Copy() const {
 	return BinaryTypeValue(*this);
 }
 
-string BinaryTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> BinaryTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *BinaryTypeValue::ToJSON(yyjson_mut_doc *doc) const {

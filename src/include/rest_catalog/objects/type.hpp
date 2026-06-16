@@ -34,8 +34,8 @@ private:
 public:
 	// Deserialization
 	static Type FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, TypeBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, TypeBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	Type Copy() const;
@@ -57,7 +57,7 @@ public:
 	TypeBuilder &SetStructType(StructType value);
 	TypeBuilder &SetListType(ListType value);
 	TypeBuilder &SetMapType(MapType value);
-	string TryBuild(optional<Type> &result);
+	optional<string> TryBuild(optional<Type> &result);
 	Type Build();
 
 private:

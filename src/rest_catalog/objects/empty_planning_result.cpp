@@ -38,23 +38,26 @@ EmptyPlanningResult EmptyPlanningResultBuilder::Build() {
 	}
 	auto result = EmptyPlanningResult(std::move(*status_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string EmptyPlanningResultBuilder::TryBuild(optional<EmptyPlanningResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> EmptyPlanningResultBuilder::TryBuild(optional<EmptyPlanningResult> &result) {
+	if (!has_status_) {
+		return "EmptyPlanningResult required property 'status' is missing";
 	}
+	auto built = EmptyPlanningResult(std::move(*status_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuilder &builder) {
+optional<string> EmptyPlanningResult::TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuilder &builder) {
 	try {
 		auto status_val = yyjson_obj_get(obj, "status");
 		if (!status_val) {
@@ -62,7 +65,7 @@ string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuil
 		} else {
 			builder.SetStatus(PlanStatus::FromJSON(status_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -72,8 +75,8 @@ string EmptyPlanningResult::TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuil
 EmptyPlanningResult EmptyPlanningResult::FromJSON(yyjson_val *obj) {
 	EmptyPlanningResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -82,17 +85,17 @@ EmptyPlanningResult EmptyPlanningResult::Copy() const {
 	return EmptyPlanningResult(*this);
 }
 
-string EmptyPlanningResult::Validate() const {
-	string error;
+optional<string> EmptyPlanningResult::Validate() const {
+	optional<string> error;
 	error = status.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(status.value, "submitted") && !StringUtil::CIEquals(status.value, "cancelled")) {
 		return StringUtil::Format("EmptyPlanningResult property 'status' must be one of [submitted, cancelled], not %s",
 		                          status.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void EmptyPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

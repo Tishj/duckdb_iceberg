@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static TokenType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TokenType> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<TokenType> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	TokenType Copy() const;

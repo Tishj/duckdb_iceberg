@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static FetchScanTasksRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, FetchScanTasksRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, FetchScanTasksRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	FetchScanTasksRequest Copy() const;
@@ -48,7 +48,7 @@ class FetchScanTasksRequestBuilder {
 public:
 	FetchScanTasksRequestBuilder();
 	FetchScanTasksRequestBuilder &SetPlanTask(PlanTask value);
-	string TryBuild(optional<FetchScanTasksRequest> &result);
+	optional<string> TryBuild(optional<FetchScanTasksRequest> &result);
 	FetchScanTasksRequest Build();
 
 private:

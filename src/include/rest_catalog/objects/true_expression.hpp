@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static TrueExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, TrueExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	TrueExpression Copy() const;
@@ -48,7 +48,7 @@ class TrueExpressionBuilder {
 public:
 	TrueExpressionBuilder();
 	TrueExpressionBuilder &SetType(ExpressionType value);
-	string TryBuild(optional<TrueExpression> &result);
+	optional<string> TryBuild(optional<TrueExpression> &result);
 	TrueExpression Build();
 
 private:

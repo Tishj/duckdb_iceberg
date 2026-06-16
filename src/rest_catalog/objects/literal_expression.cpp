@@ -58,23 +58,32 @@ LiteralExpression LiteralExpressionBuilder::Build() {
 	}
 	auto result = LiteralExpression(std::move(*type_), std::move(*term_), std::move(*value_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string LiteralExpressionBuilder::TryBuild(optional<LiteralExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> LiteralExpressionBuilder::TryBuild(optional<LiteralExpression> &result) {
+	if (!has_type_) {
+		return "LiteralExpression required property 'type' is missing";
 	}
+	if (!has_term_) {
+		return "LiteralExpression required property 'term' is missing";
+	}
+	if (!has_value_) {
+		return "LiteralExpression required property 'value' is missing";
+	}
+	auto built = LiteralExpression(std::move(*type_), std::move(*term_), std::move(*value_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string LiteralExpression::TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder &builder) {
+optional<string> LiteralExpression::TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -94,7 +103,7 @@ string LiteralExpression::TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder 
 		} else {
 			builder.SetValue(PrimitiveTypeValue::FromJSON(value_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -104,8 +113,8 @@ string LiteralExpression::TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder 
 LiteralExpression LiteralExpression::FromJSON(yyjson_val *obj) {
 	LiteralExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -114,10 +123,10 @@ LiteralExpression LiteralExpression::Copy() const {
 	return LiteralExpression(*this);
 }
 
-string LiteralExpression::Validate() const {
-	string error;
+optional<string> LiteralExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "lt") && !StringUtil::CIEquals(type.value, "lt-eq") &&
@@ -129,14 +138,14 @@ string LiteralExpression::Validate() const {
 		                          type.value);
 	}
 	error = term.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = value.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *LiteralExpression::ToJSON(yyjson_mut_doc *doc) const {

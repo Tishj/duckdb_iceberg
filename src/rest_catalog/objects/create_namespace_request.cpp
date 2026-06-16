@@ -54,23 +54,26 @@ CreateNamespaceRequest CreateNamespaceRequestBuilder::Build() {
 	}
 	auto result = CreateNamespaceRequest(std::move(*_namespace_), std::move(properties_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CreateNamespaceRequestBuilder::TryBuild(optional<CreateNamespaceRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CreateNamespaceRequestBuilder::TryBuild(optional<CreateNamespaceRequest> &result) {
+	if (!has__namespace_) {
+		return "CreateNamespaceRequest required property 'namespace' is missing";
 	}
+	auto built = CreateNamespaceRequest(std::move(*_namespace_), std::move(properties_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj, CreateNamespaceRequestBuilder &builder) {
+optional<string> CreateNamespaceRequest::TryFromJSON(yyjson_val *obj, CreateNamespaceRequestBuilder &builder) {
 	try {
 		auto _namespace_val = yyjson_obj_get(obj, "namespace");
 		if (!_namespace_val) {
@@ -101,7 +104,7 @@ string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj, CreateNamespaceReque
 			}
 			builder.SetProperties(std::move(properties));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -111,8 +114,8 @@ string CreateNamespaceRequest::TryFromJSON(yyjson_val *obj, CreateNamespaceReque
 CreateNamespaceRequest CreateNamespaceRequest::FromJSON(yyjson_val *obj) {
 	CreateNamespaceRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -121,13 +124,13 @@ CreateNamespaceRequest CreateNamespaceRequest::Copy() const {
 	return CreateNamespaceRequest(*this);
 }
 
-string CreateNamespaceRequest::Validate() const {
-	string error;
+optional<string> CreateNamespaceRequest::Validate() const {
+	optional<string> error;
 	error = _namespace.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CreateNamespaceRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

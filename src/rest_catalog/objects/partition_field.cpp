@@ -65,23 +65,33 @@ PartitionField PartitionFieldBuilder::Build() {
 	auto result =
 	    PartitionField(std::move(*source_id_), std::move(*transform_), std::move(*name_), std::move(field_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PartitionFieldBuilder::TryBuild(optional<PartitionField> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PartitionFieldBuilder::TryBuild(optional<PartitionField> &result) {
+	if (!has_source_id_) {
+		return "PartitionField required property 'source-id' is missing";
 	}
+	if (!has_transform_) {
+		return "PartitionField required property 'transform' is missing";
+	}
+	if (!has_name_) {
+		return "PartitionField required property 'name' is missing";
+	}
+	auto built =
+	    PartitionField(std::move(*source_id_), std::move(*transform_), std::move(*name_), std::move(field_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PartitionField::TryFromJSON(yyjson_val *obj, PartitionFieldBuilder &builder) {
+optional<string> PartitionField::TryFromJSON(yyjson_val *obj, PartitionFieldBuilder &builder) {
 	try {
 		auto source_id_val = yyjson_obj_get(obj, "source-id");
 		if (!source_id_val) {
@@ -129,7 +139,7 @@ string PartitionField::TryFromJSON(yyjson_val *obj, PartitionFieldBuilder &build
 			}
 			builder.SetFieldId(std::move(field_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -139,8 +149,8 @@ string PartitionField::TryFromJSON(yyjson_val *obj, PartitionFieldBuilder &build
 PartitionField PartitionField::FromJSON(yyjson_val *obj) {
 	PartitionFieldBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -149,13 +159,13 @@ PartitionField PartitionField::Copy() const {
 	return PartitionField(*this);
 }
 
-string PartitionField::Validate() const {
-	string error;
+optional<string> PartitionField::Validate() const {
+	optional<string> error;
 	error = transform.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void PartitionField::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

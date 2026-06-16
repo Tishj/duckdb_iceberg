@@ -86,23 +86,30 @@ CatalogConfig CatalogConfigBuilder::Build() {
 	auto result = CatalogConfig(std::move(*defaults_), std::move(*overrides_), std::move(endpoints_),
 	                            std::move(idempotency_key_lifetime_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CatalogConfigBuilder::TryBuild(optional<CatalogConfig> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CatalogConfigBuilder::TryBuild(optional<CatalogConfig> &result) {
+	if (!has_defaults_) {
+		return "CatalogConfig required property 'defaults' is missing";
 	}
+	if (!has_overrides_) {
+		return "CatalogConfig required property 'overrides' is missing";
+	}
+	auto built = CatalogConfig(std::move(*defaults_), std::move(*overrides_), std::move(endpoints_),
+	                           std::move(idempotency_key_lifetime_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CatalogConfig::TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder) {
+optional<string> CatalogConfig::TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder) {
 	try {
 		auto defaults_val = yyjson_obj_get(obj, "defaults");
 		if (!defaults_val) {
@@ -190,7 +197,7 @@ string CatalogConfig::TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder
 			}
 			builder.SetIdempotencyKeyLifetime(std::move(idempotency_key_lifetime));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -200,8 +207,8 @@ string CatalogConfig::TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder
 CatalogConfig CatalogConfig::FromJSON(yyjson_val *obj) {
 	CatalogConfigBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -210,9 +217,9 @@ CatalogConfig CatalogConfig::Copy() const {
 	return CatalogConfig(*this);
 }
 
-string CatalogConfig::Validate() const {
-	string error;
-	return "";
+optional<string> CatalogConfig::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void CatalogConfig::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

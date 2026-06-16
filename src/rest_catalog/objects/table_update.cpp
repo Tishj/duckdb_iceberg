@@ -243,23 +243,32 @@ TableUpdate TableUpdateBuilder::Build() {
 	    std::move(remove_schemas_update_), std::move(add_encryption_key_update_),
 	    std::move(remove_encryption_key_update_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TableUpdateBuilder::TryBuild(optional<TableUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TableUpdateBuilder::TryBuild(optional<TableUpdate> &result) {
+	auto built = TableUpdate(
+	    std::move(assign_uuidupdate_), std::move(upgrade_format_version_update_), std::move(add_schema_update_),
+	    std::move(set_current_schema_update_), std::move(add_partition_spec_update_),
+	    std::move(set_default_spec_update_), std::move(add_sort_order_update_),
+	    std::move(set_default_sort_order_update_), std::move(add_snapshot_update_), std::move(set_snapshot_ref_update_),
+	    std::move(remove_snapshots_update_), std::move(remove_snapshot_ref_update_), std::move(set_location_update_),
+	    std::move(set_properties_update_), std::move(remove_properties_update_), std::move(set_statistics_update_),
+	    std::move(remove_statistics_update_), std::move(remove_partition_specs_update_),
+	    std::move(remove_schemas_update_), std::move(add_encryption_key_update_),
+	    std::move(remove_encryption_key_update_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TableUpdate::TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder) {
+optional<string> TableUpdate::TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder) {
 	try {
 		int matched_any_of_variants = 0;
 		try {
@@ -370,7 +379,7 @@ string TableUpdate::TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder) {
 		if (matched_any_of_variants == 0) {
 			throw InvalidInputException("TableUpdate failed to parse, none of the anyOf candidates matched");
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -380,8 +389,8 @@ string TableUpdate::TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder) {
 TableUpdate TableUpdate::FromJSON(yyjson_val *obj) {
 	TableUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -390,160 +399,160 @@ TableUpdate TableUpdate::Copy() const {
 	return TableUpdate(*this);
 }
 
-string TableUpdate::Validate() const {
-	string error;
+optional<string> TableUpdate::Validate() const {
+	optional<string> error;
 	int matched_any_of_variants = 0;
 	if (assign_uuidupdate.has_value()) {
 		matched_any_of_variants++;
 		error = assign_uuidupdate->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (upgrade_format_version_update.has_value()) {
 		matched_any_of_variants++;
 		error = upgrade_format_version_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_schema_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_schema_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_current_schema_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_current_schema_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_partition_spec_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_partition_spec_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_default_spec_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_default_spec_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_sort_order_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_sort_order_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_default_sort_order_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_default_sort_order_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_snapshot_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_snapshot_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_snapshot_ref_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_snapshot_ref_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_snapshots_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_snapshots_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_snapshot_ref_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_snapshot_ref_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_location_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_location_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_properties_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_properties_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_properties_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_properties_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (set_statistics_update.has_value()) {
 		matched_any_of_variants++;
 		error = set_statistics_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_statistics_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_statistics_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_partition_specs_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_partition_specs_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_schemas_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_schemas_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (add_encryption_key_update.has_value()) {
 		matched_any_of_variants++;
 		error = add_encryption_key_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (remove_encryption_key_update.has_value()) {
 		matched_any_of_variants++;
 		error = remove_encryption_key_update->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_any_of_variants == 0) {
 		return "TableUpdate must have at least one anyOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void TableUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

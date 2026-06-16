@@ -22,7 +22,7 @@ LongTypeValue::LongTypeValue(const LongTypeValue &other) : value(other.value) {
 LongTypeValue::LongTypeValue(LongTypeValue &&other) : LongTypeValue(static_cast<const LongTypeValue &>(other)) {
 }
 
-string LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &result) {
+optional<string> LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &result) {
 	try {
 		int64_t value;
 		if (yyjson_is_sint(obj)) {
@@ -35,7 +35,7 @@ string LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &resu
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(LongTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -45,8 +45,8 @@ string LongTypeValue::TryFromJSON(yyjson_val *obj, optional<LongTypeValue> &resu
 LongTypeValue LongTypeValue::FromJSON(yyjson_val *obj) {
 	optional<LongTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -58,9 +58,9 @@ LongTypeValue LongTypeValue::Copy() const {
 	return LongTypeValue(*this);
 }
 
-string LongTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> LongTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *LongTypeValue::ToJSON(yyjson_mut_doc *doc) const {

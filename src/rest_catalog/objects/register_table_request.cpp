@@ -55,23 +55,29 @@ RegisterTableRequest RegisterTableRequestBuilder::Build() {
 	}
 	auto result = RegisterTableRequest(std::move(*name_), std::move(*metadata_location_), std::move(overwrite_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RegisterTableRequestBuilder::TryBuild(optional<RegisterTableRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RegisterTableRequestBuilder::TryBuild(optional<RegisterTableRequest> &result) {
+	if (!has_name_) {
+		return "RegisterTableRequest required property 'name' is missing";
 	}
+	if (!has_metadata_location_) {
+		return "RegisterTableRequest required property 'metadata-location' is missing";
+	}
+	auto built = RegisterTableRequest(std::move(*name_), std::move(*metadata_location_), std::move(overwrite_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RegisterTableRequest::TryFromJSON(yyjson_val *obj, RegisterTableRequestBuilder &builder) {
+optional<string> RegisterTableRequest::TryFromJSON(yyjson_val *obj, RegisterTableRequestBuilder &builder) {
 	try {
 		auto name_val = yyjson_obj_get(obj, "name");
 		if (!name_val) {
@@ -113,7 +119,7 @@ string RegisterTableRequest::TryFromJSON(yyjson_val *obj, RegisterTableRequestBu
 			}
 			builder.SetOverwrite(std::move(overwrite));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -123,8 +129,8 @@ string RegisterTableRequest::TryFromJSON(yyjson_val *obj, RegisterTableRequestBu
 RegisterTableRequest RegisterTableRequest::FromJSON(yyjson_val *obj) {
 	RegisterTableRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -133,9 +139,9 @@ RegisterTableRequest RegisterTableRequest::Copy() const {
 	return RegisterTableRequest(*this);
 }
 
-string RegisterTableRequest::Validate() const {
-	string error;
-	return "";
+optional<string> RegisterTableRequest::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void RegisterTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

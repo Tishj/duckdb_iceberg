@@ -45,23 +45,26 @@ SetLocationUpdate SetLocationUpdateBuilder::Build() {
 	}
 	auto result = SetLocationUpdate(std::move(*base_update_), std::move(*location_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetLocationUpdateBuilder::TryBuild(optional<SetLocationUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetLocationUpdateBuilder::TryBuild(optional<SetLocationUpdate> &result) {
+	if (!has_location_) {
+		return "SetLocationUpdate required property 'location' is missing";
 	}
+	auto built = SetLocationUpdate(std::move(*base_update_), std::move(*location_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetLocationUpdate::TryFromJSON(yyjson_val *obj, SetLocationUpdateBuilder &builder) {
+optional<string> SetLocationUpdate::TryFromJSON(yyjson_val *obj, SetLocationUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto location_val = yyjson_obj_get(obj, "location");
@@ -78,7 +81,7 @@ string SetLocationUpdate::TryFromJSON(yyjson_val *obj, SetLocationUpdateBuilder 
 			}
 			builder.SetLocation(std::move(location));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string SetLocationUpdate::TryFromJSON(yyjson_val *obj, SetLocationUpdateBuilder 
 SetLocationUpdate SetLocationUpdate::FromJSON(yyjson_val *obj) {
 	SetLocationUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ SetLocationUpdate SetLocationUpdate::Copy() const {
 	return SetLocationUpdate(*this);
 }
 
-string SetLocationUpdate::Validate() const {
-	string error;
+optional<string> SetLocationUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetLocationUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

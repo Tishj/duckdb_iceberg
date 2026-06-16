@@ -22,7 +22,7 @@ FieldName::FieldName(const FieldName &other) : value(other.value) {
 FieldName::FieldName(FieldName &&other) : FieldName(static_cast<const FieldName &>(other)) {
 }
 
-string FieldName::TryFromJSON(yyjson_val *obj, optional<FieldName> &result) {
+optional<string> FieldName::TryFromJSON(yyjson_val *obj, optional<FieldName> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string FieldName::TryFromJSON(yyjson_val *obj, optional<FieldName> &result) {
 			    "FieldName property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(FieldName(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string FieldName::TryFromJSON(yyjson_val *obj, optional<FieldName> &result) {
 FieldName FieldName::FromJSON(yyjson_val *obj) {
 	optional<FieldName> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,9 +55,9 @@ FieldName FieldName::Copy() const {
 	return FieldName(*this);
 }
 
-string FieldName::Validate() const {
-	string error;
-	return "";
+optional<string> FieldName::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *FieldName::ToJSON(yyjson_mut_doc *doc) const {

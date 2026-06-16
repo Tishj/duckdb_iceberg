@@ -48,23 +48,29 @@ TableIdentifier TableIdentifierBuilder::Build() {
 	}
 	auto result = TableIdentifier(std::move(*_namespace_), std::move(*name_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TableIdentifierBuilder::TryBuild(optional<TableIdentifier> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TableIdentifierBuilder::TryBuild(optional<TableIdentifier> &result) {
+	if (!has__namespace_) {
+		return "TableIdentifier required property 'namespace' is missing";
 	}
+	if (!has_name_) {
+		return "TableIdentifier required property 'name' is missing";
+	}
+	auto built = TableIdentifier(std::move(*_namespace_), std::move(*name_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TableIdentifier::TryFromJSON(yyjson_val *obj, TableIdentifierBuilder &builder) {
+optional<string> TableIdentifier::TryFromJSON(yyjson_val *obj, TableIdentifierBuilder &builder) {
 	try {
 		auto _namespace_val = yyjson_obj_get(obj, "namespace");
 		if (!_namespace_val) {
@@ -88,7 +94,7 @@ string TableIdentifier::TryFromJSON(yyjson_val *obj, TableIdentifierBuilder &bui
 			}
 			builder.SetName(std::move(name));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -98,8 +104,8 @@ string TableIdentifier::TryFromJSON(yyjson_val *obj, TableIdentifierBuilder &bui
 TableIdentifier TableIdentifier::FromJSON(yyjson_val *obj) {
 	TableIdentifierBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -108,13 +114,13 @@ TableIdentifier TableIdentifier::Copy() const {
 	return TableIdentifier(*this);
 }
 
-string TableIdentifier::Validate() const {
-	string error;
+optional<string> TableIdentifier::Validate() const {
+	optional<string> error;
 	error = _namespace.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void TableIdentifier::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

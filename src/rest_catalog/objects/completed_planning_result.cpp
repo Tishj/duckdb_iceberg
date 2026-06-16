@@ -65,23 +65,26 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5Builder::Build(
 	}
 	auto result = CompletedPlanningResult::Object5(std::move(*status_), std::move(storage_credentials_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CompletedPlanningResult::Object5Builder::TryBuild(optional<CompletedPlanningResult::Object5> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CompletedPlanningResult::Object5Builder::TryBuild(optional<CompletedPlanningResult::Object5> &result) {
+	if (!has_status_) {
+		return "Object5 required property 'status' is missing";
 	}
+	auto built = CompletedPlanningResult::Object5(std::move(*status_), std::move(storage_credentials_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj, Object5Builder &builder) {
+optional<string> CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj, Object5Builder &builder) {
 	try {
 		auto status_val = yyjson_obj_get(obj, "status");
 		if (!status_val) {
@@ -106,7 +109,7 @@ string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj, Object5Bui
 			}
 			builder.SetStorageCredentials(std::move(storage_credentials));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -116,8 +119,8 @@ string CompletedPlanningResult::Object5::TryFromJSON(yyjson_val *obj, Object5Bui
 CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::FromJSON(yyjson_val *obj) {
 	Object5Builder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -126,10 +129,10 @@ CompletedPlanningResult::Object5 CompletedPlanningResult::Object5::Copy() const 
 	return CompletedPlanningResult::Object5(*this);
 }
 
-string CompletedPlanningResult::Object5::Validate() const {
-	string error;
+optional<string> CompletedPlanningResult::Object5::Validate() const {
+	optional<string> error;
 	error = status.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(status.value, "completed")) {
@@ -138,12 +141,12 @@ string CompletedPlanningResult::Object5::Validate() const {
 	if (storage_credentials.has_value()) {
 		for (const auto &item : (*storage_credentials)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void CompletedPlanningResult::Object5::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -189,27 +192,27 @@ CompletedPlanningResultBuilder &CompletedPlanningResultBuilder::SetObject5(Compl
 CompletedPlanningResult CompletedPlanningResultBuilder::Build() {
 	auto result = CompletedPlanningResult(std::move(*scan_tasks_), std::move(*object_5_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CompletedPlanningResultBuilder::TryBuild(optional<CompletedPlanningResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CompletedPlanningResultBuilder::TryBuild(optional<CompletedPlanningResult> &result) {
+	auto built = CompletedPlanningResult(std::move(*scan_tasks_), std::move(*object_5_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CompletedPlanningResult::TryFromJSON(yyjson_val *obj, CompletedPlanningResultBuilder &builder) {
+optional<string> CompletedPlanningResult::TryFromJSON(yyjson_val *obj, CompletedPlanningResultBuilder &builder) {
 	try {
 		builder.SetScanTasks(ScanTasks::FromJSON(obj));
 		builder.SetObject5(Object5::FromJSON(obj));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -219,8 +222,8 @@ string CompletedPlanningResult::TryFromJSON(yyjson_val *obj, CompletedPlanningRe
 CompletedPlanningResult CompletedPlanningResult::FromJSON(yyjson_val *obj) {
 	CompletedPlanningResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -229,17 +232,17 @@ CompletedPlanningResult CompletedPlanningResult::Copy() const {
 	return CompletedPlanningResult(*this);
 }
 
-string CompletedPlanningResult::Validate() const {
-	string error;
+optional<string> CompletedPlanningResult::Validate() const {
+	optional<string> error;
 	error = scan_tasks.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = object_5.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CompletedPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

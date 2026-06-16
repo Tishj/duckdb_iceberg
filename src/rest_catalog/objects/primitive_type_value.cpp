@@ -177,23 +177,29 @@ PrimitiveTypeValue PrimitiveTypeValueBuilder::Build() {
 	    std::move(timestamp_nano_type_value_), std::move(timestamp_tz_nano_type_value_), std::move(fixed_type_value_),
 	    std::move(binary_type_value_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PrimitiveTypeValueBuilder::TryBuild(optional<PrimitiveTypeValue> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PrimitiveTypeValueBuilder::TryBuild(optional<PrimitiveTypeValue> &result) {
+	auto built = PrimitiveTypeValue(
+	    std::move(boolean_type_value_), std::move(integer_type_value_), std::move(long_type_value_),
+	    std::move(float_type_value_), std::move(double_type_value_), std::move(decimal_type_value_),
+	    std::move(string_type_value_), std::move(uuidtype_value_), std::move(date_type_value_),
+	    std::move(time_type_value_), std::move(timestamp_type_value_), std::move(timestamp_tz_type_value_),
+	    std::move(timestamp_nano_type_value_), std::move(timestamp_tz_nano_type_value_), std::move(fixed_type_value_),
+	    std::move(binary_type_value_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilder &builder) {
+optional<string> PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilder &builder) {
 	try {
 		int matched_any_of_variants = 0;
 		try {
@@ -279,7 +285,7 @@ string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilde
 		if (matched_any_of_variants == 0) {
 			throw InvalidInputException("PrimitiveTypeValue failed to parse, none of the anyOf candidates matched");
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -289,8 +295,8 @@ string PrimitiveTypeValue::TryFromJSON(yyjson_val *obj, PrimitiveTypeValueBuilde
 PrimitiveTypeValue PrimitiveTypeValue::FromJSON(yyjson_val *obj) {
 	PrimitiveTypeValueBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -299,125 +305,125 @@ PrimitiveTypeValue PrimitiveTypeValue::Copy() const {
 	return PrimitiveTypeValue(*this);
 }
 
-string PrimitiveTypeValue::Validate() const {
-	string error;
+optional<string> PrimitiveTypeValue::Validate() const {
+	optional<string> error;
 	int matched_any_of_variants = 0;
 	if (boolean_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = boolean_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (integer_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = integer_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (long_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = long_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (float_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = float_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (double_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = double_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (decimal_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = decimal_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (string_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = string_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (uuidtype_value.has_value()) {
 		matched_any_of_variants++;
 		error = uuidtype_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (date_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = date_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (time_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = time_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (timestamp_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = timestamp_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (timestamp_tz_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = timestamp_tz_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (timestamp_nano_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = timestamp_nano_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (timestamp_tz_nano_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = timestamp_tz_nano_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (fixed_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = fixed_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (binary_type_value.has_value()) {
 		matched_any_of_variants++;
 		error = binary_type_value->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_any_of_variants == 0) {
 		return "PrimitiveTypeValue must have at least one anyOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *PrimitiveTypeValue::ToJSON(yyjson_mut_doc *doc) const {

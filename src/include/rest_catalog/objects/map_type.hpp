@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static MapType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	MapType Copy() const;
@@ -60,7 +60,7 @@ public:
 	MapTypeBuilder &SetValueId(int32_t value);
 	MapTypeBuilder &SetValue(unique_ptr<Type> value);
 	MapTypeBuilder &SetValueRequired(bool value);
-	string TryBuild(optional<MapType> &result);
+	optional<string> TryBuild(optional<MapType> &result);
 	MapType Build();
 
 private:

@@ -58,23 +58,32 @@ SQLViewRepresentation SQLViewRepresentationBuilder::Build() {
 	}
 	auto result = SQLViewRepresentation(std::move(*type_), std::move(*sql_), std::move(*dialect_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SQLViewRepresentationBuilder::TryBuild(optional<SQLViewRepresentation> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SQLViewRepresentationBuilder::TryBuild(optional<SQLViewRepresentation> &result) {
+	if (!has_type_) {
+		return "SQLViewRepresentation required property 'type' is missing";
 	}
+	if (!has_sql_) {
+		return "SQLViewRepresentation required property 'sql' is missing";
+	}
+	if (!has_dialect_) {
+		return "SQLViewRepresentation required property 'dialect' is missing";
+	}
+	auto built = SQLViewRepresentation(std::move(*type_), std::move(*sql_), std::move(*dialect_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SQLViewRepresentation::TryFromJSON(yyjson_val *obj, SQLViewRepresentationBuilder &builder) {
+optional<string> SQLViewRepresentation::TryFromJSON(yyjson_val *obj, SQLViewRepresentationBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -118,7 +127,7 @@ string SQLViewRepresentation::TryFromJSON(yyjson_val *obj, SQLViewRepresentation
 			}
 			builder.SetDialect(std::move(dialect));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -128,8 +137,8 @@ string SQLViewRepresentation::TryFromJSON(yyjson_val *obj, SQLViewRepresentation
 SQLViewRepresentation SQLViewRepresentation::FromJSON(yyjson_val *obj) {
 	SQLViewRepresentationBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -138,9 +147,9 @@ SQLViewRepresentation SQLViewRepresentation::Copy() const {
 	return SQLViewRepresentation(*this);
 }
 
-string SQLViewRepresentation::Validate() const {
-	string error;
-	return "";
+optional<string> SQLViewRepresentation::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void SQLViewRepresentation::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

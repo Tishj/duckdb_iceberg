@@ -71,23 +71,32 @@ ErrorModel ErrorModelBuilder::Build() {
 	}
 	auto result = ErrorModel(std::move(*message_), std::move(*type_), std::move(*code_), std::move(stack_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ErrorModelBuilder::TryBuild(optional<ErrorModel> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ErrorModelBuilder::TryBuild(optional<ErrorModel> &result) {
+	if (!has_message_) {
+		return "ErrorModel required property 'message' is missing";
 	}
+	if (!has_type_) {
+		return "ErrorModel required property 'type' is missing";
+	}
+	if (!has_code_) {
+		return "ErrorModel required property 'code' is missing";
+	}
+	auto built = ErrorModel(std::move(*message_), std::move(*type_), std::move(*code_), std::move(stack_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ErrorModel::TryFromJSON(yyjson_val *obj, ErrorModelBuilder &builder) {
+optional<string> ErrorModel::TryFromJSON(yyjson_val *obj, ErrorModelBuilder &builder) {
 	try {
 		auto message_val = yyjson_obj_get(obj, "message");
 		if (!message_val) {
@@ -155,7 +164,7 @@ string ErrorModel::TryFromJSON(yyjson_val *obj, ErrorModelBuilder &builder) {
 			}
 			builder.SetStack(std::move(stack));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -165,8 +174,8 @@ string ErrorModel::TryFromJSON(yyjson_val *obj, ErrorModelBuilder &builder) {
 ErrorModel ErrorModel::FromJSON(yyjson_val *obj) {
 	ErrorModelBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -175,15 +184,15 @@ ErrorModel ErrorModel::Copy() const {
 	return ErrorModel(*this);
 }
 
-string ErrorModel::Validate() const {
-	string error;
+optional<string> ErrorModel::Validate() const {
+	optional<string> error;
 	if (code < 400) {
 		return "ErrorModel property 'code' must be at least 400";
 	}
 	if (code > 600) {
 		return "ErrorModel property 'code' must be at most 600";
 	}
-	return "";
+	return nullopt;
 }
 
 void ErrorModel::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -22,7 +22,7 @@ Reference::Reference(const Reference &other) : value(other.value) {
 Reference::Reference(Reference &&other) : Reference(static_cast<const Reference &>(other)) {
 }
 
-string Reference::TryFromJSON(yyjson_val *obj, optional<Reference> &result) {
+optional<string> Reference::TryFromJSON(yyjson_val *obj, optional<Reference> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string Reference::TryFromJSON(yyjson_val *obj, optional<Reference> &result) {
 			    "Reference property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(Reference(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string Reference::TryFromJSON(yyjson_val *obj, optional<Reference> &result) {
 Reference Reference::FromJSON(yyjson_val *obj) {
 	optional<Reference> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,9 +55,9 @@ Reference Reference::Copy() const {
 	return Reference(*this);
 }
 
-string Reference::Validate() const {
-	string error;
-	return "";
+optional<string> Reference::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *Reference::ToJSON(yyjson_mut_doc *doc) const {

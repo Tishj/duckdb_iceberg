@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static PartitionStatisticsFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, PartitionStatisticsFileBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, PartitionStatisticsFileBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	PartitionStatisticsFile Copy() const;
@@ -51,7 +51,7 @@ public:
 	PartitionStatisticsFileBuilder &SetSnapshotId(int64_t value);
 	PartitionStatisticsFileBuilder &SetStatisticsPath(string value);
 	PartitionStatisticsFileBuilder &SetFileSizeInBytes(int64_t value);
-	string TryBuild(optional<PartitionStatisticsFile> &result);
+	optional<string> TryBuild(optional<PartitionStatisticsFile> &result);
 	PartitionStatisticsFile Build();
 
 private:

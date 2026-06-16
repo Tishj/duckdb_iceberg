@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static AssertViewUUID FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertViewUUID Copy() const;
@@ -49,7 +49,7 @@ public:
 	AssertViewUUIDBuilder();
 	AssertViewUUIDBuilder &SetType(string value);
 	AssertViewUUIDBuilder &SetUuid(string value);
-	string TryBuild(optional<AssertViewUUID> &result);
+	optional<string> TryBuild(optional<AssertViewUUID> &result);
 	AssertViewUUID Build();
 
 private:

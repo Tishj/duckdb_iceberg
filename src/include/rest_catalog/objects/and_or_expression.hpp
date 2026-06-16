@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static AndOrExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AndOrExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AndOrExpression Copy() const;
@@ -54,7 +54,7 @@ public:
 	AndOrExpressionBuilder &SetType(ExpressionType value);
 	AndOrExpressionBuilder &SetLeft(unique_ptr<Expression> value);
 	AndOrExpressionBuilder &SetRight(unique_ptr<Expression> value);
-	string TryBuild(optional<AndOrExpression> &result);
+	optional<string> TryBuild(optional<AndOrExpression> &result);
 	AndOrExpression Build();
 
 private:

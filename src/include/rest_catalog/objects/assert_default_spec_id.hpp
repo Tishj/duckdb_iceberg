@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertDefaultSpecId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertDefaultSpecId Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssertDefaultSpecIdBuilder();
 	AssertDefaultSpecIdBuilder &SetType(TableRequirementType value);
 	AssertDefaultSpecIdBuilder &SetDefaultSpecId(int32_t value);
-	string TryBuild(optional<AssertDefaultSpecId> &result);
+	optional<string> TryBuild(optional<AssertDefaultSpecId> &result);
 	AssertDefaultSpecId Build();
 
 private:

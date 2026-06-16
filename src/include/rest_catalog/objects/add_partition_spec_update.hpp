@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static AddPartitionSpecUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AddPartitionSpecUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AddPartitionSpecUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AddPartitionSpecUpdate Copy() const;
@@ -51,7 +51,7 @@ public:
 	AddPartitionSpecUpdateBuilder();
 	AddPartitionSpecUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddPartitionSpecUpdateBuilder &SetSpec(PartitionSpec value);
-	string TryBuild(optional<AddPartitionSpecUpdate> &result);
+	optional<string> TryBuild(optional<AddPartitionSpecUpdate> &result);
 	AddPartitionSpecUpdate Build();
 
 private:

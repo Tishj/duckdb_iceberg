@@ -38,8 +38,8 @@ public:
 	public:
 		// Deserialization
 		static Object1 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object1Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object1Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object1 Copy() const;
@@ -58,7 +58,7 @@ public:
 		Object1Builder();
 		Object1Builder &SetSchemaId(int32_t value);
 		Object1Builder &SetIdentifierFieldIds(vector<int32_t> value);
-		string TryBuild(optional<Object1> &result);
+		optional<string> TryBuild(optional<Object1> &result);
 		Object1 Build();
 
 	private:
@@ -73,8 +73,8 @@ private:
 public:
 	// Deserialization
 	static Schema FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SchemaBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SchemaBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	Schema Copy() const;
@@ -93,7 +93,7 @@ public:
 	SchemaBuilder();
 	SchemaBuilder &SetStructType(StructType value);
 	SchemaBuilder &SetObject1(Schema::Object1 value);
-	string TryBuild(optional<Schema> &result);
+	optional<string> TryBuild(optional<Schema> &result);
 	Schema Build();
 
 private:

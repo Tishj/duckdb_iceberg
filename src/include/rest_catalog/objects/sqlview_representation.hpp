@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static SQLViewRepresentation FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SQLViewRepresentationBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SQLViewRepresentationBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SQLViewRepresentation Copy() const;
@@ -51,7 +51,7 @@ public:
 	SQLViewRepresentationBuilder &SetType(string value);
 	SQLViewRepresentationBuilder &SetSql(string value);
 	SQLViewRepresentationBuilder &SetDialect(string value);
-	string TryBuild(optional<SQLViewRepresentation> &result);
+	optional<string> TryBuild(optional<SQLViewRepresentation> &result);
 	SQLViewRepresentation Build();
 
 private:

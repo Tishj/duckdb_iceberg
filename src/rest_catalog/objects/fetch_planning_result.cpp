@@ -59,23 +59,24 @@ FetchPlanningResult FetchPlanningResultBuilder::Build() {
 	auto result = FetchPlanningResult(std::move(completed_planning_result_), std::move(failed_planning_result_),
 	                                  std::move(empty_planning_result_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string FetchPlanningResultBuilder::TryBuild(optional<FetchPlanningResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> FetchPlanningResultBuilder::TryBuild(optional<FetchPlanningResult> &result) {
+	auto built = FetchPlanningResult(std::move(completed_planning_result_), std::move(failed_planning_result_),
+	                                 std::move(empty_planning_result_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string FetchPlanningResult::TryFromJSON(yyjson_val *obj, FetchPlanningResultBuilder &builder) {
+optional<string> FetchPlanningResult::TryFromJSON(yyjson_val *obj, FetchPlanningResultBuilder &builder) {
 	try {
 		do {
 			try {
@@ -95,7 +96,7 @@ string FetchPlanningResult::TryFromJSON(yyjson_val *obj, FetchPlanningResultBuil
 			}
 			throw InvalidInputException("FetchPlanningResult failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -105,8 +106,8 @@ string FetchPlanningResult::TryFromJSON(yyjson_val *obj, FetchPlanningResultBuil
 FetchPlanningResult FetchPlanningResult::FromJSON(yyjson_val *obj) {
 	FetchPlanningResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -115,34 +116,34 @@ FetchPlanningResult FetchPlanningResult::Copy() const {
 	return FetchPlanningResult(*this);
 }
 
-string FetchPlanningResult::Validate() const {
-	string error;
+optional<string> FetchPlanningResult::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (completed_planning_result.has_value()) {
 		matched_one_of_variants++;
 		error = completed_planning_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (failed_planning_result.has_value()) {
 		matched_one_of_variants++;
 		error = failed_planning_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (empty_planning_result.has_value()) {
 		matched_one_of_variants++;
 		error = empty_planning_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "FetchPlanningResult must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void FetchPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

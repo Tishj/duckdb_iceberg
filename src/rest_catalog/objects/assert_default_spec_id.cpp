@@ -49,23 +49,29 @@ AssertDefaultSpecId AssertDefaultSpecIdBuilder::Build() {
 	}
 	auto result = AssertDefaultSpecId(std::move(*type_), std::move(*default_spec_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertDefaultSpecIdBuilder::TryBuild(optional<AssertDefaultSpecId> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertDefaultSpecIdBuilder::TryBuild(optional<AssertDefaultSpecId> &result) {
+	if (!has_type_) {
+		return "AssertDefaultSpecId required property 'type' is missing";
 	}
+	if (!has_default_spec_id_) {
+		return "AssertDefaultSpecId required property 'default-spec-id' is missing";
+	}
+	auto built = AssertDefaultSpecId(std::move(*type_), std::move(*default_spec_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuilder &builder) {
+optional<string> AssertDefaultSpecId::TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -87,7 +93,7 @@ string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuil
 			}
 			builder.SetDefaultSpecId(std::move(default_spec_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -97,8 +103,8 @@ string AssertDefaultSpecId::TryFromJSON(yyjson_val *obj, AssertDefaultSpecIdBuil
 AssertDefaultSpecId AssertDefaultSpecId::FromJSON(yyjson_val *obj) {
 	AssertDefaultSpecIdBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -107,17 +113,17 @@ AssertDefaultSpecId AssertDefaultSpecId::Copy() const {
 	return AssertDefaultSpecId(*this);
 }
 
-string AssertDefaultSpecId::Validate() const {
-	string error;
+optional<string> AssertDefaultSpecId::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-default-spec-id")) {
 		return StringUtil::Format("AssertDefaultSpecId property 'type' must be assert-default-spec-id, not %s",
 		                          type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertDefaultSpecId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -52,23 +52,24 @@ OAuthTokenRequest OAuthTokenRequestBuilder::Build() {
 	auto result =
 	    OAuthTokenRequest(std::move(oauth_client_credentials_request_), std::move(oauth_token_exchange_request_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string OAuthTokenRequestBuilder::TryBuild(optional<OAuthTokenRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> OAuthTokenRequestBuilder::TryBuild(optional<OAuthTokenRequest> &result) {
+	auto built =
+	    OAuthTokenRequest(std::move(oauth_client_credentials_request_), std::move(oauth_token_exchange_request_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string OAuthTokenRequest::TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder &builder) {
+optional<string> OAuthTokenRequest::TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder &builder) {
 	try {
 		int matched_any_of_variants = 0;
 		try {
@@ -84,7 +85,7 @@ string OAuthTokenRequest::TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder 
 		if (matched_any_of_variants == 0) {
 			throw InvalidInputException("OAuthTokenRequest failed to parse, none of the anyOf candidates matched");
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -94,8 +95,8 @@ string OAuthTokenRequest::TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder 
 OAuthTokenRequest OAuthTokenRequest::FromJSON(yyjson_val *obj) {
 	OAuthTokenRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -104,27 +105,27 @@ OAuthTokenRequest OAuthTokenRequest::Copy() const {
 	return OAuthTokenRequest(*this);
 }
 
-string OAuthTokenRequest::Validate() const {
-	string error;
+optional<string> OAuthTokenRequest::Validate() const {
+	optional<string> error;
 	int matched_any_of_variants = 0;
 	if (oauth_client_credentials_request.has_value()) {
 		matched_any_of_variants++;
 		error = oauth_client_credentials_request->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (oauth_token_exchange_request.has_value()) {
 		matched_any_of_variants++;
 		error = oauth_token_exchange_request->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_any_of_variants == 0) {
 		return "OAuthTokenRequest must have at least one anyOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void OAuthTokenRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

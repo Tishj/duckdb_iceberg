@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static ValueMap FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ValueMap Copy() const;
@@ -51,7 +51,7 @@ public:
 	ValueMapBuilder();
 	ValueMapBuilder &SetKeys(vector<IntegerTypeValue> value);
 	ValueMapBuilder &SetValues(vector<PrimitiveTypeValue> value);
-	string TryBuild(optional<ValueMap> &result);
+	optional<string> TryBuild(optional<ValueMap> &result);
 	ValueMap Build();
 
 private:

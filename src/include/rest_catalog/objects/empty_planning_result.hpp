@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static EmptyPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, EmptyPlanningResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	EmptyPlanningResult Copy() const;
@@ -48,7 +48,7 @@ class EmptyPlanningResultBuilder {
 public:
 	EmptyPlanningResultBuilder();
 	EmptyPlanningResultBuilder &SetStatus(PlanStatus value);
-	string TryBuild(optional<EmptyPlanningResult> &result);
+	optional<string> TryBuild(optional<EmptyPlanningResult> &result);
 	EmptyPlanningResult Build();
 
 private:

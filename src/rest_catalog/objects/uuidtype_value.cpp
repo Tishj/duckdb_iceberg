@@ -22,7 +22,7 @@ UUIDTypeValue::UUIDTypeValue(const UUIDTypeValue &other) : value(other.value) {
 UUIDTypeValue::UUIDTypeValue(UUIDTypeValue &&other) : UUIDTypeValue(static_cast<const UUIDTypeValue &>(other)) {
 }
 
-string UUIDTypeValue::TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &result) {
+optional<string> UUIDTypeValue::TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -33,7 +33,7 @@ string UUIDTypeValue::TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &resu
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(UUIDTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string UUIDTypeValue::TryFromJSON(yyjson_val *obj, optional<UUIDTypeValue> &resu
 UUIDTypeValue UUIDTypeValue::FromJSON(yyjson_val *obj) {
 	optional<UUIDTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,8 +56,8 @@ UUIDTypeValue UUIDTypeValue::Copy() const {
 	return UUIDTypeValue(*this);
 }
 
-string UUIDTypeValue::Validate() const {
-	string error;
+optional<string> UUIDTypeValue::Validate() const {
+	optional<string> error;
 	if (value.size() < 36) {
 		return "UUIDTypeValue property 'value' must have at least 36 characters";
 	}
@@ -68,7 +68,7 @@ string UUIDTypeValue::Validate() const {
 	if (!std::regex_match(value, value_pattern)) {
 		return "UUIDTypeValue property 'value' does not match the required pattern";
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *UUIDTypeValue::ToJSON(yyjson_mut_doc *doc) const {

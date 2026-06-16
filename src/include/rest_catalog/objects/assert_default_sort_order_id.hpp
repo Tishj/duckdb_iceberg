@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertDefaultSortOrderId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertDefaultSortOrderIdBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertDefaultSortOrderIdBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertDefaultSortOrderId Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssertDefaultSortOrderIdBuilder();
 	AssertDefaultSortOrderIdBuilder &SetType(TableRequirementType value);
 	AssertDefaultSortOrderIdBuilder &SetDefaultSortOrderId(int32_t value);
-	string TryBuild(optional<AssertDefaultSortOrderId> &result);
+	optional<string> TryBuild(optional<AssertDefaultSortOrderId> &result);
 	AssertDefaultSortOrderId Build();
 
 private:

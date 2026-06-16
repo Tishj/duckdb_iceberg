@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static BlobMetadata FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	BlobMetadata Copy() const;
@@ -56,7 +56,7 @@ public:
 	BlobMetadataBuilder &SetSequenceNumber(int64_t value);
 	BlobMetadataBuilder &SetFields(vector<int32_t> value);
 	BlobMetadataBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(optional<BlobMetadata> &result);
+	optional<string> TryBuild(optional<BlobMetadata> &result);
 	BlobMetadata Build();
 
 private:

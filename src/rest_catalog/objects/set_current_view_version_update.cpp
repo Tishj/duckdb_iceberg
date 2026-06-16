@@ -45,23 +45,27 @@ SetCurrentViewVersionUpdate SetCurrentViewVersionUpdateBuilder::Build() {
 	}
 	auto result = SetCurrentViewVersionUpdate(std::move(*base_update_), std::move(*view_version_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetCurrentViewVersionUpdateBuilder::TryBuild(optional<SetCurrentViewVersionUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetCurrentViewVersionUpdateBuilder::TryBuild(optional<SetCurrentViewVersionUpdate> &result) {
+	if (!has_view_version_id_) {
+		return "SetCurrentViewVersionUpdate required property 'view-version-id' is missing";
 	}
+	auto built = SetCurrentViewVersionUpdate(std::move(*base_update_), std::move(*view_version_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj, SetCurrentViewVersionUpdateBuilder &builder) {
+optional<string> SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj,
+                                                          SetCurrentViewVersionUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto view_version_id_val = yyjson_obj_get(obj, "view-version-id");
@@ -78,7 +82,7 @@ string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj, SetCurrentViewV
 			}
 			builder.SetViewVersionId(std::move(view_version_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +92,8 @@ string SetCurrentViewVersionUpdate::TryFromJSON(yyjson_val *obj, SetCurrentViewV
 SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::FromJSON(yyjson_val *obj) {
 	SetCurrentViewVersionUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +102,13 @@ SetCurrentViewVersionUpdate SetCurrentViewVersionUpdate::Copy() const {
 	return SetCurrentViewVersionUpdate(*this);
 }
 
-string SetCurrentViewVersionUpdate::Validate() const {
-	string error;
+optional<string> SetCurrentViewVersionUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetCurrentViewVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

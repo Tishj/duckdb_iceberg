@@ -63,23 +63,29 @@ SnapshotLog::Object3 SnapshotLog::Object3Builder::Build() {
 	}
 	auto result = SnapshotLog::Object3(std::move(*snapshot_id_), std::move(*timestamp_ms_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SnapshotLog::Object3Builder::TryBuild(optional<SnapshotLog::Object3> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SnapshotLog::Object3Builder::TryBuild(optional<SnapshotLog::Object3> &result) {
+	if (!has_snapshot_id_) {
+		return "Object3 required property 'snapshot-id' is missing";
 	}
+	if (!has_timestamp_ms_) {
+		return "Object3 required property 'timestamp-ms' is missing";
+	}
+	auto built = SnapshotLog::Object3(std::move(*snapshot_id_), std::move(*timestamp_ms_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SnapshotLog::Object3::TryFromJSON(yyjson_val *obj, Object3Builder &builder) {
+optional<string> SnapshotLog::Object3::TryFromJSON(yyjson_val *obj, Object3Builder &builder) {
 	try {
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
 		if (!snapshot_id_val) {
@@ -113,7 +119,7 @@ string SnapshotLog::Object3::TryFromJSON(yyjson_val *obj, Object3Builder &builde
 			}
 			builder.SetTimestampMs(std::move(timestamp_ms));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -123,8 +129,8 @@ string SnapshotLog::Object3::TryFromJSON(yyjson_val *obj, Object3Builder &builde
 SnapshotLog::Object3 SnapshotLog::Object3::FromJSON(yyjson_val *obj) {
 	Object3Builder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -133,9 +139,9 @@ SnapshotLog::Object3 SnapshotLog::Object3::Copy() const {
 	return SnapshotLog::Object3(*this);
 }
 
-string SnapshotLog::Object3::Validate() const {
-	string error;
-	return "";
+optional<string> SnapshotLog::Object3::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void SnapshotLog::Object3::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -156,7 +162,7 @@ yyjson_mut_val *SnapshotLog::Object3::ToJSON(yyjson_mut_doc *doc) const {
 	return obj;
 }
 
-string SnapshotLog::TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result) {
+optional<string> SnapshotLog::TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result) {
 	try {
 		vector<Object3> value;
 		if (yyjson_is_arr(obj)) {
@@ -171,7 +177,7 @@ string SnapshotLog::TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result) 
 			    "SnapshotLog property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(SnapshotLog(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -181,8 +187,8 @@ string SnapshotLog::TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result) 
 SnapshotLog SnapshotLog::FromJSON(yyjson_val *obj) {
 	optional<SnapshotLog> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -194,15 +200,15 @@ SnapshotLog SnapshotLog::Copy() const {
 	return SnapshotLog(*this);
 }
 
-string SnapshotLog::Validate() const {
-	string error;
+optional<string> SnapshotLog::Validate() const {
+	optional<string> error;
 	for (const auto &item : value) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *SnapshotLog::ToJSON(yyjson_mut_doc *doc) const {

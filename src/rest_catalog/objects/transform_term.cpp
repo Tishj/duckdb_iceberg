@@ -57,23 +57,32 @@ TransformTerm TransformTermBuilder::Build() {
 	}
 	auto result = TransformTerm(std::move(*type_), std::move(*transform_), std::move(*term_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TransformTermBuilder::TryBuild(optional<TransformTerm> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TransformTermBuilder::TryBuild(optional<TransformTerm> &result) {
+	if (!has_type_) {
+		return "TransformTerm required property 'type' is missing";
 	}
+	if (!has_transform_) {
+		return "TransformTerm required property 'transform' is missing";
+	}
+	if (!has_term_) {
+		return "TransformTerm required property 'term' is missing";
+	}
+	auto built = TransformTerm(std::move(*type_), std::move(*transform_), std::move(*term_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TransformTerm::TryFromJSON(yyjson_val *obj, TransformTermBuilder &builder) {
+optional<string> TransformTerm::TryFromJSON(yyjson_val *obj, TransformTermBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -101,7 +110,7 @@ string TransformTerm::TryFromJSON(yyjson_val *obj, TransformTermBuilder &builder
 		} else {
 			builder.SetTerm(Reference::FromJSON(term_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -111,8 +120,8 @@ string TransformTerm::TryFromJSON(yyjson_val *obj, TransformTermBuilder &builder
 TransformTerm TransformTerm::FromJSON(yyjson_val *obj) {
 	TransformTermBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -121,20 +130,20 @@ TransformTerm TransformTerm::Copy() const {
 	return TransformTerm(*this);
 }
 
-string TransformTerm::Validate() const {
-	string error;
+optional<string> TransformTerm::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(type, "transform")) {
 		return StringUtil::Format("TransformTerm property 'type' must be transform, not %s", type);
 	}
 	error = transform.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = term.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void TransformTerm::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -23,7 +23,7 @@ BooleanTypeValue::BooleanTypeValue(BooleanTypeValue &&other)
     : BooleanTypeValue(static_cast<const BooleanTypeValue &>(other)) {
 }
 
-string BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue> &result) {
+optional<string> BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue> &result) {
 	try {
 		bool value;
 		if (yyjson_is_bool(obj)) {
@@ -34,7 +34,7 @@ string BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue>
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(BooleanTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string BooleanTypeValue::TryFromJSON(yyjson_val *obj, optional<BooleanTypeValue>
 BooleanTypeValue BooleanTypeValue::FromJSON(yyjson_val *obj) {
 	optional<BooleanTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ BooleanTypeValue BooleanTypeValue::Copy() const {
 	return BooleanTypeValue(*this);
 }
 
-string BooleanTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> BooleanTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *BooleanTypeValue::ToJSON(yyjson_mut_doc *doc) const {

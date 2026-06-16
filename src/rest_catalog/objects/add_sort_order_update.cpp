@@ -45,23 +45,26 @@ AddSortOrderUpdate AddSortOrderUpdateBuilder::Build() {
 	}
 	auto result = AddSortOrderUpdate(std::move(*base_update_), std::move(*sort_order_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AddSortOrderUpdateBuilder::TryBuild(optional<AddSortOrderUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AddSortOrderUpdateBuilder::TryBuild(optional<AddSortOrderUpdate> &result) {
+	if (!has_sort_order_) {
+		return "AddSortOrderUpdate required property 'sort-order' is missing";
 	}
+	auto built = AddSortOrderUpdate(std::move(*base_update_), std::move(*sort_order_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilder &builder) {
+optional<string> AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto sort_order_val = yyjson_obj_get(obj, "sort-order");
@@ -70,7 +73,7 @@ string AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilde
 		} else {
 			builder.SetSortOrder(SortOrder::FromJSON(sort_order_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -80,8 +83,8 @@ string AddSortOrderUpdate::TryFromJSON(yyjson_val *obj, AddSortOrderUpdateBuilde
 AddSortOrderUpdate AddSortOrderUpdate::FromJSON(yyjson_val *obj) {
 	AddSortOrderUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -90,17 +93,17 @@ AddSortOrderUpdate AddSortOrderUpdate::Copy() const {
 	return AddSortOrderUpdate(*this);
 }
 
-string AddSortOrderUpdate::Validate() const {
-	string error;
+optional<string> AddSortOrderUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = sort_order.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AddSortOrderUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

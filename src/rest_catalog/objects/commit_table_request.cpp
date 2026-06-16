@@ -72,23 +72,29 @@ CommitTableRequest CommitTableRequestBuilder::Build() {
 	}
 	auto result = CommitTableRequest(std::move(*requirements_), std::move(*updates_), std::move(identifier_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CommitTableRequestBuilder::TryBuild(optional<CommitTableRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CommitTableRequestBuilder::TryBuild(optional<CommitTableRequest> &result) {
+	if (!has_requirements_) {
+		return "CommitTableRequest required property 'requirements' is missing";
 	}
+	if (!has_updates_) {
+		return "CommitTableRequest required property 'updates' is missing";
+	}
+	auto built = CommitTableRequest(std::move(*requirements_), std::move(*updates_), std::move(identifier_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CommitTableRequest::TryFromJSON(yyjson_val *obj, CommitTableRequestBuilder &builder) {
+optional<string> CommitTableRequest::TryFromJSON(yyjson_val *obj, CommitTableRequestBuilder &builder) {
 	try {
 		auto requirements_val = yyjson_obj_get(obj, "requirements");
 		if (!requirements_val) {
@@ -132,7 +138,7 @@ string CommitTableRequest::TryFromJSON(yyjson_val *obj, CommitTableRequestBuilde
 		if (identifier_val) {
 			builder.SetIdentifier(TableIdentifier::FromJSON(identifier_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -142,8 +148,8 @@ string CommitTableRequest::TryFromJSON(yyjson_val *obj, CommitTableRequestBuilde
 CommitTableRequest CommitTableRequest::FromJSON(yyjson_val *obj) {
 	CommitTableRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -152,27 +158,27 @@ CommitTableRequest CommitTableRequest::Copy() const {
 	return CommitTableRequest(*this);
 }
 
-string CommitTableRequest::Validate() const {
-	string error;
+optional<string> CommitTableRequest::Validate() const {
+	optional<string> error;
 	for (const auto &item : requirements) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	for (const auto &item : updates) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (identifier.has_value()) {
 		error = (*identifier).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void CommitTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

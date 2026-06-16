@@ -35,8 +35,8 @@ public:
 	public:
 		// Deserialization
 		static Object3 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object3Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object3Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object3 Copy() const;
@@ -55,7 +55,7 @@ public:
 		Object3Builder();
 		Object3Builder &SetSnapshotId(int64_t value);
 		Object3Builder &SetTimestampMs(int64_t value);
-		string TryBuild(optional<Object3> &result);
+		optional<string> TryBuild(optional<Object3> &result);
 		Object3 Build();
 
 	private:
@@ -70,8 +70,8 @@ public:
 public:
 	// Deserialization
 	static SnapshotLog FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<SnapshotLog> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	SnapshotLog Copy() const;

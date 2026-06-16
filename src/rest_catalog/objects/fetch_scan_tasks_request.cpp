@@ -38,23 +38,26 @@ FetchScanTasksRequest FetchScanTasksRequestBuilder::Build() {
 	}
 	auto result = FetchScanTasksRequest(std::move(*plan_task_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string FetchScanTasksRequestBuilder::TryBuild(optional<FetchScanTasksRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> FetchScanTasksRequestBuilder::TryBuild(optional<FetchScanTasksRequest> &result) {
+	if (!has_plan_task_) {
+		return "FetchScanTasksRequest required property 'plan-task' is missing";
 	}
+	auto built = FetchScanTasksRequest(std::move(*plan_task_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj, FetchScanTasksRequestBuilder &builder) {
+optional<string> FetchScanTasksRequest::TryFromJSON(yyjson_val *obj, FetchScanTasksRequestBuilder &builder) {
 	try {
 		auto plan_task_val = yyjson_obj_get(obj, "plan-task");
 		if (!plan_task_val) {
@@ -62,7 +65,7 @@ string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj, FetchScanTasksRequest
 		} else {
 			builder.SetPlanTask(PlanTask::FromJSON(plan_task_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -72,8 +75,8 @@ string FetchScanTasksRequest::TryFromJSON(yyjson_val *obj, FetchScanTasksRequest
 FetchScanTasksRequest FetchScanTasksRequest::FromJSON(yyjson_val *obj) {
 	FetchScanTasksRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -82,13 +85,13 @@ FetchScanTasksRequest FetchScanTasksRequest::Copy() const {
 	return FetchScanTasksRequest(*this);
 }
 
-string FetchScanTasksRequest::Validate() const {
-	string error;
+optional<string> FetchScanTasksRequest::Validate() const {
+	optional<string> error;
 	error = plan_task.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void FetchScanTasksRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

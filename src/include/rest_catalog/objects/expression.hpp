@@ -39,8 +39,8 @@ private:
 public:
 	// Deserialization
 	static Expression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	Expression Copy() const;
@@ -69,7 +69,7 @@ public:
 	ExpressionBuilder &SetSetExpression(SetExpression value);
 	ExpressionBuilder &SetLiteralExpression(LiteralExpression value);
 	ExpressionBuilder &SetUnaryExpression(UnaryExpression value);
-	string TryBuild(optional<Expression> &result);
+	optional<string> TryBuild(optional<Expression> &result);
 	Expression Build();
 
 private:

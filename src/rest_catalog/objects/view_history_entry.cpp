@@ -49,23 +49,29 @@ ViewHistoryEntry ViewHistoryEntryBuilder::Build() {
 	}
 	auto result = ViewHistoryEntry(std::move(*version_id_), std::move(*timestamp_ms_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ViewHistoryEntryBuilder::TryBuild(optional<ViewHistoryEntry> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ViewHistoryEntryBuilder::TryBuild(optional<ViewHistoryEntry> &result) {
+	if (!has_version_id_) {
+		return "ViewHistoryEntry required property 'version-id' is missing";
 	}
+	if (!has_timestamp_ms_) {
+		return "ViewHistoryEntry required property 'timestamp-ms' is missing";
+	}
+	auto built = ViewHistoryEntry(std::move(*version_id_), std::move(*timestamp_ms_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ViewHistoryEntry::TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &builder) {
+optional<string> ViewHistoryEntry::TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &builder) {
 	try {
 		auto version_id_val = yyjson_obj_get(obj, "version-id");
 		if (!version_id_val) {
@@ -97,7 +103,7 @@ string ViewHistoryEntry::TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &b
 			}
 			builder.SetTimestampMs(std::move(timestamp_ms));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -107,8 +113,8 @@ string ViewHistoryEntry::TryFromJSON(yyjson_val *obj, ViewHistoryEntryBuilder &b
 ViewHistoryEntry ViewHistoryEntry::FromJSON(yyjson_val *obj) {
 	ViewHistoryEntryBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -117,9 +123,9 @@ ViewHistoryEntry ViewHistoryEntry::Copy() const {
 	return ViewHistoryEntry(*this);
 }
 
-string ViewHistoryEntry::Validate() const {
-	string error;
-	return "";
+optional<string> ViewHistoryEntry::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void ViewHistoryEntry::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

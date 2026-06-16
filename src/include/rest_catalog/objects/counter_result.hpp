@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static CounterResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CounterResult Copy() const;
@@ -49,7 +49,7 @@ public:
 	CounterResultBuilder();
 	CounterResultBuilder &SetUnit(string value);
 	CounterResultBuilder &SetValue(int64_t value);
-	string TryBuild(optional<CounterResult> &result);
+	optional<string> TryBuild(optional<CounterResult> &result);
 	CounterResult Build();
 
 private:

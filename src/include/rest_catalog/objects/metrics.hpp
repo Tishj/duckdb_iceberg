@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static Metrics FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, MetricsBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, MetricsBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	Metrics Copy() const;
@@ -48,7 +48,7 @@ class MetricsBuilder {
 public:
 	MetricsBuilder();
 	MetricsBuilder &SetAdditionalProperties(case_insensitive_map_t<MetricResult> value);
-	string TryBuild(optional<Metrics> &result);
+	optional<string> TryBuild(optional<Metrics> &result);
 	Metrics Build();
 
 private:

@@ -45,23 +45,27 @@ RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdateBuilder::Build() 
 	}
 	auto result = RemovePartitionStatisticsUpdate(std::move(*base_update_), std::move(*snapshot_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemovePartitionStatisticsUpdateBuilder::TryBuild(optional<RemovePartitionStatisticsUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemovePartitionStatisticsUpdateBuilder::TryBuild(optional<RemovePartitionStatisticsUpdate> &result) {
+	if (!has_snapshot_id_) {
+		return "RemovePartitionStatisticsUpdate required property 'snapshot-id' is missing";
 	}
+	auto built = RemovePartitionStatisticsUpdate(std::move(*base_update_), std::move(*snapshot_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemovePartitionStatisticsUpdateBuilder &builder) {
+optional<string> RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj,
+                                                              RemovePartitionStatisticsUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
@@ -80,7 +84,7 @@ string RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveParti
 			}
 			builder.SetSnapshotId(std::move(snapshot_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -90,8 +94,8 @@ string RemovePartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveParti
 RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
 	RemovePartitionStatisticsUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -100,13 +104,13 @@ RemovePartitionStatisticsUpdate RemovePartitionStatisticsUpdate::Copy() const {
 	return RemovePartitionStatisticsUpdate(*this);
 }
 
-string RemovePartitionStatisticsUpdate::Validate() const {
-	string error;
+optional<string> RemovePartitionStatisticsUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemovePartitionStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

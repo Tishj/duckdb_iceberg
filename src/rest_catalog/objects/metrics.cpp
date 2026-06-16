@@ -42,23 +42,24 @@ Metrics MetricsBuilder::Build() {
 	auto result = Metrics(additional_properties_.has_value() ? std::move(*additional_properties_)
 	                                                         : case_insensitive_map_t<MetricResult>());
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string MetricsBuilder::TryBuild(optional<Metrics> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> MetricsBuilder::TryBuild(optional<Metrics> &result) {
+	auto built = Metrics(additional_properties_.has_value() ? std::move(*additional_properties_)
+	                                                        : case_insensitive_map_t<MetricResult>());
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Metrics::TryFromJSON(yyjson_val *obj, MetricsBuilder &builder) {
+optional<string> Metrics::TryFromJSON(yyjson_val *obj, MetricsBuilder &builder) {
 	try {
 		case_insensitive_map_t<MetricResult> additional_properties;
 		size_t idx, max;
@@ -69,7 +70,7 @@ string Metrics::TryFromJSON(yyjson_val *obj, MetricsBuilder &builder) {
 			additional_properties.emplace(key_str, std::move(tmp));
 		}
 		builder.SetAdditionalProperties(std::move(additional_properties));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -79,8 +80,8 @@ string Metrics::TryFromJSON(yyjson_val *obj, MetricsBuilder &builder) {
 Metrics Metrics::FromJSON(yyjson_val *obj) {
 	MetricsBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -89,15 +90,15 @@ Metrics Metrics::Copy() const {
 	return Metrics(*this);
 }
 
-string Metrics::Validate() const {
-	string error;
+optional<string> Metrics::Validate() const {
+	optional<string> error;
 	for (const auto &entry : additional_properties) {
 		error = entry.second.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void Metrics::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

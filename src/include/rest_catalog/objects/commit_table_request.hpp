@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static CommitTableRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CommitTableRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CommitTableRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CommitTableRequest Copy() const;
@@ -55,7 +55,7 @@ public:
 	CommitTableRequestBuilder &SetRequirements(vector<TableRequirement> value);
 	CommitTableRequestBuilder &SetUpdates(vector<TableUpdate> value);
 	CommitTableRequestBuilder &SetIdentifier(TableIdentifier value);
-	string TryBuild(optional<CommitTableRequest> &result);
+	optional<string> TryBuild(optional<CommitTableRequest> &result);
 	CommitTableRequest Build();
 
 private:

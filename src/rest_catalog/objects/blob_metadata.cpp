@@ -89,23 +89,36 @@ BlobMetadata BlobMetadataBuilder::Build() {
 	auto result = BlobMetadata(std::move(*type_), std::move(*snapshot_id_), std::move(*sequence_number_),
 	                           std::move(*fields_), std::move(properties_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string BlobMetadataBuilder::TryBuild(optional<BlobMetadata> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> BlobMetadataBuilder::TryBuild(optional<BlobMetadata> &result) {
+	if (!has_type_) {
+		return "BlobMetadata required property 'type' is missing";
 	}
+	if (!has_snapshot_id_) {
+		return "BlobMetadata required property 'snapshot-id' is missing";
+	}
+	if (!has_sequence_number_) {
+		return "BlobMetadata required property 'sequence-number' is missing";
+	}
+	if (!has_fields_) {
+		return "BlobMetadata required property 'fields' is missing";
+	}
+	auto built = BlobMetadata(std::move(*type_), std::move(*snapshot_id_), std::move(*sequence_number_),
+	                          std::move(*fields_), std::move(properties_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string BlobMetadata::TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder) {
+optional<string> BlobMetadata::TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -202,7 +215,7 @@ string BlobMetadata::TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder) 
 			}
 			builder.SetProperties(std::move(properties));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -212,8 +225,8 @@ string BlobMetadata::TryFromJSON(yyjson_val *obj, BlobMetadataBuilder &builder) 
 BlobMetadata BlobMetadata::FromJSON(yyjson_val *obj) {
 	BlobMetadataBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -222,9 +235,9 @@ BlobMetadata BlobMetadata::Copy() const {
 	return BlobMetadata(*this);
 }
 
-string BlobMetadata::Validate() const {
-	string error;
-	return "";
+optional<string> BlobMetadata::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void BlobMetadata::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

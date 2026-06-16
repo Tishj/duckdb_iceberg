@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static GetNamespaceResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, GetNamespaceResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, GetNamespaceResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	GetNamespaceResponse Copy() const;
@@ -50,7 +50,7 @@ public:
 	GetNamespaceResponseBuilder();
 	GetNamespaceResponseBuilder &SetNamespace(Namespace value);
 	GetNamespaceResponseBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(optional<GetNamespaceResponse> &result);
+	optional<string> TryBuild(optional<GetNamespaceResponse> &result);
 	GetNamespaceResponse Build();
 
 private:

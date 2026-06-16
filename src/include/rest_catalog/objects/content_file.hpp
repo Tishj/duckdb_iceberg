@@ -35,8 +35,8 @@ private:
 public:
 	// Deserialization
 	static ContentFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ContentFileBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ContentFile Copy() const;
@@ -71,7 +71,7 @@ public:
 	ContentFileBuilder &SetKeyMetadata(BinaryTypeValue value);
 	ContentFileBuilder &SetSplitOffsets(vector<int64_t> value);
 	ContentFileBuilder &SetSortOrderId(int32_t value);
-	string TryBuild(optional<ContentFile> &result);
+	optional<string> TryBuild(optional<ContentFile> &result);
 	ContentFile Build();
 
 private:

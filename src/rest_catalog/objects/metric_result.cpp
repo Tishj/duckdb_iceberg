@@ -43,23 +43,23 @@ MetricResultBuilder &MetricResultBuilder::SetTimerResult(TimerResult value) {
 MetricResult MetricResultBuilder::Build() {
 	auto result = MetricResult(std::move(counter_result_), std::move(timer_result_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string MetricResultBuilder::TryBuild(optional<MetricResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> MetricResultBuilder::TryBuild(optional<MetricResult> &result) {
+	auto built = MetricResult(std::move(counter_result_), std::move(timer_result_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string MetricResult::TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder) {
+optional<string> MetricResult::TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder) {
 	try {
 		int matched_any_of_variants = 0;
 		try {
@@ -75,7 +75,7 @@ string MetricResult::TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder) 
 		if (matched_any_of_variants == 0) {
 			throw InvalidInputException("MetricResult failed to parse, none of the anyOf candidates matched");
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -85,8 +85,8 @@ string MetricResult::TryFromJSON(yyjson_val *obj, MetricResultBuilder &builder) 
 MetricResult MetricResult::FromJSON(yyjson_val *obj) {
 	MetricResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -95,27 +95,27 @@ MetricResult MetricResult::Copy() const {
 	return MetricResult(*this);
 }
 
-string MetricResult::Validate() const {
-	string error;
+optional<string> MetricResult::Validate() const {
+	optional<string> error;
 	int matched_any_of_variants = 0;
 	if (counter_result.has_value()) {
 		matched_any_of_variants++;
 		error = counter_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (timer_result.has_value()) {
 		matched_any_of_variants++;
 		error = timer_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_any_of_variants == 0) {
 		return "MetricResult must have at least one anyOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void MetricResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -55,23 +55,29 @@ SortOrder SortOrderBuilder::Build() {
 	}
 	auto result = SortOrder(std::move(*order_id_), std::move(*fields_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SortOrderBuilder::TryBuild(optional<SortOrder> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SortOrderBuilder::TryBuild(optional<SortOrder> &result) {
+	if (!has_order_id_) {
+		return "SortOrder required property 'order-id' is missing";
 	}
+	if (!has_fields_) {
+		return "SortOrder required property 'fields' is missing";
+	}
+	auto built = SortOrder(std::move(*order_id_), std::move(*fields_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SortOrder::TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder) {
+optional<string> SortOrder::TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder) {
 	try {
 		auto order_id_val = yyjson_obj_get(obj, "order-id");
 		if (!order_id_val) {
@@ -106,7 +112,7 @@ string SortOrder::TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder) {
 			}
 			builder.SetFields(std::move(fields));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -116,8 +122,8 @@ string SortOrder::TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder) {
 SortOrder SortOrder::FromJSON(yyjson_val *obj) {
 	SortOrderBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -126,15 +132,15 @@ SortOrder SortOrder::Copy() const {
 	return SortOrder(*this);
 }
 
-string SortOrder::Validate() const {
-	string error;
+optional<string> SortOrder::Validate() const {
+	optional<string> error;
 	for (const auto &item : fields) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void SortOrder::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

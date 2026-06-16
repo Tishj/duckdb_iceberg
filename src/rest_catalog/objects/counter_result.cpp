@@ -46,23 +46,29 @@ CounterResult CounterResultBuilder::Build() {
 	}
 	auto result = CounterResult(std::move(*unit_), std::move(*value_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CounterResultBuilder::TryBuild(optional<CounterResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CounterResultBuilder::TryBuild(optional<CounterResult> &result) {
+	if (!has_unit_) {
+		return "CounterResult required property 'unit' is missing";
 	}
+	if (!has_value_) {
+		return "CounterResult required property 'value' is missing";
+	}
+	auto built = CounterResult(std::move(*unit_), std::move(*value_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CounterResult::TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder) {
+optional<string> CounterResult::TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder) {
 	try {
 		auto unit_val = yyjson_obj_get(obj, "unit");
 		if (!unit_val) {
@@ -94,7 +100,7 @@ string CounterResult::TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder
 			}
 			builder.SetValue(std::move(value));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -104,8 +110,8 @@ string CounterResult::TryFromJSON(yyjson_val *obj, CounterResultBuilder &builder
 CounterResult CounterResult::FromJSON(yyjson_val *obj) {
 	CounterResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -114,9 +120,9 @@ CounterResult CounterResult::Copy() const {
 	return CounterResult(*this);
 }
 
-string CounterResult::Validate() const {
-	string error;
-	return "";
+optional<string> CounterResult::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void CounterResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

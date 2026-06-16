@@ -51,23 +51,26 @@ SetPropertiesUpdate SetPropertiesUpdateBuilder::Build() {
 	}
 	auto result = SetPropertiesUpdate(std::move(*base_update_), std::move(*updates_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetPropertiesUpdateBuilder::TryBuild(optional<SetPropertiesUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetPropertiesUpdateBuilder::TryBuild(optional<SetPropertiesUpdate> &result) {
+	if (!has_updates_) {
+		return "SetPropertiesUpdate required property 'updates' is missing";
 	}
+	auto built = SetPropertiesUpdate(std::move(*base_update_), std::move(*updates_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuilder &builder) {
+optional<string> SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto updates_val = yyjson_obj_get(obj, "updates");
@@ -95,7 +98,7 @@ string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuil
 			}
 			builder.SetUpdates(std::move(updates));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -105,8 +108,8 @@ string SetPropertiesUpdate::TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuil
 SetPropertiesUpdate SetPropertiesUpdate::FromJSON(yyjson_val *obj) {
 	SetPropertiesUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -115,13 +118,13 @@ SetPropertiesUpdate SetPropertiesUpdate::Copy() const {
 	return SetPropertiesUpdate(*this);
 }
 
-string SetPropertiesUpdate::Validate() const {
-	string error;
+optional<string> SetPropertiesUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetPropertiesUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

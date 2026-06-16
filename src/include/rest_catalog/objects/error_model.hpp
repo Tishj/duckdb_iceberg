@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static ErrorModel FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ErrorModelBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ErrorModelBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ErrorModel Copy() const;
@@ -53,7 +53,7 @@ public:
 	ErrorModelBuilder &SetType(string value);
 	ErrorModelBuilder &SetCode(int32_t value);
 	ErrorModelBuilder &SetStack(vector<string> value);
-	string TryBuild(optional<ErrorModel> &result);
+	optional<string> TryBuild(optional<ErrorModel> &result);
 	ErrorModel Build();
 
 private:

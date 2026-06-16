@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static ScanTasks FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ScanTasksBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ScanTasks Copy() const;
@@ -55,7 +55,7 @@ public:
 	ScanTasksBuilder &SetDeleteFiles(vector<DeleteFile> value);
 	ScanTasksBuilder &SetFileScanTasks(vector<FileScanTask> value);
 	ScanTasksBuilder &SetPlanTasks(vector<PlanTask> value);
-	string TryBuild(optional<ScanTasks> &result);
+	optional<string> TryBuild(optional<ScanTasks> &result);
 	ScanTasks Build();
 
 private:

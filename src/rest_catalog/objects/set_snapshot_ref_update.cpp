@@ -54,23 +54,26 @@ SetSnapshotRefUpdate SetSnapshotRefUpdateBuilder::Build() {
 	auto result =
 	    SetSnapshotRefUpdate(std::move(*base_update_), std::move(*snapshot_reference_), std::move(*ref_name_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetSnapshotRefUpdateBuilder::TryBuild(optional<SetSnapshotRefUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetSnapshotRefUpdateBuilder::TryBuild(optional<SetSnapshotRefUpdate> &result) {
+	if (!has_ref_name_) {
+		return "SetSnapshotRefUpdate required property 'ref-name' is missing";
 	}
+	auto built = SetSnapshotRefUpdate(std::move(*base_update_), std::move(*snapshot_reference_), std::move(*ref_name_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBuilder &builder) {
+optional<string> SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		builder.SetSnapshotReference(SnapshotReference::FromJSON(obj));
@@ -88,7 +91,7 @@ string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBu
 			}
 			builder.SetRefName(std::move(ref_name));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -98,8 +101,8 @@ string SetSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, SetSnapshotRefUpdateBu
 SetSnapshotRefUpdate SetSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
 	SetSnapshotRefUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -108,17 +111,17 @@ SetSnapshotRefUpdate SetSnapshotRefUpdate::Copy() const {
 	return SetSnapshotRefUpdate(*this);
 }
 
-string SetSnapshotRefUpdate::Validate() const {
-	string error;
+optional<string> SetSnapshotRefUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = snapshot_reference.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetSnapshotRefUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

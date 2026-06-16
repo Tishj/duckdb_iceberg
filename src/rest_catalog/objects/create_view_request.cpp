@@ -82,23 +82,36 @@ CreateViewRequest CreateViewRequestBuilder::Build() {
 	auto result = CreateViewRequest(std::move(*name_), std::move(*schema_), std::move(*view_version_),
 	                                std::move(*properties_), std::move(location_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CreateViewRequestBuilder::TryBuild(optional<CreateViewRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CreateViewRequestBuilder::TryBuild(optional<CreateViewRequest> &result) {
+	if (!has_name_) {
+		return "CreateViewRequest required property 'name' is missing";
 	}
+	if (!has_schema_) {
+		return "CreateViewRequest required property 'schema' is missing";
+	}
+	if (!has_view_version_) {
+		return "CreateViewRequest required property 'view-version' is missing";
+	}
+	if (!has_properties_) {
+		return "CreateViewRequest required property 'properties' is missing";
+	}
+	auto built = CreateViewRequest(std::move(*name_), std::move(*schema_), std::move(*view_version_),
+	                               std::move(*properties_), std::move(location_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CreateViewRequest::TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder &builder) {
+optional<string> CreateViewRequest::TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder &builder) {
 	try {
 		auto name_val = yyjson_obj_get(obj, "name");
 		if (!name_val) {
@@ -163,7 +176,7 @@ string CreateViewRequest::TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder 
 			}
 			builder.SetLocation(std::move(location));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -173,8 +186,8 @@ string CreateViewRequest::TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder 
 CreateViewRequest CreateViewRequest::FromJSON(yyjson_val *obj) {
 	CreateViewRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -183,17 +196,17 @@ CreateViewRequest CreateViewRequest::Copy() const {
 	return CreateViewRequest(*this);
 }
 
-string CreateViewRequest::Validate() const {
-	string error;
+optional<string> CreateViewRequest::Validate() const {
+	optional<string> error;
 	error = schema.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = view_version.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CreateViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

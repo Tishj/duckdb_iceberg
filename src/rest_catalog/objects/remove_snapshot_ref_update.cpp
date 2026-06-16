@@ -45,23 +45,26 @@ RemoveSnapshotRefUpdate RemoveSnapshotRefUpdateBuilder::Build() {
 	}
 	auto result = RemoveSnapshotRefUpdate(std::move(*base_update_), std::move(*ref_name_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemoveSnapshotRefUpdateBuilder::TryBuild(optional<RemoveSnapshotRefUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemoveSnapshotRefUpdateBuilder::TryBuild(optional<RemoveSnapshotRefUpdate> &result) {
+	if (!has_ref_name_) {
+		return "RemoveSnapshotRefUpdate required property 'ref-name' is missing";
 	}
+	auto built = RemoveSnapshotRefUpdate(std::move(*base_update_), std::move(*ref_name_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUpdateBuilder &builder) {
+optional<string> RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto ref_name_val = yyjson_obj_get(obj, "ref-name");
@@ -78,7 +81,7 @@ string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUp
 			}
 			builder.SetRefName(std::move(ref_name));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string RemoveSnapshotRefUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUp
 RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::FromJSON(yyjson_val *obj) {
 	RemoveSnapshotRefUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ RemoveSnapshotRefUpdate RemoveSnapshotRefUpdate::Copy() const {
 	return RemoveSnapshotRefUpdate(*this);
 }
 
-string RemoveSnapshotRefUpdate::Validate() const {
-	string error;
+optional<string> RemoveSnapshotRefUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemoveSnapshotRefUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

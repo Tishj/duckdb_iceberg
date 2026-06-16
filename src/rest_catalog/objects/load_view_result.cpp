@@ -62,23 +62,29 @@ LoadViewResult LoadViewResultBuilder::Build() {
 	}
 	auto result = LoadViewResult(std::move(*metadata_location_), std::move(*metadata_), std::move(config_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string LoadViewResultBuilder::TryBuild(optional<LoadViewResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> LoadViewResultBuilder::TryBuild(optional<LoadViewResult> &result) {
+	if (!has_metadata_location_) {
+		return "LoadViewResult required property 'metadata-location' is missing";
 	}
+	if (!has_metadata_) {
+		return "LoadViewResult required property 'metadata' is missing";
+	}
+	auto built = LoadViewResult(std::move(*metadata_location_), std::move(*metadata_), std::move(config_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string LoadViewResult::TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &builder) {
+optional<string> LoadViewResult::TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &builder) {
 	try {
 		auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
 		if (!metadata_location_val) {
@@ -123,7 +129,7 @@ string LoadViewResult::TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &build
 			}
 			builder.SetConfig(std::move(config));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -133,8 +139,8 @@ string LoadViewResult::TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &build
 LoadViewResult LoadViewResult::FromJSON(yyjson_val *obj) {
 	LoadViewResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -143,13 +149,13 @@ LoadViewResult LoadViewResult::Copy() const {
 	return LoadViewResult(*this);
 }
 
-string LoadViewResult::Validate() const {
-	string error;
+optional<string> LoadViewResult::Validate() const {
+	optional<string> error;
 	error = metadata.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void LoadViewResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

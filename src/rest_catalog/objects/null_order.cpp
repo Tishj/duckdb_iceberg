@@ -22,7 +22,7 @@ NullOrder::NullOrder(const NullOrder &other) : value(other.value) {
 NullOrder::NullOrder(NullOrder &&other) : NullOrder(static_cast<const NullOrder &>(other)) {
 }
 
-string NullOrder::TryFromJSON(yyjson_val *obj, optional<NullOrder> &result) {
+optional<string> NullOrder::TryFromJSON(yyjson_val *obj, optional<NullOrder> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string NullOrder::TryFromJSON(yyjson_val *obj, optional<NullOrder> &result) {
 			    "NullOrder property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(NullOrder(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string NullOrder::TryFromJSON(yyjson_val *obj, optional<NullOrder> &result) {
 NullOrder NullOrder::FromJSON(yyjson_val *obj) {
 	optional<NullOrder> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,12 +55,12 @@ NullOrder NullOrder::Copy() const {
 	return NullOrder(*this);
 }
 
-string NullOrder::Validate() const {
-	string error;
+optional<string> NullOrder::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(value, "nulls-first") && !StringUtil::CIEquals(value, "nulls-last")) {
 		return StringUtil::Format("NullOrder property 'value' must be one of [nulls-first, nulls-last], not %s", value);
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *NullOrder::ToJSON(yyjson_mut_doc *doc) const {

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertLastAssignedPartitionId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertLastAssignedPartitionIdBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertLastAssignedPartitionIdBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertLastAssignedPartitionId Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssertLastAssignedPartitionIdBuilder();
 	AssertLastAssignedPartitionIdBuilder &SetType(TableRequirementType value);
 	AssertLastAssignedPartitionIdBuilder &SetLastAssignedPartitionId(int32_t value);
-	string TryBuild(optional<AssertLastAssignedPartitionId> &result);
+	optional<string> TryBuild(optional<AssertLastAssignedPartitionId> &result);
 	AssertLastAssignedPartitionId Build();
 
 private:

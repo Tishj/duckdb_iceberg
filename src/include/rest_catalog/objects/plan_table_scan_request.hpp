@@ -36,8 +36,8 @@ private:
 public:
 	// Deserialization
 	static PlanTableScanRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, PlanTableScanRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, PlanTableScanRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	PlanTableScanRequest Copy() const;
@@ -70,7 +70,7 @@ public:
 	PlanTableScanRequestBuilder &SetStartSnapshotId(int64_t value);
 	PlanTableScanRequestBuilder &SetEndSnapshotId(int64_t value);
 	PlanTableScanRequestBuilder &SetStatsFields(vector<FieldName> value);
-	string TryBuild(optional<PlanTableScanRequest> &result);
+	optional<string> TryBuild(optional<PlanTableScanRequest> &result);
 	PlanTableScanRequest Build();
 
 private:

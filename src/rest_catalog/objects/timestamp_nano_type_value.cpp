@@ -23,7 +23,7 @@ TimestampNanoTypeValue::TimestampNanoTypeValue(TimestampNanoTypeValue &&other)
     : TimestampNanoTypeValue(static_cast<const TimestampNanoTypeValue &>(other)) {
 }
 
-string TimestampNanoTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampNanoTypeValue> &result) {
+optional<string> TimestampNanoTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampNanoTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string TimestampNanoTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampNa
 			    yyjson_get_type_desc(obj)));
 		}
 		result.emplace(TimestampNanoTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string TimestampNanoTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampNa
 TimestampNanoTypeValue TimestampNanoTypeValue::FromJSON(yyjson_val *obj) {
 	optional<TimestampNanoTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ TimestampNanoTypeValue TimestampNanoTypeValue::Copy() const {
 	return TimestampNanoTypeValue(*this);
 }
 
-string TimestampNanoTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> TimestampNanoTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *TimestampNanoTypeValue::ToJSON(yyjson_mut_doc *doc) const {

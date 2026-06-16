@@ -89,23 +89,39 @@ StatisticsFile StatisticsFileBuilder::Build() {
 	    StatisticsFile(std::move(*snapshot_id_), std::move(*statistics_path_), std::move(*file_size_in_bytes_),
 	                   std::move(*file_footer_size_in_bytes_), std::move(*blob_metadata_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string StatisticsFileBuilder::TryBuild(optional<StatisticsFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> StatisticsFileBuilder::TryBuild(optional<StatisticsFile> &result) {
+	if (!has_snapshot_id_) {
+		return "StatisticsFile required property 'snapshot-id' is missing";
 	}
+	if (!has_statistics_path_) {
+		return "StatisticsFile required property 'statistics-path' is missing";
+	}
+	if (!has_file_size_in_bytes_) {
+		return "StatisticsFile required property 'file-size-in-bytes' is missing";
+	}
+	if (!has_file_footer_size_in_bytes_) {
+		return "StatisticsFile required property 'file-footer-size-in-bytes' is missing";
+	}
+	if (!has_blob_metadata_) {
+		return "StatisticsFile required property 'blob-metadata' is missing";
+	}
+	auto built = StatisticsFile(std::move(*snapshot_id_), std::move(*statistics_path_), std::move(*file_size_in_bytes_),
+	                            std::move(*file_footer_size_in_bytes_), std::move(*blob_metadata_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string StatisticsFile::TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &builder) {
+optional<string> StatisticsFile::TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &builder) {
 	try {
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
 		if (!snapshot_id_val) {
@@ -188,7 +204,7 @@ string StatisticsFile::TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &build
 			}
 			builder.SetBlobMetadata(std::move(blob_metadata));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -198,8 +214,8 @@ string StatisticsFile::TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &build
 StatisticsFile StatisticsFile::FromJSON(yyjson_val *obj) {
 	StatisticsFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -208,15 +224,15 @@ StatisticsFile StatisticsFile::Copy() const {
 	return StatisticsFile(*this);
 }
 
-string StatisticsFile::Validate() const {
-	string error;
+optional<string> StatisticsFile::Validate() const {
+	optional<string> error;
 	for (const auto &item : blob_metadata) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void StatisticsFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

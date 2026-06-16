@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SetDefaultSpecUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SetDefaultSpecUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	SetDefaultSpecUpdateBuilder();
 	SetDefaultSpecUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetDefaultSpecUpdateBuilder &SetSpecId(int32_t value);
-	string TryBuild(optional<SetDefaultSpecUpdate> &result);
+	optional<string> TryBuild(optional<SetDefaultSpecUpdate> &result);
 	SetDefaultSpecUpdate Build();
 
 private:

@@ -137,23 +137,46 @@ ViewMetadata ViewMetadataBuilder::Build() {
 	                           std::move(*current_version_id_), std::move(*versions_), std::move(*version_log_),
 	                           std::move(*schemas_), std::move(properties_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ViewMetadataBuilder::TryBuild(optional<ViewMetadata> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ViewMetadataBuilder::TryBuild(optional<ViewMetadata> &result) {
+	if (!has_view_uuid_) {
+		return "ViewMetadata required property 'view-uuid' is missing";
 	}
+	if (!has_format_version_) {
+		return "ViewMetadata required property 'format-version' is missing";
+	}
+	if (!has_location_) {
+		return "ViewMetadata required property 'location' is missing";
+	}
+	if (!has_current_version_id_) {
+		return "ViewMetadata required property 'current-version-id' is missing";
+	}
+	if (!has_versions_) {
+		return "ViewMetadata required property 'versions' is missing";
+	}
+	if (!has_version_log_) {
+		return "ViewMetadata required property 'version-log' is missing";
+	}
+	if (!has_schemas_) {
+		return "ViewMetadata required property 'schemas' is missing";
+	}
+	auto built = ViewMetadata(std::move(*view_uuid_), std::move(*format_version_), std::move(*location_),
+	                          std::move(*current_version_id_), std::move(*versions_), std::move(*version_log_),
+	                          std::move(*schemas_), std::move(properties_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ViewMetadata::TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder) {
+optional<string> ViewMetadata::TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder) {
 	try {
 		auto view_uuid_val = yyjson_obj_get(obj, "view-uuid");
 		if (!view_uuid_val) {
@@ -291,7 +314,7 @@ string ViewMetadata::TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder) 
 			}
 			builder.SetProperties(std::move(properties));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -301,8 +324,8 @@ string ViewMetadata::TryFromJSON(yyjson_val *obj, ViewMetadataBuilder &builder) 
 ViewMetadata ViewMetadata::FromJSON(yyjson_val *obj) {
 	ViewMetadataBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -311,8 +334,8 @@ ViewMetadata ViewMetadata::Copy() const {
 	return ViewMetadata(*this);
 }
 
-string ViewMetadata::Validate() const {
-	string error;
+optional<string> ViewMetadata::Validate() const {
+	optional<string> error;
 	if (format_version < 1) {
 		return "ViewMetadata property 'format-version' must be at least 1";
 	}
@@ -321,23 +344,23 @@ string ViewMetadata::Validate() const {
 	}
 	for (const auto &item : versions) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	for (const auto &item : version_log) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	for (const auto &item : schemas) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void ViewMetadata::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -276,23 +276,36 @@ TableMetadata TableMetadataBuilder::Build() {
 	                            std::move(last_sequence_number_), std::move(snapshot_log_), std::move(metadata_log_),
 	                            std::move(statistics_), std::move(partition_statistics_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TableMetadataBuilder::TryBuild(optional<TableMetadata> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TableMetadataBuilder::TryBuild(optional<TableMetadata> &result) {
+	if (!has_format_version_) {
+		return "TableMetadata required property 'format-version' is missing";
 	}
+	if (!has_table_uuid_) {
+		return "TableMetadata required property 'table-uuid' is missing";
+	}
+	auto built = TableMetadata(std::move(*format_version_), std::move(*table_uuid_), std::move(location_),
+	                           std::move(last_updated_ms_), std::move(next_row_id_), std::move(properties_),
+	                           std::move(schemas_), std::move(current_schema_id_), std::move(last_column_id_),
+	                           std::move(partition_specs_), std::move(default_spec_id_), std::move(last_partition_id_),
+	                           std::move(sort_orders_), std::move(default_sort_order_id_), std::move(encryption_keys_),
+	                           std::move(snapshots_), std::move(refs_), std::move(current_snapshot_id_),
+	                           std::move(last_sequence_number_), std::move(snapshot_log_), std::move(metadata_log_),
+	                           std::move(statistics_), std::move(partition_statistics_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TableMetadata::TryFromJSON(yyjson_val *obj, TableMetadataBuilder &builder) {
+optional<string> TableMetadata::TryFromJSON(yyjson_val *obj, TableMetadataBuilder &builder) {
 	try {
 		auto format_version_val = yyjson_obj_get(obj, "format-version");
 		if (!format_version_val) {
@@ -608,7 +621,7 @@ string TableMetadata::TryFromJSON(yyjson_val *obj, TableMetadataBuilder &builder
 			}
 			builder.SetPartitionStatistics(std::move(partition_statistics));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -618,8 +631,8 @@ string TableMetadata::TryFromJSON(yyjson_val *obj, TableMetadataBuilder &builder
 TableMetadata TableMetadata::FromJSON(yyjson_val *obj) {
 	TableMetadataBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -628,8 +641,8 @@ TableMetadata TableMetadata::Copy() const {
 	return TableMetadata(*this);
 }
 
-string TableMetadata::Validate() const {
-	string error;
+optional<string> TableMetadata::Validate() const {
+	optional<string> error;
 	if (format_version < 1) {
 		return "TableMetadata property 'format-version' must be at least 1";
 	}
@@ -639,7 +652,7 @@ string TableMetadata::Validate() const {
 	if (schemas.has_value()) {
 		for (const auto &item : (*schemas)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -647,7 +660,7 @@ string TableMetadata::Validate() const {
 	if (partition_specs.has_value()) {
 		for (const auto &item : (*partition_specs)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -655,7 +668,7 @@ string TableMetadata::Validate() const {
 	if (sort_orders.has_value()) {
 		for (const auto &item : (*sort_orders)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -663,7 +676,7 @@ string TableMetadata::Validate() const {
 	if (encryption_keys.has_value()) {
 		for (const auto &item : (*encryption_keys)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -671,33 +684,33 @@ string TableMetadata::Validate() const {
 	if (snapshots.has_value()) {
 		for (const auto &item : (*snapshots)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
 	if (refs.has_value()) {
 		error = (*refs).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (snapshot_log.has_value()) {
 		error = (*snapshot_log).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (metadata_log.has_value()) {
 		error = (*metadata_log).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (statistics.has_value()) {
 		for (const auto &item : (*statistics)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -705,12 +718,12 @@ string TableMetadata::Validate() const {
 	if (partition_statistics.has_value()) {
 		for (const auto &item : (*partition_statistics)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void TableMetadata::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

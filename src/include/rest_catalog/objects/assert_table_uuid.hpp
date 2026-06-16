@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertTableUUID FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertTableUUIDBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertTableUUID Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssertTableUUIDBuilder();
 	AssertTableUUIDBuilder &SetType(TableRequirementType value);
 	AssertTableUUIDBuilder &SetUuid(string value);
-	string TryBuild(optional<AssertTableUUID> &result);
+	optional<string> TryBuild(optional<AssertTableUUID> &result);
 	AssertTableUUID Build();
 
 private:

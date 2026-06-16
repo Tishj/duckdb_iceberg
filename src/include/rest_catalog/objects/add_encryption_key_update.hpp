@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static AddEncryptionKeyUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AddEncryptionKeyUpdate Copy() const;
@@ -51,7 +51,7 @@ public:
 	AddEncryptionKeyUpdateBuilder();
 	AddEncryptionKeyUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	AddEncryptionKeyUpdateBuilder &SetEncryptionKey(EncryptedKey value);
-	string TryBuild(optional<AddEncryptionKeyUpdate> &result);
+	optional<string> TryBuild(optional<AddEncryptionKeyUpdate> &result);
 	AddEncryptionKeyUpdate Build();
 
 private:

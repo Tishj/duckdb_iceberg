@@ -49,23 +49,29 @@ CommitTableResponse CommitTableResponseBuilder::Build() {
 	}
 	auto result = CommitTableResponse(std::move(*metadata_location_), std::move(*metadata_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CommitTableResponseBuilder::TryBuild(optional<CommitTableResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CommitTableResponseBuilder::TryBuild(optional<CommitTableResponse> &result) {
+	if (!has_metadata_location_) {
+		return "CommitTableResponse required property 'metadata-location' is missing";
 	}
+	if (!has_metadata_) {
+		return "CommitTableResponse required property 'metadata' is missing";
+	}
+	auto built = CommitTableResponse(std::move(*metadata_location_), std::move(*metadata_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CommitTableResponse::TryFromJSON(yyjson_val *obj, CommitTableResponseBuilder &builder) {
+optional<string> CommitTableResponse::TryFromJSON(yyjson_val *obj, CommitTableResponseBuilder &builder) {
 	try {
 		auto metadata_location_val = yyjson_obj_get(obj, "metadata-location");
 		if (!metadata_location_val) {
@@ -87,7 +93,7 @@ string CommitTableResponse::TryFromJSON(yyjson_val *obj, CommitTableResponseBuil
 		} else {
 			builder.SetMetadata(TableMetadata::FromJSON(metadata_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -97,8 +103,8 @@ string CommitTableResponse::TryFromJSON(yyjson_val *obj, CommitTableResponseBuil
 CommitTableResponse CommitTableResponse::FromJSON(yyjson_val *obj) {
 	CommitTableResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -107,13 +113,13 @@ CommitTableResponse CommitTableResponse::Copy() const {
 	return CommitTableResponse(*this);
 }
 
-string CommitTableResponse::Validate() const {
-	string error;
+optional<string> CommitTableResponse::Validate() const {
+	optional<string> error;
 	error = metadata.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CommitTableResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static EncryptedKey FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, EncryptedKeyBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	EncryptedKey Copy() const;
@@ -54,7 +54,7 @@ public:
 	EncryptedKeyBuilder &SetEncryptedKeyMetadata(string value);
 	EncryptedKeyBuilder &SetEncryptedById(string value);
 	EncryptedKeyBuilder &SetProperties(case_insensitive_map_t<string> value);
-	string TryBuild(optional<EncryptedKey> &result);
+	optional<string> TryBuild(optional<EncryptedKey> &result);
 	EncryptedKey Build();
 
 private:

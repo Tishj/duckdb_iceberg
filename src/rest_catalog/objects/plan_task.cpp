@@ -22,7 +22,7 @@ PlanTask::PlanTask(const PlanTask &other) : value(other.value) {
 PlanTask::PlanTask(PlanTask &&other) : PlanTask(static_cast<const PlanTask &>(other)) {
 }
 
-string PlanTask::TryFromJSON(yyjson_val *obj, optional<PlanTask> &result) {
+optional<string> PlanTask::TryFromJSON(yyjson_val *obj, optional<PlanTask> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string PlanTask::TryFromJSON(yyjson_val *obj, optional<PlanTask> &result) {
 			    "PlanTask property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(PlanTask(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string PlanTask::TryFromJSON(yyjson_val *obj, optional<PlanTask> &result) {
 PlanTask PlanTask::FromJSON(yyjson_val *obj) {
 	optional<PlanTask> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,9 +55,9 @@ PlanTask PlanTask::Copy() const {
 	return PlanTask(*this);
 }
 
-string PlanTask::Validate() const {
-	string error;
-	return "";
+optional<string> PlanTask::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *PlanTask::ToJSON(yyjson_mut_doc *doc) const {

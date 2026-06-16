@@ -35,8 +35,8 @@ public:
 	public:
 		// Deserialization
 		static Object4 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object4Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object4Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object4 Copy() const;
@@ -55,7 +55,7 @@ public:
 		Object4Builder();
 		Object4Builder &SetMetadataFile(string value);
 		Object4Builder &SetTimestampMs(int64_t value);
-		string TryBuild(optional<Object4> &result);
+		optional<string> TryBuild(optional<Object4> &result);
 		Object4 Build();
 
 	private:
@@ -70,8 +70,8 @@ public:
 public:
 	// Deserialization
 	static MetadataLog FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	MetadataLog Copy() const;

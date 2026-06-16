@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static FixedTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	FixedTypeValue Copy() const;

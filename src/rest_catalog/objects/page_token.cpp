@@ -22,7 +22,7 @@ PageToken::PageToken(const PageToken &other) : value(other.value) {
 PageToken::PageToken(PageToken &&other) : PageToken(static_cast<const PageToken &>(other)) {
 }
 
-string PageToken::TryFromJSON(yyjson_val *obj, optional<PageToken> &result) {
+optional<string> PageToken::TryFromJSON(yyjson_val *obj, optional<PageToken> &result) {
 	try {
 		string value;
 		if (yyjson_is_null(obj)) {
@@ -34,7 +34,7 @@ string PageToken::TryFromJSON(yyjson_val *obj, optional<PageToken> &result) {
 			    "PageToken property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(PageToken(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string PageToken::TryFromJSON(yyjson_val *obj, optional<PageToken> &result) {
 PageToken PageToken::FromJSON(yyjson_val *obj) {
 	optional<PageToken> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ PageToken PageToken::Copy() const {
 	return PageToken(*this);
 }
 
-string PageToken::Validate() const {
-	string error;
-	return "";
+optional<string> PageToken::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *PageToken::ToJSON(yyjson_mut_doc *doc) const {

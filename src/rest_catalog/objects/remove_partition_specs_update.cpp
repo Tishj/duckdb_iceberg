@@ -52,23 +52,26 @@ RemovePartitionSpecsUpdate RemovePartitionSpecsUpdateBuilder::Build() {
 	}
 	auto result = RemovePartitionSpecsUpdate(std::move(*base_update_), std::move(*spec_ids_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemovePartitionSpecsUpdateBuilder::TryBuild(optional<RemovePartitionSpecsUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemovePartitionSpecsUpdateBuilder::TryBuild(optional<RemovePartitionSpecsUpdate> &result) {
+	if (!has_spec_ids_) {
+		return "RemovePartitionSpecsUpdate required property 'spec-ids' is missing";
 	}
+	auto built = RemovePartitionSpecsUpdate(std::move(*base_update_), std::move(*spec_ids_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, RemovePartitionSpecsUpdateBuilder &builder) {
+optional<string> RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, RemovePartitionSpecsUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto spec_ids_val = yyjson_obj_get(obj, "spec-ids");
@@ -97,7 +100,7 @@ string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, RemovePartitionS
 			}
 			builder.SetSpecIds(std::move(spec_ids));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -107,8 +110,8 @@ string RemovePartitionSpecsUpdate::TryFromJSON(yyjson_val *obj, RemovePartitionS
 RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::FromJSON(yyjson_val *obj) {
 	RemovePartitionSpecsUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -117,13 +120,13 @@ RemovePartitionSpecsUpdate RemovePartitionSpecsUpdate::Copy() const {
 	return RemovePartitionSpecsUpdate(*this);
 }
 
-string RemovePartitionSpecsUpdate::Validate() const {
-	string error;
+optional<string> RemovePartitionSpecsUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemovePartitionSpecsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

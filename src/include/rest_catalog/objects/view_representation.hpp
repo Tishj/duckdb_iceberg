@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static ViewRepresentation FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ViewRepresentationBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ViewRepresentationBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ViewRepresentation Copy() const;
@@ -48,7 +48,7 @@ class ViewRepresentationBuilder {
 public:
 	ViewRepresentationBuilder();
 	ViewRepresentationBuilder &SetSqlviewRepresentation(SQLViewRepresentation value);
-	string TryBuild(optional<ViewRepresentation> &result);
+	optional<string> TryBuild(optional<ViewRepresentation> &result);
 	ViewRepresentation Build();
 
 private:

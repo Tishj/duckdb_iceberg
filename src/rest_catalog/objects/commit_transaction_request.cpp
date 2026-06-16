@@ -47,23 +47,26 @@ CommitTransactionRequest CommitTransactionRequestBuilder::Build() {
 	}
 	auto result = CommitTransactionRequest(std::move(*table_changes_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CommitTransactionRequestBuilder::TryBuild(optional<CommitTransactionRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CommitTransactionRequestBuilder::TryBuild(optional<CommitTransactionRequest> &result) {
+	if (!has_table_changes_) {
+		return "CommitTransactionRequest required property 'table-changes' is missing";
 	}
+	auto built = CommitTransactionRequest(std::move(*table_changes_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CommitTransactionRequest::TryFromJSON(yyjson_val *obj, CommitTransactionRequestBuilder &builder) {
+optional<string> CommitTransactionRequest::TryFromJSON(yyjson_val *obj, CommitTransactionRequestBuilder &builder) {
 	try {
 		auto table_changes_val = yyjson_obj_get(obj, "table-changes");
 		if (!table_changes_val) {
@@ -84,7 +87,7 @@ string CommitTransactionRequest::TryFromJSON(yyjson_val *obj, CommitTransactionR
 			}
 			builder.SetTableChanges(std::move(table_changes));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -94,8 +97,8 @@ string CommitTransactionRequest::TryFromJSON(yyjson_val *obj, CommitTransactionR
 CommitTransactionRequest CommitTransactionRequest::FromJSON(yyjson_val *obj) {
 	CommitTransactionRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -104,15 +107,15 @@ CommitTransactionRequest CommitTransactionRequest::Copy() const {
 	return CommitTransactionRequest(*this);
 }
 
-string CommitTransactionRequest::Validate() const {
-	string error;
+optional<string> CommitTransactionRequest::Validate() const {
+	optional<string> error;
 	for (const auto &item : table_changes) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void CommitTransactionRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -79,23 +79,30 @@ OAuthTokenResponse OAuthTokenResponseBuilder::Build() {
 	auto result = OAuthTokenResponse(std::move(*access_token_), std::move(*token_type_), std::move(expires_in_),
 	                                 std::move(issued_token_type_), std::move(refresh_token_), std::move(scope_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string OAuthTokenResponseBuilder::TryBuild(optional<OAuthTokenResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> OAuthTokenResponseBuilder::TryBuild(optional<OAuthTokenResponse> &result) {
+	if (!has_access_token_) {
+		return "OAuthTokenResponse required property 'access_token' is missing";
 	}
+	if (!has_token_type_) {
+		return "OAuthTokenResponse required property 'token_type' is missing";
+	}
+	auto built = OAuthTokenResponse(std::move(*access_token_), std::move(*token_type_), std::move(expires_in_),
+	                                std::move(issued_token_type_), std::move(refresh_token_), std::move(scope_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string OAuthTokenResponse::TryFromJSON(yyjson_val *obj, OAuthTokenResponseBuilder &builder) {
+optional<string> OAuthTokenResponse::TryFromJSON(yyjson_val *obj, OAuthTokenResponseBuilder &builder) {
 	try {
 		auto access_token_val = yyjson_obj_get(obj, "access_token");
 		if (!access_token_val) {
@@ -165,7 +172,7 @@ string OAuthTokenResponse::TryFromJSON(yyjson_val *obj, OAuthTokenResponseBuilde
 			}
 			builder.SetScope(std::move(scope));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -175,8 +182,8 @@ string OAuthTokenResponse::TryFromJSON(yyjson_val *obj, OAuthTokenResponseBuilde
 OAuthTokenResponse OAuthTokenResponse::FromJSON(yyjson_val *obj) {
 	OAuthTokenResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -185,8 +192,8 @@ OAuthTokenResponse OAuthTokenResponse::Copy() const {
 	return OAuthTokenResponse(*this);
 }
 
-string OAuthTokenResponse::Validate() const {
-	string error;
+optional<string> OAuthTokenResponse::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(token_type, "bearer") && !StringUtil::CIEquals(token_type, "mac") &&
 	    !StringUtil::CIEquals(token_type, "N_A")) {
 		return StringUtil::Format("OAuthTokenResponse property 'token_type' must be one of [bearer, mac, N_A], not %s",
@@ -194,11 +201,11 @@ string OAuthTokenResponse::Validate() const {
 	}
 	if (issued_token_type.has_value()) {
 		error = (*issued_token_type).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void OAuthTokenResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

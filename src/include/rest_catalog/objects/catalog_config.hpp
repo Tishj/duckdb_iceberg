@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static CatalogConfig FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CatalogConfigBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CatalogConfig Copy() const;
@@ -54,7 +54,7 @@ public:
 	CatalogConfigBuilder &SetOverrides(case_insensitive_map_t<string> value);
 	CatalogConfigBuilder &SetEndpoints(vector<string> value);
 	CatalogConfigBuilder &SetIdempotencyKeyLifetime(string value);
-	string TryBuild(optional<CatalogConfig> &result);
+	optional<string> TryBuild(optional<CatalogConfig> &result);
 	CatalogConfig Build();
 
 private:

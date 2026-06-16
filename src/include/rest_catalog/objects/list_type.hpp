@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static ListType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ListTypeBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ListType Copy() const;
@@ -55,7 +55,7 @@ public:
 	ListTypeBuilder &SetElementId(int32_t value);
 	ListTypeBuilder &SetElement(unique_ptr<Type> value);
 	ListTypeBuilder &SetElementRequired(bool value);
-	string TryBuild(optional<ListType> &result);
+	optional<string> TryBuild(optional<ListType> &result);
 	ListType Build();
 
 private:

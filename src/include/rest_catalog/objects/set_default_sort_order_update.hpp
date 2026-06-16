@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SetDefaultSortOrderUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SetDefaultSortOrderUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SetDefaultSortOrderUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SetDefaultSortOrderUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	SetDefaultSortOrderUpdateBuilder();
 	SetDefaultSortOrderUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetDefaultSortOrderUpdateBuilder &SetSortOrderId(int32_t value);
-	string TryBuild(optional<SetDefaultSortOrderUpdate> &result);
+	optional<string> TryBuild(optional<SetDefaultSortOrderUpdate> &result);
 	SetDefaultSortOrderUpdate Build();
 
 private:

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static IcebergErrorResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, IcebergErrorResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, IcebergErrorResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	IcebergErrorResponse Copy() const;
@@ -48,7 +48,7 @@ class IcebergErrorResponseBuilder {
 public:
 	IcebergErrorResponseBuilder();
 	IcebergErrorResponseBuilder &SetError(ErrorModel value);
-	string TryBuild(optional<IcebergErrorResponse> &result);
+	optional<string> TryBuild(optional<IcebergErrorResponse> &result);
 	IcebergErrorResponse Build();
 
 private:

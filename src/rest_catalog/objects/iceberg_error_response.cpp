@@ -38,23 +38,26 @@ IcebergErrorResponse IcebergErrorResponseBuilder::Build() {
 	}
 	auto result = IcebergErrorResponse(std::move(*_error_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string IcebergErrorResponseBuilder::TryBuild(optional<IcebergErrorResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> IcebergErrorResponseBuilder::TryBuild(optional<IcebergErrorResponse> &result) {
+	if (!has__error_) {
+		return "IcebergErrorResponse required property 'error' is missing";
 	}
+	auto built = IcebergErrorResponse(std::move(*_error_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, IcebergErrorResponseBuilder &builder) {
+optional<string> IcebergErrorResponse::TryFromJSON(yyjson_val *obj, IcebergErrorResponseBuilder &builder) {
 	try {
 		auto _error_val = yyjson_obj_get(obj, "error");
 		if (!_error_val) {
@@ -62,7 +65,7 @@ string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, IcebergErrorResponseBu
 		} else {
 			builder.SetError(ErrorModel::FromJSON(_error_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -72,8 +75,8 @@ string IcebergErrorResponse::TryFromJSON(yyjson_val *obj, IcebergErrorResponseBu
 IcebergErrorResponse IcebergErrorResponse::FromJSON(yyjson_val *obj) {
 	IcebergErrorResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -82,13 +85,13 @@ IcebergErrorResponse IcebergErrorResponse::Copy() const {
 	return IcebergErrorResponse(*this);
 }
 
-string IcebergErrorResponse::Validate() const {
-	string error;
+optional<string> IcebergErrorResponse::Validate() const {
+	optional<string> error;
 	error = _error.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void IcebergErrorResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

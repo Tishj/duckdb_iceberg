@@ -63,23 +63,29 @@ MetadataLog::Object4 MetadataLog::Object4Builder::Build() {
 	}
 	auto result = MetadataLog::Object4(std::move(*metadata_file_), std::move(*timestamp_ms_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string MetadataLog::Object4Builder::TryBuild(optional<MetadataLog::Object4> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> MetadataLog::Object4Builder::TryBuild(optional<MetadataLog::Object4> &result) {
+	if (!has_metadata_file_) {
+		return "Object4 required property 'metadata-file' is missing";
 	}
+	if (!has_timestamp_ms_) {
+		return "Object4 required property 'timestamp-ms' is missing";
+	}
+	auto built = MetadataLog::Object4(std::move(*metadata_file_), std::move(*timestamp_ms_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string MetadataLog::Object4::TryFromJSON(yyjson_val *obj, Object4Builder &builder) {
+optional<string> MetadataLog::Object4::TryFromJSON(yyjson_val *obj, Object4Builder &builder) {
 	try {
 		auto metadata_file_val = yyjson_obj_get(obj, "metadata-file");
 		if (!metadata_file_val) {
@@ -111,7 +117,7 @@ string MetadataLog::Object4::TryFromJSON(yyjson_val *obj, Object4Builder &builde
 			}
 			builder.SetTimestampMs(std::move(timestamp_ms));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -121,8 +127,8 @@ string MetadataLog::Object4::TryFromJSON(yyjson_val *obj, Object4Builder &builde
 MetadataLog::Object4 MetadataLog::Object4::FromJSON(yyjson_val *obj) {
 	Object4Builder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -131,9 +137,9 @@ MetadataLog::Object4 MetadataLog::Object4::Copy() const {
 	return MetadataLog::Object4(*this);
 }
 
-string MetadataLog::Object4::Validate() const {
-	string error;
-	return "";
+optional<string> MetadataLog::Object4::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void MetadataLog::Object4::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -154,7 +160,7 @@ yyjson_mut_val *MetadataLog::Object4::ToJSON(yyjson_mut_doc *doc) const {
 	return obj;
 }
 
-string MetadataLog::TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result) {
+optional<string> MetadataLog::TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result) {
 	try {
 		vector<Object4> value;
 		if (yyjson_is_arr(obj)) {
@@ -169,7 +175,7 @@ string MetadataLog::TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result) 
 			    "MetadataLog property 'value' is not of type 'array', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(MetadataLog(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -179,8 +185,8 @@ string MetadataLog::TryFromJSON(yyjson_val *obj, optional<MetadataLog> &result) 
 MetadataLog MetadataLog::FromJSON(yyjson_val *obj) {
 	optional<MetadataLog> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -192,15 +198,15 @@ MetadataLog MetadataLog::Copy() const {
 	return MetadataLog(*this);
 }
 
-string MetadataLog::Validate() const {
-	string error;
+optional<string> MetadataLog::Validate() const {
+	optional<string> error;
 	for (const auto &item : value) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *MetadataLog::ToJSON(yyjson_mut_doc *doc) const {

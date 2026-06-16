@@ -49,23 +49,29 @@ RenameTableRequest RenameTableRequestBuilder::Build() {
 	}
 	auto result = RenameTableRequest(std::move(*source_), std::move(*destination_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RenameTableRequestBuilder::TryBuild(optional<RenameTableRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RenameTableRequestBuilder::TryBuild(optional<RenameTableRequest> &result) {
+	if (!has_source_) {
+		return "RenameTableRequest required property 'source' is missing";
 	}
+	if (!has_destination_) {
+		return "RenameTableRequest required property 'destination' is missing";
+	}
+	auto built = RenameTableRequest(std::move(*source_), std::move(*destination_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RenameTableRequest::TryFromJSON(yyjson_val *obj, RenameTableRequestBuilder &builder) {
+optional<string> RenameTableRequest::TryFromJSON(yyjson_val *obj, RenameTableRequestBuilder &builder) {
 	try {
 		auto source_val = yyjson_obj_get(obj, "source");
 		if (!source_val) {
@@ -79,7 +85,7 @@ string RenameTableRequest::TryFromJSON(yyjson_val *obj, RenameTableRequestBuilde
 		} else {
 			builder.SetDestination(TableIdentifier::FromJSON(destination_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -89,8 +95,8 @@ string RenameTableRequest::TryFromJSON(yyjson_val *obj, RenameTableRequestBuilde
 RenameTableRequest RenameTableRequest::FromJSON(yyjson_val *obj) {
 	RenameTableRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -99,17 +105,17 @@ RenameTableRequest RenameTableRequest::Copy() const {
 	return RenameTableRequest(*this);
 }
 
-string RenameTableRequest::Validate() const {
-	string error;
+optional<string> RenameTableRequest::Validate() const {
+	optional<string> error;
 	error = source.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = destination.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RenameTableRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

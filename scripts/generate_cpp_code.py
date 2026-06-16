@@ -958,7 +958,7 @@ class CPPClass:
             lines.append(f'{prefix}error = {access_expression}{dereference_style}Validate();')
             lines.extend(
                 [
-                    f'{prefix}if (!error.empty()) {{',
+                    f'{prefix}if (error) {{',
                     f'{prefix}\treturn error;',
                     f'{prefix}}}',
                 ]
@@ -1009,14 +1009,14 @@ class CPPClass:
         root_schema = self.root_schema()
         lines = [
             '',
-            f'string {qualified_name}::Validate() const {{',
-            '\tstring error;',
+            f'optional<string> {qualified_name}::Validate() const {{',
+            '\toptional<string> error;',
         ]
 
         if root_schema.type == Property.Type.OBJECT:
             for item in self.all_of:
                 lines.append(f'\terror = {item.name}{item.dereference_style}Validate();')
-                lines.extend(['\tif (!error.empty()) {', '\t\treturn error;', '\t}'])
+                lines.extend(['\tif (error) {', '\t\treturn error;', '\t}'])
 
             if self.one_of:
                 lines.append('\tint matched_one_of_variants = 0;')
@@ -1025,7 +1025,7 @@ class CPPClass:
                     lines.append(f'\tif ({presence}) {{')
                     lines.append('\t\tmatched_one_of_variants++;')
                     lines.append(f'\t\terror = {item.name}->Validate();')
-                    lines.extend(['\t\tif (!error.empty()) {', '\t\t\treturn error;', '\t\t}', '\t}'])
+                    lines.extend(['\t\tif (error) {', '\t\t\treturn error;', '\t\t}', '\t}'])
                 lines.append('\tif (matched_one_of_variants != 1) {')
                 lines.append(f'''\t\treturn "{self.name} must have exactly one oneOf variant set";''')
                 lines.append('\t}')
@@ -1036,7 +1036,7 @@ class CPPClass:
                     lines.append(f'\tif ({presence}) {{')
                     lines.append('\t\tmatched_any_of_variants++;')
                     lines.append(f'\t\terror = {item.name}->Validate();')
-                    lines.extend(['\t\tif (!error.empty()) {', '\t\t\treturn error;', '\t\t}', '\t}'])
+                    lines.extend(['\t\tif (error) {', '\t\t\treturn error;', '\t\t}', '\t}'])
                 lines.append('\tif (matched_any_of_variants == 0) {')
                 lines.append(f'''\t\treturn "{self.name} must have at least one anyOf variant set";''')
                 lines.append('\t}')
@@ -1070,7 +1070,7 @@ class CPPClass:
         elif root_schema.type == Property.Type.ARRAY:
             lines.extend(self.generate_validation_lines_for_schema(root_schema, 'value', 'value'))
 
-        lines.extend(['\treturn "";', '}'])
+        lines.extend(['\treturn nullopt;', '}'])
         return lines
 
     def write_builder_header(self) -> List[str]:
@@ -1087,7 +1087,7 @@ class CPPClass:
             lines.append(f'\t{builder_name} &{setter_name}({parameter_type} value);')
         lines.extend(
             [
-                f'\tstring TryBuild(optional<{self.name}> &result);',
+                f'\toptional<string> TryBuild(optional<{self.name}> &result);',
                 f'\t{self.name} Build();',
                 '',
                 'private:',
@@ -1182,23 +1182,34 @@ class CPPClass:
             [
                 f'\tauto result = {qualified_name}({constructor_args});',
                 '\tauto error = result.Validate();',
-                '\tif (!error.empty()) {',
-                '\t\tthrow InvalidInputException(error);',
+                '\tif (error) {',
+                '\t\tthrow InvalidInputException(*error);',
                 '\t}',
                 '\treturn result;',
                 '}',
                 '',
-                f'string {builder_qualified_name}::TryBuild(optional<{qualified_name}> &result) {{',
-                '\ttry {',
-                '\t\tresult.emplace(Build());',
-                '\t\treturn "";',
-                '\t} catch (const Exception &ex) {',
-                '\t\tauto error = ErrorData(ex);',
-                '\t\treturn error.RawMessage();',
+                f'optional<string> {builder_qualified_name}::TryBuild(optional<{qualified_name}> &result) {{',
+                f'\tauto built = {qualified_name}({constructor_args});',
+                '\tauto error = built.Validate();',
+                '\tif (error) {',
+                '\t\treturn error;',
                 '\t}',
+                '\tresult.emplace(std::move(built));',
+                '\treturn nullopt;',
                 '}',
             ]
         )
+        try_build_checks: List[str] = []
+        for prop in self.required_properties.values():
+            try_build_checks.extend(
+                [
+                    f'\tif (!{self.builder_flag_name(prop.variable_name)}) {{',
+                    f'''\t\treturn "{self.name} required property '{prop.property_name}' is missing";''',
+                    '\t}',
+                ]
+            )
+        insert_index = lines.index(f'optional<string> {builder_qualified_name}::TryBuild(optional<{qualified_name}> &result) {{') + 1
+        lines[insert_index:insert_index] = try_build_checks
         return lines
 
     def write_source(self, base_class: List[str]) -> List[str]:
@@ -1222,7 +1233,7 @@ class CPPClass:
 
         # Deserialization method
         if self.is_object_schema():
-            res.extend(['', f'string {qualified_name}::TryFromJSON(yyjson_val *obj, {self.builder_class_name()} &builder) {{'])
+            res.extend(['', f'optional<string> {qualified_name}::TryFromJSON(yyjson_val *obj, {self.builder_class_name()} &builder) {{'])
             res.append('\ttry {')
             res.extend([f'\t\t{x}' for x in self.write_all_of()])
             res.extend([f'\t\t{x}' for x in self.write_one_of()])
@@ -1230,7 +1241,7 @@ class CPPClass:
             res.extend([f'\t\t{x}' for x in self.try_from_json_body])
             res.extend(
                 [
-                    '\t\treturn "";',
+                    '\t\treturn nullopt;',
                     '\t} catch (const Exception &ex) {',
                     '\t\tauto error = ErrorData(ex);',
                     '\t\treturn error.RawMessage();',
@@ -1244,15 +1255,15 @@ class CPPClass:
                     f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{',
                     f'\t{self.builder_class_name()} builder;',
                     '\tauto error = TryFromJSON(obj, builder);',
-                    '\tif (!error.empty()) {',
-                    '\t\tthrow InvalidInputException(error);',
+                    '\tif (error) {',
+                    '\t\tthrow InvalidInputException(*error);',
                     '\t}',
                     '\treturn builder.Build();',
                     '}',
                 ]
             )
         else:
-            res.extend(['', f'string {qualified_name}::TryFromJSON(yyjson_val *obj, optional<{qualified_name}> &result) {{'])
+            res.extend(['', f'optional<string> {qualified_name}::TryFromJSON(yyjson_val *obj, optional<{qualified_name}> &result) {{'])
             res.append('\ttry {')
             root_type = self.generate_variable_type(self.root_schema())
             res.append(f'\t\t{root_type} value;')
@@ -1260,7 +1271,7 @@ class CPPClass:
             res.extend(
                 [
                     f'\t\tresult.emplace({qualified_name}(std::move(value)));',
-                    '\t\treturn "";',
+                    '\t\treturn nullopt;',
                     '\t} catch (const Exception &ex) {',
                     '\t\tauto error = ErrorData(ex);',
                     '\t\treturn error.RawMessage();',
@@ -1274,8 +1285,8 @@ class CPPClass:
                     f'{qualified_name} {qualified_name}::FromJSON(yyjson_val *obj) {{',
                     f'\toptional<{qualified_name}> result;',
                     '\tauto error = TryFromJSON(obj, result);',
-                    '\tif (!error.empty()) {',
-                    '\t\tthrow InvalidInputException(error);',
+                    '\tif (error) {',
+                    '\t\tthrow InvalidInputException(*error);',
                     '\t}',
                     '\tif (!result.has_value()) {',
                     '\t\tthrow InternalException("TryFromJSON succeeded without producing a result");',
@@ -1340,11 +1351,11 @@ class CPPClass:
                 '\t// Deserialization',
                 f'\tstatic {self.name} FromJSON(yyjson_val *obj);',
                 (
-                    f'\tstatic string TryFromJSON(yyjson_val *obj, {self.builder_class_name()} &builder);'
+                    f'\tstatic optional<string> TryFromJSON(yyjson_val *obj, {self.builder_class_name()} &builder);'
                     if self.is_object_schema()
-                    else f'\tstatic string TryFromJSON(yyjson_val *obj, optional<{self.name}> &result);'
+                    else f'\tstatic optional<string> TryFromJSON(yyjson_val *obj, optional<{self.name}> &result);'
                 ),
-                '\tstring Validate() const;',
+                '\toptional<string> Validate() const;',
                 '',
                 '\t// Copy',
                 f'\t{self.name} Copy() const;',

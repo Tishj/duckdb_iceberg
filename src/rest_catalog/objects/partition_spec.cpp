@@ -52,23 +52,26 @@ PartitionSpec PartitionSpecBuilder::Build() {
 	}
 	auto result = PartitionSpec(std::move(*fields_), std::move(spec_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PartitionSpecBuilder::TryBuild(optional<PartitionSpec> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PartitionSpecBuilder::TryBuild(optional<PartitionSpec> &result) {
+	if (!has_fields_) {
+		return "PartitionSpec required property 'fields' is missing";
 	}
+	auto built = PartitionSpec(std::move(*fields_), std::move(spec_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PartitionSpec::TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder) {
+optional<string> PartitionSpec::TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder) {
 	try {
 		auto fields_val = yyjson_obj_get(obj, "fields");
 		if (!fields_val) {
@@ -101,7 +104,7 @@ string PartitionSpec::TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder
 			}
 			builder.SetSpecId(std::move(spec_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -111,8 +114,8 @@ string PartitionSpec::TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder
 PartitionSpec PartitionSpec::FromJSON(yyjson_val *obj) {
 	PartitionSpecBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -121,15 +124,15 @@ PartitionSpec PartitionSpec::Copy() const {
 	return PartitionSpec(*this);
 }
 
-string PartitionSpec::Validate() const {
-	string error;
+optional<string> PartitionSpec::Validate() const {
+	optional<string> error;
 	for (const auto &item : fields) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void PartitionSpec::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

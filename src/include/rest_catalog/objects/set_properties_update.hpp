@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SetPropertiesUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SetPropertiesUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SetPropertiesUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	SetPropertiesUpdateBuilder();
 	SetPropertiesUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	SetPropertiesUpdateBuilder &SetUpdates(case_insensitive_map_t<string> value);
-	string TryBuild(optional<SetPropertiesUpdate> &result);
+	optional<string> TryBuild(optional<SetPropertiesUpdate> &result);
 	SetPropertiesUpdate Build();
 
 private:

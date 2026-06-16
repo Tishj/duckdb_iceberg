@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static SetExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SetExpression Copy() const;
@@ -54,7 +54,7 @@ public:
 	SetExpressionBuilder &SetType(ExpressionType value);
 	SetExpressionBuilder &SetTerm(Term value);
 	SetExpressionBuilder &SetValues(vector<PrimitiveTypeValue> value);
-	string TryBuild(optional<SetExpression> &result);
+	optional<string> TryBuild(optional<SetExpression> &result);
 	SetExpression Build();
 
 private:

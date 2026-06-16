@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static PlanTask FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<PlanTask> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<PlanTask> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	PlanTask Copy() const;

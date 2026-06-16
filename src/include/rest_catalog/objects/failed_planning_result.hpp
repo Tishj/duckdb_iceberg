@@ -39,8 +39,8 @@ public:
 	public:
 		// Deserialization
 		static Object7 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object7Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object7Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object7 Copy() const;
@@ -57,7 +57,7 @@ public:
 	public:
 		Object7Builder();
 		Object7Builder &SetStatus(PlanStatus value);
-		string TryBuild(optional<Object7> &result);
+		optional<string> TryBuild(optional<Object7> &result);
 		Object7 Build();
 
 	private:
@@ -72,8 +72,8 @@ private:
 public:
 	// Deserialization
 	static FailedPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, FailedPlanningResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, FailedPlanningResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	FailedPlanningResult Copy() const;
@@ -92,7 +92,7 @@ public:
 	FailedPlanningResultBuilder();
 	FailedPlanningResultBuilder &SetIcebergErrorResponse(IcebergErrorResponse value);
 	FailedPlanningResultBuilder &SetObject7(FailedPlanningResult::Object7 value);
-	string TryBuild(optional<FailedPlanningResult> &result);
+	optional<string> TryBuild(optional<FailedPlanningResult> &result);
 	FailedPlanningResult Build();
 
 private:

@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static DecimalTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	DecimalTypeValue Copy() const;

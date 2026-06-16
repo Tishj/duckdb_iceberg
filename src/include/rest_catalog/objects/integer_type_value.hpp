@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static IntegerTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<IntegerTypeValue> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<IntegerTypeValue> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	IntegerTypeValue Copy() const;

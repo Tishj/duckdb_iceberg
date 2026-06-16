@@ -53,23 +53,24 @@ PositionDeleteFile PositionDeleteFileBuilder::Build() {
 	auto result =
 	    PositionDeleteFile(std::move(*content_file_), std::move(content_offset_), std::move(content_size_in_bytes_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PositionDeleteFileBuilder::TryBuild(optional<PositionDeleteFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PositionDeleteFileBuilder::TryBuild(optional<PositionDeleteFile> &result) {
+	auto built =
+	    PositionDeleteFile(std::move(*content_file_), std::move(content_offset_), std::move(content_size_in_bytes_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PositionDeleteFile::TryFromJSON(yyjson_val *obj, PositionDeleteFileBuilder &builder) {
+optional<string> PositionDeleteFile::TryFromJSON(yyjson_val *obj, PositionDeleteFileBuilder &builder) {
 	try {
 		builder.SetContentFile(ContentFile::FromJSON(obj));
 		auto content_offset_val = yyjson_obj_get(obj, "content-offset");
@@ -100,7 +101,7 @@ string PositionDeleteFile::TryFromJSON(yyjson_val *obj, PositionDeleteFileBuilde
 			}
 			builder.SetContentSizeInBytes(std::move(content_size_in_bytes));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -110,8 +111,8 @@ string PositionDeleteFile::TryFromJSON(yyjson_val *obj, PositionDeleteFileBuilde
 PositionDeleteFile PositionDeleteFile::FromJSON(yyjson_val *obj) {
 	PositionDeleteFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -120,13 +121,13 @@ PositionDeleteFile PositionDeleteFile::Copy() const {
 	return PositionDeleteFile(*this);
 }
 
-string PositionDeleteFile::Validate() const {
-	string error;
+optional<string> PositionDeleteFile::Validate() const {
+	optional<string> error;
 	error = content_file.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void PositionDeleteFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

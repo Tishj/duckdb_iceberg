@@ -52,23 +52,26 @@ RemoveSnapshotsUpdate RemoveSnapshotsUpdateBuilder::Build() {
 	}
 	auto result = RemoveSnapshotsUpdate(std::move(*base_update_), std::move(*snapshot_ids_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemoveSnapshotsUpdateBuilder::TryBuild(optional<RemoveSnapshotsUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemoveSnapshotsUpdateBuilder::TryBuild(optional<RemoveSnapshotsUpdate> &result) {
+	if (!has_snapshot_ids_) {
+		return "RemoveSnapshotsUpdate required property 'snapshot-ids' is missing";
 	}
+	auto built = RemoveSnapshotsUpdate(std::move(*base_update_), std::move(*snapshot_ids_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotsUpdateBuilder &builder) {
+optional<string> RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotsUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto snapshot_ids_val = yyjson_obj_get(obj, "snapshot-ids");
@@ -99,7 +102,7 @@ string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotsUpdate
 			}
 			builder.SetSnapshotIds(std::move(snapshot_ids));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -109,8 +112,8 @@ string RemoveSnapshotsUpdate::TryFromJSON(yyjson_val *obj, RemoveSnapshotsUpdate
 RemoveSnapshotsUpdate RemoveSnapshotsUpdate::FromJSON(yyjson_val *obj) {
 	RemoveSnapshotsUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -119,13 +122,13 @@ RemoveSnapshotsUpdate RemoveSnapshotsUpdate::Copy() const {
 	return RemoveSnapshotsUpdate(*this);
 }
 
-string RemoveSnapshotsUpdate::Validate() const {
-	string error;
+optional<string> RemoveSnapshotsUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemoveSnapshotsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

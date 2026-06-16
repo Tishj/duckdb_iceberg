@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static SortField FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SortFieldBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SortField Copy() const;
@@ -56,7 +56,7 @@ public:
 	SortFieldBuilder &SetTransform(Transform value);
 	SortFieldBuilder &SetDirection(SortDirection value);
 	SortFieldBuilder &SetNullOrder(NullOrder value);
-	string TryBuild(optional<SortField> &result);
+	optional<string> TryBuild(optional<SortField> &result);
 	SortField Build();
 
 private:

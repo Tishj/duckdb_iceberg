@@ -45,23 +45,26 @@ SetDefaultSpecUpdate SetDefaultSpecUpdateBuilder::Build() {
 	}
 	auto result = SetDefaultSpecUpdate(std::move(*base_update_), std::move(*spec_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetDefaultSpecUpdateBuilder::TryBuild(optional<SetDefaultSpecUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetDefaultSpecUpdateBuilder::TryBuild(optional<SetDefaultSpecUpdate> &result) {
+	if (!has_spec_id_) {
+		return "SetDefaultSpecUpdate required property 'spec-id' is missing";
 	}
+	auto built = SetDefaultSpecUpdate(std::move(*base_update_), std::move(*spec_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBuilder &builder) {
+optional<string> SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto spec_id_val = yyjson_obj_get(obj, "spec-id");
@@ -78,7 +81,7 @@ string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBu
 			}
 			builder.SetSpecId(std::move(spec_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string SetDefaultSpecUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSpecUpdateBu
 SetDefaultSpecUpdate SetDefaultSpecUpdate::FromJSON(yyjson_val *obj) {
 	SetDefaultSpecUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ SetDefaultSpecUpdate SetDefaultSpecUpdate::Copy() const {
 	return SetDefaultSpecUpdate(*this);
 }
 
-string SetDefaultSpecUpdate::Validate() const {
-	string error;
+optional<string> SetDefaultSpecUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetDefaultSpecUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

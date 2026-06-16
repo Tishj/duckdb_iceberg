@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static OAuthTokenRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, OAuthTokenRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	OAuthTokenRequest Copy() const;
@@ -52,7 +52,7 @@ public:
 	OAuthTokenRequestBuilder();
 	OAuthTokenRequestBuilder &SetOauthClientCredentialsRequest(OAuthClientCredentialsRequest value);
 	OAuthTokenRequestBuilder &SetOauthTokenExchangeRequest(OAuthTokenExchangeRequest value);
-	string TryBuild(optional<OAuthTokenRequest> &result);
+	optional<string> TryBuild(optional<OAuthTokenRequest> &result);
 	OAuthTokenRequest Build();
 
 private:

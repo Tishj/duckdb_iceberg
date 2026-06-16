@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static LiteralExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, LiteralExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	LiteralExpression Copy() const;
@@ -53,7 +53,7 @@ public:
 	LiteralExpressionBuilder &SetType(ExpressionType value);
 	LiteralExpressionBuilder &SetTerm(Term value);
 	LiteralExpressionBuilder &SetValue(PrimitiveTypeValue value);
-	string TryBuild(optional<LiteralExpression> &result);
+	optional<string> TryBuild(optional<LiteralExpression> &result);
 	LiteralExpression Build();
 
 private:

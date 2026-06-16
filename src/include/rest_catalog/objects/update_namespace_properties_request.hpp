@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static UpdateNamespacePropertiesRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, UpdateNamespacePropertiesRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, UpdateNamespacePropertiesRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	UpdateNamespacePropertiesRequest Copy() const;
@@ -50,7 +50,7 @@ public:
 	UpdateNamespacePropertiesRequestBuilder();
 	UpdateNamespacePropertiesRequestBuilder &SetRemovals(vector<string> value);
 	UpdateNamespacePropertiesRequestBuilder &SetUpdates(case_insensitive_map_t<string> value);
-	string TryBuild(optional<UpdateNamespacePropertiesRequest> &result);
+	optional<string> TryBuild(optional<UpdateNamespacePropertiesRequest> &result);
 	UpdateNamespacePropertiesRequest Build();
 
 private:

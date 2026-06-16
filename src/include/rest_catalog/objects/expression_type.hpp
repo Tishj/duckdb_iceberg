@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static ExpressionType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	ExpressionType Copy() const;

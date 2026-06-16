@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SortOrder FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SortOrderBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SortOrder Copy() const;
@@ -50,7 +50,7 @@ public:
 	SortOrderBuilder();
 	SortOrderBuilder &SetOrderId(int32_t value);
 	SortOrderBuilder &SetFields(vector<SortField> value);
-	string TryBuild(optional<SortOrder> &result);
+	optional<string> TryBuild(optional<SortOrder> &result);
 	SortOrder Build();
 
 private:

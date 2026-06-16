@@ -78,23 +78,27 @@ LoadTableResult LoadTableResultBuilder::Build() {
 	auto result = LoadTableResult(std::move(*metadata_), std::move(metadata_location_), std::move(config_),
 	                              std::move(storage_credentials_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string LoadTableResultBuilder::TryBuild(optional<LoadTableResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> LoadTableResultBuilder::TryBuild(optional<LoadTableResult> &result) {
+	if (!has_metadata_) {
+		return "LoadTableResult required property 'metadata' is missing";
 	}
+	auto built = LoadTableResult(std::move(*metadata_), std::move(metadata_location_), std::move(config_),
+	                             std::move(storage_credentials_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string LoadTableResult::TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &builder) {
+optional<string> LoadTableResult::TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &builder) {
 	try {
 		auto metadata_val = yyjson_obj_get(obj, "metadata");
 		if (!metadata_val) {
@@ -158,7 +162,7 @@ string LoadTableResult::TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &bui
 			}
 			builder.SetStorageCredentials(std::move(storage_credentials));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -168,8 +172,8 @@ string LoadTableResult::TryFromJSON(yyjson_val *obj, LoadTableResultBuilder &bui
 LoadTableResult LoadTableResult::FromJSON(yyjson_val *obj) {
 	LoadTableResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -178,21 +182,21 @@ LoadTableResult LoadTableResult::Copy() const {
 	return LoadTableResult(*this);
 }
 
-string LoadTableResult::Validate() const {
-	string error;
+optional<string> LoadTableResult::Validate() const {
+	optional<string> error;
 	error = metadata.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (storage_credentials.has_value()) {
 		for (const auto &item : (*storage_credentials)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void LoadTableResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

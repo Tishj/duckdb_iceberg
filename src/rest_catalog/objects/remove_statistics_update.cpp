@@ -45,23 +45,26 @@ RemoveStatisticsUpdate RemoveStatisticsUpdateBuilder::Build() {
 	}
 	auto result = RemoveStatisticsUpdate(std::move(*base_update_), std::move(*snapshot_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemoveStatisticsUpdateBuilder::TryBuild(optional<RemoveStatisticsUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemoveStatisticsUpdateBuilder::TryBuild(optional<RemoveStatisticsUpdate> &result) {
+	if (!has_snapshot_id_) {
+		return "RemoveStatisticsUpdate required property 'snapshot-id' is missing";
 	}
+	auto built = RemoveStatisticsUpdate(std::move(*base_update_), std::move(*snapshot_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveStatisticsUpdateBuilder &builder) {
+optional<string> RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveStatisticsUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
@@ -80,7 +83,7 @@ string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveStatisticsUpda
 			}
 			builder.SetSnapshotId(std::move(snapshot_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -90,8 +93,8 @@ string RemoveStatisticsUpdate::TryFromJSON(yyjson_val *obj, RemoveStatisticsUpda
 RemoveStatisticsUpdate RemoveStatisticsUpdate::FromJSON(yyjson_val *obj) {
 	RemoveStatisticsUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -100,13 +103,13 @@ RemoveStatisticsUpdate RemoveStatisticsUpdate::Copy() const {
 	return RemoveStatisticsUpdate(*this);
 }
 
-string RemoveStatisticsUpdate::Validate() const {
-	string error;
+optional<string> RemoveStatisticsUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemoveStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

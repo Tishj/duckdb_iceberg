@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static CommitViewRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CommitViewRequest Copy() const;
@@ -55,7 +55,7 @@ public:
 	CommitViewRequestBuilder &SetUpdates(vector<ViewUpdate> value);
 	CommitViewRequestBuilder &SetIdentifier(TableIdentifier value);
 	CommitViewRequestBuilder &SetRequirements(vector<ViewRequirement> value);
-	string TryBuild(optional<CommitViewRequest> &result);
+	optional<string> TryBuild(optional<CommitViewRequest> &result);
 	CommitViewRequest Build();
 
 private:

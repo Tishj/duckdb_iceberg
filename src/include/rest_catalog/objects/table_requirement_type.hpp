@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static TableRequirementType FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<TableRequirementType> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	TableRequirementType Copy() const;

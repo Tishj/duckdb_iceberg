@@ -131,23 +131,46 @@ ScanReport ScanReportBuilder::Build() {
 	                         std::move(*schema_id_), std::move(*projected_field_ids_),
 	                         std::move(*projected_field_names_), std::move(*metrics_), std::move(metadata_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ScanReportBuilder::TryBuild(optional<ScanReport> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ScanReportBuilder::TryBuild(optional<ScanReport> &result) {
+	if (!has_table_name_) {
+		return "ScanReport required property 'table-name' is missing";
 	}
+	if (!has_snapshot_id_) {
+		return "ScanReport required property 'snapshot-id' is missing";
+	}
+	if (!has_filter_) {
+		return "ScanReport required property 'filter' is missing";
+	}
+	if (!has_schema_id_) {
+		return "ScanReport required property 'schema-id' is missing";
+	}
+	if (!has_projected_field_ids_) {
+		return "ScanReport required property 'projected-field-ids' is missing";
+	}
+	if (!has_projected_field_names_) {
+		return "ScanReport required property 'projected-field-names' is missing";
+	}
+	if (!has_metrics_) {
+		return "ScanReport required property 'metrics' is missing";
+	}
+	auto built = ScanReport(std::move(*table_name_), std::move(*snapshot_id_), std::move(filter_),
+	                        std::move(*schema_id_), std::move(*projected_field_ids_),
+	                        std::move(*projected_field_names_), std::move(*metrics_), std::move(metadata_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ScanReport::TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder) {
+optional<string> ScanReport::TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder) {
 	try {
 		auto table_name_val = yyjson_obj_get(obj, "table-name");
 		if (!table_name_val) {
@@ -282,7 +305,7 @@ string ScanReport::TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder) {
 			}
 			builder.SetMetadata(std::move(metadata));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -292,8 +315,8 @@ string ScanReport::TryFromJSON(yyjson_val *obj, ScanReportBuilder &builder) {
 ScanReport ScanReport::FromJSON(yyjson_val *obj) {
 	ScanReportBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -302,17 +325,17 @@ ScanReport ScanReport::Copy() const {
 	return ScanReport(*this);
 }
 
-string ScanReport::Validate() const {
-	string error;
+optional<string> ScanReport::Validate() const {
+	optional<string> error;
 	error = filter->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = metrics.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void ScanReport::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

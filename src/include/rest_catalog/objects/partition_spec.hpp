@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static PartitionSpec FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, PartitionSpecBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	PartitionSpec Copy() const;
@@ -50,7 +50,7 @@ public:
 	PartitionSpecBuilder();
 	PartitionSpecBuilder &SetFields(vector<PartitionField> value);
 	PartitionSpecBuilder &SetSpecId(int32_t value);
-	string TryBuild(optional<PartitionSpec> &result);
+	optional<string> TryBuild(optional<PartitionSpec> &result);
 	PartitionSpec Build();
 
 private:

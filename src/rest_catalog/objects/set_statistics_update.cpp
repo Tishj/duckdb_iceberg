@@ -53,23 +53,26 @@ SetStatisticsUpdate SetStatisticsUpdateBuilder::Build() {
 	}
 	auto result = SetStatisticsUpdate(std::move(*base_update_), std::move(*statistics_), std::move(snapshot_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetStatisticsUpdateBuilder::TryBuild(optional<SetStatisticsUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetStatisticsUpdateBuilder::TryBuild(optional<SetStatisticsUpdate> &result) {
+	if (!has_statistics_) {
+		return "SetStatisticsUpdate required property 'statistics' is missing";
 	}
+	auto built = SetStatisticsUpdate(std::move(*base_update_), std::move(*statistics_), std::move(snapshot_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetStatisticsUpdateBuilder &builder) {
+optional<string> SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetStatisticsUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto statistics_val = yyjson_obj_get(obj, "statistics");
@@ -92,7 +95,7 @@ string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetStatisticsUpdateBuil
 			}
 			builder.SetSnapshotId(std::move(snapshot_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -102,8 +105,8 @@ string SetStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetStatisticsUpdateBuil
 SetStatisticsUpdate SetStatisticsUpdate::FromJSON(yyjson_val *obj) {
 	SetStatisticsUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -112,17 +115,17 @@ SetStatisticsUpdate SetStatisticsUpdate::Copy() const {
 	return SetStatisticsUpdate(*this);
 }
 
-string SetStatisticsUpdate::Validate() const {
-	string error;
+optional<string> SetStatisticsUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = statistics.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

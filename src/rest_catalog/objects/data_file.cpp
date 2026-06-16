@@ -91,23 +91,25 @@ DataFile DataFileBuilder::Build() {
 	                       std::move(value_counts_), std::move(null_value_counts_), std::move(nan_value_counts_),
 	                       std::move(lower_bounds_), std::move(upper_bounds_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string DataFileBuilder::TryBuild(optional<DataFile> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> DataFileBuilder::TryBuild(optional<DataFile> &result) {
+	auto built = DataFile(std::move(*content_file_), std::move(first_row_id_), std::move(column_sizes_),
+	                      std::move(value_counts_), std::move(null_value_counts_), std::move(nan_value_counts_),
+	                      std::move(lower_bounds_), std::move(upper_bounds_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string DataFile::TryFromJSON(yyjson_val *obj, DataFileBuilder &builder) {
+optional<string> DataFile::TryFromJSON(yyjson_val *obj, DataFileBuilder &builder) {
 	try {
 		builder.SetContentFile(ContentFile::FromJSON(obj));
 		auto first_row_id_val = yyjson_obj_get(obj, "first-row-id");
@@ -148,7 +150,7 @@ string DataFile::TryFromJSON(yyjson_val *obj, DataFileBuilder &builder) {
 		if (upper_bounds_val) {
 			builder.SetUpperBounds(ValueMap::FromJSON(upper_bounds_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -158,8 +160,8 @@ string DataFile::TryFromJSON(yyjson_val *obj, DataFileBuilder &builder) {
 DataFile DataFile::FromJSON(yyjson_val *obj) {
 	DataFileBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -168,49 +170,49 @@ DataFile DataFile::Copy() const {
 	return DataFile(*this);
 }
 
-string DataFile::Validate() const {
-	string error;
+optional<string> DataFile::Validate() const {
+	optional<string> error;
 	error = content_file.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (column_sizes.has_value()) {
 		error = (*column_sizes).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (value_counts.has_value()) {
 		error = (*value_counts).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (null_value_counts.has_value()) {
 		error = (*null_value_counts).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (nan_value_counts.has_value()) {
 		error = (*nan_value_counts).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (lower_bounds.has_value()) {
 		error = (*lower_bounds).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (upper_bounds.has_value()) {
 		error = (*upper_bounds).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void DataFile::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

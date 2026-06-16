@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static OAuthTokenResponse FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, OAuthTokenResponseBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, OAuthTokenResponseBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	OAuthTokenResponse Copy() const;
@@ -60,7 +60,7 @@ public:
 	OAuthTokenResponseBuilder &SetIssuedTokenType(TokenType value);
 	OAuthTokenResponseBuilder &SetRefreshToken(string value);
 	OAuthTokenResponseBuilder &SetScope(string value);
-	string TryBuild(optional<OAuthTokenResponse> &result);
+	optional<string> TryBuild(optional<OAuthTokenResponse> &result);
 	OAuthTokenResponse Build();
 
 private:

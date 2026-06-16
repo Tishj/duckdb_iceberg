@@ -56,23 +56,23 @@ Schema::Object1Builder &Schema::Object1Builder::SetIdentifierFieldIds(vector<int
 Schema::Object1 Schema::Object1Builder::Build() {
 	auto result = Schema::Object1(std::move(schema_id_), std::move(identifier_field_ids_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string Schema::Object1Builder::TryBuild(optional<Schema::Object1> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> Schema::Object1Builder::TryBuild(optional<Schema::Object1> &result) {
+	auto built = Schema::Object1(std::move(schema_id_), std::move(identifier_field_ids_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Schema::Object1::TryFromJSON(yyjson_val *obj, Object1Builder &builder) {
+optional<string> Schema::Object1::TryFromJSON(yyjson_val *obj, Object1Builder &builder) {
 	try {
 		auto schema_id_val = yyjson_obj_get(obj, "schema-id");
 		if (schema_id_val) {
@@ -110,7 +110,7 @@ string Schema::Object1::TryFromJSON(yyjson_val *obj, Object1Builder &builder) {
 			}
 			builder.SetIdentifierFieldIds(std::move(identifier_field_ids));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -120,8 +120,8 @@ string Schema::Object1::TryFromJSON(yyjson_val *obj, Object1Builder &builder) {
 Schema::Object1 Schema::Object1::FromJSON(yyjson_val *obj) {
 	Object1Builder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -130,9 +130,9 @@ Schema::Object1 Schema::Object1::Copy() const {
 	return Schema::Object1(*this);
 }
 
-string Schema::Object1::Validate() const {
-	string error;
-	return "";
+optional<string> Schema::Object1::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void Schema::Object1::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -180,27 +180,27 @@ SchemaBuilder &SchemaBuilder::SetObject1(Schema::Object1 value) {
 Schema SchemaBuilder::Build() {
 	auto result = Schema(std::move(*struct_type_), std::move(*object_1_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SchemaBuilder::TryBuild(optional<Schema> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SchemaBuilder::TryBuild(optional<Schema> &result) {
+	auto built = Schema(std::move(*struct_type_), std::move(*object_1_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Schema::TryFromJSON(yyjson_val *obj, SchemaBuilder &builder) {
+optional<string> Schema::TryFromJSON(yyjson_val *obj, SchemaBuilder &builder) {
 	try {
 		builder.SetStructType(StructType::FromJSON(obj));
 		builder.SetObject1(Object1::FromJSON(obj));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -210,8 +210,8 @@ string Schema::TryFromJSON(yyjson_val *obj, SchemaBuilder &builder) {
 Schema Schema::FromJSON(yyjson_val *obj) {
 	SchemaBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -220,17 +220,17 @@ Schema Schema::Copy() const {
 	return Schema(*this);
 }
 
-string Schema::Validate() const {
-	string error;
+optional<string> Schema::Validate() const {
+	optional<string> error;
 	error = struct_type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = object_1.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void Schema::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

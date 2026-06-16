@@ -52,23 +52,23 @@ ListNamespacesResponseBuilder &ListNamespacesResponseBuilder::SetNamespaces(vect
 ListNamespacesResponse ListNamespacesResponseBuilder::Build() {
 	auto result = ListNamespacesResponse(std::move(next_page_token_), std::move(namespaces_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ListNamespacesResponseBuilder::TryBuild(optional<ListNamespacesResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ListNamespacesResponseBuilder::TryBuild(optional<ListNamespacesResponse> &result) {
+	auto built = ListNamespacesResponse(std::move(next_page_token_), std::move(namespaces_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ListNamespacesResponse::TryFromJSON(yyjson_val *obj, ListNamespacesResponseBuilder &builder) {
+optional<string> ListNamespacesResponse::TryFromJSON(yyjson_val *obj, ListNamespacesResponseBuilder &builder) {
 	try {
 		auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
 		if (next_page_token_val) {
@@ -91,7 +91,7 @@ string ListNamespacesResponse::TryFromJSON(yyjson_val *obj, ListNamespacesRespon
 			}
 			builder.SetNamespaces(std::move(namespaces));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -101,8 +101,8 @@ string ListNamespacesResponse::TryFromJSON(yyjson_val *obj, ListNamespacesRespon
 ListNamespacesResponse ListNamespacesResponse::FromJSON(yyjson_val *obj) {
 	ListNamespacesResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -111,23 +111,23 @@ ListNamespacesResponse ListNamespacesResponse::Copy() const {
 	return ListNamespacesResponse(*this);
 }
 
-string ListNamespacesResponse::Validate() const {
-	string error;
+optional<string> ListNamespacesResponse::Validate() const {
+	optional<string> error;
 	if (next_page_token.has_value()) {
 		error = (*next_page_token).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (namespaces.has_value()) {
 		for (const auto &item : (*namespaces)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void ListNamespacesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

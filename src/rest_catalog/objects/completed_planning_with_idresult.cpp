@@ -49,24 +49,27 @@ CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6Bui
 	}
 	auto result = CompletedPlanningWithIDResult::Object6(std::move(*plan_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string
+optional<string>
 CompletedPlanningWithIDResult::Object6Builder::TryBuild(optional<CompletedPlanningWithIDResult::Object6> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+	if (!has_plan_id_) {
+		return "Object6 required property 'plan-id' is missing";
 	}
+	auto built = CompletedPlanningWithIDResult::Object6(std::move(*plan_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj, Object6Builder &builder) {
+optional<string> CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj, Object6Builder &builder) {
 	try {
 		auto plan_id_val = yyjson_obj_get(obj, "plan-id");
 		if (!plan_id_val) {
@@ -82,7 +85,7 @@ string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj, Obje
 			}
 			builder.SetPlanId(std::move(plan_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -92,8 +95,8 @@ string CompletedPlanningWithIDResult::Object6::TryFromJSON(yyjson_val *obj, Obje
 CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::FromJSON(yyjson_val *obj) {
 	Object6Builder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -102,9 +105,9 @@ CompletedPlanningWithIDResult::Object6 CompletedPlanningWithIDResult::Object6::C
 	return CompletedPlanningWithIDResult::Object6(*this);
 }
 
-string CompletedPlanningWithIDResult::Object6::Validate() const {
-	string error;
-	return "";
+optional<string> CompletedPlanningWithIDResult::Object6::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void CompletedPlanningWithIDResult::Object6::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
@@ -140,27 +143,28 @@ CompletedPlanningWithIDResultBuilder::SetObject6(CompletedPlanningWithIDResult::
 CompletedPlanningWithIDResult CompletedPlanningWithIDResultBuilder::Build() {
 	auto result = CompletedPlanningWithIDResult(std::move(*completed_planning_result_), std::move(*object_6_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CompletedPlanningWithIDResultBuilder::TryBuild(optional<CompletedPlanningWithIDResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CompletedPlanningWithIDResultBuilder::TryBuild(optional<CompletedPlanningWithIDResult> &result) {
+	auto built = CompletedPlanningWithIDResult(std::move(*completed_planning_result_), std::move(*object_6_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj, CompletedPlanningWithIDResultBuilder &builder) {
+optional<string> CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj,
+                                                            CompletedPlanningWithIDResultBuilder &builder) {
 	try {
 		builder.SetCompletedPlanningResult(CompletedPlanningResult::FromJSON(obj));
 		builder.SetObject6(Object6::FromJSON(obj));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -170,8 +174,8 @@ string CompletedPlanningWithIDResult::TryFromJSON(yyjson_val *obj, CompletedPlan
 CompletedPlanningWithIDResult CompletedPlanningWithIDResult::FromJSON(yyjson_val *obj) {
 	CompletedPlanningWithIDResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -180,17 +184,17 @@ CompletedPlanningWithIDResult CompletedPlanningWithIDResult::Copy() const {
 	return CompletedPlanningWithIDResult(*this);
 }
 
-string CompletedPlanningWithIDResult::Validate() const {
-	string error;
+optional<string> CompletedPlanningWithIDResult::Validate() const {
+	optional<string> error;
 	error = completed_planning_result.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = object_6.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CompletedPlanningWithIDResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

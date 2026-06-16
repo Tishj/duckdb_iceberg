@@ -22,7 +22,7 @@ FixedTypeValue::FixedTypeValue(const FixedTypeValue &other) : value(other.value)
 FixedTypeValue::FixedTypeValue(FixedTypeValue &&other) : FixedTypeValue(static_cast<const FixedTypeValue &>(other)) {
 }
 
-string FixedTypeValue::TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &result) {
+optional<string> FixedTypeValue::TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -33,7 +33,7 @@ string FixedTypeValue::TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &re
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(FixedTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string FixedTypeValue::TryFromJSON(yyjson_val *obj, optional<FixedTypeValue> &re
 FixedTypeValue FixedTypeValue::FromJSON(yyjson_val *obj) {
 	optional<FixedTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,9 +56,9 @@ FixedTypeValue FixedTypeValue::Copy() const {
 	return FixedTypeValue(*this);
 }
 
-string FixedTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> FixedTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *FixedTypeValue::ToJSON(yyjson_mut_doc *doc) const {

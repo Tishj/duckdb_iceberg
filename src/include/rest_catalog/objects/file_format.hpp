@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static FileFormat FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<FileFormat> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<FileFormat> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	FileFormat Copy() const;

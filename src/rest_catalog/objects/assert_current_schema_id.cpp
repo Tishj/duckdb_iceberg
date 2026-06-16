@@ -49,23 +49,29 @@ AssertCurrentSchemaId AssertCurrentSchemaIdBuilder::Build() {
 	}
 	auto result = AssertCurrentSchemaId(std::move(*type_), std::move(*current_schema_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertCurrentSchemaIdBuilder::TryBuild(optional<AssertCurrentSchemaId> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertCurrentSchemaIdBuilder::TryBuild(optional<AssertCurrentSchemaId> &result) {
+	if (!has_type_) {
+		return "AssertCurrentSchemaId required property 'type' is missing";
 	}
+	if (!has_current_schema_id_) {
+		return "AssertCurrentSchemaId required property 'current-schema-id' is missing";
+	}
+	auto built = AssertCurrentSchemaId(std::move(*type_), std::move(*current_schema_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, AssertCurrentSchemaIdBuilder &builder) {
+optional<string> AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, AssertCurrentSchemaIdBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -87,7 +93,7 @@ string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, AssertCurrentSchemaId
 			}
 			builder.SetCurrentSchemaId(std::move(current_schema_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -97,8 +103,8 @@ string AssertCurrentSchemaId::TryFromJSON(yyjson_val *obj, AssertCurrentSchemaId
 AssertCurrentSchemaId AssertCurrentSchemaId::FromJSON(yyjson_val *obj) {
 	AssertCurrentSchemaIdBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -107,17 +113,17 @@ AssertCurrentSchemaId AssertCurrentSchemaId::Copy() const {
 	return AssertCurrentSchemaId(*this);
 }
 
-string AssertCurrentSchemaId::Validate() const {
-	string error;
+optional<string> AssertCurrentSchemaId::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "assert-current-schema-id")) {
 		return StringUtil::Format("AssertCurrentSchemaId property 'type' must be assert-current-schema-id, not %s",
 		                          type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertCurrentSchemaId::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

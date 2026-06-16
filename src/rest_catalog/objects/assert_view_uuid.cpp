@@ -46,23 +46,29 @@ AssertViewUUID AssertViewUUIDBuilder::Build() {
 	}
 	auto result = AssertViewUUID(std::move(*type_), std::move(*uuid_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssertViewUUIDBuilder::TryBuild(optional<AssertViewUUID> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssertViewUUIDBuilder::TryBuild(optional<AssertViewUUID> &result) {
+	if (!has_type_) {
+		return "AssertViewUUID required property 'type' is missing";
 	}
+	if (!has_uuid_) {
+		return "AssertViewUUID required property 'uuid' is missing";
+	}
+	auto built = AssertViewUUID(std::move(*type_), std::move(*uuid_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssertViewUUID::TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &builder) {
+optional<string> AssertViewUUID::TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -92,7 +98,7 @@ string AssertViewUUID::TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &build
 			}
 			builder.SetUuid(std::move(uuid));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -102,8 +108,8 @@ string AssertViewUUID::TryFromJSON(yyjson_val *obj, AssertViewUUIDBuilder &build
 AssertViewUUID AssertViewUUID::FromJSON(yyjson_val *obj) {
 	AssertViewUUIDBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -112,12 +118,12 @@ AssertViewUUID AssertViewUUID::Copy() const {
 	return AssertViewUUID(*this);
 }
 
-string AssertViewUUID::Validate() const {
-	string error;
+optional<string> AssertViewUUID::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(type, "assert-view-uuid")) {
 		return StringUtil::Format("AssertViewUUID property 'type' must be assert-view-uuid, not %s", type);
 	}
-	return "";
+	return nullopt;
 }
 
 void AssertViewUUID::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

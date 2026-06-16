@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertCurrentSchemaId FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertCurrentSchemaIdBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertCurrentSchemaIdBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertCurrentSchemaId Copy() const;
@@ -50,7 +50,7 @@ public:
 	AssertCurrentSchemaIdBuilder();
 	AssertCurrentSchemaIdBuilder &SetType(TableRequirementType value);
 	AssertCurrentSchemaIdBuilder &SetCurrentSchemaId(int32_t value);
-	string TryBuild(optional<AssertCurrentSchemaId> &result);
+	optional<string> TryBuild(optional<AssertCurrentSchemaId> &result);
 	AssertCurrentSchemaId Build();
 
 private:

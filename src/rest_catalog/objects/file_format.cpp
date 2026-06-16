@@ -22,7 +22,7 @@ FileFormat::FileFormat(const FileFormat &other) : value(other.value) {
 FileFormat::FileFormat(FileFormat &&other) : FileFormat(static_cast<const FileFormat &>(other)) {
 }
 
-string FileFormat::TryFromJSON(yyjson_val *obj, optional<FileFormat> &result) {
+optional<string> FileFormat::TryFromJSON(yyjson_val *obj, optional<FileFormat> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string FileFormat::TryFromJSON(yyjson_val *obj, optional<FileFormat> &result) {
 			    "FileFormat property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(FileFormat(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string FileFormat::TryFromJSON(yyjson_val *obj, optional<FileFormat> &result) {
 FileFormat FileFormat::FromJSON(yyjson_val *obj) {
 	optional<FileFormat> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,14 +55,14 @@ FileFormat FileFormat::Copy() const {
 	return FileFormat(*this);
 }
 
-string FileFormat::Validate() const {
-	string error;
+optional<string> FileFormat::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(value, "avro") && !StringUtil::CIEquals(value, "orc") &&
 	    !StringUtil::CIEquals(value, "parquet") && !StringUtil::CIEquals(value, "puffin")) {
 		return StringUtil::Format("FileFormat property 'value' must be one of [avro, orc, parquet, puffin], not %s",
 		                          value);
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *FileFormat::ToJSON(yyjson_mut_doc *doc) const {

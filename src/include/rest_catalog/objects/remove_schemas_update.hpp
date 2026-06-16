@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static RemoveSchemasUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, RemoveSchemasUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	RemoveSchemasUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	RemoveSchemasUpdateBuilder();
 	RemoveSchemasUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveSchemasUpdateBuilder &SetSchemaIds(vector<int32_t> value);
-	string TryBuild(optional<RemoveSchemasUpdate> &result);
+	optional<string> TryBuild(optional<RemoveSchemasUpdate> &result);
 	RemoveSchemasUpdate Build();
 
 private:

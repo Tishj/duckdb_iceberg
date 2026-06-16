@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static StatisticsFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, StatisticsFileBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	StatisticsFile Copy() const;
@@ -57,7 +57,7 @@ public:
 	StatisticsFileBuilder &SetFileSizeInBytes(int64_t value);
 	StatisticsFileBuilder &SetFileFooterSizeInBytes(int64_t value);
 	StatisticsFileBuilder &SetBlobMetadata(vector<BlobMetadata> value);
-	string TryBuild(optional<StatisticsFile> &result);
+	optional<string> TryBuild(optional<StatisticsFile> &result);
 	StatisticsFile Build();
 
 private:

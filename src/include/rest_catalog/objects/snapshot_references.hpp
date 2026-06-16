@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static SnapshotReferences FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, SnapshotReferencesBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, SnapshotReferencesBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	SnapshotReferences Copy() const;
@@ -48,7 +48,7 @@ class SnapshotReferencesBuilder {
 public:
 	SnapshotReferencesBuilder();
 	SnapshotReferencesBuilder &SetAdditionalProperties(case_insensitive_map_t<SnapshotReference> value);
-	string TryBuild(optional<SnapshotReferences> &result);
+	optional<string> TryBuild(optional<SnapshotReferences> &result);
 	SnapshotReferences Build();
 
 private:

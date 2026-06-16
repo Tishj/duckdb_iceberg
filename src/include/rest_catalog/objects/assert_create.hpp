@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AssertCreate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AssertCreateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AssertCreate Copy() const;
@@ -48,7 +48,7 @@ class AssertCreateBuilder {
 public:
 	AssertCreateBuilder();
 	AssertCreateBuilder &SetType(TableRequirementType value);
-	string TryBuild(optional<AssertCreate> &result);
+	optional<string> TryBuild(optional<AssertCreate> &result);
 	AssertCreate Build();
 
 private:

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static AsyncPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	AsyncPlanningResult Copy() const;
@@ -50,7 +50,7 @@ public:
 	AsyncPlanningResultBuilder();
 	AsyncPlanningResultBuilder &SetStatus(PlanStatus value);
 	AsyncPlanningResultBuilder &SetPlanId(string value);
-	string TryBuild(optional<AsyncPlanningResult> &result);
+	optional<string> TryBuild(optional<AsyncPlanningResult> &result);
 	AsyncPlanningResult Build();
 
 private:

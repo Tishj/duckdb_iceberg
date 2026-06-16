@@ -22,7 +22,7 @@ PrimitiveType::PrimitiveType(const PrimitiveType &other) : value(other.value) {
 PrimitiveType::PrimitiveType(PrimitiveType &&other) : PrimitiveType(static_cast<const PrimitiveType &>(other)) {
 }
 
-string PrimitiveType::TryFromJSON(yyjson_val *obj, optional<PrimitiveType> &result) {
+optional<string> PrimitiveType::TryFromJSON(yyjson_val *obj, optional<PrimitiveType> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -33,7 +33,7 @@ string PrimitiveType::TryFromJSON(yyjson_val *obj, optional<PrimitiveType> &resu
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(PrimitiveType(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string PrimitiveType::TryFromJSON(yyjson_val *obj, optional<PrimitiveType> &resu
 PrimitiveType PrimitiveType::FromJSON(yyjson_val *obj) {
 	optional<PrimitiveType> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,9 +56,9 @@ PrimitiveType PrimitiveType::Copy() const {
 	return PrimitiveType(*this);
 }
 
-string PrimitiveType::Validate() const {
-	string error;
-	return "";
+optional<string> PrimitiveType::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *PrimitiveType::ToJSON(yyjson_mut_doc *doc) const {

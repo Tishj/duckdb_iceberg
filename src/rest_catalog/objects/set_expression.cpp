@@ -64,23 +64,32 @@ SetExpression SetExpressionBuilder::Build() {
 	}
 	auto result = SetExpression(std::move(*type_), std::move(*term_), std::move(*values_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetExpressionBuilder::TryBuild(optional<SetExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetExpressionBuilder::TryBuild(optional<SetExpression> &result) {
+	if (!has_type_) {
+		return "SetExpression required property 'type' is missing";
 	}
+	if (!has_term_) {
+		return "SetExpression required property 'term' is missing";
+	}
+	if (!has_values_) {
+		return "SetExpression required property 'values' is missing";
+	}
+	auto built = SetExpression(std::move(*type_), std::move(*term_), std::move(*values_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetExpression::TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder) {
+optional<string> SetExpression::TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -113,7 +122,7 @@ string SetExpression::TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder
 			}
 			builder.SetValues(std::move(values));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -123,8 +132,8 @@ string SetExpression::TryFromJSON(yyjson_val *obj, SetExpressionBuilder &builder
 SetExpression SetExpression::FromJSON(yyjson_val *obj) {
 	SetExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -133,26 +142,26 @@ SetExpression SetExpression::Copy() const {
 	return SetExpression(*this);
 }
 
-string SetExpression::Validate() const {
-	string error;
+optional<string> SetExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "in") && !StringUtil::CIEquals(type.value, "not-in")) {
 		return StringUtil::Format("SetExpression property 'type' must be one of [in, not-in], not %s", type.value);
 	}
 	error = term.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	for (const auto &item : values) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void SetExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

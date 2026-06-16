@@ -40,8 +40,8 @@ public:
 	public:
 		// Deserialization
 		static Object5 FromJSON(yyjson_val *obj);
-		static string TryFromJSON(yyjson_val *obj, Object5Builder &builder);
-		string Validate() const;
+		static optional<string> TryFromJSON(yyjson_val *obj, Object5Builder &builder);
+		optional<string> Validate() const;
 
 		// Copy
 		Object5 Copy() const;
@@ -60,7 +60,7 @@ public:
 		Object5Builder();
 		Object5Builder &SetStatus(PlanStatus value);
 		Object5Builder &SetStorageCredentials(vector<StorageCredential> value);
-		string TryBuild(optional<Object5> &result);
+		optional<string> TryBuild(optional<Object5> &result);
 		Object5 Build();
 
 	private:
@@ -76,8 +76,8 @@ private:
 public:
 	// Deserialization
 	static CompletedPlanningResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CompletedPlanningResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CompletedPlanningResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CompletedPlanningResult Copy() const;
@@ -96,7 +96,7 @@ public:
 	CompletedPlanningResultBuilder();
 	CompletedPlanningResultBuilder &SetScanTasks(ScanTasks value);
 	CompletedPlanningResultBuilder &SetObject5(CompletedPlanningResult::Object5 value);
-	string TryBuild(optional<CompletedPlanningResult> &result);
+	optional<string> TryBuild(optional<CompletedPlanningResult> &result);
 	CompletedPlanningResult Build();
 
 private:

@@ -57,23 +57,23 @@ CountMapBuilder &CountMapBuilder::SetValues(vector<LongTypeValue> value) {
 CountMap CountMapBuilder::Build() {
 	auto result = CountMap(std::move(keys_), std::move(values_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CountMapBuilder::TryBuild(optional<CountMap> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CountMapBuilder::TryBuild(optional<CountMap> &result) {
+	auto built = CountMap(std::move(keys_), std::move(values_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CountMap::TryFromJSON(yyjson_val *obj, CountMapBuilder &builder) {
+optional<string> CountMap::TryFromJSON(yyjson_val *obj, CountMapBuilder &builder) {
 	try {
 		auto keys_val = yyjson_obj_get(obj, "keys");
 		if (keys_val) {
@@ -109,7 +109,7 @@ string CountMap::TryFromJSON(yyjson_val *obj, CountMapBuilder &builder) {
 			}
 			builder.SetValues(std::move(values));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -119,8 +119,8 @@ string CountMap::TryFromJSON(yyjson_val *obj, CountMapBuilder &builder) {
 CountMap CountMap::FromJSON(yyjson_val *obj) {
 	CountMapBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -129,12 +129,12 @@ CountMap CountMap::Copy() const {
 	return CountMap(*this);
 }
 
-string CountMap::Validate() const {
-	string error;
+optional<string> CountMap::Validate() const {
+	optional<string> error;
 	if (keys.has_value()) {
 		for (const auto &item : (*keys)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -142,12 +142,12 @@ string CountMap::Validate() const {
 	if (values.has_value()) {
 		for (const auto &item : (*values)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void CountMap::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

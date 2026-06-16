@@ -45,23 +45,26 @@ AddViewVersionUpdate AddViewVersionUpdateBuilder::Build() {
 	}
 	auto result = AddViewVersionUpdate(std::move(*base_update_), std::move(*view_version_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AddViewVersionUpdateBuilder::TryBuild(optional<AddViewVersionUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AddViewVersionUpdateBuilder::TryBuild(optional<AddViewVersionUpdate> &result) {
+	if (!has_view_version_) {
+		return "AddViewVersionUpdate required property 'view-version' is missing";
 	}
+	auto built = AddViewVersionUpdate(std::move(*base_update_), std::move(*view_version_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, AddViewVersionUpdateBuilder &builder) {
+optional<string> AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, AddViewVersionUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto view_version_val = yyjson_obj_get(obj, "view-version");
@@ -70,7 +73,7 @@ string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, AddViewVersionUpdateBu
 		} else {
 			builder.SetViewVersion(ViewVersion::FromJSON(view_version_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -80,8 +83,8 @@ string AddViewVersionUpdate::TryFromJSON(yyjson_val *obj, AddViewVersionUpdateBu
 AddViewVersionUpdate AddViewVersionUpdate::FromJSON(yyjson_val *obj) {
 	AddViewVersionUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -90,17 +93,17 @@ AddViewVersionUpdate AddViewVersionUpdate::Copy() const {
 	return AddViewVersionUpdate(*this);
 }
 
-string AddViewVersionUpdate::Validate() const {
-	string error;
+optional<string> AddViewVersionUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = view_version.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AddViewVersionUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -69,23 +69,26 @@ CommitViewRequest CommitViewRequestBuilder::Build() {
 	}
 	auto result = CommitViewRequest(std::move(*updates_), std::move(identifier_), std::move(requirements_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CommitViewRequestBuilder::TryBuild(optional<CommitViewRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CommitViewRequestBuilder::TryBuild(optional<CommitViewRequest> &result) {
+	if (!has_updates_) {
+		return "CommitViewRequest required property 'updates' is missing";
 	}
+	auto built = CommitViewRequest(std::move(*updates_), std::move(identifier_), std::move(requirements_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CommitViewRequest::TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder &builder) {
+optional<string> CommitViewRequest::TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder &builder) {
 	try {
 		auto updates_val = yyjson_obj_get(obj, "updates");
 		if (!updates_val) {
@@ -127,7 +130,7 @@ string CommitViewRequest::TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder 
 			}
 			builder.SetRequirements(std::move(requirements));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -137,8 +140,8 @@ string CommitViewRequest::TryFromJSON(yyjson_val *obj, CommitViewRequestBuilder 
 CommitViewRequest CommitViewRequest::FromJSON(yyjson_val *obj) {
 	CommitViewRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -147,29 +150,29 @@ CommitViewRequest CommitViewRequest::Copy() const {
 	return CommitViewRequest(*this);
 }
 
-string CommitViewRequest::Validate() const {
-	string error;
+optional<string> CommitViewRequest::Validate() const {
+	optional<string> error;
 	for (const auto &item : updates) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (identifier.has_value()) {
 		error = (*identifier).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (requirements.has_value()) {
 		for (const auto &item : (*requirements)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void CommitViewRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

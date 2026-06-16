@@ -47,23 +47,27 @@ SetPartitionStatisticsUpdate SetPartitionStatisticsUpdateBuilder::Build() {
 	}
 	auto result = SetPartitionStatisticsUpdate(std::move(*base_update_), std::move(*partition_statistics_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetPartitionStatisticsUpdateBuilder::TryBuild(optional<SetPartitionStatisticsUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetPartitionStatisticsUpdateBuilder::TryBuild(optional<SetPartitionStatisticsUpdate> &result) {
+	if (!has_partition_statistics_) {
+		return "SetPartitionStatisticsUpdate required property 'partition-statistics' is missing";
 	}
+	auto built = SetPartitionStatisticsUpdate(std::move(*base_update_), std::move(*partition_statistics_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetPartitionStatisticsUpdateBuilder &builder) {
+optional<string> SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj,
+                                                           SetPartitionStatisticsUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto partition_statistics_val = yyjson_obj_get(obj, "partition-statistics");
@@ -73,7 +77,7 @@ string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetPartitionSt
 		} else {
 			builder.SetPartitionStatistics(PartitionStatisticsFile::FromJSON(partition_statistics_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -83,8 +87,8 @@ string SetPartitionStatisticsUpdate::TryFromJSON(yyjson_val *obj, SetPartitionSt
 SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::FromJSON(yyjson_val *obj) {
 	SetPartitionStatisticsUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -93,17 +97,17 @@ SetPartitionStatisticsUpdate SetPartitionStatisticsUpdate::Copy() const {
 	return SetPartitionStatisticsUpdate(*this);
 }
 
-string SetPartitionStatisticsUpdate::Validate() const {
-	string error;
+optional<string> SetPartitionStatisticsUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = partition_statistics.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetPartitionStatisticsUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

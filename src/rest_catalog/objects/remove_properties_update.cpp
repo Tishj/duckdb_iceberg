@@ -52,23 +52,26 @@ RemovePropertiesUpdate RemovePropertiesUpdateBuilder::Build() {
 	}
 	auto result = RemovePropertiesUpdate(std::move(*base_update_), std::move(*removals_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string RemovePropertiesUpdateBuilder::TryBuild(optional<RemovePropertiesUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> RemovePropertiesUpdateBuilder::TryBuild(optional<RemovePropertiesUpdate> &result) {
+	if (!has_removals_) {
+		return "RemovePropertiesUpdate required property 'removals' is missing";
 	}
+	auto built = RemovePropertiesUpdate(std::move(*base_update_), std::move(*removals_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, RemovePropertiesUpdateBuilder &builder) {
+optional<string> RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, RemovePropertiesUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto removals_val = yyjson_obj_get(obj, "removals");
@@ -97,7 +100,7 @@ string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, RemovePropertiesUpda
 			}
 			builder.SetRemovals(std::move(removals));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -107,8 +110,8 @@ string RemovePropertiesUpdate::TryFromJSON(yyjson_val *obj, RemovePropertiesUpda
 RemovePropertiesUpdate RemovePropertiesUpdate::FromJSON(yyjson_val *obj) {
 	RemovePropertiesUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -117,13 +120,13 @@ RemovePropertiesUpdate RemovePropertiesUpdate::Copy() const {
 	return RemovePropertiesUpdate(*this);
 }
 
-string RemovePropertiesUpdate::Validate() const {
-	string error;
+optional<string> RemovePropertiesUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void RemovePropertiesUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -52,23 +52,23 @@ ListTablesResponseBuilder &ListTablesResponseBuilder::SetIdentifiers(vector<Tabl
 ListTablesResponse ListTablesResponseBuilder::Build() {
 	auto result = ListTablesResponse(std::move(next_page_token_), std::move(identifiers_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ListTablesResponseBuilder::TryBuild(optional<ListTablesResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ListTablesResponseBuilder::TryBuild(optional<ListTablesResponse> &result) {
+	auto built = ListTablesResponse(std::move(next_page_token_), std::move(identifiers_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ListTablesResponse::TryFromJSON(yyjson_val *obj, ListTablesResponseBuilder &builder) {
+optional<string> ListTablesResponse::TryFromJSON(yyjson_val *obj, ListTablesResponseBuilder &builder) {
 	try {
 		auto next_page_token_val = yyjson_obj_get(obj, "next-page-token");
 		if (next_page_token_val) {
@@ -91,7 +91,7 @@ string ListTablesResponse::TryFromJSON(yyjson_val *obj, ListTablesResponseBuilde
 			}
 			builder.SetIdentifiers(std::move(identifiers));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -101,8 +101,8 @@ string ListTablesResponse::TryFromJSON(yyjson_val *obj, ListTablesResponseBuilde
 ListTablesResponse ListTablesResponse::FromJSON(yyjson_val *obj) {
 	ListTablesResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -111,23 +111,23 @@ ListTablesResponse ListTablesResponse::Copy() const {
 	return ListTablesResponse(*this);
 }
 
-string ListTablesResponse::Validate() const {
-	string error;
+optional<string> ListTablesResponse::Validate() const {
+	optional<string> error;
 	if (next_page_token.has_value()) {
 		error = (*next_page_token).Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (identifiers.has_value()) {
 		for (const auto &item : (*identifiers)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void ListTablesResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

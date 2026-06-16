@@ -37,23 +37,26 @@ BaseUpdate BaseUpdateBuilder::Build() {
 	}
 	auto result = BaseUpdate(std::move(*action_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string BaseUpdateBuilder::TryBuild(optional<BaseUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> BaseUpdateBuilder::TryBuild(optional<BaseUpdate> &result) {
+	if (!has_action_) {
+		return "BaseUpdate required property 'action' is missing";
 	}
+	auto built = BaseUpdate(std::move(*action_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string BaseUpdate::TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder) {
+optional<string> BaseUpdate::TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder) {
 	try {
 		auto action_val = yyjson_obj_get(obj, "action");
 		if (!action_val) {
@@ -69,7 +72,7 @@ string BaseUpdate::TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder) {
 			}
 			builder.SetAction(std::move(action));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -79,8 +82,8 @@ string BaseUpdate::TryFromJSON(yyjson_val *obj, BaseUpdateBuilder &builder) {
 BaseUpdate BaseUpdate::FromJSON(yyjson_val *obj) {
 	BaseUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -89,9 +92,9 @@ BaseUpdate BaseUpdate::Copy() const {
 	return BaseUpdate(*this);
 }
 
-string BaseUpdate::Validate() const {
-	string error;
-	return "";
+optional<string> BaseUpdate::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 void BaseUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

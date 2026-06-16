@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static ReportMetricsRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ReportMetricsRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ReportMetricsRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ReportMetricsRequest Copy() const;
@@ -54,7 +54,7 @@ public:
 	ReportMetricsRequestBuilder &SetScanReport(ScanReport value);
 	ReportMetricsRequestBuilder &SetCommitReport(CommitReport value);
 	ReportMetricsRequestBuilder &SetReportType(string value);
-	string TryBuild(optional<ReportMetricsRequest> &result);
+	optional<string> TryBuild(optional<ReportMetricsRequest> &result);
 	ReportMetricsRequest Build();
 
 private:

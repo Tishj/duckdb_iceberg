@@ -57,23 +57,23 @@ ValueMapBuilder &ValueMapBuilder::SetValues(vector<PrimitiveTypeValue> value) {
 ValueMap ValueMapBuilder::Build() {
 	auto result = ValueMap(std::move(keys_), std::move(values_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ValueMapBuilder::TryBuild(optional<ValueMap> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ValueMapBuilder::TryBuild(optional<ValueMap> &result) {
+	auto built = ValueMap(std::move(keys_), std::move(values_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ValueMap::TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder) {
+optional<string> ValueMap::TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder) {
 	try {
 		auto keys_val = yyjson_obj_get(obj, "keys");
 		if (keys_val) {
@@ -109,7 +109,7 @@ string ValueMap::TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder) {
 			}
 			builder.SetValues(std::move(values));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -119,8 +119,8 @@ string ValueMap::TryFromJSON(yyjson_val *obj, ValueMapBuilder &builder) {
 ValueMap ValueMap::FromJSON(yyjson_val *obj) {
 	ValueMapBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -129,12 +129,12 @@ ValueMap ValueMap::Copy() const {
 	return ValueMap(*this);
 }
 
-string ValueMap::Validate() const {
-	string error;
+optional<string> ValueMap::Validate() const {
+	optional<string> error;
 	if (keys.has_value()) {
 		for (const auto &item : (*keys)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
@@ -142,12 +142,12 @@ string ValueMap::Validate() const {
 	if (values.has_value()) {
 		for (const auto &item : (*values)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void ValueMap::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

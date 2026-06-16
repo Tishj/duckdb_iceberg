@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static UnaryExpression FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, UnaryExpressionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	UnaryExpression Copy() const;
@@ -50,7 +50,7 @@ public:
 	UnaryExpressionBuilder();
 	UnaryExpressionBuilder &SetType(ExpressionType value);
 	UnaryExpressionBuilder &SetTerm(Term value);
-	string TryBuild(optional<UnaryExpression> &result);
+	optional<string> TryBuild(optional<UnaryExpression> &result);
 	UnaryExpression Build();
 
 private:

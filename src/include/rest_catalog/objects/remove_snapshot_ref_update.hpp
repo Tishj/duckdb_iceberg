@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static RemoveSnapshotRefUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, RemoveSnapshotRefUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	RemoveSnapshotRefUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	RemoveSnapshotRefUpdateBuilder();
 	RemoveSnapshotRefUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveSnapshotRefUpdateBuilder &SetRefName(string value);
-	string TryBuild(optional<RemoveSnapshotRefUpdate> &result);
+	optional<string> TryBuild(optional<RemoveSnapshotRefUpdate> &result);
 	RemoveSnapshotRefUpdate Build();
 
 private:

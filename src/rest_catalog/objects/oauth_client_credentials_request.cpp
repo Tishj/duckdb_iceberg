@@ -67,23 +67,34 @@ OAuthClientCredentialsRequest OAuthClientCredentialsRequestBuilder::Build() {
 	auto result = OAuthClientCredentialsRequest(std::move(*grant_type_), std::move(*client_id_),
 	                                            std::move(*client_secret_), std::move(scope_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string OAuthClientCredentialsRequestBuilder::TryBuild(optional<OAuthClientCredentialsRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> OAuthClientCredentialsRequestBuilder::TryBuild(optional<OAuthClientCredentialsRequest> &result) {
+	if (!has_grant_type_) {
+		return "OAuthClientCredentialsRequest required property 'grant_type' is missing";
 	}
+	if (!has_client_id_) {
+		return "OAuthClientCredentialsRequest required property 'client_id' is missing";
+	}
+	if (!has_client_secret_) {
+		return "OAuthClientCredentialsRequest required property 'client_secret' is missing";
+	}
+	auto built = OAuthClientCredentialsRequest(std::move(*grant_type_), std::move(*client_id_),
+	                                           std::move(*client_secret_), std::move(scope_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj, OAuthClientCredentialsRequestBuilder &builder) {
+optional<string> OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj,
+                                                            OAuthClientCredentialsRequestBuilder &builder) {
 	try {
 		auto grant_type_val = yyjson_obj_get(obj, "grant_type");
 		if (!grant_type_val) {
@@ -139,7 +150,7 @@ string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj, OAuthClientCr
 			}
 			builder.SetScope(std::move(scope));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -149,8 +160,8 @@ string OAuthClientCredentialsRequest::TryFromJSON(yyjson_val *obj, OAuthClientCr
 OAuthClientCredentialsRequest OAuthClientCredentialsRequest::FromJSON(yyjson_val *obj) {
 	OAuthClientCredentialsRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -159,14 +170,14 @@ OAuthClientCredentialsRequest OAuthClientCredentialsRequest::Copy() const {
 	return OAuthClientCredentialsRequest(*this);
 }
 
-string OAuthClientCredentialsRequest::Validate() const {
-	string error;
+optional<string> OAuthClientCredentialsRequest::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(grant_type, "client_credentials")) {
 		return StringUtil::Format(
 		    "OAuthClientCredentialsRequest property 'grant_type' must be one of [client_credentials], not %s",
 		    grant_type);
 	}
-	return "";
+	return nullopt;
 }
 
 void OAuthClientCredentialsRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

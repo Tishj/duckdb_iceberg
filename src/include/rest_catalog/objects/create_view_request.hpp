@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static CreateViewRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CreateViewRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CreateViewRequest Copy() const;
@@ -58,7 +58,7 @@ public:
 	CreateViewRequestBuilder &SetViewVersion(ViewVersion value);
 	CreateViewRequestBuilder &SetProperties(case_insensitive_map_t<string> value);
 	CreateViewRequestBuilder &SetLocation(string value);
-	string TryBuild(optional<CreateViewRequest> &result);
+	optional<string> TryBuild(optional<CreateViewRequest> &result);
 	CreateViewRequest Build();
 
 private:

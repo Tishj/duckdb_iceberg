@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static CommitReport FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, CommitReportBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	CommitReport Copy() const;
@@ -59,7 +59,7 @@ public:
 	CommitReportBuilder &SetOperation(string value);
 	CommitReportBuilder &SetMetrics(Metrics value);
 	CommitReportBuilder &SetMetadata(case_insensitive_map_t<string> value);
-	string TryBuild(optional<CommitReport> &result);
+	optional<string> TryBuild(optional<CommitReport> &result);
 	CommitReport Build();
 
 private:

@@ -23,7 +23,7 @@ DecimalTypeValue::DecimalTypeValue(DecimalTypeValue &&other)
     : DecimalTypeValue(static_cast<const DecimalTypeValue &>(other)) {
 }
 
-string DecimalTypeValue::TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result) {
+optional<string> DecimalTypeValue::TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string DecimalTypeValue::TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue>
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(DecimalTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string DecimalTypeValue::TryFromJSON(yyjson_val *obj, optional<DecimalTypeValue>
 DecimalTypeValue DecimalTypeValue::FromJSON(yyjson_val *obj) {
 	optional<DecimalTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ DecimalTypeValue DecimalTypeValue::Copy() const {
 	return DecimalTypeValue(*this);
 }
 
-string DecimalTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> DecimalTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *DecimalTypeValue::ToJSON(yyjson_mut_doc *doc) const {

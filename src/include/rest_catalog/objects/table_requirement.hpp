@@ -43,8 +43,8 @@ private:
 public:
 	// Deserialization
 	static TableRequirement FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, TableRequirementBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, TableRequirementBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	TableRequirement Copy() const;
@@ -75,7 +75,7 @@ public:
 	TableRequirementBuilder &SetAssertLastAssignedPartitionId(AssertLastAssignedPartitionId value);
 	TableRequirementBuilder &SetAssertDefaultSpecId(AssertDefaultSpecId value);
 	TableRequirementBuilder &SetAssertDefaultSortOrderId(AssertDefaultSortOrderId value);
-	string TryBuild(optional<TableRequirement> &result);
+	optional<string> TryBuild(optional<TableRequirement> &result);
 	TableRequirement Build();
 
 private:

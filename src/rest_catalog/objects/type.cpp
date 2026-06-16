@@ -58,23 +58,23 @@ Type TypeBuilder::Build() {
 	auto result =
 	    Type(std::move(primitive_type_), std::move(struct_type_), std::move(list_type_), std::move(map_type_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TypeBuilder::TryBuild(optional<Type> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TypeBuilder::TryBuild(optional<Type> &result) {
+	auto built = Type(std::move(primitive_type_), std::move(struct_type_), std::move(list_type_), std::move(map_type_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string Type::TryFromJSON(yyjson_val *obj, TypeBuilder &builder) {
+optional<string> Type::TryFromJSON(yyjson_val *obj, TypeBuilder &builder) {
 	try {
 		do {
 			try {
@@ -99,7 +99,7 @@ string Type::TryFromJSON(yyjson_val *obj, TypeBuilder &builder) {
 			}
 			throw InvalidInputException("Type failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -109,8 +109,8 @@ string Type::TryFromJSON(yyjson_val *obj, TypeBuilder &builder) {
 Type Type::FromJSON(yyjson_val *obj) {
 	TypeBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -119,41 +119,41 @@ Type Type::Copy() const {
 	return Type(*this);
 }
 
-string Type::Validate() const {
-	string error;
+optional<string> Type::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (primitive_type.has_value()) {
 		matched_one_of_variants++;
 		error = primitive_type->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (struct_type.has_value()) {
 		matched_one_of_variants++;
 		error = struct_type->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (list_type.has_value()) {
 		matched_one_of_variants++;
 		error = list_type->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (map_type.has_value()) {
 		matched_one_of_variants++;
 		error = map_type->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "Type must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *Type::ToJSON(yyjson_mut_doc *doc) const {

@@ -114,23 +114,26 @@ PlanTableScanRequest PlanTableScanRequestBuilder::Build() {
 	                                   std::move(use_snapshot_schema_), std::move(start_snapshot_id_),
 	                                   std::move(end_snapshot_id_), std::move(stats_fields_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PlanTableScanRequestBuilder::TryBuild(optional<PlanTableScanRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PlanTableScanRequestBuilder::TryBuild(optional<PlanTableScanRequest> &result) {
+	auto built = PlanTableScanRequest(std::move(snapshot_id_), std::move(select_), std::move(filter_),
+	                                  std::move(min_rows_requested_), std::move(case_sensitive_),
+	                                  std::move(use_snapshot_schema_), std::move(start_snapshot_id_),
+	                                  std::move(end_snapshot_id_), std::move(stats_fields_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PlanTableScanRequest::TryFromJSON(yyjson_val *obj, PlanTableScanRequestBuilder &builder) {
+optional<string> PlanTableScanRequest::TryFromJSON(yyjson_val *obj, PlanTableScanRequestBuilder &builder) {
 	try {
 		auto snapshot_id_val = yyjson_obj_get(obj, "snapshot-id");
 		if (snapshot_id_val) {
@@ -252,7 +255,7 @@ string PlanTableScanRequest::TryFromJSON(yyjson_val *obj, PlanTableScanRequestBu
 			}
 			builder.SetStatsFields(std::move(stats_fields));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -262,8 +265,8 @@ string PlanTableScanRequest::TryFromJSON(yyjson_val *obj, PlanTableScanRequestBu
 PlanTableScanRequest PlanTableScanRequest::FromJSON(yyjson_val *obj) {
 	PlanTableScanRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -272,31 +275,31 @@ PlanTableScanRequest PlanTableScanRequest::Copy() const {
 	return PlanTableScanRequest(*this);
 }
 
-string PlanTableScanRequest::Validate() const {
-	string error;
+optional<string> PlanTableScanRequest::Validate() const {
+	optional<string> error;
 	if (select.has_value()) {
 		for (const auto &item : (*select)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
 	if (filter != nullptr) {
 		error = filter->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (stats_fields.has_value()) {
 		for (const auto &item : (*stats_fields)) {
 			error = item.Validate();
-			if (!error.empty()) {
+			if (error) {
 				return error;
 			}
 		}
 	}
-	return "";
+	return nullopt;
 }
 
 void PlanTableScanRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -73,23 +73,30 @@ SnapshotReference SnapshotReferenceBuilder::Build() {
 	auto result = SnapshotReference(std::move(*type_), std::move(*snapshot_id_), std::move(max_ref_age_ms_),
 	                                std::move(max_snapshot_age_ms_), std::move(min_snapshots_to_keep_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SnapshotReferenceBuilder::TryBuild(optional<SnapshotReference> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SnapshotReferenceBuilder::TryBuild(optional<SnapshotReference> &result) {
+	if (!has_type_) {
+		return "SnapshotReference required property 'type' is missing";
 	}
+	if (!has_snapshot_id_) {
+		return "SnapshotReference required property 'snapshot-id' is missing";
+	}
+	auto built = SnapshotReference(std::move(*type_), std::move(*snapshot_id_), std::move(max_ref_age_ms_),
+	                               std::move(max_snapshot_age_ms_), std::move(min_snapshots_to_keep_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SnapshotReference::TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder &builder) {
+optional<string> SnapshotReference::TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -161,7 +168,7 @@ string SnapshotReference::TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder 
 			}
 			builder.SetMinSnapshotsToKeep(std::move(min_snapshots_to_keep));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -171,8 +178,8 @@ string SnapshotReference::TryFromJSON(yyjson_val *obj, SnapshotReferenceBuilder 
 SnapshotReference SnapshotReference::FromJSON(yyjson_val *obj) {
 	SnapshotReferenceBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -181,12 +188,12 @@ SnapshotReference SnapshotReference::Copy() const {
 	return SnapshotReference(*this);
 }
 
-string SnapshotReference::Validate() const {
-	string error;
+optional<string> SnapshotReference::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(type, "tag") && !StringUtil::CIEquals(type, "branch")) {
 		return StringUtil::Format("SnapshotReference property 'type' must be one of [tag, branch], not %s", type);
 	}
-	return "";
+	return nullopt;
 }
 
 void SnapshotReference::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

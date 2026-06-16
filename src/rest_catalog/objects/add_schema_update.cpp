@@ -52,23 +52,26 @@ AddSchemaUpdate AddSchemaUpdateBuilder::Build() {
 	}
 	auto result = AddSchemaUpdate(std::move(*base_update_), std::move(*schema_), std::move(last_column_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AddSchemaUpdateBuilder::TryBuild(optional<AddSchemaUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AddSchemaUpdateBuilder::TryBuild(optional<AddSchemaUpdate> &result) {
+	if (!has_schema_) {
+		return "AddSchemaUpdate required property 'schema' is missing";
 	}
+	auto built = AddSchemaUpdate(std::move(*base_update_), std::move(*schema_), std::move(last_column_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, AddSchemaUpdateBuilder &builder) {
+optional<string> AddSchemaUpdate::TryFromJSON(yyjson_val *obj, AddSchemaUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto schema_val = yyjson_obj_get(obj, "schema");
@@ -89,7 +92,7 @@ string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, AddSchemaUpdateBuilder &bui
 			}
 			builder.SetLastColumnId(std::move(last_column_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -99,8 +102,8 @@ string AddSchemaUpdate::TryFromJSON(yyjson_val *obj, AddSchemaUpdateBuilder &bui
 AddSchemaUpdate AddSchemaUpdate::FromJSON(yyjson_val *obj) {
 	AddSchemaUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -109,17 +112,17 @@ AddSchemaUpdate AddSchemaUpdate::Copy() const {
 	return AddSchemaUpdate(*this);
 }
 
-string AddSchemaUpdate::Validate() const {
-	string error;
+optional<string> AddSchemaUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = schema.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AddSchemaUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

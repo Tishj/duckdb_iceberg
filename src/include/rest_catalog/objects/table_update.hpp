@@ -67,8 +67,8 @@ private:
 public:
 	// Deserialization
 	static TableUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, TableUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	TableUpdate Copy() const;
@@ -125,7 +125,7 @@ public:
 	TableUpdateBuilder &SetRemoveSchemasUpdate(RemoveSchemasUpdate value);
 	TableUpdateBuilder &SetAddEncryptionKeyUpdate(AddEncryptionKeyUpdate value);
 	TableUpdateBuilder &SetRemoveEncryptionKeyUpdate(RemoveEncryptionKeyUpdate value);
-	string TryBuild(optional<TableUpdate> &result);
+	optional<string> TryBuild(optional<TableUpdate> &result);
 	TableUpdate Build();
 
 private:

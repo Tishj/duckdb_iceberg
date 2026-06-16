@@ -112,23 +112,43 @@ ViewVersion ViewVersionBuilder::Build() {
 	    ViewVersion(std::move(*version_id_), std::move(*timestamp_ms_), std::move(*schema_id_), std::move(*summary_),
 	                std::move(*representations_), std::move(*default_namespace_), std::move(default_catalog_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ViewVersionBuilder::TryBuild(optional<ViewVersion> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ViewVersionBuilder::TryBuild(optional<ViewVersion> &result) {
+	if (!has_version_id_) {
+		return "ViewVersion required property 'version-id' is missing";
 	}
+	if (!has_timestamp_ms_) {
+		return "ViewVersion required property 'timestamp-ms' is missing";
+	}
+	if (!has_schema_id_) {
+		return "ViewVersion required property 'schema-id' is missing";
+	}
+	if (!has_summary_) {
+		return "ViewVersion required property 'summary' is missing";
+	}
+	if (!has_representations_) {
+		return "ViewVersion required property 'representations' is missing";
+	}
+	if (!has_default_namespace_) {
+		return "ViewVersion required property 'default-namespace' is missing";
+	}
+	auto built =
+	    ViewVersion(std::move(*version_id_), std::move(*timestamp_ms_), std::move(*schema_id_), std::move(*summary_),
+	                std::move(*representations_), std::move(*default_namespace_), std::move(default_catalog_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ViewVersion::TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder) {
+optional<string> ViewVersion::TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder) {
 	try {
 		auto version_id_val = yyjson_obj_get(obj, "version-id");
 		if (!version_id_val) {
@@ -236,7 +256,7 @@ string ViewVersion::TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder) {
 			}
 			builder.SetDefaultCatalog(std::move(default_catalog));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -246,8 +266,8 @@ string ViewVersion::TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder) {
 ViewVersion ViewVersion::FromJSON(yyjson_val *obj) {
 	ViewVersionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -256,19 +276,19 @@ ViewVersion ViewVersion::Copy() const {
 	return ViewVersion(*this);
 }
 
-string ViewVersion::Validate() const {
-	string error;
+optional<string> ViewVersion::Validate() const {
+	optional<string> error;
 	for (const auto &item : representations) {
 		error = item.Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	error = default_namespace.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void ViewVersion::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

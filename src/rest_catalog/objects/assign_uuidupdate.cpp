@@ -45,23 +45,26 @@ AssignUUIDUpdate AssignUUIDUpdateBuilder::Build() {
 	}
 	auto result = AssignUUIDUpdate(std::move(*base_update_), std::move(*uuid_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AssignUUIDUpdateBuilder::TryBuild(optional<AssignUUIDUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AssignUUIDUpdateBuilder::TryBuild(optional<AssignUUIDUpdate> &result) {
+	if (!has_uuid_) {
+		return "AssignUUIDUpdate required property 'uuid' is missing";
 	}
+	auto built = AssignUUIDUpdate(std::move(*base_update_), std::move(*uuid_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &builder) {
+optional<string> AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto uuid_val = yyjson_obj_get(obj, "uuid");
@@ -78,7 +81,7 @@ string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &b
 			}
 			builder.SetUuid(std::move(uuid));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string AssignUUIDUpdate::TryFromJSON(yyjson_val *obj, AssignUUIDUpdateBuilder &b
 AssignUUIDUpdate AssignUUIDUpdate::FromJSON(yyjson_val *obj) {
 	AssignUUIDUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ AssignUUIDUpdate AssignUUIDUpdate::Copy() const {
 	return AssignUUIDUpdate(*this);
 }
 
-string AssignUUIDUpdate::Validate() const {
-	string error;
+optional<string> AssignUUIDUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AssignUUIDUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

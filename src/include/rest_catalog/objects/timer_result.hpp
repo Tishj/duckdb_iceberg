@@ -29,8 +29,8 @@ private:
 public:
 	// Deserialization
 	static TimerResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, TimerResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	TimerResult Copy() const;
@@ -51,7 +51,7 @@ public:
 	TimerResultBuilder &SetTimeUnit(string value);
 	TimerResultBuilder &SetCount(int64_t value);
 	TimerResultBuilder &SetTotalDuration(int64_t value);
-	string TryBuild(optional<TimerResult> &result);
+	optional<string> TryBuild(optional<TimerResult> &result);
 	TimerResult Build();
 
 private:

@@ -113,23 +113,26 @@ TableRequirement TableRequirementBuilder::Build() {
 	                               std::move(assert_current_schema_id_), std::move(assert_last_assigned_partition_id_),
 	                               std::move(assert_default_spec_id_), std::move(assert_default_sort_order_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string TableRequirementBuilder::TryBuild(optional<TableRequirement> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> TableRequirementBuilder::TryBuild(optional<TableRequirement> &result) {
+	auto built = TableRequirement(std::move(assert_create_), std::move(assert_table_uuid_),
+	                              std::move(assert_ref_snapshot_id_), std::move(assert_last_assigned_field_id_),
+	                              std::move(assert_current_schema_id_), std::move(assert_last_assigned_partition_id_),
+	                              std::move(assert_default_spec_id_), std::move(assert_default_sort_order_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string TableRequirement::TryFromJSON(yyjson_val *obj, TableRequirementBuilder &builder) {
+optional<string> TableRequirement::TryFromJSON(yyjson_val *obj, TableRequirementBuilder &builder) {
 	try {
 		do {
 			try {
@@ -174,7 +177,7 @@ string TableRequirement::TryFromJSON(yyjson_val *obj, TableRequirementBuilder &b
 			}
 			throw InvalidInputException("TableRequirement failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -184,8 +187,8 @@ string TableRequirement::TryFromJSON(yyjson_val *obj, TableRequirementBuilder &b
 TableRequirement TableRequirement::FromJSON(yyjson_val *obj) {
 	TableRequirementBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -194,69 +197,69 @@ TableRequirement TableRequirement::Copy() const {
 	return TableRequirement(*this);
 }
 
-string TableRequirement::Validate() const {
-	string error;
+optional<string> TableRequirement::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (assert_create.has_value()) {
 		matched_one_of_variants++;
 		error = assert_create->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_table_uuid.has_value()) {
 		matched_one_of_variants++;
 		error = assert_table_uuid->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_ref_snapshot_id.has_value()) {
 		matched_one_of_variants++;
 		error = assert_ref_snapshot_id->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_last_assigned_field_id.has_value()) {
 		matched_one_of_variants++;
 		error = assert_last_assigned_field_id->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_current_schema_id.has_value()) {
 		matched_one_of_variants++;
 		error = assert_current_schema_id->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_last_assigned_partition_id.has_value()) {
 		matched_one_of_variants++;
 		error = assert_last_assigned_partition_id->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_default_spec_id.has_value()) {
 		matched_one_of_variants++;
 		error = assert_default_spec_id->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (assert_default_sort_order_id.has_value()) {
 		matched_one_of_variants++;
 		error = assert_default_sort_order_id->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "TableRequirement must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void TableRequirement::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -33,8 +33,8 @@ private:
 public:
 	// Deserialization
 	static ViewVersion FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ViewVersionBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ViewVersion Copy() const;
@@ -63,7 +63,7 @@ public:
 	ViewVersionBuilder &SetRepresentations(vector<ViewRepresentation> value);
 	ViewVersionBuilder &SetDefaultNamespace(Namespace value);
 	ViewVersionBuilder &SetDefaultCatalog(string value);
-	string TryBuild(optional<ViewVersion> &result);
+	optional<string> TryBuild(optional<ViewVersion> &result);
 	ViewVersion Build();
 
 private:

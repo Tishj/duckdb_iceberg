@@ -49,23 +49,29 @@ AsyncPlanningResult AsyncPlanningResultBuilder::Build() {
 	}
 	auto result = AsyncPlanningResult(std::move(*status_), std::move(*plan_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AsyncPlanningResultBuilder::TryBuild(optional<AsyncPlanningResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AsyncPlanningResultBuilder::TryBuild(optional<AsyncPlanningResult> &result) {
+	if (!has_status_) {
+		return "AsyncPlanningResult required property 'status' is missing";
 	}
+	if (!has_plan_id_) {
+		return "AsyncPlanningResult required property 'plan-id' is missing";
+	}
+	auto built = AsyncPlanningResult(std::move(*status_), std::move(*plan_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AsyncPlanningResult::TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuilder &builder) {
+optional<string> AsyncPlanningResult::TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuilder &builder) {
 	try {
 		auto status_val = yyjson_obj_get(obj, "status");
 		if (!status_val) {
@@ -87,7 +93,7 @@ string AsyncPlanningResult::TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuil
 			}
 			builder.SetPlanId(std::move(plan_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -97,8 +103,8 @@ string AsyncPlanningResult::TryFromJSON(yyjson_val *obj, AsyncPlanningResultBuil
 AsyncPlanningResult AsyncPlanningResult::FromJSON(yyjson_val *obj) {
 	AsyncPlanningResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -107,16 +113,16 @@ AsyncPlanningResult AsyncPlanningResult::Copy() const {
 	return AsyncPlanningResult(*this);
 }
 
-string AsyncPlanningResult::Validate() const {
-	string error;
+optional<string> AsyncPlanningResult::Validate() const {
+	optional<string> error;
 	error = status.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(status.value, "submitted")) {
 		return StringUtil::Format("AsyncPlanningResult property 'status' must be submitted, not %s", status.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void AsyncPlanningResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

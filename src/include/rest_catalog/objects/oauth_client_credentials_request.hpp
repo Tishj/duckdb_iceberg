@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static OAuthClientCredentialsRequest FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, OAuthClientCredentialsRequestBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, OAuthClientCredentialsRequestBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	OAuthClientCredentialsRequest Copy() const;
@@ -54,7 +54,7 @@ public:
 	OAuthClientCredentialsRequestBuilder &SetClientId(string value);
 	OAuthClientCredentialsRequestBuilder &SetClientSecret(string value);
 	OAuthClientCredentialsRequestBuilder &SetScope(string value);
-	string TryBuild(optional<OAuthClientCredentialsRequest> &result);
+	optional<string> TryBuild(optional<OAuthClientCredentialsRequest> &result);
 	OAuthClientCredentialsRequest Build();
 
 private:

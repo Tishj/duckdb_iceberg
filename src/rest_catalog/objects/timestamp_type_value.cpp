@@ -23,7 +23,7 @@ TimestampTypeValue::TimestampTypeValue(TimestampTypeValue &&other)
     : TimestampTypeValue(static_cast<const TimestampTypeValue &>(other)) {
 }
 
-string TimestampTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTypeValue> &result) {
+optional<string> TimestampTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTypeValue> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -34,7 +34,7 @@ string TimestampTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTypeVa
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(TimestampTypeValue(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -44,8 +44,8 @@ string TimestampTypeValue::TryFromJSON(yyjson_val *obj, optional<TimestampTypeVa
 TimestampTypeValue TimestampTypeValue::FromJSON(yyjson_val *obj) {
 	optional<TimestampTypeValue> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -57,9 +57,9 @@ TimestampTypeValue TimestampTypeValue::Copy() const {
 	return TimestampTypeValue(*this);
 }
 
-string TimestampTypeValue::Validate() const {
-	string error;
-	return "";
+optional<string> TimestampTypeValue::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *TimestampTypeValue::ToJSON(yyjson_mut_doc *doc) const {

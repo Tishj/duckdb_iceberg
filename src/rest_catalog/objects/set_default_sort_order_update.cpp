@@ -45,23 +45,26 @@ SetDefaultSortOrderUpdate SetDefaultSortOrderUpdateBuilder::Build() {
 	}
 	auto result = SetDefaultSortOrderUpdate(std::move(*base_update_), std::move(*sort_order_id_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string SetDefaultSortOrderUpdateBuilder::TryBuild(optional<SetDefaultSortOrderUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> SetDefaultSortOrderUpdateBuilder::TryBuild(optional<SetDefaultSortOrderUpdate> &result) {
+	if (!has_sort_order_id_) {
+		return "SetDefaultSortOrderUpdate required property 'sort-order-id' is missing";
 	}
+	auto built = SetDefaultSortOrderUpdate(std::move(*base_update_), std::move(*sort_order_id_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSortOrderUpdateBuilder &builder) {
+optional<string> SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSortOrderUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto sort_order_id_val = yyjson_obj_get(obj, "sort-order-id");
@@ -78,7 +81,7 @@ string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSortOrd
 			}
 			builder.SetSortOrderId(std::move(sort_order_id));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -88,8 +91,8 @@ string SetDefaultSortOrderUpdate::TryFromJSON(yyjson_val *obj, SetDefaultSortOrd
 SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::FromJSON(yyjson_val *obj) {
 	SetDefaultSortOrderUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -98,13 +101,13 @@ SetDefaultSortOrderUpdate SetDefaultSortOrderUpdate::Copy() const {
 	return SetDefaultSortOrderUpdate(*this);
 }
 
-string SetDefaultSortOrderUpdate::Validate() const {
-	string error;
+optional<string> SetDefaultSortOrderUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void SetDefaultSortOrderUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -56,23 +56,26 @@ ReportMetricsRequest ReportMetricsRequestBuilder::Build() {
 	}
 	auto result = ReportMetricsRequest(std::move(scan_report_), std::move(commit_report_), std::move(*report_type_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string ReportMetricsRequestBuilder::TryBuild(optional<ReportMetricsRequest> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> ReportMetricsRequestBuilder::TryBuild(optional<ReportMetricsRequest> &result) {
+	if (!has_report_type_) {
+		return "ReportMetricsRequest required property 'report-type' is missing";
 	}
+	auto built = ReportMetricsRequest(std::move(scan_report_), std::move(commit_report_), std::move(*report_type_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string ReportMetricsRequest::TryFromJSON(yyjson_val *obj, ReportMetricsRequestBuilder &builder) {
+optional<string> ReportMetricsRequest::TryFromJSON(yyjson_val *obj, ReportMetricsRequestBuilder &builder) {
 	try {
 		int matched_any_of_variants = 0;
 		try {
@@ -102,7 +105,7 @@ string ReportMetricsRequest::TryFromJSON(yyjson_val *obj, ReportMetricsRequestBu
 			}
 			builder.SetReportType(std::move(report_type));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -112,8 +115,8 @@ string ReportMetricsRequest::TryFromJSON(yyjson_val *obj, ReportMetricsRequestBu
 ReportMetricsRequest ReportMetricsRequest::FromJSON(yyjson_val *obj) {
 	ReportMetricsRequestBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -122,27 +125,27 @@ ReportMetricsRequest ReportMetricsRequest::Copy() const {
 	return ReportMetricsRequest(*this);
 }
 
-string ReportMetricsRequest::Validate() const {
-	string error;
+optional<string> ReportMetricsRequest::Validate() const {
+	optional<string> error;
 	int matched_any_of_variants = 0;
 	if (scan_report.has_value()) {
 		matched_any_of_variants++;
 		error = scan_report->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (commit_report.has_value()) {
 		matched_any_of_variants++;
 		error = commit_report->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_any_of_variants == 0) {
 		return "ReportMetricsRequest must have at least one anyOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void ReportMetricsRequest::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static RemoveEncryptionKeyUpdate FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, RemoveEncryptionKeyUpdateBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, RemoveEncryptionKeyUpdateBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	RemoveEncryptionKeyUpdate Copy() const;
@@ -50,7 +50,7 @@ public:
 	RemoveEncryptionKeyUpdateBuilder();
 	RemoveEncryptionKeyUpdateBuilder &SetBaseUpdate(BaseUpdate value);
 	RemoveEncryptionKeyUpdateBuilder &SetKeyId(string value);
-	string TryBuild(optional<RemoveEncryptionKeyUpdate> &result);
+	optional<string> TryBuild(optional<RemoveEncryptionKeyUpdate> &result);
 	RemoveEncryptionKeyUpdate Build();
 
 private:

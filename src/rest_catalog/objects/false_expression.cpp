@@ -38,23 +38,26 @@ FalseExpression FalseExpressionBuilder::Build() {
 	}
 	auto result = FalseExpression(std::move(*type_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string FalseExpressionBuilder::TryBuild(optional<FalseExpression> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> FalseExpressionBuilder::TryBuild(optional<FalseExpression> &result) {
+	if (!has_type_) {
+		return "FalseExpression required property 'type' is missing";
 	}
+	auto built = FalseExpression(std::move(*type_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string FalseExpression::TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &builder) {
+optional<string> FalseExpression::TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -62,7 +65,7 @@ string FalseExpression::TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &bui
 		} else {
 			builder.SetType(ExpressionType::FromJSON(type_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -72,8 +75,8 @@ string FalseExpression::TryFromJSON(yyjson_val *obj, FalseExpressionBuilder &bui
 FalseExpression FalseExpression::FromJSON(yyjson_val *obj) {
 	FalseExpressionBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -82,16 +85,16 @@ FalseExpression FalseExpression::Copy() const {
 	return FalseExpression(*this);
 }
 
-string FalseExpression::Validate() const {
-	string error;
+optional<string> FalseExpression::Validate() const {
+	optional<string> error;
 	error = type.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	if (!StringUtil::CIEquals(type.value, "false")) {
 		return StringUtil::Format("FalseExpression property 'type' must be false, not %s", type.value);
 	}
-	return "";
+	return nullopt;
 }
 
 void FalseExpression::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

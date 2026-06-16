@@ -31,8 +31,8 @@ private:
 public:
 	// Deserialization
 	static LoadViewResult FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, LoadViewResultBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	LoadViewResult Copy() const;
@@ -53,7 +53,7 @@ public:
 	LoadViewResultBuilder &SetMetadataLocation(string value);
 	LoadViewResultBuilder &SetMetadata(ViewMetadata value);
 	LoadViewResultBuilder &SetConfig(case_insensitive_map_t<string> value);
-	string TryBuild(optional<LoadViewResult> &result);
+	optional<string> TryBuild(optional<LoadViewResult> &result);
 	LoadViewResult Build();
 
 private:

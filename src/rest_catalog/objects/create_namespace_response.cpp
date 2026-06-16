@@ -54,23 +54,26 @@ CreateNamespaceResponse CreateNamespaceResponseBuilder::Build() {
 	}
 	auto result = CreateNamespaceResponse(std::move(*_namespace_), std::move(properties_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string CreateNamespaceResponseBuilder::TryBuild(optional<CreateNamespaceResponse> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> CreateNamespaceResponseBuilder::TryBuild(optional<CreateNamespaceResponse> &result) {
+	if (!has__namespace_) {
+		return "CreateNamespaceResponse required property 'namespace' is missing";
 	}
+	auto built = CreateNamespaceResponse(std::move(*_namespace_), std::move(properties_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string CreateNamespaceResponse::TryFromJSON(yyjson_val *obj, CreateNamespaceResponseBuilder &builder) {
+optional<string> CreateNamespaceResponse::TryFromJSON(yyjson_val *obj, CreateNamespaceResponseBuilder &builder) {
 	try {
 		auto _namespace_val = yyjson_obj_get(obj, "namespace");
 		if (!_namespace_val) {
@@ -101,7 +104,7 @@ string CreateNamespaceResponse::TryFromJSON(yyjson_val *obj, CreateNamespaceResp
 			}
 			builder.SetProperties(std::move(properties));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -111,8 +114,8 @@ string CreateNamespaceResponse::TryFromJSON(yyjson_val *obj, CreateNamespaceResp
 CreateNamespaceResponse CreateNamespaceResponse::FromJSON(yyjson_val *obj) {
 	CreateNamespaceResponseBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -121,13 +124,13 @@ CreateNamespaceResponse CreateNamespaceResponse::Copy() const {
 	return CreateNamespaceResponse(*this);
 }
 
-string CreateNamespaceResponse::Validate() const {
-	string error;
+optional<string> CreateNamespaceResponse::Validate() const {
+	optional<string> error;
 	error = _namespace.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void CreateNamespaceResponse::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

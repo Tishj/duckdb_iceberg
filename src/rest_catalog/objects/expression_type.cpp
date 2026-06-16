@@ -22,7 +22,7 @@ ExpressionType::ExpressionType(const ExpressionType &other) : value(other.value)
 ExpressionType::ExpressionType(ExpressionType &&other) : ExpressionType(static_cast<const ExpressionType &>(other)) {
 }
 
-string ExpressionType::TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result) {
+optional<string> ExpressionType::TryFromJSON(yyjson_val *obj, optional<ExpressionType> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -33,7 +33,7 @@ string ExpressionType::TryFromJSON(yyjson_val *obj, optional<ExpressionType> &re
 			                       yyjson_get_type_desc(obj)));
 		}
 		result.emplace(ExpressionType(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -43,8 +43,8 @@ string ExpressionType::TryFromJSON(yyjson_val *obj, optional<ExpressionType> &re
 ExpressionType ExpressionType::FromJSON(yyjson_val *obj) {
 	optional<ExpressionType> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -56,9 +56,9 @@ ExpressionType ExpressionType::Copy() const {
 	return ExpressionType(*this);
 }
 
-string ExpressionType::Validate() const {
-	string error;
-	return "";
+optional<string> ExpressionType::Validate() const {
+	optional<string> error;
+	return nullopt;
 }
 
 yyjson_mut_val *ExpressionType::ToJSON(yyjson_mut_doc *doc) const {

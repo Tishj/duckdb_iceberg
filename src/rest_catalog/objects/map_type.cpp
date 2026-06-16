@@ -89,23 +89,42 @@ MapType MapTypeBuilder::Build() {
 	auto result = MapType(std::move(*type_), std::move(*key_id_), std::move(key_), std::move(*value_id_),
 	                      std::move(value_), std::move(*value_required_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string MapTypeBuilder::TryBuild(optional<MapType> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> MapTypeBuilder::TryBuild(optional<MapType> &result) {
+	if (!has_type_) {
+		return "MapType required property 'type' is missing";
 	}
+	if (!has_key_id_) {
+		return "MapType required property 'key-id' is missing";
+	}
+	if (!has_key_) {
+		return "MapType required property 'key' is missing";
+	}
+	if (!has_value_id_) {
+		return "MapType required property 'value-id' is missing";
+	}
+	if (!has_value_) {
+		return "MapType required property 'value' is missing";
+	}
+	if (!has_value_required_) {
+		return "MapType required property 'value-required' is missing";
+	}
+	auto built = MapType(std::move(*type_), std::move(*key_id_), std::move(key_), std::move(*value_id_),
+	                     std::move(value_), std::move(*value_required_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string MapType::TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder) {
+optional<string> MapType::TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder) {
 	try {
 		auto type_val = yyjson_obj_get(obj, "type");
 		if (!type_val) {
@@ -179,7 +198,7 @@ string MapType::TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder) {
 			}
 			builder.SetValueRequired(std::move(value_required));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -189,8 +208,8 @@ string MapType::TryFromJSON(yyjson_val *obj, MapTypeBuilder &builder) {
 MapType MapType::FromJSON(yyjson_val *obj) {
 	MapTypeBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -199,20 +218,20 @@ MapType MapType::Copy() const {
 	return MapType(*this);
 }
 
-string MapType::Validate() const {
-	string error;
+optional<string> MapType::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(type, "map")) {
 		return StringUtil::Format("MapType property 'type' must be map, not %s", type);
 	}
 	error = key->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = value->Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void MapType::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

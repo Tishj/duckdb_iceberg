@@ -45,23 +45,26 @@ AddEncryptionKeyUpdate AddEncryptionKeyUpdateBuilder::Build() {
 	}
 	auto result = AddEncryptionKeyUpdate(std::move(*base_update_), std::move(*encryption_key_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AddEncryptionKeyUpdateBuilder::TryBuild(optional<AddEncryptionKeyUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AddEncryptionKeyUpdateBuilder::TryBuild(optional<AddEncryptionKeyUpdate> &result) {
+	if (!has_encryption_key_) {
+		return "AddEncryptionKeyUpdate required property 'encryption-key' is missing";
 	}
+	auto built = AddEncryptionKeyUpdate(std::move(*base_update_), std::move(*encryption_key_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpdateBuilder &builder) {
+optional<string> AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto encryption_key_val = yyjson_obj_get(obj, "encryption-key");
@@ -70,7 +73,7 @@ string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpda
 		} else {
 			builder.SetEncryptionKey(EncryptedKey::FromJSON(encryption_key_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -80,8 +83,8 @@ string AddEncryptionKeyUpdate::TryFromJSON(yyjson_val *obj, AddEncryptionKeyUpda
 AddEncryptionKeyUpdate AddEncryptionKeyUpdate::FromJSON(yyjson_val *obj) {
 	AddEncryptionKeyUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -90,17 +93,17 @@ AddEncryptionKeyUpdate AddEncryptionKeyUpdate::Copy() const {
 	return AddEncryptionKeyUpdate(*this);
 }
 
-string AddEncryptionKeyUpdate::Validate() const {
-	string error;
+optional<string> AddEncryptionKeyUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = encryption_key.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AddEncryptionKeyUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

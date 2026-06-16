@@ -30,8 +30,8 @@ private:
 public:
 	// Deserialization
 	static ViewRequirement FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, ViewRequirementBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	ViewRequirement Copy() const;
@@ -48,7 +48,7 @@ class ViewRequirementBuilder {
 public:
 	ViewRequirementBuilder();
 	ViewRequirementBuilder &SetAssertViewUuid(AssertViewUUID value);
-	string TryBuild(optional<ViewRequirement> &result);
+	optional<string> TryBuild(optional<ViewRequirement> &result);
 	ViewRequirement Build();
 
 private:

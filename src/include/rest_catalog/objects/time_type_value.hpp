@@ -24,8 +24,8 @@ public:
 public:
 	// Deserialization
 	static TimeTypeValue FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, optional<TimeTypeValue> &result);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, optional<TimeTypeValue> &result);
+	optional<string> Validate() const;
 
 	// Copy
 	TimeTypeValue Copy() const;

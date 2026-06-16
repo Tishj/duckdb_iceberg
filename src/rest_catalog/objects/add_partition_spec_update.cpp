@@ -45,23 +45,26 @@ AddPartitionSpecUpdate AddPartitionSpecUpdateBuilder::Build() {
 	}
 	auto result = AddPartitionSpecUpdate(std::move(*base_update_), std::move(*spec_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string AddPartitionSpecUpdateBuilder::TryBuild(optional<AddPartitionSpecUpdate> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> AddPartitionSpecUpdateBuilder::TryBuild(optional<AddPartitionSpecUpdate> &result) {
+	if (!has_spec_) {
+		return "AddPartitionSpecUpdate required property 'spec' is missing";
 	}
+	auto built = AddPartitionSpecUpdate(std::move(*base_update_), std::move(*spec_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
+	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, AddPartitionSpecUpdateBuilder &builder) {
+optional<string> AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, AddPartitionSpecUpdateBuilder &builder) {
 	try {
 		builder.SetBaseUpdate(BaseUpdate::FromJSON(obj));
 		auto spec_val = yyjson_obj_get(obj, "spec");
@@ -70,7 +73,7 @@ string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, AddPartitionSpecUpda
 		} else {
 			builder.SetSpec(PartitionSpec::FromJSON(spec_val));
 		}
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -80,8 +83,8 @@ string AddPartitionSpecUpdate::TryFromJSON(yyjson_val *obj, AddPartitionSpecUpda
 AddPartitionSpecUpdate AddPartitionSpecUpdate::FromJSON(yyjson_val *obj) {
 	AddPartitionSpecUpdateBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -90,17 +93,17 @@ AddPartitionSpecUpdate AddPartitionSpecUpdate::Copy() const {
 	return AddPartitionSpecUpdate(*this);
 }
 
-string AddPartitionSpecUpdate::Validate() const {
-	string error;
+optional<string> AddPartitionSpecUpdate::Validate() const {
+	optional<string> error;
 	error = base_update.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
 	error = spec.Validate();
-	if (!error.empty()) {
+	if (error) {
 		return error;
 	}
-	return "";
+	return nullopt;
 }
 
 void AddPartitionSpecUpdate::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {

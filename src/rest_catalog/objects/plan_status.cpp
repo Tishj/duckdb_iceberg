@@ -22,7 +22,7 @@ PlanStatus::PlanStatus(const PlanStatus &other) : value(other.value) {
 PlanStatus::PlanStatus(PlanStatus &&other) : PlanStatus(static_cast<const PlanStatus &>(other)) {
 }
 
-string PlanStatus::TryFromJSON(yyjson_val *obj, optional<PlanStatus> &result) {
+optional<string> PlanStatus::TryFromJSON(yyjson_val *obj, optional<PlanStatus> &result) {
 	try {
 		string value;
 		if (yyjson_is_str(obj)) {
@@ -32,7 +32,7 @@ string PlanStatus::TryFromJSON(yyjson_val *obj, optional<PlanStatus> &result) {
 			    "PlanStatus property 'value' is not of type 'string', found '%s' instead", yyjson_get_type_desc(obj)));
 		}
 		result.emplace(PlanStatus(std::move(value)));
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -42,8 +42,8 @@ string PlanStatus::TryFromJSON(yyjson_val *obj, optional<PlanStatus> &result) {
 PlanStatus PlanStatus::FromJSON(yyjson_val *obj) {
 	optional<PlanStatus> result;
 	auto error = TryFromJSON(obj, result);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	if (!result.has_value()) {
 		throw InternalException("TryFromJSON succeeded without producing a result");
@@ -55,14 +55,14 @@ PlanStatus PlanStatus::Copy() const {
 	return PlanStatus(*this);
 }
 
-string PlanStatus::Validate() const {
-	string error;
+optional<string> PlanStatus::Validate() const {
+	optional<string> error;
 	if (!StringUtil::CIEquals(value, "completed") && !StringUtil::CIEquals(value, "submitted") &&
 	    !StringUtil::CIEquals(value, "cancelled") && !StringUtil::CIEquals(value, "failed")) {
 		return StringUtil::Format(
 		    "PlanStatus property 'value' must be one of [completed, submitted, cancelled, failed], not %s", value);
 	}
-	return "";
+	return nullopt;
 }
 
 yyjson_mut_val *PlanStatus::ToJSON(yyjson_mut_doc *doc) const {

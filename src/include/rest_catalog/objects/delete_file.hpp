@@ -32,8 +32,8 @@ private:
 public:
 	// Deserialization
 	static DeleteFile FromJSON(yyjson_val *obj);
-	static string TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder);
-	string Validate() const;
+	static optional<string> TryFromJSON(yyjson_val *obj, DeleteFileBuilder &builder);
+	optional<string> Validate() const;
 
 	// Copy
 	DeleteFile Copy() const;
@@ -52,7 +52,7 @@ public:
 	DeleteFileBuilder();
 	DeleteFileBuilder &SetPositionDeleteFile(PositionDeleteFile value);
 	DeleteFileBuilder &SetEqualityDeleteFile(EqualityDeleteFile value);
-	string TryBuild(optional<DeleteFile> &result);
+	optional<string> TryBuild(optional<DeleteFile> &result);
 	DeleteFile Build();
 
 private:

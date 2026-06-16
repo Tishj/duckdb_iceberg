@@ -71,23 +71,24 @@ PlanTableScanResult PlanTableScanResultBuilder::Build() {
 	auto result = PlanTableScanResult(std::move(completed_planning_with_idresult_), std::move(failed_planning_result_),
 	                                  std::move(async_planning_result_), std::move(empty_planning_result_));
 	auto error = result.Validate();
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return result;
 }
 
-string PlanTableScanResultBuilder::TryBuild(optional<PlanTableScanResult> &result) {
-	try {
-		result.emplace(Build());
-		return "";
-	} catch (const Exception &ex) {
-		auto error = ErrorData(ex);
-		return error.RawMessage();
+optional<string> PlanTableScanResultBuilder::TryBuild(optional<PlanTableScanResult> &result) {
+	auto built = PlanTableScanResult(std::move(completed_planning_with_idresult_), std::move(failed_planning_result_),
+	                                 std::move(async_planning_result_), std::move(empty_planning_result_));
+	auto error = built.Validate();
+	if (error) {
+		return error;
 	}
+	result.emplace(std::move(built));
+	return nullopt;
 }
 
-string PlanTableScanResult::TryFromJSON(yyjson_val *obj, PlanTableScanResultBuilder &builder) {
+optional<string> PlanTableScanResult::TryFromJSON(yyjson_val *obj, PlanTableScanResultBuilder &builder) {
 	try {
 		do {
 			try {
@@ -112,7 +113,7 @@ string PlanTableScanResult::TryFromJSON(yyjson_val *obj, PlanTableScanResultBuil
 			}
 			throw InvalidInputException("PlanTableScanResult failed to parse, none of the oneOf candidates matched");
 		} while (false);
-		return "";
+		return nullopt;
 	} catch (const Exception &ex) {
 		auto error = ErrorData(ex);
 		return error.RawMessage();
@@ -122,8 +123,8 @@ string PlanTableScanResult::TryFromJSON(yyjson_val *obj, PlanTableScanResultBuil
 PlanTableScanResult PlanTableScanResult::FromJSON(yyjson_val *obj) {
 	PlanTableScanResultBuilder builder;
 	auto error = TryFromJSON(obj, builder);
-	if (!error.empty()) {
-		throw InvalidInputException(error);
+	if (error) {
+		throw InvalidInputException(*error);
 	}
 	return builder.Build();
 }
@@ -132,41 +133,41 @@ PlanTableScanResult PlanTableScanResult::Copy() const {
 	return PlanTableScanResult(*this);
 }
 
-string PlanTableScanResult::Validate() const {
-	string error;
+optional<string> PlanTableScanResult::Validate() const {
+	optional<string> error;
 	int matched_one_of_variants = 0;
 	if (completed_planning_with_idresult.has_value()) {
 		matched_one_of_variants++;
 		error = completed_planning_with_idresult->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (failed_planning_result.has_value()) {
 		matched_one_of_variants++;
 		error = failed_planning_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (async_planning_result.has_value()) {
 		matched_one_of_variants++;
 		error = async_planning_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (empty_planning_result.has_value()) {
 		matched_one_of_variants++;
 		error = empty_planning_result->Validate();
-		if (!error.empty()) {
+		if (error) {
 			return error;
 		}
 	}
 	if (matched_one_of_variants != 1) {
 		return "PlanTableScanResult must have exactly one oneOf variant set";
 	}
-	return "";
+	return nullopt;
 }
 
 void PlanTableScanResult::PopulateJSON(yyjson_mut_doc *doc, yyjson_mut_val *obj) const {
