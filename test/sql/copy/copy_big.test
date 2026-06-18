@@ -7,6 +7,8 @@ require parquet
 
 require iceberg
 
+require json
+
 statement ok
 COPY (
 	SELECT i a, concat('thisisalongstring', i) b FROM range(2000000) t(i)
@@ -43,3 +45,45 @@ query I
 select count(*) from iceberg_scan('__TEST_DIR__/iceberg_table_big')
 ----
 2000000
+
+query I
+select count(distinct filename) from iceberg_scan('__TEST_DIR__/iceberg_table_big')
+----
+3
+
+statement ok
+set variable metadata_version = trim((select content from read_text('__TEST_DIR__/iceberg_table_big/metadata/version-hint.text')));
+
+query II
+select "format-version", properties['write.parquet.compression-codec']
+from read_json('__TEST_DIR__/iceberg_table_big/metadata/' || getvariable('metadata_version') || '.metadata.json');
+----
+2	snappy
+
+query I
+select properties['write.update.mode']
+from read_json('__TEST_DIR__/iceberg_table_big/metadata/' || getvariable('metadata_version') || '.metadata.json');
+----
+merge-on-read
+
+statement error
+COPY (
+	SELECT 1
+) TO '__TEST_DIR__/iceberg_table_bad_tblproperties_type' (
+	FORMAT ICEBERG,
+	TBLPROPERTIES 42
+)
+----
+TBLPROPERTIES requires a MAP(VARCHAR, VARCHAR) argument
+
+statement error
+COPY (
+	SELECT 1
+) TO '__TEST_DIR__/iceberg_table_bad_format_version' (
+	FORMAT ICEBERG,
+	TBLPROPERTIES MAP {
+		'format-version': '3'
+	}
+)
+----
+Invalid format version specified in TBLPROPERTIES

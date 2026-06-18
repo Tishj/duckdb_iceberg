@@ -8,6 +8,51 @@
 
 namespace duckdb {
 
+static void ParseTablePropertiesOption(ClientContext &context, const CopyInfo &info,
+                                       IcebergTableMetadata &table_metadata) {
+	auto table_properties_it = info.options.find("tblproperties");
+	if (table_properties_it == info.options.end()) {
+		return;
+	}
+	if (table_properties_it->second.size() != 1) {
+		throw BinderException("TBLPROPERTIES requires exactly one MAP(VARCHAR, VARCHAR) argument");
+	}
+
+	auto table_properties_value = table_properties_it->second[0];
+	auto table_properties_type = LogicalType::MAP(LogicalType::VARCHAR, LogicalType::VARCHAR);
+	if (!table_properties_value.DefaultTryCastAs(table_properties_type, true)) {
+		throw BinderException("TBLPROPERTIES requires a MAP(VARCHAR, VARCHAR) argument");
+	}
+
+	auto table_properties = table_properties_value.DefaultCastAs(table_properties_type);
+	auto &map_children = MapValue::GetChildren(table_properties);
+	for (auto &entry : map_children) {
+		auto &struct_children = StructValue::GetChildren(entry);
+		auto &key = StringValue::Get(struct_children[0]);
+		if (struct_children[1].IsNull()) {
+			throw BinderException("NULL is not supported as a valid option for '%s'", key);
+		}
+		auto &value = StringValue::Get(struct_children[1]);
+		table_metadata.table_properties.emplace(key, value);
+	}
+
+	auto format_version_it = table_metadata.table_properties.find("format-version");
+	if (format_version_it == table_metadata.table_properties.end()) {
+		return;
+	}
+
+	auto val = Value(format_version_it->second);
+	if (!val.TryCastAs(context, LogicalType::INTEGER, true)) {
+		throw BinderException("Can't parse 'format-version': %s", val.ToString());
+	}
+
+	auto iceberg_version = val.GetValue<int32_t>();
+	if (iceberg_version < 1 || iceberg_version > 2) {
+		throw BinderException("Invalid format version specified in TBLPROPERTIES: %d", iceberg_version);
+	}
+	table_metadata.iceberg_version = iceberg_version;
+}
+
 static BoundStatement IcebergCopyPlan(Binder &binder, CopyStatement &stmt) {
 	auto &copy_info = *stmt.info;
 	// bind the select statement
@@ -71,7 +116,7 @@ CopyIcebergBindData::CopyIcebergBindData(const CopyInfo &info, vector<string> &&
 	table_metadata->last_partition_field_id = 0;
 	table_metadata->default_sort_order_id = 0;
 
-	//! TODO: Parse any iceberg-specific options from info.options if needed
+	ParseTablePropertiesOption(context, info, *table_metadata);
 }
 
 unique_ptr<FunctionData> CopyIcebergBindData::Copy() const {
