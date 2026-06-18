@@ -1,0 +1,45 @@
+# name: test/sql/copy/copy_big.test
+# group: [copy]
+
+require avro
+
+require parquet
+
+require iceberg
+
+statement ok
+COPY (
+	SELECT i a, concat('thisisalongstring', i) b FROM range(2000000) t(i)
+) TO '__TEST_DIR__/iceberg_table_big' (
+	FORMAT ICEBERG,
+	TBLPROPERTIES MAP {
+		'format-version': '2',
+		'write.update.mode': 'merge-on-read',
+		'write.parquet.compression-codec': 'snappy'
+	}
+)
+
+query II
+select * from iceberg_scan('__TEST_DIR__/iceberg_table_big') limit 1;
+----
+0	thisisalongstring0
+
+query I
+select a from iceberg_scan('__TEST_DIR__/iceberg_table_big') limit 1;
+----
+0
+
+query I
+select typeof(a) from iceberg_scan('__TEST_DIR__/iceberg_table_big') limit 1;
+----
+BIGINT
+
+query I
+select typeof(b) from iceberg_scan('__TEST_DIR__/iceberg_table_big') limit 1;
+----
+VARCHAR
+
+query I
+select count(*) from iceberg_scan('__TEST_DIR__/iceberg_table_big')
+----
+2000000
