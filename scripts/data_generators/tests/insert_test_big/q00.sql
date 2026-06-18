@@ -1,4 +1,5 @@
-CREATE or REPLACE TABLE default.insert_test_big (
+DROP TABLE IF EXISTS default.insert_test_big;
+CREATE TABLE default.insert_test_big (
 	col1 INTEGER,
 	col2 VARCHAR(17)
 )

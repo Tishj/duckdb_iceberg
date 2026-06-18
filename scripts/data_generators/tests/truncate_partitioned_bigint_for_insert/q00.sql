@@ -1,4 +1,5 @@
-CREATE OR REPLACE TABLE default.truncate_partitioned_bigint_for_insert (
+DROP TABLE IF EXISTS default.truncate_partitioned_bigint_for_insert;
+CREATE TABLE default.truncate_partitioned_bigint_for_insert (
     id INTEGER,
     value BIGINT
 )
