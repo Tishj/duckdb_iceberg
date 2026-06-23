@@ -65,12 +65,15 @@ EXPECTED_ROWS = [
     (101, "residual", "r101_u"),
 ]
 
+EXPECTED_PYICEBERG_ROWS = [{"id": row[0], "category": row[1], "payload": row[2]} for row in EXPECTED_ROWS]
+
 
 class TestRewriteDataFilesSparkMorResidualDeletes:
     @pytest.mark.spark_seed_tables(SPARK_REWRITE_MOR_RESIDUAL_DELETES_SEED)
     def test_rewrite_preserves_residual_deletes_and_remains_readable_in_spark(
         self,
         catalog_connection,
+        rest_catalog,
         unittest_binary,
         unittest_test_config,
         print_unittest_stdin,
@@ -202,3 +205,6 @@ class TestRewriteDataFilesSparkMorResidualDeletes:
             Row(id=100, category="residual", payload="r100"),
             Row(id=101, category="residual", payload="r101_u"),
         ]
+
+        pyiceberg_rows = rest_catalog.load_table(QUALIFIED_TABLE_NAME).scan().to_arrow().to_pylist()
+        assert sorted(pyiceberg_rows, key=lambda row: row["id"]) == EXPECTED_PYICEBERG_ROWS
