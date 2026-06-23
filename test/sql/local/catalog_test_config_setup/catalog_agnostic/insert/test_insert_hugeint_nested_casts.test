@@ -1,0 +1,53 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/insert/test_insert_hugeint_nested_casts.test
+# description: Test INSERT applies HUGEINT to DECIMAL(38,0) casts for nested types
+# group: [insert]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require avro
+
+require parquet
+
+require iceberg
+
+require httpfs
+
+# Do not ignore 'HTTP' error messages!
+set ignore_error_messages
+
+statement ok
+CALL enable_logging('HTTP');
+
+statement ok
+set logging_level='debug'
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.insert_hugeint_nested_casts;
+
+statement ok
+CREATE TABLE my_datalake.default.insert_hugeint_nested_casts (
+	id INTEGER,
+	lst HUGEINT[],
+	strct STRUCT(x HUGEINT)
+);
+
+query II
+SELECT column_name, column_type FROM (DESCRIBE my_datalake.default.insert_hugeint_nested_casts) ORDER BY column_name;
+----
+id	INTEGER
+lst	DECIMAL(38,0)[]
+strct	STRUCT(x DECIMAL(38,0))
+
+statement ok
+INSERT INTO my_datalake.default.insert_hugeint_nested_casts VALUES
+	(1, [0::HUGEINT], {'x': 1::HUGEINT}),
+	(2, [9999999999999999999::HUGEINT], {'x': -9999999999999999999::HUGEINT});
+
+query III
+SELECT id, lst[1], strct.x FROM my_datalake.default.insert_hugeint_nested_casts ORDER BY id;
+----
+1	0	1
+2	9999999999999999999	-9999999999999999999
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.insert_hugeint_nested_casts;

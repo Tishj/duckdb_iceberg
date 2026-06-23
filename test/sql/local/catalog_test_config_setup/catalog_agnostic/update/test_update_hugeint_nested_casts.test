@@ -1,0 +1,58 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/update/test_update_hugeint_nested_casts.test
+# description: Test UPDATE applies HUGEINT to DECIMAL(38,0) casts for nested types
+# group: [update]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require avro
+
+require parquet
+
+require iceberg
+
+require httpfs
+
+# Do not ignore 'HTTP' error messages!
+set ignore_error_messages
+
+statement ok
+CALL enable_logging('HTTP');
+
+statement ok
+set logging_level='debug'
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.update_hugeint_nested_casts;
+
+statement ok
+CREATE TABLE my_datalake.default.update_hugeint_nested_casts (
+	id INTEGER,
+	lst HUGEINT[],
+	strct STRUCT(x HUGEINT)
+);
+
+statement ok
+INSERT INTO my_datalake.default.update_hugeint_nested_casts VALUES
+	(1, [1::HUGEINT], {'x': 10::HUGEINT}),
+	(2, [2::HUGEINT], {'x': 20::HUGEINT});
+
+query II
+SELECT column_name, column_type FROM (DESCRIBE my_datalake.default.update_hugeint_nested_casts) ORDER BY column_name;
+----
+id	INTEGER
+lst	DECIMAL(38,0)[]
+strct	STRUCT(x DECIMAL(38,0))
+
+statement ok
+UPDATE my_datalake.default.update_hugeint_nested_casts
+SET lst = [9999999999999999999::HUGEINT], strct = {'x': -9999999999999999999::HUGEINT}
+WHERE id = 2;
+
+query III
+SELECT id, lst[1], strct.x FROM my_datalake.default.update_hugeint_nested_casts ORDER BY id;
+----
+1	1	10
+2	9999999999999999999	-9999999999999999999
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.update_hugeint_nested_casts;

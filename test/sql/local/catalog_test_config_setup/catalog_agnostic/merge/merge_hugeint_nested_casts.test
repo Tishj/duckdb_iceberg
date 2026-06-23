@@ -1,0 +1,81 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/merge/merge_hugeint_nested_casts.test
+# description: Test MERGE INTO applies HUGEINT to DECIMAL(38,0) casts for nested types in both UPDATE and INSERT paths
+# group: [merge]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require avro
+
+require parquet
+
+require iceberg
+
+require httpfs
+
+# Do not ignore 'HTTP' error messages!
+set ignore_error_messages
+
+statement ok
+set enable_logging=true
+
+statement ok
+set logging_level='debug'
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.merge_hugeint_nested_casts_target;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.merge_hugeint_nested_casts_source;
+
+statement ok
+CREATE TABLE my_datalake.default.merge_hugeint_nested_casts_target (
+	id INTEGER,
+	lst HUGEINT[],
+	strct STRUCT(x HUGEINT)
+) WITH (
+	'format-version'='3'
+);
+
+statement ok
+INSERT INTO my_datalake.default.merge_hugeint_nested_casts_target VALUES
+	(1, [1::HUGEINT], {'x': 10::HUGEINT});
+
+statement ok
+CREATE TABLE my_datalake.default.merge_hugeint_nested_casts_source (
+	id INTEGER,
+	lst HUGEINT[],
+	strct STRUCT(x HUGEINT)
+);
+
+statement ok
+INSERT INTO my_datalake.default.merge_hugeint_nested_casts_source VALUES
+	(1, [9999999999999999999::HUGEINT], {'x': -9999999999999999999::HUGEINT}),
+	(2, [1234567890123456789::HUGEINT], {'x': 9876543210987654321::HUGEINT});
+
+query II
+SELECT column_name, column_type FROM (DESCRIBE my_datalake.default.merge_hugeint_nested_casts_target) ORDER BY column_name;
+----
+id	INTEGER
+lst	DECIMAL(38,0)[]
+strct	STRUCT(x DECIMAL(38,0))
+
+query I
+MERGE INTO my_datalake.default.merge_hugeint_nested_casts_target AS target
+USING my_datalake.default.merge_hugeint_nested_casts_source AS source
+ON target.id = source.id
+WHEN MATCHED THEN UPDATE SET lst = source.lst, strct = source.strct
+WHEN NOT MATCHED THEN INSERT VALUES (source.id, source.lst, source.strct)
+----
+2
+
+query III
+SELECT id, lst[1], strct.x FROM my_datalake.default.merge_hugeint_nested_casts_target ORDER BY id;
+----
+1	9999999999999999999	-9999999999999999999
+2	1234567890123456789	9876543210987654321
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.merge_hugeint_nested_casts_source;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.merge_hugeint_nested_casts_target;
