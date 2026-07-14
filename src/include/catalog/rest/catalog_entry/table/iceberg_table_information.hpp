@@ -66,10 +66,8 @@ public:
 	string GetTableKey() const;
 	IcebergTableMetadata CreateMetadataFromLog(ClientContext &context, timestamp_ms_t transaction_start_ms,
 	                                           string &metadata_path) const;
-	// we pass the transaction, because we are only allowed to copy table information state provded by the catalog
-	// from before our transaction start time.
-	IcebergTableInformation Copy(IcebergTransaction &iceberg_transaction) const;
-	// This copy is used for deletes, where we don't care about valid table state
+	//! Perform a copy and adjust it to match the state visible to the current transaction
+	IcebergTableInformation CreateTransactionSnapshot(IcebergTransaction &iceberg_transaction) const;
 	IcebergTableInformation Copy() const;
 	void InitSchemaVersions();
 

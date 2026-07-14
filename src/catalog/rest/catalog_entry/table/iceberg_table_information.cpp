@@ -622,51 +622,54 @@ IcebergTableMetadata IcebergTableInformation::CreateMetadataFromLog(ClientContex
 	return IcebergTableMetadata::FromTableMetadata(parsed_metadata);
 }
 
-IcebergTableInformation IcebergTableInformation::Copy(IcebergTransaction &iceberg_transaction) const {
+IcebergTableInformation
+IcebergTableInformation::CreateTransactionSnapshot(IcebergTransaction &iceberg_transaction) const {
 	auto locked_context = iceberg_transaction.context.lock();
 	auto &context = *locked_context;
 
 	auto ret = Copy();
 	auto transaction_start_ms = IcebergUtils::GetTransactionStartTimeMS(context);
 
-	if (table_metadata.last_updated_ms > transaction_start_ms) {
-		bool use_metadata_log = true;
-		Value val;
-		if (context.TryGetCurrentSetting("iceberg_use_metadata_log", val)) {
-			if (!val.IsNull() && val.type().id() == LogicalTypeId::BOOLEAN) {
-				use_metadata_log = val.GetValue<bool>();
-			}
+	if (table_metadata.last_updated_ms <= transaction_start_ms) {
+		//! No changes have to be made to the state, it's already current
+		return ret;
+	}
+	bool use_metadata_log = true;
+	Value val;
+	if (context.TryGetCurrentSetting("iceberg_use_metadata_log", val)) {
+		if (!val.IsNull() && val.type().id() == LogicalTypeId::BOOLEAN) {
+			use_metadata_log = val.GetValue<bool>();
 		}
+	}
 
-		const bool can_use_metadata_log = use_metadata_log && !table_metadata.metadata_log.empty();
-		if (!can_use_metadata_log) {
-			auto snapshot_lookup = GetSnapshotLookup(iceberg_transaction);
-			if (ret.TableIsEmpty(context)) {
-				return ret;
-			}
-			IcebergSnapshotScanInfo snapshot_info;
-			snapshot_info = ret.table_metadata.GetSnapshot(context, snapshot_lookup);
-			if (!snapshot_info.snapshot) {
-				throw TransactionException("Table %s is already outdated. Please restart your transaction",
-				                           GetTableKey());
-			}
-
-			auto &snapshot = snapshot_info.snapshot;
-			D_ASSERT(snapshot);
-			ret.table_metadata.SetCurrentSchemaId(table_metadata.GetCurrentSchemaId());
-			if (!snapshot->sequence_number) {
-				throw InvalidConfigurationException("snapshot.sequence_number is not set");
-			}
-			ret.table_metadata.last_sequence_number = *snapshot->sequence_number;
-			if (!snapshot->snapshot_id) {
-				throw InvalidConfigurationException("snapshot.snapshot_id is not set");
-			}
-			ret.table_metadata.current_snapshot_id = *snapshot->snapshot_id;
-			return ret;
-		}
+	const bool can_use_metadata_log = use_metadata_log && !table_metadata.metadata_log.empty();
+	if (can_use_metadata_log) {
+		//! Replace the entire metadata with a state taken from the metadata_log that is current for the transaction
 		ret.table_metadata = ret.CreateMetadataFromLog(context, transaction_start_ms, ret.latest_metadata_json);
 		return ret;
 	}
+
+	auto snapshot_lookup = GetSnapshotLookup(iceberg_transaction);
+	if (ret.TableIsEmpty(context)) {
+		return ret;
+	}
+	IcebergSnapshotScanInfo snapshot_info;
+	snapshot_info = ret.table_metadata.GetSnapshot(context, snapshot_lookup);
+	if (!snapshot_info.snapshot) {
+		throw TransactionException("Table %s is already outdated. Please restart your transaction", GetTableKey());
+	}
+
+	auto &snapshot = snapshot_info.snapshot;
+	D_ASSERT(snapshot);
+	ret.table_metadata.SetCurrentSchemaId(table_metadata.GetCurrentSchemaId());
+	if (!snapshot->sequence_number) {
+		throw InvalidConfigurationException("snapshot.sequence_number is not set");
+	}
+	ret.table_metadata.last_sequence_number = *snapshot->sequence_number;
+	if (!snapshot->snapshot_id) {
+		throw InvalidConfigurationException("snapshot.snapshot_id is not set");
+	}
+	ret.table_metadata.current_snapshot_id = *snapshot->snapshot_id;
 	return ret;
 }
 

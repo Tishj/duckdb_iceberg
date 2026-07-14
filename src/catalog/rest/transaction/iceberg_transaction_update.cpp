@@ -4,19 +4,6 @@
 
 namespace duckdb {
 
-namespace {
-
-static IcebergTableInformation CopyLatestState(IcebergTransaction &transaction, const IcebergTableInformation &table) {
-	auto key = table.GetTableKey();
-	auto state = transaction.GetLatestTableState(key);
-	if (!state) {
-		throw InternalException("No transaction state exists for table with key '%s'", key);
-	}
-	return state->GetInfo().Copy();
-}
-
-} // namespace
-
 IcebergTransactionAlterUpdate::IcebergTransactionAlterUpdate(IcebergTransaction &transaction)
     : transaction(transaction) {
 }
@@ -58,7 +45,7 @@ IcebergTableInformation &IcebergTransactionAlterUpdate::GetOrInitializeTable(con
 	auto it = updated_tables.find(table_key);
 	if (it == updated_tables.end()) {
 		CheckWriteWriteConflict(table);
-		it = updated_tables.emplace(table_key, CopyLatestState(transaction, table)).first;
+		it = updated_tables.emplace(table_key, table.CreateTransactionSnapshot(transaction)).first;
 		transaction.VerifyAlterUpdateAtomicity(*this);
 		// Preserve the table_uuid from the original table info (resolved at transaction start).
 		// Copy() reads from the global request cache, which can be contaminated by another
@@ -97,7 +84,7 @@ IcebergTableInformation &IcebergTransactionAlterUpdate::CreateTable(const string
 
 IcebergTransactionDeleteUpdate::IcebergTransactionDeleteUpdate(IcebergTransaction &transaction,
                                                                const IcebergTableInformation &table)
-    : transaction(transaction), deleted_table(table.Copy(transaction)) {
+    : transaction(transaction), deleted_table(table.CreateTransactionSnapshot(transaction)) {
 }
 IcebergTransactionDeleteUpdate::~IcebergTransactionDeleteUpdate() {
 }
@@ -105,7 +92,8 @@ IcebergTransactionDeleteUpdate::~IcebergTransactionDeleteUpdate() {
 IcebergTransactionRenameUpdate::IcebergTransactionRenameUpdate(IcebergTransaction &transaction,
                                                                const IcebergTableInformation &table,
                                                                const string &new_name)
-    : transaction(transaction), table(table), new_table(CopyLatestState(transaction, table)), new_name(new_name) {
+    : transaction(transaction), table(table), new_table(table.CreateTransactionSnapshot(transaction)),
+      new_name(new_name) {
 	new_table.name = new_name;
 	if (!table.schema_versions.empty()) {
 		new_table.InitSchemaVersions();
