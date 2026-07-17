@@ -1,0 +1,151 @@
+# name: test/sql/iceberg_to_ducklake_incremental.test_slow
+# group: [sql]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require avro
+require parquet
+require iceberg
+require httpfs
+require ducklake
+
+statement ok
+CREATE SCHEMA my_datalake.iceberg_to_ducklake_incremental
+
+statement ok
+CREATE TABLE my_datalake.iceberg_to_ducklake_incremental.source_table(i INTEGER, value VARCHAR)
+
+statement ok
+INSERT INTO my_datalake.iceberg_to_ducklake_incremental.source_table VALUES (1, 'seed')
+
+statement ok
+ATTACH 'ducklake:duckdb:__TEST_DIR__/incremental.duckdb' AS incremental_ducklake
+    (DATA_PATH '__TEST_DIR__/incremental_data')
+
+query I
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'incremental_ducklake',
+    table := 'iceberg_to_ducklake_incremental.source_table'
+)
+----
+1
+
+query II rowsort
+SELECT * FROM incremental_ducklake.iceberg_to_ducklake_incremental.source_table
+----
+1	seed
+
+# Repeating the same conversion is a no-op.
+query I
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'incremental_ducklake',
+    table := 'iceberg_to_ducklake_incremental.source_table'
+)
+----
+0
+
+statement ok
+INSERT INTO my_datalake.iceberg_to_ducklake_incremental.source_table VALUES (2, 'incremental')
+
+query I
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'incremental_ducklake',
+    table := 'iceberg_to_ducklake_incremental.source_table'
+)
+----
+1
+
+query II rowsort
+SELECT * FROM incremental_ducklake.iceberg_to_ducklake_incremental.source_table
+----
+1	seed
+2	incremental
+
+statement ok
+ALTER TABLE my_datalake.iceberg_to_ducklake_incremental.source_table ADD COLUMN extra INTEGER
+
+query I
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'incremental_ducklake',
+    table := 'iceberg_to_ducklake_incremental.source_table'
+)
+----
+1
+
+query I
+SELECT count(*)
+FROM incremental_ducklake.iceberg_to_ducklake_incremental.source_table
+WHERE extra IS NULL
+----
+2
+
+# Scope and source identity are immutable after the seed.
+statement error Incremental conversion must use the same scope
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'incremental_ducklake',
+    schema := 'iceberg_to_ducklake_incremental'
+)
+
+# Any independent metadata mutation invalidates the converter-owned target.
+statement ok
+UPDATE __ducklake_metadata_incremental_ducklake.ducklake_snapshot_changes
+SET commit_message = 'independent mutation'
+WHERE snapshot_id = (SELECT max(snapshot_id) FROM __ducklake_metadata_incremental_ducklake.ducklake_snapshot_changes)
+
+statement error DuckLake catalog was altered
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'incremental_ducklake',
+    table := 'iceberg_to_ducklake_incremental.source_table'
+)
+
+statement ok
+CREATE SCHEMA my_datalake.iceberg_to_ducklake_schema_scope
+
+statement ok
+CREATE TABLE my_datalake.iceberg_to_ducklake_schema_scope.first_table(i INTEGER)
+
+statement ok
+CREATE TABLE my_datalake.iceberg_to_ducklake_schema_scope.second_table(i INTEGER)
+
+statement ok
+CREATE TABLE my_datalake.iceberg_to_ducklake_schema_scope.empty_table(i INTEGER)
+
+statement ok
+INSERT INTO my_datalake.iceberg_to_ducklake_schema_scope.first_table VALUES (1)
+
+statement ok
+INSERT INTO my_datalake.iceberg_to_ducklake_schema_scope.second_table VALUES (2)
+
+statement ok
+ATTACH 'ducklake:duckdb:__TEST_DIR__/schema.duckdb' AS schema_ducklake
+    (DATA_PATH '__TEST_DIR__/schema_data')
+
+query I
+CALL iceberg_to_ducklake(
+    'my_datalake',
+    'schema_ducklake',
+    schema := 'iceberg_to_ducklake_schema_scope'
+)
+----
+3
+
+query T rowsort
+SELECT table_name
+FROM information_schema.tables
+WHERE table_catalog = 'schema_ducklake' AND table_schema = 'iceberg_to_ducklake_schema_scope'
+----
+empty_table
+first_table
+second_table
+
+statement ok
+DROP SCHEMA my_datalake.iceberg_to_ducklake_incremental CASCADE
+
+statement ok
+DROP SCHEMA my_datalake.iceberg_to_ducklake_schema_scope CASCADE

@@ -21,8 +21,9 @@ public:
 	                     const map<timestamp_t, DuckLakeSnapshot> &snapshots);
 
 public:
-	//! The id is assigned after we've processed all tables
+	//! The id is assigned after snapshots have been finalized.
 	optional_idx partition_id;
+	idx_t partition_id_offset = 0;
 	vector<DuckLakePartitionColumn> columns;
 
 	timestamp_t start_snapshot;

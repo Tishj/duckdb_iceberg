@@ -13,9 +13,10 @@ DuckLakePartition::DuckLakePartition(const IcebergPartitionSpec &partition) {
 	}
 }
 
-string DuckLakePartition::FinalizeEntry(int64_t table_id, DuckLakeMetadataSerializer &serializer,
+string DuckLakePartition::FinalizeEntry(int64_t table_id, DuckLakeMetadataSerializer &,
                                         const map<timestamp_t, DuckLakeSnapshot> &snapshots) {
-	auto partition_id = serializer.partition_id++;
+	auto &snapshot = snapshots.at(start_snapshot);
+	auto partition_id = snapshot.base_partition_id + partition_id_offset;
 	this->partition_id = partition_id;
 	auto snapshot_ids = DuckLakeUtils::GetSnapshots(start_snapshot, has_end, end_snapshot, snapshots);
 

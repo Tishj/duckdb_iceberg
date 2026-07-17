@@ -26,6 +26,7 @@ public:
 	int64_t AddDataFile(const string &table_uuid);
 	void DeleteDataFile(const string &table_uuid);
 	int64_t AddDeleteFile(const string &table_uuid);
+	int64_t AddPartition();
 	void AlterTable(const string &table_uuid);
 
 public:
@@ -57,6 +58,8 @@ public:
 	int64_t base_schema_version;
 	int64_t base_catalog_id;
 	int64_t base_file_id;
+	int64_t base_partition_id;
+	idx_t partitions_added = 0;
 };
 
 } // namespace ducklake

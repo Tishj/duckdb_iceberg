@@ -24,6 +24,8 @@
 #include "duckdb/common/printer.hpp"
 #include "duckdb/common/sql_identifier.hpp"
 #include "duckdb/common/operator/cast_operators.hpp"
+#include "duckdb/common/crypto/md5.hpp"
+#include "duckdb/parser/qualified_name.hpp"
 
 #include "function/iceberg_functions.hpp"
 #include "common/iceberg_utils.hpp"
@@ -98,22 +100,76 @@ public:
 	}
 
 public:
+	enum class ScopeType : uint8_t { CATALOG, SCHEMA, TABLE };
+
+	static vector<reference<const IcebergSnapshot>> GetCurrentSnapshotLineage(const IcebergTableMetadata &metadata) {
+		vector<reference<const IcebergSnapshot>> result;
+		if (!metadata.current_snapshot_id) {
+			return result;
+		}
+
+		unordered_set<int64_t> visited;
+		auto snapshot_id = *metadata.current_snapshot_id;
+		while (true) {
+			if (!visited.insert(snapshot_id).second) {
+				throw InvalidConfigurationException("Cycle detected in Iceberg snapshot lineage for table '%s'",
+				                                    metadata.table_uuid);
+			}
+			auto snapshot = metadata.FindSnapshotByIdInternal(snapshot_id);
+			if (!snapshot) {
+				throw InvalidConfigurationException(
+				    "Current Iceberg snapshot lineage for table '%s' references missing snapshot %lld",
+				    metadata.table_uuid, snapshot_id);
+			}
+			result.emplace_back(*snapshot);
+			if (!snapshot->parent_snapshot_id) {
+				break;
+			}
+			snapshot_id = *snapshot->parent_snapshot_id;
+		}
+		std::reverse(result.begin(), result.end());
+		return result;
+	}
+
 	void AddTable(IcebergTableInformation &table_info, ClientContext &context, const IcebergOptions &options) {
 		auto &metadata = table_info.table_metadata;
 		if (table_names_to_skip.count(table_info.name)) {
 			//! FIXME: perhaps log that the table was skipped
 			return;
 		}
-		if (metadata.snapshots.empty()) {
-			//! The table has no snapshots, so we can't assign any ducklake snapshot as its creator
-			return;
+
+		vector<unique_ptr<IcebergTableMetadata>> historical_metadata;
+		if (!metadata.metadata_log.empty()) {
+			table_info.LoadCredentials(context);
+			auto fs = make_shared_ptr<CachingFileSystemWrapper>(FileSystem::GetFileSystem(context), *context.db);
+			for (auto &item : metadata.metadata_log) {
+				auto parsed = IcebergTableMetadata::Parse(item.metadata_file, *fs, options.metadata_compression_codec);
+				historical_metadata.push_back(
+				    make_uniq<IcebergTableMetadata>(IcebergTableMetadata::FromTableMetadata(parsed)));
+			}
 		}
 
-		map<timestamp_t, reference<IcebergSnapshot>> snapshots;
-		for (auto &it : metadata.snapshots) {
-			auto timestamp = duckdb::Cast::Operation<timestamp_ms_t, timestamp_t>(it.second.timestamp_ms);
-			snapshots.emplace(timestamp, it.second);
+		struct ConversionEvent {
+			timestamp_ms_t timestamp;
+			optional_ptr<const IcebergTableMetadata> metadata;
+			optional_ptr<const IcebergSnapshot> snapshot;
+		};
+		vector<ConversionEvent> events;
+		for (auto &historical : historical_metadata) {
+			events.push_back({historical->last_updated_ms, historical.get(), nullptr});
 		}
+		events.push_back({metadata.last_updated_ms, &metadata, nullptr});
+		for (auto &snapshot_ref : GetCurrentSnapshotLineage(metadata)) {
+			auto &snapshot = snapshot_ref.get();
+			events.push_back({snapshot.timestamp_ms, nullptr, &snapshot});
+		}
+		std::stable_sort(events.begin(), events.end(), [](const ConversionEvent &left, const ConversionEvent &right) {
+			if (left.timestamp != right.timestamp) {
+				return left.timestamp < right.timestamp;
+			}
+			// Apply the table metadata state before processing the data snapshot produced by the same commit.
+			return left.metadata && !right.metadata;
+		});
 
 		auto &schema_entry = table_info.schema;
 		auto &schema = GetSchema(schema_entry.name.GetIdentifierName());
@@ -123,51 +179,27 @@ public:
 		table.schema_name = schema.schema_name;
 
 		//! Current schema state
-		optional_ptr<IcebergTableSchema> last_schema;
+		optional_ptr<const IcebergTableSchema> last_schema;
 
 		//! Current partition state
 		optional_idx current_partition_spec_id;
 		optional_ptr<DuckLakePartition> current_partition;
 
-		for (auto &it : snapshots) {
-			IcebergSnapshotScanInfo snapshot_info;
-			auto &snapshot = it.second.get();
-			snapshot_info.snapshot = snapshot;
-			snapshot_info.schema_id = snapshot.GetSchemaId();
-			auto &ducklake_snapshot = GetSnapshot(it.first);
-
-			if (!table.has_snapshot) {
-				//! Mark the table as being created by this snapshot
-				table.catalog_id_offset = ducklake_snapshot.AddTable(table_info.table_metadata.table_uuid);
-				table.start_snapshot = ducklake_snapshot.snapshot_time;
-				table.has_snapshot = true;
-			}
-
-			//! Process the schema changes
-			auto &current_schema = *metadata.GetSchemaFromId(snapshot.GetSchemaId());
+		auto apply_schema = [&](const IcebergTableSchema &current_schema, DuckLakeSnapshot &ducklake_snapshot) {
 			auto current_columns = SchemaToColumns(current_schema);
 			vector<DuckLakeColumn> added_columns;
 			vector<int64_t> dropped_columns;
 			if (last_schema) {
 				if (last_schema->schema_id != current_schema.schema_id) {
 					auto existing_columns = SchemaToColumns(*last_schema);
-
-					vector<reference<DuckLakeColumn>> new_columns;
 					for (auto &it : current_columns) {
 						auto existing_it = existing_columns.find(it.first);
-						if (existing_it == existing_columns.end()) {
-							//! This column is entirely new
-							added_columns.push_back(it.second);
-						}
-						auto &existing_column = it.second;
-						if (existing_column != it.second) {
-							//! This column has been changed in the new schema
+						if (existing_it == existing_columns.end() || existing_it->second != it.second) {
 							added_columns.push_back(it.second);
 						}
 					}
 					for (auto &it : existing_columns) {
 						if (!current_columns.count(it.first)) {
-							//! This column is dropped in the new schema
 							dropped_columns.push_back(it.first);
 						}
 					}
@@ -177,7 +209,6 @@ public:
 					added_columns.push_back(it.second);
 				}
 			}
-
 			for (auto &column : added_columns) {
 				table.AddColumnVersion(column, ducklake_snapshot);
 			}
@@ -185,6 +216,37 @@ public:
 				table.DropColumnVersion(id, ducklake_snapshot);
 			}
 			last_schema = current_schema;
+		};
+
+		for (auto &event : events) {
+			auto timestamp = duckdb::Cast::Operation<timestamp_ms_t, timestamp_t>(event.timestamp);
+			auto &ducklake_snapshot = GetSnapshot(timestamp);
+
+			if (!table.has_snapshot) {
+				//! Mark the table as being created by this snapshot
+				table.catalog_id_offset = ducklake_snapshot.AddTable(table_info.table_metadata.table_uuid);
+				table.start_snapshot = ducklake_snapshot.snapshot_time;
+				table.has_snapshot = true;
+			}
+
+			if (event.metadata) {
+				auto &metadata_state = *event.metadata;
+				apply_schema(metadata_state.GetLatestSchema(), ducklake_snapshot);
+				if (metadata_state.HasPartitionSpec() &&
+				    (!current_partition_spec_id.IsValid() ||
+				     current_partition_spec_id.GetIndex() != static_cast<idx_t>(metadata_state.default_spec_id))) {
+					auto new_partition = make_uniq<DuckLakePartition>(metadata_state.GetLatestPartitionSpec());
+					current_partition = table.AddPartition(std::move(new_partition), ducklake_snapshot);
+					current_partition_spec_id = metadata_state.default_spec_id;
+				}
+				continue;
+			}
+
+			auto &snapshot = *event.snapshot;
+			IcebergSnapshotScanInfo snapshot_info;
+			snapshot_info.snapshot = snapshot;
+			snapshot_info.schema_id = snapshot.GetSchemaId();
+			apply_schema(*metadata.GetSchemaFromId(snapshot.GetSchemaId()), ducklake_snapshot);
 
 			auto iceberg_manifest_list =
 			    IcebergManifestList::Load(metadata.location, metadata, snapshot_info, context, options);
@@ -205,7 +267,7 @@ public:
 				}
 
 				if (!current_partition_spec_id.IsValid() ||
-				    static_cast<idx_t>(manifest.partition_spec_id) > current_partition_spec_id.GetIndex()) {
+				    static_cast<idx_t>(manifest.partition_spec_id) != current_partition_spec_id.GetIndex()) {
 					auto &partition_spec = *metadata.FindPartitionSpecById(manifest.partition_spec_id);
 					auto new_partition = make_uniq<DuckLakePartition>(partition_spec);
 					current_partition = table.AddPartition(std::move(new_partition), ducklake_snapshot);
@@ -290,8 +352,14 @@ public:
 	}
 	void AssignSchemaBeginSnapshots() {
 		//! Figure out in which snapshot the schemas were created
-		for (auto &it : schemas) {
-			auto &schema = it.second;
+		vector<reference<DuckLakeSchema>> ordered_schemas;
+		for (auto &entry : schemas) {
+			ordered_schemas.push_back(entry.second);
+		}
+		std::sort(ordered_schemas.begin(), ordered_schemas.end(),
+		          [](DuckLakeSchema &left, DuckLakeSchema &right) { return left.schema_name < right.schema_name; });
+		for (auto &schema_ref : ordered_schemas) {
+			auto &schema = schema_ref.get();
 			if (schema.tables.empty()) {
 				//! We can't serialize this, we have no clue when it was added
 				continue;
@@ -407,8 +475,17 @@ public:
 		}
 
 		//! ducklake_schema
-		for (auto &it : schemas) {
-			auto &schema = it.second;
+		vector<reference<DuckLakeSchema>> ordered_schemas;
+		for (auto &entry : schemas) {
+			ordered_schemas.push_back(entry.second);
+		}
+		std::sort(ordered_schemas.begin(), ordered_schemas.end(), [&](DuckLakeSchema &left, DuckLakeSchema &right) {
+			auto left_id = snapshots.at(left.start_snapshot).base_catalog_id + left.catalog_id_offset;
+			auto right_id = snapshots.at(right.start_snapshot).base_catalog_id + right.catalog_id_offset;
+			return left_id < right_id;
+		});
+		for (auto &schema_ref : ordered_schemas) {
+			auto &schema = schema_ref.get();
 
 			if (schema.tables.empty()) {
 				//! We can't serialize this schema, it has no entries, so we can't date it back to any snapshot
@@ -419,9 +496,18 @@ public:
 			sql.push_back(insert_statement);
 		}
 
-		//! ducklake_table
-		for (auto &it : tables) {
-			auto &table = it.second;
+		//! ducklake_table. Serializing by stable table id also keeps generated partition ids stable across increments.
+		vector<reference<DuckLakeTable>> ordered_tables;
+		for (auto &entry : tables) {
+			ordered_tables.push_back(entry.second);
+		}
+		std::sort(ordered_tables.begin(), ordered_tables.end(), [&](DuckLakeTable &left, DuckLakeTable &right) {
+			auto left_id = snapshots.at(left.start_snapshot).base_catalog_id + left.catalog_id_offset;
+			auto right_id = snapshots.at(right.start_snapshot).base_catalog_id + right.catalog_id_offset;
+			return left_id < right_id;
+		});
+		for (auto &table_ref : ordered_tables) {
+			auto &table = table_ref.get();
 
 			auto &schema = schemas.at(table.schema_name);
 			auto schema_id = schema.schema_id.GetIndex();
@@ -728,6 +814,7 @@ public:
 				auto table_id = table.table_id.GetIndex();
 				changes.push_back(StringUtil::Format("altered_table:%d", table_id));
 			}
+			std::sort(changes.begin(), changes.end());
 			auto snapshot_id = snapshot.snapshot_id.GetIndex();
 			auto insert_statement = StringUtil::Format(SNAPSHOT_CHANGES_SQL,
 			                                           // snapshot_id
@@ -793,12 +880,19 @@ public:
 	//! The statements to execute on the metadata catalog
 	vector<string> sql_statements;
 	string ducklake_catalog;
+	string iceberg_catalog;
+	ScopeType scope = ScopeType::CATALOG;
+	string selected_schema;
+	string selected_table;
+	string source_identity;
+	string scope_identity;
 };
 
 static unique_ptr<FunctionData> IcebergToDuckLakeBind(ClientContext &context, TableFunctionBindInput &input,
                                                       vector<LogicalType> &return_types, vector<string> &names) {
 	auto ret = make_uniq<IcebergToDuckLakeBindData>();
 	auto input_string = input.inputs[0].ToString();
+	ret->iceberg_catalog = input_string;
 	ret->ducklake_catalog = input.inputs[1].ToString();
 
 	auto &catalog = Catalog::GetCatalog(context, Identifier(input_string));
@@ -807,12 +901,13 @@ static unique_ptr<FunctionData> IcebergToDuckLakeBind(ClientContext &context, Ta
 		throw InvalidInputException("First parameter must be the name of an attached Iceberg catalog");
 	}
 	auto &iceberg_catalog = catalog.Cast<IcebergCatalog>();
+	ret->source_identity =
+	    StringUtil::Format("%s|%s|%s", iceberg_catalog.uri, iceberg_catalog.GetWarehouse(), iceberg_catalog.prefix);
 	auto &schema_set = iceberg_catalog.GetSchemas();
 
 	IcebergOptions options(input.named_parameters);
 	for (auto &kv : input.named_parameters) {
 		auto loption = StringUtil::Lower(kv.first.GetIdentifierName());
-		auto &val = kv.second;
 		if (loption == "skip_tables") {
 			auto &type = kv.second.type();
 			if (kv.second.IsNull() || type.id() != LogicalTypeId::LIST) {
@@ -826,19 +921,88 @@ static unique_ptr<FunctionData> IcebergToDuckLakeBind(ClientContext &context, Ta
 			for (auto &table : tables) {
 				ret->table_names_to_skip.insert(table.GetValue<string>());
 			}
+		} else if (loption == "schema") {
+			if (ret->scope != IcebergToDuckLakeBindData::ScopeType::CATALOG) {
+				throw InvalidInputException("'schema' and 'table' are mutually exclusive");
+			}
+			ret->scope = IcebergToDuckLakeBindData::ScopeType::SCHEMA;
+			ret->selected_schema = kv.second.GetValue<string>();
+			if (ret->selected_schema.empty()) {
+				throw InvalidInputException("'schema' cannot be empty");
+			}
+		} else if (loption == "table") {
+			if (ret->scope != IcebergToDuckLakeBindData::ScopeType::CATALOG) {
+				throw InvalidInputException("'schema' and 'table' are mutually exclusive");
+			}
+			auto components = QualifiedName::ParseComponents(kv.second.GetValue<string>());
+			if (components.size() < 2) {
+				throw InvalidInputException("'table' must be qualified as 'schema.table'");
+			}
+			ret->scope = IcebergToDuckLakeBindData::ScopeType::TABLE;
+			ret->selected_table = components.back().GetIdentifierName();
+			components.pop_back();
+			ret->selected_schema = StringUtil::Join(components, ".");
 		}
 	}
 
 	schema_set.LoadEntries(context);
-	for (auto &it : schema_set.GetEntries()) {
-		auto &schema_entry = it.second->Cast<IcebergSchemaEntry>();
+	vector<reference<IcebergSchemaEntry>> selected_schemas;
+	for (auto &entry : schema_set.GetEntries()) {
+		auto &schema_entry = entry.second->Cast<IcebergSchemaEntry>();
+		if (ret->scope != IcebergToDuckLakeBindData::ScopeType::CATALOG &&
+		    schema_entry.name.GetIdentifierName() != ret->selected_schema) {
+			continue;
+		}
+		selected_schemas.push_back(schema_entry);
+	}
+	std::sort(selected_schemas.begin(), selected_schemas.end(),
+	          [](IcebergSchemaEntry &left, IcebergSchemaEntry &right) {
+		          return left.name.GetIdentifierName() < right.name.GetIdentifierName();
+	          });
+
+	bool found_table = false;
+	for (auto &schema_ref : selected_schemas) {
+		auto &schema_entry = schema_ref.get();
 		auto &tables = schema_entry.tables;
 		tables.LoadEntries(context);
-		for (auto &it : tables.GetEntriesMutable()) {
-			auto &table = it.second;
+		vector<reference<IcebergTableInformation>> selected_tables;
+		for (auto &entry : tables.GetEntriesMutable()) {
+			auto &table = entry.second;
+			if (ret->scope == IcebergToDuckLakeBindData::ScopeType::TABLE && table->name != ret->selected_table) {
+				continue;
+			}
 			tables.FillEntry(context, *table);
-			ret->AddTable(*table, context, options);
+			selected_tables.push_back(*table);
 		}
+		std::sort(selected_tables.begin(), selected_tables.end(),
+		          [](IcebergTableInformation &left, IcebergTableInformation &right) { return left.name < right.name; });
+		for (auto &table_ref : selected_tables) {
+			found_table = true;
+			ret->AddTable(table_ref.get(), context, options);
+		}
+	}
+	if (ret->scope == IcebergToDuckLakeBindData::ScopeType::SCHEMA && selected_schemas.empty()) {
+		throw InvalidInputException("Iceberg schema '%s' does not exist", ret->selected_schema);
+	}
+	if (ret->scope == IcebergToDuckLakeBindData::ScopeType::TABLE && !found_table) {
+		throw InvalidInputException("Iceberg table '%s.%s' does not exist", ret->selected_schema, ret->selected_table);
+	}
+	if (ret->tables.empty()) {
+		throw InvalidInputException("The selected Iceberg conversion scope contains no convertible tables");
+	}
+	switch (ret->scope) {
+	case IcebergToDuckLakeBindData::ScopeType::CATALOG:
+		ret->scope_identity = "catalog";
+		break;
+	case IcebergToDuckLakeBindData::ScopeType::SCHEMA:
+		ret->scope_identity = StringUtil::Format("schema:%s", ret->selected_schema);
+		break;
+	case IcebergToDuckLakeBindData::ScopeType::TABLE:
+		ret->scope_identity = StringUtil::Format("table:%s.%s", ret->selected_schema, ret->selected_table);
+		break;
+	}
+	if (!ret->table_names_to_skip.empty()) {
+		ret->scope_identity += "|skip=" + StringUtil::Join(ret->table_names_to_skip, ",");
 	}
 
 	ret->AssignSchemaBeginSnapshots();
@@ -865,6 +1029,102 @@ public:
 	}
 
 public:
+	static constexpr const char *OWNER_VERSION_KEY = "iceberg_to_ducklake_version";
+	static constexpr const char *OWNER_SOURCE_KEY = "iceberg_to_ducklake_source";
+	static constexpr const char *OWNER_SCOPE_KEY = "iceberg_to_ducklake_scope";
+	static constexpr const char *OWNER_FINGERPRINT_KEY = "iceberg_to_ducklake_fingerprint";
+	static constexpr const char *EXPECTED_CATALOG = "__iceberg_to_ducklake_expected";
+
+	string QualifiedTable(const string &catalog, const string &schema, const string &table) const {
+		return StringUtil::Format("%s.%s.%s", SQLIdentifier::ToString(catalog), SQLIdentifier::ToString(schema),
+		                          SQLIdentifier::ToString(table));
+	}
+
+	vector<pair<string, string>> GetCatalogTables(const string &catalog) {
+		auto query = StringUtil::Format(
+		    "SELECT table_schema, table_name FROM information_schema.tables WHERE table_catalog = %s AND "
+		    "table_type = 'BASE TABLE' ORDER BY table_schema, table_name",
+		    SQLString::ToString(catalog));
+		auto result = connection->Query(query);
+		if (result->HasError()) {
+			result->ThrowError("Failed to inspect DuckLake metadata tables: ");
+		}
+		vector<pair<string, string>> tables;
+		while (auto chunk = result->Fetch()) {
+			for (idx_t row = 0; row < chunk->size(); row++) {
+				tables.emplace_back(chunk->GetValue(0, row).GetValue<string>(),
+				                    chunk->GetValue(1, row).GetValue<string>());
+			}
+		}
+		return tables;
+	}
+
+	string ComputeCatalogFingerprint(const string &catalog) {
+		MD5Context md5;
+		for (auto &entry : GetCatalogTables(catalog)) {
+			auto &schema = entry.first;
+			auto &table = entry.second;
+			md5.Add(to_string(schema.size()));
+			md5.Add(":");
+			md5.Add(schema);
+			md5.Add(to_string(table.size()));
+			md5.Add(":");
+			md5.Add(table);
+			string where;
+			if (table == "ducklake_metadata") {
+				where = StringUtil::Format(" WHERE key NOT IN (%s, %s, %s, %s)", SQLString::ToString(OWNER_VERSION_KEY),
+				                           SQLString::ToString(OWNER_SOURCE_KEY), SQLString::ToString(OWNER_SCOPE_KEY),
+				                           SQLString::ToString(OWNER_FINGERPRINT_KEY));
+			}
+			auto query =
+			    StringUtil::Format("SELECT * FROM %s%s ORDER BY ALL", QualifiedTable(catalog, schema, table), where);
+			auto result = connection->Query(query);
+			if (result->HasError()) {
+				result->ThrowError("Failed to fingerprint DuckLake metadata catalog: ");
+			}
+			for (idx_t column = 0; column < result->ColumnCount(); column++) {
+				md5.Add("<COLUMN>");
+				md5.Add(result->ColumnName(column));
+				md5.Add(result->types[column].ToString());
+			}
+			while (auto chunk = result->Fetch()) {
+				for (idx_t row = 0; row < chunk->size(); row++) {
+					md5.Add("<ROW>");
+					for (idx_t column = 0; column < chunk->ColumnCount(); column++) {
+						auto value = chunk->GetValue(column, row);
+						if (value.IsNull()) {
+							md5.Add("<NULL>");
+						} else {
+							auto string_value = value.ToString();
+							md5.Add(to_string(string_value.size()));
+							md5.Add(":");
+							md5.Add(string_value);
+						}
+					}
+				}
+			}
+		}
+		return md5.FinishHex();
+	}
+
+	optional<string> GetOwnerValue(const string &key) {
+		auto query = StringUtil::Format(
+		    "SELECT value FROM %s.ducklake_metadata WHERE key = %s AND scope IS NULL AND scope_id IS NULL",
+		    SQLIdentifier::ToString(metadata_catalog), SQLString::ToString(key));
+		auto result = connection->Query(query);
+		if (result->HasError()) {
+			result->ThrowError("Failed to read iceberg_to_ducklake ownership metadata: ");
+		}
+		auto chunk = result->Fetch();
+		if (!chunk || chunk->size() == 0) {
+			return nullopt;
+		}
+		if (chunk->size() != 1 || result->Fetch()) {
+			throw InvalidConfigurationException("Duplicate iceberg_to_ducklake ownership key '%s'", key);
+		}
+		return chunk->GetValue(0, 0).GetValue<string>();
+	}
+
 	void VerifyDuckLakeVersion() {
 		auto version_query =
 		    StringUtil::Replace("SELECT value FROM {METADATA_CATALOG}.ducklake_metadata where key = 'version'",
@@ -894,6 +1154,48 @@ public:
 		}
 	}
 
+	void LoadOwnership(const iceberg::ducklake::IcebergToDuckLakeBindData &bind_data) {
+		auto version = GetOwnerValue(OWNER_VERSION_KEY);
+		if (!version) {
+			auto target = SQLIdentifier::ToString(metadata_catalog);
+			auto ownership_count = connection->Query(
+			    StringUtil::Format("SELECT count(*) FROM %s.ducklake_metadata WHERE key IN (%s, %s, %s, %s)", target,
+			                       SQLString::ToString(OWNER_VERSION_KEY), SQLString::ToString(OWNER_SOURCE_KEY),
+			                       SQLString::ToString(OWNER_SCOPE_KEY), SQLString::ToString(OWNER_FINGERPRINT_KEY)));
+			if (ownership_count->HasError()) {
+				ownership_count->ThrowError("Failed to inspect iceberg_to_ducklake ownership metadata: ");
+			}
+			auto ownership_chunk = ownership_count->Fetch();
+			if (!ownership_chunk || ownership_chunk->GetValue(0, 0).GetValue<int64_t>() != 0) {
+				throw InvalidConfigurationException("Incomplete iceberg_to_ducklake ownership metadata");
+			}
+			incremental = false;
+			VerifyEmptyCatalog();
+			return;
+		}
+		if (*version != "1") {
+			throw InvalidConfigurationException("Unsupported iceberg_to_ducklake ownership version '%s'", *version);
+		}
+		auto source = GetOwnerValue(OWNER_SOURCE_KEY);
+		auto scope = GetOwnerValue(OWNER_SCOPE_KEY);
+		auto fingerprint = GetOwnerValue(OWNER_FINGERPRINT_KEY);
+		if (!source || !scope || !fingerprint) {
+			throw InvalidConfigurationException("Incomplete iceberg_to_ducklake ownership metadata");
+		}
+		if (*source != bind_data.source_identity) {
+			throw InvalidInputException("DuckLake catalog is owned by a different Iceberg source");
+		}
+		if (*scope != bind_data.scope_identity) {
+			throw InvalidInputException("Incremental conversion must use the same scope and skip list as the seed");
+		}
+		auto actual_fingerprint = ComputeCatalogFingerprint(metadata_catalog);
+		if (actual_fingerprint != *fingerprint) {
+			throw InvalidInputException("DuckLake catalog was altered after the previous iceberg_to_ducklake "
+			                            "conversion; reseeding is required");
+		}
+		incremental = true;
+	}
+
 	void VerifyEmptyCatalog() {
 		auto query = StringUtil::Replace("SELECT max(snapshot_id) FROM {METADATA_CATALOG}.ducklake_snapshot;",
 		                                 "{METADATA_CATALOG}", metadata_catalog);
@@ -917,8 +1219,301 @@ public:
 		}
 		auto max_snapshot_id = value.GetValue<int64_t>();
 		if (max_snapshot_id != 0) {
-			throw InvalidInputException("'iceberg_to_ducklake' can only be used on empty catalogs currently");
+			throw InvalidInputException("'iceberg_to_ducklake' can only seed a pristine DuckLake catalog");
 		}
+
+		for (auto &entry : GetCatalogTables(metadata_catalog)) {
+			auto &table = entry.second;
+			if (table == "ducklake_metadata") {
+				continue;
+			}
+			auto table_name = QualifiedTable(metadata_catalog, entry.first, table);
+			string predicate;
+			bool require_single_row = false;
+			if (table == "ducklake_snapshot" || table == "ducklake_snapshot_changes") {
+				predicate = " WHERE snapshot_id <> 0";
+				require_single_row = true;
+			} else if (table == "ducklake_schema") {
+				predicate =
+				    " WHERE schema_id <> 0 OR schema_name <> 'main' OR begin_snapshot <> 0 OR end_snapshot IS NOT NULL";
+				require_single_row = true;
+			}
+			auto count_result =
+			    connection->Query(StringUtil::Format("SELECT count(*) FROM %s%s", table_name, predicate));
+			if (count_result->HasError()) {
+				count_result->ThrowError("Failed to verify pristine DuckLake metadata: ");
+			}
+			auto count_chunk = count_result->Fetch();
+			if (!count_chunk || count_chunk->GetValue(0, 0).GetValue<int64_t>() != 0) {
+				throw InvalidInputException("'iceberg_to_ducklake' can only seed a pristine DuckLake catalog");
+			}
+			if (require_single_row) {
+				auto total_result = connection->Query(StringUtil::Format("SELECT count(*) FROM %s", table_name));
+				if (total_result->HasError()) {
+					total_result->ThrowError("Failed to verify pristine DuckLake metadata: ");
+				}
+				auto total_chunk = total_result->Fetch();
+				if (!total_chunk || total_chunk->GetValue(0, 0).GetValue<int64_t>() != 1) {
+					throw InvalidInputException("'iceberg_to_ducklake' can only seed a pristine DuckLake catalog");
+				}
+			}
+		}
+	}
+
+	void ExecuteOrThrow(const string &query, const string &error_prefix) {
+		auto result = connection->Query(query);
+		if (result->HasError()) {
+			result->ThrowError(error_prefix);
+		}
+	}
+
+	int64_t GetMaxSnapshot(const string &catalog) {
+		auto query =
+		    StringUtil::Format("SELECT max(snapshot_id) FROM %s.ducklake_snapshot", SQLIdentifier::ToString(catalog));
+		auto result = connection->Query(query);
+		if (result->HasError()) {
+			result->ThrowError("Failed to read DuckLake snapshot watermark: ");
+		}
+		auto chunk = result->Fetch();
+		if (!chunk || chunk->size() != 1 || chunk->GetValue(0, 0).IsNull()) {
+			throw InvalidConfigurationException("DuckLake snapshot metadata has no watermark");
+		}
+		return chunk->GetValue(0, 0).GetValue<int64_t>();
+	}
+
+	void MaterializeExpectedCatalog(const iceberg::ducklake::IcebergToDuckLakeBindData &bind_data) {
+		ExecuteOrThrow(StringUtil::Format("ATTACH ':memory:' AS %s", SQLIdentifier::ToString(EXPECTED_CATALOG)),
+		               "Failed to attach incremental conversion staging catalog: ");
+		for (auto &entry : GetCatalogTables(metadata_catalog)) {
+			auto &schema = entry.first;
+			auto &table = entry.second;
+			if (schema != "main") {
+				ExecuteOrThrow(StringUtil::Format("CREATE SCHEMA IF NOT EXISTS %s.%s",
+				                                  SQLIdentifier::ToString(EXPECTED_CATALOG),
+				                                  SQLIdentifier::ToString(schema)),
+				               "Failed to create staging schema: ");
+			}
+			auto target_table = QualifiedTable(metadata_catalog, schema, table);
+			auto expected_table = QualifiedTable(EXPECTED_CATALOG, schema, table);
+			ExecuteOrThrow(
+			    StringUtil::Format("CREATE TABLE %s AS SELECT * FROM %s WHERE false", expected_table, target_table),
+			    "Failed to create staging metadata table: ");
+		}
+
+		auto target = SQLIdentifier::ToString(metadata_catalog);
+		auto expected = SQLIdentifier::ToString(EXPECTED_CATALOG);
+		ExecuteOrThrow(
+		    StringUtil::Format("INSERT INTO %s.ducklake_metadata SELECT * FROM %s.ducklake_metadata WHERE key NOT IN "
+		                       "(%s, %s, %s, %s)",
+		                       expected, target, SQLString::ToString(OWNER_VERSION_KEY),
+		                       SQLString::ToString(OWNER_SOURCE_KEY), SQLString::ToString(OWNER_SCOPE_KEY),
+		                       SQLString::ToString(OWNER_FINGERPRINT_KEY)),
+		    "Failed to copy base DuckLake metadata into staging: ");
+		ExecuteOrThrow(StringUtil::Format(
+		                   "INSERT INTO %s.ducklake_schema SELECT * FROM %s.ducklake_schema WHERE schema_id = 0 AND "
+		                   "schema_name = 'main'",
+		                   expected, target),
+		               "Failed to copy the base DuckLake schema into staging: ");
+
+		auto query = StringUtil::Join(bind_data.sql_statements, "\n");
+		query = StringUtil::Replace(query, "{METADATA_CATALOG}", expected);
+		ExecuteOrThrow(query, "Failed to materialize expected Iceberg conversion state: ");
+
+		// Iceberg namespaces do not have UUIDs. Preserve UUIDs assigned by the seed for schemas that already exist.
+		ExecuteOrThrow(
+		    StringUtil::Format(
+		        "UPDATE %s.ducklake_schema AS expected_schema SET schema_uuid = target_schema.schema_uuid FROM "
+		        "%s.ducklake_schema AS target_schema WHERE expected_schema.schema_id = target_schema.schema_id "
+		        "AND expected_schema.begin_snapshot = target_schema.begin_snapshot",
+		        expected, target),
+		    "Failed to normalize staging schema UUIDs: ");
+	}
+
+	void VerifyExpectedPrefix() {
+		auto target_max = GetMaxSnapshot(metadata_catalog);
+		auto expected_max = GetMaxSnapshot(EXPECTED_CATALOG);
+		if (expected_max < target_max) {
+			throw InvalidInputException("Iceberg history no longer contains the previously converted DuckLake "
+			                            "snapshots; reseeding is required");
+		}
+		auto target = SQLIdentifier::ToString(metadata_catalog);
+		auto expected = SQLIdentifier::ToString(EXPECTED_CATALOG);
+		auto verify_relation = [&](const string &name, const string &target_relation, const string &expected_relation) {
+			auto mismatch_query =
+			    StringUtil::Format(R"(
+				SELECT count(*) FROM (
+					(%s EXCEPT ALL %s)
+					UNION ALL
+					(%s EXCEPT ALL %s)
+				) mismatches
+			)",
+			                       target_relation, expected_relation, expected_relation, target_relation);
+			auto result = connection->Query(mismatch_query);
+			if (result->HasError()) {
+				result->ThrowError(StringUtil::Format("Failed to compare converted %s history: ", name));
+			}
+			auto chunk = result->Fetch();
+			if (!chunk || chunk->GetValue(0, 0).GetValue<int64_t>() != 0) {
+				throw InvalidInputException(
+				    "Iceberg history is not an append-only continuation of the seeded DuckLake catalog (%s differs); "
+				    "reseeding is required",
+				    name);
+			}
+		};
+
+		verify_relation(
+		    "snapshots", StringUtil::Format("SELECT * FROM %s.ducklake_snapshot", target),
+		    StringUtil::Format("SELECT * FROM %s.ducklake_snapshot WHERE snapshot_id <= %d", expected, target_max));
+		verify_relation("snapshot changes", StringUtil::Format("SELECT * FROM %s.ducklake_snapshot_changes", target),
+		                StringUtil::Format("SELECT * FROM %s.ducklake_snapshot_changes WHERE snapshot_id <= %d",
+		                                   expected, target_max));
+		verify_relation("schema versions", StringUtil::Format("SELECT * FROM %s.ducklake_schema_versions", target),
+		                StringUtil::Format("SELECT * FROM %s.ducklake_schema_versions WHERE begin_snapshot <= %d",
+		                                   expected, target_max));
+
+		for (auto &table : {"ducklake_schema", "ducklake_table", "ducklake_column", "ducklake_partition_info",
+		                    "ducklake_data_file", "ducklake_delete_file"}) {
+			verify_relation(
+			    table, StringUtil::Format("SELECT * FROM %s.%s", target, table),
+			    StringUtil::Format("SELECT * REPLACE (CASE WHEN end_snapshot > %d THEN NULL ELSE end_snapshot END AS "
+			                       "end_snapshot) FROM %s.%s WHERE begin_snapshot <= %d",
+			                       target_max, expected, table, target_max));
+		}
+
+		verify_relation(
+		    "partition columns", StringUtil::Format("SELECT * FROM %s.ducklake_partition_column", target),
+		    StringUtil::Format("SELECT child.* FROM %s.ducklake_partition_column child JOIN %s.ducklake_partition_info "
+		                       "parent USING(partition_id, table_id) WHERE parent.begin_snapshot <= %d",
+		                       expected, expected, target_max));
+		for (auto &table : {"ducklake_file_column_stats", "ducklake_file_partition_value"}) {
+			verify_relation(table, StringUtil::Format("SELECT * FROM %s.%s", target, table),
+			                StringUtil::Format("SELECT child.* FROM %s.%s child JOIN %s.ducklake_data_file parent "
+			                                   "USING(data_file_id, table_id) WHERE parent.begin_snapshot <= %d",
+			                                   expected, table, expected, target_max));
+		}
+
+		if (expected_max > target_max) {
+			auto ordering_query = StringUtil::Format(
+			    "SELECT min(expected.snapshot_time) > max(target.snapshot_time) FROM %s.ducklake_snapshot expected, "
+			    "%s.ducklake_snapshot target WHERE expected.snapshot_id > %d",
+			    expected, target, target_max);
+			auto ordering_result = connection->Query(ordering_query);
+			if (ordering_result->HasError()) {
+				ordering_result->ThrowError("Failed to validate incremental snapshot ordering: ");
+			}
+			auto ordering_chunk = ordering_result->Fetch();
+			if (!ordering_chunk || ordering_chunk->GetValue(0, 0).IsNull() ||
+			    !ordering_chunk->GetValue(0, 0).GetValue<bool>()) {
+				throw InvalidInputException(
+				    "A newly observed Iceberg event is not newer than the DuckLake watermark; reseeding is required");
+			}
+		}
+	}
+
+	string OwnershipInsertSQL(const iceberg::ducklake::IcebergToDuckLakeBindData &bind_data,
+	                          const string &fingerprint) {
+		auto target = SQLIdentifier::ToString(metadata_catalog);
+		return StringUtil::Format(R"(
+			DELETE FROM %s.ducklake_metadata WHERE key IN (%s, %s, %s, %s);
+			INSERT INTO %s.ducklake_metadata VALUES
+				(%s, '1', NULL, NULL),
+				(%s, %s, NULL, NULL),
+				(%s, %s, NULL, NULL),
+				(%s, %s, NULL, NULL);
+		)",
+		                          target, SQLString::ToString(OWNER_VERSION_KEY), SQLString::ToString(OWNER_SOURCE_KEY),
+		                          SQLString::ToString(OWNER_SCOPE_KEY), SQLString::ToString(OWNER_FINGERPRINT_KEY),
+		                          target, SQLString::ToString(OWNER_VERSION_KEY), SQLString::ToString(OWNER_SOURCE_KEY),
+		                          SQLString::ToString(bind_data.source_identity), SQLString::ToString(OWNER_SCOPE_KEY),
+		                          SQLString::ToString(bind_data.scope_identity),
+		                          SQLString::ToString(OWNER_FINGERPRINT_KEY), SQLString::ToString(fingerprint));
+	}
+
+	idx_t ApplySeed(const iceberg::ducklake::IcebergToDuckLakeBindData &bind_data) {
+		MaterializeExpectedCatalog(bind_data);
+		auto fingerprint = ComputeCatalogFingerprint(EXPECTED_CATALOG);
+		auto statements = bind_data.sql_statements;
+		D_ASSERT(!statements.empty() && statements.back() == "COMMIT TRANSACTION;");
+		statements.insert(statements.end() - 1, OwnershipInsertSQL(bind_data, fingerprint));
+		auto query = StringUtil::Join(statements, "\n");
+		query = StringUtil::Replace(query, "{METADATA_CATALOG}", SQLIdentifier::ToString(metadata_catalog));
+		ExecuteOrThrow(query, "'iceberg_to_ducklake' failed to seed the DuckLake metadata catalog: ");
+		return bind_data.tables.size();
+	}
+
+	idx_t ApplyIncremental(const iceberg::ducklake::IcebergToDuckLakeBindData &bind_data) {
+		MaterializeExpectedCatalog(bind_data);
+		VerifyExpectedPrefix();
+		auto target_max = GetMaxSnapshot(metadata_catalog);
+		auto expected_max = GetMaxSnapshot(EXPECTED_CATALOG);
+		if (target_max == expected_max) {
+			if (ComputeCatalogFingerprint(metadata_catalog) != ComputeCatalogFingerprint(EXPECTED_CATALOG)) {
+				throw InvalidInputException(
+				    "Iceberg metadata changed without an append-only event; reseeding is required");
+			}
+			return 0;
+		}
+
+		auto target = SQLIdentifier::ToString(metadata_catalog);
+		auto expected = SQLIdentifier::ToString(EXPECTED_CATALOG);
+		auto fingerprint = ComputeCatalogFingerprint(EXPECTED_CATALOG);
+		vector<string> statements;
+		statements.push_back("BEGIN TRANSACTION;");
+		for (auto &entry : {pair<const char *, const char *>("ducklake_snapshot", "snapshot_id"),
+		                    pair<const char *, const char *>("ducklake_snapshot_changes", "snapshot_id"),
+		                    pair<const char *, const char *>("ducklake_schema_versions", "begin_snapshot")}) {
+			statements.push_back(StringUtil::Format("INSERT INTO %s.%s SELECT * FROM %s.%s WHERE %s > %d;", target,
+			                                        entry.first, expected, entry.first, entry.second, target_max));
+		}
+
+		statements.push_back(StringUtil::Format(
+		    "UPDATE %s.ducklake_column AS target_row SET end_snapshot = expected_row.end_snapshot FROM "
+		    "%s.ducklake_column AS expected_row WHERE target_row.table_id = expected_row.table_id AND "
+		    "target_row.column_id = expected_row.column_id AND target_row.begin_snapshot = expected_row.begin_snapshot "
+		    "AND target_row.end_snapshot IS NULL AND expected_row.end_snapshot > %d;",
+		    target, expected, target_max));
+		statements.push_back(StringUtil::Format(
+		    "UPDATE %s.ducklake_partition_info AS target_row SET end_snapshot = expected_row.end_snapshot FROM "
+		    "%s.ducklake_partition_info AS expected_row WHERE target_row.table_id = expected_row.table_id AND "
+		    "target_row.partition_id = expected_row.partition_id AND "
+		    "target_row.begin_snapshot = expected_row.begin_snapshot AND target_row.end_snapshot IS NULL AND "
+		    "expected_row.end_snapshot > %d;",
+		    target, expected, target_max));
+		for (auto &entry : {pair<const char *, const char *>("ducklake_data_file", "data_file_id"),
+		                    pair<const char *, const char *>("ducklake_delete_file", "delete_file_id")}) {
+			statements.push_back(StringUtil::Format(
+			    "UPDATE %s.%s AS target_row SET end_snapshot = expected_row.end_snapshot FROM %s.%s AS expected_row "
+			    "WHERE target_row.%s = expected_row.%s AND target_row.end_snapshot IS NULL AND "
+			    "expected_row.end_snapshot > %d;",
+			    target, entry.first, expected, entry.first, entry.second, entry.second, target_max));
+		}
+
+		for (auto &table : {"ducklake_schema", "ducklake_table", "ducklake_column", "ducklake_partition_info",
+		                    "ducklake_data_file", "ducklake_delete_file"}) {
+			statements.push_back(StringUtil::Format("INSERT INTO %s.%s SELECT * FROM %s.%s WHERE begin_snapshot > %d;",
+			                                        target, table, expected, table, target_max));
+		}
+		statements.push_back(StringUtil::Format(
+		    "INSERT INTO %s.ducklake_partition_column SELECT child.* FROM %s.ducklake_partition_column child JOIN "
+		    "%s.ducklake_partition_info parent USING(partition_id, table_id) WHERE parent.begin_snapshot > %d;",
+		    target, expected, expected, target_max));
+		for (auto &table : {"ducklake_file_column_stats", "ducklake_file_partition_value"}) {
+			statements.push_back(StringUtil::Format(
+			    "INSERT INTO %s.%s SELECT child.* FROM %s.%s child JOIN %s.ducklake_data_file parent "
+			    "USING(data_file_id, table_id) WHERE parent.begin_snapshot > %d;",
+			    target, table, expected, table, expected, target_max));
+		}
+
+		for (auto &table : {"ducklake_table_stats", "ducklake_table_column_stats"}) {
+			statements.push_back(StringUtil::Format("DELETE FROM %s.%s;", target, table));
+			statements.push_back(
+			    StringUtil::Format("INSERT INTO %s.%s SELECT * FROM %s.%s;", target, table, expected, table));
+		}
+		statements.push_back(OwnershipInsertSQL(bind_data, fingerprint));
+		statements.push_back("COMMIT TRANSACTION;");
+		auto query = StringUtil::Join(statements, "\n");
+		ExecuteOrThrow(query, "'iceberg_to_ducklake' failed to append incremental metadata: ");
+		return bind_data.tables.size();
 	}
 
 public:
@@ -940,7 +1535,7 @@ public:
 		auto connection = make_uniq<Connection>(db);
 		auto res = make_uniq<IcebergToDuckLakeGlobalTableFunctionState>(std::move(connection), metadata_catalog);
 		res->VerifyDuckLakeVersion();
-		res->VerifyEmptyCatalog();
+		res->LoadOwnership(bind_data);
 		return std::move(res);
 	}
 
@@ -948,23 +1543,22 @@ public:
 	//! Connection used to run the SQL statements
 	unique_ptr<Connection> connection;
 	string metadata_catalog;
+	bool incremental = false;
+	bool finished = false;
 };
 
 static void IcebergToDuckLakeFunction(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
 	auto &bind_data = data.bind_data->Cast<iceberg::ducklake::IcebergToDuckLakeBindData>();
 	auto &global_state = data.global_state->Cast<IcebergToDuckLakeGlobalTableFunctionState>();
-
-	auto &connection = *global_state.connection;
-	auto &statements = bind_data.sql_statements;
-
-	auto query = StringUtil::Join(statements, "\n");
-	query = StringUtil::Replace(query, "{METADATA_CATALOG}", StringUtil::Format("%s", global_state.metadata_catalog));
-	auto result = connection.Query(query);
-	if (result->HasError()) {
-		result->ThrowError("'iceberg_to_ducklake' failed to commit to the DuckLake metadata catalog: ");
+	if (global_state.finished) {
+		output.SetChildCardinality(0);
+		return;
 	}
-
-	output.SetChildCardinality(0);
+	auto converted_count =
+	    global_state.incremental ? global_state.ApplyIncremental(bind_data) : global_state.ApplySeed(bind_data);
+	output.data[0].SetValue(0, Value::BIGINT(NumericCast<int64_t>(converted_count)));
+	output.SetChildCardinality(1);
+	global_state.finished = true;
 }
 
 TableFunctionSet IcebergFunctions::GetIcebergToDuckLakeFunction() {
@@ -973,6 +1567,8 @@ TableFunctionSet IcebergFunctions::GetIcebergToDuckLakeFunction() {
 	auto fun = TableFunction({LogicalType::VARCHAR, LogicalType::VARCHAR}, IcebergToDuckLakeFunction,
 	                         iceberg::ducklake::IcebergToDuckLakeBind, IcebergToDuckLakeGlobalTableFunctionState::Init);
 	fun.named_parameters.emplace("skip_tables", LogicalType::LIST(LogicalTypeId::VARCHAR));
+	fun.named_parameters.emplace("schema", LogicalType::VARCHAR);
+	fun.named_parameters.emplace("table", LogicalType::VARCHAR);
 	function_set.AddFunction(fun);
 
 	return function_set;

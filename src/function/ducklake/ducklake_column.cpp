@@ -36,7 +36,10 @@ bool DuckLakeColumn::operator==(const DuckLakeColumn &other) {
 	if (column_id != other.column_id) {
 		throw InternalException("Comparison between two columns that don't share the same id is not defined");
 	}
-	if (column_id != other.column_order) {
+	if (column_order != other.column_order) {
+		return false;
+	}
+	if (parent_column != other.parent_column) {
 		return false;
 	}
 	if (column_name != other.column_name) {
@@ -52,9 +55,6 @@ bool DuckLakeColumn::operator==(const DuckLakeColumn &other) {
 		return false;
 	}
 	if (initial_default != other.initial_default) {
-		return false;
-	}
-	if (default_value != other.default_value) {
 		return false;
 	}
 	return true;

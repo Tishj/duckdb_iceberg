@@ -14,11 +14,13 @@ string DuckLakeSnapshot::FinalizeEntry(DuckLakeMetadataSerializer &serializer) {
 	base_schema_version = serializer.schema_version;
 	base_catalog_id = serializer.next_catalog_id;
 	base_file_id = serializer.next_file_id;
+	base_partition_id = serializer.partition_id;
 
 	//! Update the serializer to point to the next id starts
 	serializer.schema_version += !!catalog_changes;
 	serializer.next_catalog_id += catalog_additions;
 	serializer.next_file_id += files_added;
+	serializer.partition_id += partitions_added;
 
 	int64_t snapshot_id = serializer.snapshot_id++;
 	this->snapshot_id = snapshot_id;
@@ -85,6 +87,10 @@ void DuckLakeSnapshot::DeleteDataFile(const string &table_uuid) {
 int64_t DuckLakeSnapshot::AddDeleteFile(const string &table_uuid) {
 	deleted_from_table.insert(table_uuid);
 	return files_added++;
+}
+
+int64_t DuckLakeSnapshot::AddPartition() {
+	return partitions_added++;
 }
 
 void DuckLakeSnapshot::AlterTable(const string &table_uuid) {

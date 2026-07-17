@@ -64,6 +64,7 @@ DuckLakePartition &DuckLakeTable::AddPartition(unique_ptr<DuckLakePartition> new
 		current_partition = nullptr;
 	}
 	begin_snapshot.AlterTable(table_uuid);
+	new_partition->partition_id_offset = begin_snapshot.AddPartition();
 	new_partition->start_snapshot = begin_snapshot.snapshot_time;
 	all_partitions.push_back(std::move(new_partition));
 	current_partition = all_partitions.back().get();
