@@ -138,9 +138,19 @@ private:
 
 struct IcebergDataViewCursor {
 public:
+	bool SetBatch(optional<ManifestReadBatch> new_batch) {
+		current_batch = new_batch;
+		if (!current_batch) {
+			return false;
+		}
+		next_batch_idx++;
+		current_batch_offset = current_batch->start_index;
+		return true;
+	}
+
+public:
+	optional<ManifestReadBatch> current_batch;
 	idx_t next_batch_idx = 0;
-	bool has_current_batch = false;
-	ManifestReadBatch current_batch;
 	idx_t current_batch_offset = 0;
 };
 

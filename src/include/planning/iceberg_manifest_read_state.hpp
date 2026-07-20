@@ -24,7 +24,7 @@ public:
 struct ManifestEntryReadState {
 public:
 	void PushBatch(ManifestReadBatch &&batch);
-	bool GetBatch(idx_t batch_idx, ManifestReadBatch &result) const;
+	optional<ManifestReadBatch> GetBatch(idx_t batch_idx) const;
 
 private:
 	//! Lock guarding the batches against concurrent access

@@ -50,13 +50,12 @@ void ManifestEntryReadState::PushBatch(ManifestReadBatch &&batch) {
 	batches.push_back(std::move(batch));
 }
 
-bool ManifestEntryReadState::GetBatch(idx_t batch_idx, ManifestReadBatch &result) const {
+optional<ManifestReadBatch> ManifestEntryReadState::GetBatch(idx_t batch_idx) const {
 	lock_guard<mutex> guard(lock);
 	if (batch_idx >= batches.size()) {
-		return false;
+		return std::nullopt;
 	}
-	result = batches[batch_idx];
-	return true;
+	return batches[batch_idx];
 }
 
 namespace {
@@ -872,13 +871,10 @@ bool IcebergMultiFileList::FileMatchesFilter(const IcebergManifestFile &manifest
 
 bool IcebergMultiFileList::TryGetNextBatch(lock_guard<mutex> &guard) const {
 	auto &view_cursor = data_view_cursor;
-	if (view_cursor.has_current_batch) {
+	if (view_cursor.current_batch) {
 		return true;
 	}
-	if (shared_state->read_state.GetBatch(view_cursor.next_batch_idx, view_cursor.current_batch)) {
-		view_cursor.next_batch_idx++;
-		view_cursor.current_batch_offset = view_cursor.current_batch.start_index;
-		view_cursor.has_current_batch = true;
+	if (view_cursor.SetBatch(shared_state->read_state.GetBatch(view_cursor.next_batch_idx))) {
 		return true;
 	}
 	if (!shared_state->data_manifest_read_state) {
@@ -895,10 +891,7 @@ bool IcebergMultiFileList::TryGetNextBatch(lock_guard<mutex> &guard) const {
 				auto &token = *task_to_execute->token;
 				scheduler.ScheduleTask(token, std::move(task_to_execute));
 			}
-			if (shared_state->read_state.GetBatch(view_cursor.next_batch_idx, view_cursor.current_batch)) {
-				view_cursor.next_batch_idx++;
-				view_cursor.current_batch_offset = view_cursor.current_batch.start_index;
-				view_cursor.has_current_batch = true;
+			if (view_cursor.SetBatch(shared_state->read_state.GetBatch(view_cursor.next_batch_idx))) {
 				return true;
 			}
 			//! We didn't manage to populate the buffer with our scan
@@ -908,13 +901,7 @@ bool IcebergMultiFileList::TryGetNextBatch(lock_guard<mutex> &guard) const {
 		executor.WorkOnTasks();
 		break;
 	}
-	if (!shared_state->read_state.GetBatch(view_cursor.next_batch_idx, view_cursor.current_batch)) {
-		return false;
-	}
-	view_cursor.next_batch_idx++;
-	view_cursor.current_batch_offset = view_cursor.current_batch.start_index;
-	view_cursor.has_current_batch = true;
-	return true;
+	return view_cursor.SetBatch(shared_state->read_state.GetBatch(view_cursor.next_batch_idx));
 }
 
 void IcebergMultiFileList::FinishScanTasks(lock_guard<mutex> &guard) const {
@@ -942,7 +929,7 @@ optional_ptr<const BoundIcebergManifestEntry> IcebergMultiFileList::GetDataFile(
 		}
 
 		auto &view_cursor = data_view_cursor;
-		auto &current_batch = view_cursor.current_batch;
+		auto &current_batch = *view_cursor.current_batch;
 		auto &bound_manifest_list_entry = data_manifests[current_batch.manifest_list_entry_idx];
 		auto &manifest_list_entry = bound_manifest_list_entry.entry;
 		auto &manifest_entries = manifest_list_entry.GetManifestEntries();
@@ -983,7 +970,7 @@ optional_ptr<const BoundIcebergManifestEntry> IcebergMultiFileList::GetDataFile(
 			data_manifest_entries.push_back(bound_entry);
 		}
 		if (view_cursor.current_batch_offset >= current_batch.end_index) {
-			view_cursor.has_current_batch = false;
+			view_cursor.current_batch.reset();
 		}
 	}
 	return data_manifest_entries[file_id];
