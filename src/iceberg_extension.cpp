@@ -112,7 +112,9 @@ static void LoadInternal(ExtensionLoader &loader) {
 
 	auto &log_manager = instance.GetLogManager();
 	log_manager.RegisterLogType(make_uniq<IcebergLogType>());
-	StorageExtension::Register(config, "iceberg", make_shared_ptr<IRCStorageExtension>());
+	auto storage_extension = make_shared_ptr<IRCStorageExtension>();
+	StorageExtension::Register(config, "iceberg", storage_extension);
+	StorageExtension::Register(config, "arn", storage_extension);
 
 	// Re-introduces equality-delete columns onto iceberg_scan LogicalGets after the built-in
 	// optimizers have run; see planning/iceberg_optimizer.hpp for the why.
