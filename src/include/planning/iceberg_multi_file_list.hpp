@@ -13,6 +13,7 @@
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 #include "duckdb/common/list.hpp"
 #include "duckdb/common/unordered_map.hpp"
+#include "duckdb/common/unordered_set.hpp"
 #include "duckdb/planner/filter/expression_filter.hpp"
 #include "duckdb/planner/filter/null_filter.hpp"
 #include "duckdb/planner/table_filter.hpp"
@@ -119,14 +120,9 @@ private:
 	mutable bool manifest_list_loaded = false;
 	mutable bool data_manifest_scan_started = false;
 
-	//! Scanned delete manifests and their owners.
+	//! Delete manifest owners.
 	mutable vector<IcebergManifestListEntry> committed_delete_manifests;
 	mutable vector<reference<const IcebergManifestListEntry>> transaction_delete_manifests;
-	mutable unique_ptr<AvroScan> delete_manifest_scan;
-	mutable unique_ptr<manifest_file::ManifestReader> delete_manifest_reader;
-	mutable bool delete_entries_enumerated = false;
-	mutable idx_t next_delete_entry_to_process = 0;
-	mutable vector<BoundIcebergManifestEntry> delete_manifest_entries;
 
 	//! Scanned data manifests and their owners.
 	mutable vector<IcebergManifestListEntry> committed_data_manifests;
@@ -136,6 +132,7 @@ private:
 	//! Declared after the manifest owners so references in parsed delete data are destroyed first.
 	mutable case_insensitive_map_t<shared_ptr<IcebergDeleteData>> positional_delete_data;
 	mutable map<sequence_number_t, unique_ptr<IcebergEqualityDeleteData>> equality_delete_data;
+	mutable unordered_set<string> processed_delete_files;
 
 	//! Populated as parsed data-file entries become visible to any filtered view.
 	mutable case_insensitive_map_t<vector<IcebergPartitionInfo>> data_file_partition_info;
@@ -268,6 +265,11 @@ private:
 
 	mutable bool view_initialized = false;
 	mutable IcebergDataViewCursor data_view_cursor;
+	//! Delete manifest enumeration is filter-dependent and therefore belongs to this view.
+	mutable bool delete_entries_enumerated = false;
+	mutable idx_t next_delete_entry_to_process = 0;
+	//! References to items inside the 'manifest_entries' of the list entries in the 'delete_manifests'
+	mutable vector<BoundIcebergManifestEntry> delete_manifest_entries;
 	//! Combination of committed + transaction delete manifests
 	mutable vector<BoundIcebergManifestListEntry> delete_manifests;
 	mutable vector<bool> delete_manifest_matches;

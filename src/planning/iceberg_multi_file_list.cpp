@@ -1489,12 +1489,14 @@ void IcebergMultiFileList::ScanDeleteFiles(const vector<MultiFileColumnDefinitio
                                            const vector<ColumnIndex> &global_column_ids,
                                            const vector<idx_t> &projection_ids) const {
 	auto &provider = GetScanPlanProvider();
-	auto &next_entry = provider.NextDeleteEntryToProcess();
-	auto &delete_entries = provider.DeleteManifestEntries();
-	for (; next_entry < delete_entries.size(); next_entry++) {
-		auto &bound_manifest_entry = delete_entries[next_entry];
+	auto &processed_delete_files = provider.ProcessedDeleteFiles();
+	for (; next_delete_entry_to_process < delete_manifest_entries.size(); next_delete_entry_to_process++) {
+		auto &bound_manifest_entry = delete_manifest_entries[next_delete_entry_to_process];
 		auto &manifest_entry = bound_manifest_entry.entry;
 		auto &data_file = manifest_entry.data_file;
+		if (processed_delete_files.count(data_file.file_path)) {
+			continue;
+		}
 		if (StringUtil::CIEquals(data_file.file_format, "parquet")) {
 			ScanDeleteFile(bound_manifest_entry, global_columns, global_column_ids, projection_ids);
 		} else if (StringUtil::CIEquals(data_file.file_format, "puffin")) {
@@ -1504,6 +1506,7 @@ void IcebergMultiFileList::ScanDeleteFiles(const vector<MultiFileColumnDefinitio
 			    "File format '%s' not supported for deletes, only supports 'parquet' and 'puffin' currently",
 			    data_file.file_format);
 		}
+		processed_delete_files.insert(data_file.file_path);
 	}
 }
 
@@ -1531,22 +1534,7 @@ vector<BoundIcebergManifestEntry> IcebergMultiFileList::GetDeleteManifestEntries
 	InitializeView(guard);
 	lock_guard<mutex> delete_guard(shared_state->delete_lock);
 	EnumerateDeleteManifestEntriesInternal();
-	vector<BoundIcebergManifestEntry> result;
-	auto &delete_entries = GetScanPlanProvider().DeleteManifestEntries();
-	for (auto &entry : delete_entries) {
-		auto manifest_idx = entry.manifest_file_idx;
-		auto &manifest = delete_manifests[manifest_idx];
-		auto &manifest_file = manifest.entry.file;
-		if (!delete_manifest_matches[manifest_idx]) {
-			continue;
-		}
-		if (table_filters.HasFilters() &&
-		    !FileMatchesFilter(manifest_file, entry.entry, IcebergManifestContentType::DELETE)) {
-			continue;
-		}
-		result.push_back(entry);
-	}
-	return result;
+	return delete_manifest_entries;
 }
 
 void IcebergMultiFileList::ScanDeleteFile(const BoundIcebergManifestEntry &bound_manifest_entry,

@@ -153,13 +153,33 @@ void ClientSideScanPlanProvider::LoadManifestList(const IcebergMultiFileList &fi
 }
 
 void ClientSideScanPlanProvider::StartDeleteManifestScan(const IcebergMultiFileList &file_list) {
-	if (shared_state.delete_manifest_scan || DeleteManifests().empty()) {
+	if (delete_manifest_scan || DeleteManifests().empty()) {
 		return;
 	}
-	shared_state.delete_manifest_scan =
-	    AvroScan::ScanManifest(file_list.GetSnapshot(), DeleteManifests(), file_list.options, shared_state.fs,
-	                           file_list.GetPath(), file_list.GetMetadata(), shared_state.context);
-	shared_state.delete_manifest_reader = make_uniq<manifest_file::ManifestReader>(*shared_state.delete_manifest_scan);
+
+	vector<idx_t> selected_committed_manifests;
+	for (idx_t manifest_idx = 0; manifest_idx < DeleteManifests().size(); manifest_idx++) {
+		if (file_list.delete_manifest_matches[manifest_idx] && !DeleteManifests()[manifest_idx].HasManifestEntries()) {
+			selected_committed_manifests.push_back(manifest_idx);
+		}
+	}
+
+	if (!selected_committed_manifests.empty()) {
+		delete_manifest_scan = AvroScan::ScanManifest(file_list.GetSnapshot(), DeleteManifests(), file_list.options,
+		                                              shared_state.fs, file_list.GetPath(), file_list.GetMetadata(),
+		                                              shared_state.context, nullptr, selected_committed_manifests);
+		delete_manifest_reader = make_uniq<manifest_file::ManifestReader>(*delete_manifest_scan);
+	}
+
+	idx_t selected_manifest_count = 0;
+	for (auto matches : file_list.delete_manifest_matches) {
+		selected_manifest_count += matches;
+	}
+	DUCKDB_LOG(shared_state.context, IcebergLogType,
+	           "Iceberg metadata phase=delete_manifest_scan_started selected_delete_manifests=%llu "
+	           "total_delete_manifests=%llu filters=%llu",
+	           selected_manifest_count, file_list.delete_manifest_matches.size(),
+	           file_list.table_filters.FilterCount());
 }
 
 void ClientSideScanPlanProvider::StartDataManifestScan(const IcebergMultiFileList &file_list) {
@@ -213,7 +233,7 @@ void ClientSideScanPlanProvider::StartDataManifestScan(const IcebergMultiFileLis
 }
 
 void ClientSideScanPlanProvider::EnumerateDeleteManifestEntries(const IcebergMultiFileList &file_list) {
-	if (shared_state.delete_entries_enumerated) {
+	if (file_list.delete_entries_enumerated) {
 		return;
 	}
 	StartDeleteManifestScan(file_list);
@@ -223,12 +243,15 @@ void ClientSideScanPlanProvider::EnumerateDeleteManifestEntries(const IcebergMul
 		transactional_delete_files = file_list.GetTransactionData().transactional_delete_files;
 	}
 	while (!FinishedScanningDeletes()) {
-		shared_state.delete_manifest_reader->Read();
+		delete_manifest_reader->Read();
 	}
 
 	for (idx_t i = 0; i < DeleteManifests().size(); i++) {
+		if (!file_list.delete_manifest_matches[i]) {
+			continue;
+		}
 		auto &manifest_list_entry = DeleteManifests()[i];
-		auto manifest = BoundIcebergManifestListEntry(i, manifest_list_entry);
+		auto &manifest = file_list.delete_manifests[i];
 		for (auto &manifest_entry : manifest_list_entry.GetManifestEntries()) {
 			if (manifest_entry.status == IcebergManifestEntryStatusType::DELETED) {
 				continue;
@@ -238,15 +261,24 @@ void ClientSideScanPlanProvider::EnumerateDeleteManifestEntries(const IcebergMul
 			    transactional_delete_files->count(*referenced_data_file)) {
 				continue;
 			}
-			shared_state.delete_manifest_entries.push_back(manifest.BindEntry(manifest_entry));
+			if (file_list.table_filters.HasFilters() &&
+			    !file_list.FileMatchesFilter(manifest_list_entry.file, manifest_entry,
+			                                 IcebergManifestContentType::DELETE)) {
+				continue;
+			}
+			file_list.delete_manifest_entries.push_back(manifest.BindEntry(manifest_entry));
 		}
 	}
 
 	auto offset = DeleteManifests().size();
 	for (idx_t transaction_idx = 0; transaction_idx < shared_state.transaction_delete_manifests.size();
 	     transaction_idx++) {
+		auto manifest_idx = offset + transaction_idx;
+		if (!file_list.delete_manifest_matches[manifest_idx]) {
+			continue;
+		}
 		auto &manifest_list_entry = shared_state.transaction_delete_manifests[transaction_idx].get();
-		auto manifest = BoundIcebergManifestListEntry(offset + transaction_idx, manifest_list_entry);
+		auto &manifest = file_list.delete_manifests[manifest_idx];
 		for (auto &manifest_entry : manifest_list_entry.GetManifestEntries()) {
 			auto &data_file = manifest_entry.data_file;
 			auto &referenced_data_file = data_file.referenced_data_file;
@@ -256,11 +288,16 @@ void ClientSideScanPlanProvider::EnumerateDeleteManifestEntries(const IcebergMul
 					continue;
 				}
 			}
-			shared_state.delete_manifest_entries.push_back(manifest.BindEntry(manifest_entry));
+			if (file_list.table_filters.HasFilters() &&
+			    !file_list.FileMatchesFilter(manifest_list_entry.file, manifest_entry,
+			                                 IcebergManifestContentType::DELETE)) {
+				continue;
+			}
+			file_list.delete_manifest_entries.push_back(manifest.BindEntry(manifest_entry));
 		}
 	}
 
-	shared_state.delete_entries_enumerated = true;
+	file_list.delete_entries_enumerated = true;
 	D_ASSERT(FinishedScanningDeletes());
 }
 
@@ -298,7 +335,7 @@ void ClientSideScanPlanProvider::FinishScanTasks() {
 }
 
 bool ClientSideScanPlanProvider::FinishedScanningDeletes() const {
-	return !shared_state.delete_manifest_reader || shared_state.delete_manifest_reader->Finished();
+	return !delete_manifest_reader || delete_manifest_reader->Finished();
 }
 
 bool ClientSideScanPlanProvider::DeleteFileAppliesToDataFile(const string &data_file_path,
@@ -314,14 +351,6 @@ vector<IcebergManifestListEntry> &ClientSideScanPlanProvider::DeleteManifests() 
 	return shared_state.committed_delete_manifests;
 }
 
-idx_t &ClientSideScanPlanProvider::NextDeleteEntryToProcess() {
-	return shared_state.next_delete_entry_to_process;
-}
-
-vector<BoundIcebergManifestEntry> &ClientSideScanPlanProvider::DeleteManifestEntries() {
-	return shared_state.delete_manifest_entries;
-}
-
 case_insensitive_map_t<shared_ptr<IcebergDeleteData>> &ClientSideScanPlanProvider::PositionalDeleteData() {
 	return shared_state.positional_delete_data;
 }
@@ -330,13 +359,14 @@ map<sequence_number_t, unique_ptr<IcebergEqualityDeleteData>> &ClientSideScanPla
 	return shared_state.equality_delete_data;
 }
 
+unordered_set<string> &ClientSideScanPlanProvider::ProcessedDeleteFiles() {
+	return shared_state.processed_delete_files;
+}
+
 ServerSideScanPlanProvider::ServerSideScanPlanProvider(IcebergServerSideScanPlan plan_p) : plan(std::move(plan_p)) {
 }
 
 void ServerSideScanPlanProvider::LoadManifestList(const IcebergMultiFileList &file_list) {
-}
-
-void ServerSideScanPlanProvider::StartDeleteManifestScan(const IcebergMultiFileList &file_list) {
 }
 
 void ServerSideScanPlanProvider::StartDataManifestScan(const IcebergMultiFileList &file_list) {
@@ -350,19 +380,28 @@ void ServerSideScanPlanProvider::StartDataManifestScan(const IcebergMultiFileLis
 }
 
 void ServerSideScanPlanProvider::EnumerateDeleteManifestEntries(const IcebergMultiFileList &file_list) {
-	if (delete_entries_enumerated) {
+	if (file_list.delete_entries_enumerated) {
 		return;
 	}
 	for (idx_t i = 0; i < plan.delete_manifests.size(); i++) {
+		if (!file_list.delete_manifest_matches[i]) {
+			continue;
+		}
 		auto &manifest_list_entry = plan.delete_manifests[i];
-		auto manifest = BoundIcebergManifestListEntry(i, manifest_list_entry);
+		auto &manifest = file_list.delete_manifests[i];
 		for (auto &manifest_entry : manifest_list_entry.GetManifestEntries()) {
-			if (manifest_entry.status != IcebergManifestEntryStatusType::DELETED) {
-				delete_manifest_entries.push_back(manifest.BindEntry(manifest_entry));
+			if (manifest_entry.status == IcebergManifestEntryStatusType::DELETED) {
+				continue;
 			}
+			if (file_list.table_filters.HasFilters() &&
+			    !file_list.FileMatchesFilter(manifest_list_entry.file, manifest_entry,
+			                                 IcebergManifestContentType::DELETE)) {
+				continue;
+			}
+			file_list.delete_manifest_entries.push_back(manifest.BindEntry(manifest_entry));
 		}
 	}
-	delete_entries_enumerated = true;
+	file_list.delete_entries_enumerated = true;
 }
 
 bool ServerSideScanPlanProvider::TryGetNextBatch(IcebergDataViewCursor &cursor) {
@@ -370,10 +409,6 @@ bool ServerSideScanPlanProvider::TryGetNextBatch(IcebergDataViewCursor &cursor) 
 }
 
 void ServerSideScanPlanProvider::FinishScanTasks() {
-}
-
-bool ServerSideScanPlanProvider::FinishedScanningDeletes() const {
-	return true;
 }
 
 bool ServerSideScanPlanProvider::DeleteFileAppliesToDataFile(const string &data_file_path,
@@ -390,20 +425,16 @@ vector<IcebergManifestListEntry> &ServerSideScanPlanProvider::DeleteManifests() 
 	return plan.delete_manifests;
 }
 
-idx_t &ServerSideScanPlanProvider::NextDeleteEntryToProcess() {
-	return next_delete_entry_to_process;
-}
-
-vector<BoundIcebergManifestEntry> &ServerSideScanPlanProvider::DeleteManifestEntries() {
-	return delete_manifest_entries;
-}
-
 case_insensitive_map_t<shared_ptr<IcebergDeleteData>> &ServerSideScanPlanProvider::PositionalDeleteData() {
 	return positional_delete_data;
 }
 
 map<sequence_number_t, unique_ptr<IcebergEqualityDeleteData>> &ServerSideScanPlanProvider::EqualityDeleteData() {
 	return equality_delete_data;
+}
+
+unordered_set<string> &ServerSideScanPlanProvider::ProcessedDeleteFiles() {
+	return processed_delete_files;
 }
 
 } // namespace duckdb
