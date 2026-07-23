@@ -40,11 +40,12 @@ CREATE TABLE my_datalake.default.tbl(
 ----
 Invalid Input Error: non-null DEFAULT values are not supported for <V3 tables
 
-# STRUCT default not supported yet
+# STRUCT defaults require the sentinel until Iceberg catalogs support {}.
 statement ok
 CREATE TABLE my_datalake.default.struct_tbl(
 	item_id int,
-	balance STRUCT(a VARCHAR, b BOOLEAN) DEFAULT {'a': 'test', 'b': true}
+	balance STRUCT(a VARCHAR, b BOOLEAN)
+		DEFAULT {'__duckdb_struct_default': NULL, 'a': 'test', 'b': true}
 ) WITH ('format-version'='3');
 
 # MAP default not supported yet

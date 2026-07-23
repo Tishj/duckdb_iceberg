@@ -18,19 +18,79 @@ set ignore_error_messages
 statement ok
 drop table if exists my_datalake.default.tbl;
 
-# NOTE: Since no engine/catalog supports the {} default for STRUCT, we write NULL (omit the initial-default) for STRUCT instead
-# This changes the behavior matrix, and will need to be updated when support for {} is added
+statement ok
+SET GLOBAL __iceberg_unsafe_struct_null_default_interpretation = '{}';
+
+# A non-null STRUCT default must explicitly opt in with the sentinel.
+statement error
+create table my_datalake.default.tbl_missing_struct_sentinel(
+	col STRUCT(a VARCHAR) DEFAULT {'a': 'test'}
+) WITH ('format-version' = 3);
+----
+Invalid Input Error: Non-null DEFAULT values for STRUCT must contain the field '__duckdb_struct_default'
+
+# The sentinel itself only accepts NULL.
+statement error
+create table my_datalake.default.tbl_invalid_struct_sentinel(
+	col STRUCT(a VARCHAR) DEFAULT {'__duckdb_struct_default': 42, 'a': 'test'}
+) WITH ('format-version' = 3);
+----
+Invalid Input Error: The field '__duckdb_struct_default' only supports NULL as its value
+
+# It is not a way to bypass normal field-name validation.
+statement error
+create table my_datalake.default.tbl_unknown_struct_field(
+	col STRUCT(a VARCHAR)
+		DEFAULT {'__duckdb_struct_default': NULL, 'missing': 'test'}
+) WITH ('format-version' = 3);
+----
+Invalid Input Error: DEFAULT field 'missing' does not exist in STRUCT type STRUCT(a VARCHAR)
+
+# A physical field cannot use the reserved sentinel name when the STRUCT has a non-null default.
+statement error
+create table my_datalake.default.tbl_reserved_struct_field(
+	col STRUCT("__duckdb_struct_default" INTEGER, a VARCHAR)
+		DEFAULT {'__duckdb_struct_default': NULL, 'a': 'test'}
+) WITH ('format-version' = 3);
+----
+Invalid Input Error: The field name '__duckdb_struct_default' is reserved in STRUCT types that have a DEFAULT value
+
+# Every nested non-null STRUCT literal must carry its own sentinel.
+statement error
+create table my_datalake.default.tbl_missing_nested_struct_sentinel(
+	col STRUCT(b STRUCT(x INTEGER))
+		DEFAULT {'__duckdb_struct_default': NULL, 'b': {'x': 42}}
+) WITH ('format-version' = 3);
+----
+Invalid Input Error: Non-null DEFAULT values for STRUCT must contain the field '__duckdb_struct_default'
+
+# Sentinel-bearing defaults remain a v3 feature.
+statement error
+create table my_datalake.default.tbl_v2_struct_default(
+	col STRUCT(a VARCHAR)
+		DEFAULT {'__duckdb_struct_default': NULL, 'a': 'test'}
+) WITH ('format-version' = 2);
+----
+Invalid Input Error: non-null DEFAULT values are not supported for <V3 tables
+
+# The sentinel records the intended non-null STRUCT default while Iceberg metadata stores NULL.
 statement ok
 create table my_datalake.default.tbl(
 	col STRUCT(
 		a VARCHAR,
 		b INTEGER,
 		c BLOB
-	) DEFAULT {'a': 'test', 'b': NULL},
+	) DEFAULT {'__duckdb_struct_default': NULL, 'a': 'test', 'b': NULL},
 	col2 BLOB
 ) WITH (
 	'format-version'= 3
 );
+
+query I
+SELECT contains(metadata::VARCHAR, '__duckdb_struct_default')
+FROM iceberg_load_table_response(my_datalake.default.tbl);
+----
+false
 
 # in: - (col not provided)
 # col.default: {}
@@ -87,8 +147,7 @@ select * from my_datalake.default.tbl order by all;
 statement ok
 drop table if exists my_datalake.default.nested_tbl;
 
-# NOTE: Since no engine/catalog supports the {} default for STRUCT, we write NULL (omit the initial-default) for STRUCT instead
-# This changes the behavior matrix, and will need to be updated when support for {} is added
+# Every non-null nested STRUCT default has its own sentinel.
 statement ok
 create table my_datalake.default.nested_tbl(
 	col STRUCT(
@@ -100,8 +159,10 @@ create table my_datalake.default.nested_tbl(
 		),
 		e BOOLEAN
 	) DEFAULT {
+		'__duckdb_struct_default': NULL,
 		'a': 'test',
 		'b': {
+			'__duckdb_struct_default': NULL,
 			'v1': 1000,
 			'v3': -500
 		},
@@ -177,7 +238,10 @@ select * from my_datalake.default.nested_tbl order by all;
 {'a': test, 'b': {'v1': 1000, 'v2': NULL, 'v3': -500}, 'e': NULL}	12
 {'a': test, 'b': {'v1': 1000, 'v2': NULL, 'v3': NULL}, 'e': NULL}	24
 
-# DEFAULT NULL on a STRUCT currently materializes a struct whose fields are all NULL.
+statement ok
+RESET __iceberg_unsafe_struct_null_default_interpretation;
+
+# In the default safe mode, DEFAULT NULL on a STRUCT remains NULL.
 
 statement ok
 drop table if exists my_datalake.default.tbl_default_null_struct;
@@ -201,9 +265,8 @@ insert into my_datalake.default.tbl_default_null_struct values
 	(1, DEFAULT),
 	(2, DEFAULT);
 
-# FIXME: 'c' should be NULL, but this needs support for {} first
 query II
 select * from my_datalake.default.tbl_default_null_struct order by id;
 ----
-1	{'a': NULL, 'b': NULL, 'c': {'x': NULL}}
-2	{'a': NULL, 'b': NULL, 'c': {'x': NULL}}
+1	NULL
+2	NULL

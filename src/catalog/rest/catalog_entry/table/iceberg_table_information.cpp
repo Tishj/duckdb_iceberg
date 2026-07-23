@@ -26,6 +26,7 @@
 #include "catalog/rest/storage/authorization/sigv4_utils.hpp"
 #include "core/expression/iceberg_transform.hpp"
 #include "common/iceberg_utils.hpp"
+#include "iceberg_options.hpp"
 
 #include <climits>
 
@@ -270,8 +271,9 @@ IRCAPITableCredentials IcebergTableInformation::GetVendedCredentials(
 optional_ptr<CatalogEntry> IcebergTableInformation::CreateSchemaVersion(const IcebergTableSchema &table_schema) {
 	CreateTableInfo info;
 	info.SetTableName(Identifier(name));
+	auto interpretation = GetIcebergStructDefaultInterpretation(DBConfig::GetConfig(catalog.GetDatabase()));
 	for (auto &col : table_schema.columns) {
-		info.columns.AddColumn(col->GetColumnDefinition());
+		info.columns.AddColumn(col->GetColumnDefinition(interpretation));
 	}
 
 	auto table_entry = make_uniq<IcebergTableEntry>(*this, catalog, schema, info, table_schema.schema_id);

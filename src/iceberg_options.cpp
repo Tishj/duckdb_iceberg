@@ -1,7 +1,18 @@
 #include "iceberg_options.hpp"
 #include "common/iceberg_utils.hpp"
+#include "duckdb/main/config.hpp"
 
 namespace duckdb {
+
+IcebergStructDefaultInterpretation GetIcebergStructDefaultInterpretation(const DBConfig &config) {
+	Value setting_value;
+	if (!config.TryGetCurrentSetting(UNSAFE_STRUCT_NULL_DEFAULT_INTERPRETATION_CONFIG_VARIABLE, setting_value) ||
+	    setting_value.IsNull()) {
+		return IcebergStructDefaultInterpretation::NULL_VALUE;
+	}
+	D_ASSERT(setting_value.GetValue<string>() == "{}");
+	return IcebergStructDefaultInterpretation::EMPTY_STRUCT;
+}
 
 IcebergOptions::IcebergOptions() : snapshot_lookup(IcebergSnapshotLookup::FromLatest()) {
 }

@@ -1,0 +1,51 @@
+# name: test/sql/local/struct_default_setting.test
+# group: [local]
+
+require avro
+
+require parquet
+
+require iceberg
+
+require httpfs
+
+statement ok
+LOAD iceberg;
+
+query I
+SELECT value
+FROM duckdb_settings()
+WHERE name = '__iceberg_unsafe_struct_null_default_interpretation';
+----
+NULL
+
+statement ok
+SET GLOBAL __iceberg_unsafe_struct_null_default_interpretation = '{}';
+
+query I
+SELECT current_setting('__iceberg_unsafe_struct_null_default_interpretation');
+----
+{}
+
+statement error
+SET GLOBAL __iceberg_unsafe_struct_null_default_interpretation = 'invalid';
+----
+Invalid Configuration Error: '__iceberg_unsafe_struct_null_default_interpretation' must be NULL or '{}', got 'invalid'
+
+statement ok
+RESET __iceberg_unsafe_struct_null_default_interpretation;
+
+query I
+SELECT value
+FROM duckdb_settings()
+WHERE name = '__iceberg_unsafe_struct_null_default_interpretation';
+----
+NULL
+
+statement ok
+SET GLOBAL __iceberg_unsafe_struct_null_default_interpretation = NULL;
+
+query I
+SELECT current_setting('__iceberg_unsafe_struct_null_default_interpretation');
+----
+NULL

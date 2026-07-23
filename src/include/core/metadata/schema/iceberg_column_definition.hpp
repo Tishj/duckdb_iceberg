@@ -12,6 +12,7 @@
 #include "rest_catalog/objects/primitive_type.hpp"
 #include "rest_catalog/objects/type.hpp"
 #include "rest_catalog/objects/primitive_type_value.hpp"
+#include "iceberg_options.hpp"
 
 namespace duckdb {
 
@@ -26,10 +27,11 @@ public:
 	                                 const rest_api_objects::PrimitiveTypeValue &primitive_value);
 	bool IsIcebergPrimitiveType() const;
 
-	ColumnDefinition GetColumnDefinition() const;
-	MultiFileColumnDefinition GetMultiFileColumnDefinition() const;
+	ColumnDefinition GetColumnDefinition(IcebergStructDefaultInterpretation interpretation) const;
+	MultiFileColumnDefinition GetMultiFileColumnDefinition(IcebergStructDefaultInterpretation interpretation) const;
 	unique_ptr<IcebergColumnDefinition> Copy() const;
 	bool Equals(const IcebergColumnDefinition &other) const;
+	void SetWriteDefault(const Value &default_value);
 
 public:
 	void AddChild(unique_ptr<IcebergColumnDefinition> &&child);
@@ -41,7 +43,9 @@ public:
 	void RewriteType();
 
 private:
-	Value GetWriteDefault() const;
+	Value GetInitialDefault(IcebergStructDefaultInterpretation interpretation) const;
+	Value GetWriteDefault(IcebergStructDefaultInterpretation interpretation) const;
+	Value GetWriteDefaultDescriptor(IcebergStructDefaultInterpretation interpretation) const;
 
 public:
 	int32_t id;

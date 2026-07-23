@@ -7,6 +7,8 @@
 
 namespace duckdb {
 
+static constexpr const char *ICEBERG_STRUCT_DEFAULT_FIELD = "__duckdb_struct_default";
+
 class IcebergDefaultBinder {
 public:
 	IcebergDefaultBinder(ClientContext &context);

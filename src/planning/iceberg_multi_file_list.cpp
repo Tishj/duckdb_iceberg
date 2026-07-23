@@ -6,6 +6,7 @@
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/numeric_utils.hpp"
+#include "duckdb/main/config.hpp"
 #include "duckdb/execution/execution_context.hpp"
 #include "duckdb/parallel/thread_context.hpp"
 #include "duckdb/parallel/event.hpp"
@@ -84,7 +85,8 @@ IcebergMultiFileListSharedState::IcebergMultiFileListSharedState(ClientContext &
                                                                  shared_ptr<IcebergScanInfo> scan_info_p, string path_p,
                                                                  const IcebergOptions &options_p)
     : context(context_p), fs(FileSystem::GetFileSystem(context)), scan_info(std::move(scan_info_p)),
-      path(std::move(path_p)), options(options_p) {
+      path(std::move(path_p)), options(options_p),
+      struct_default_interpretation(GetIcebergStructDefaultInterpretation(DBConfig::GetConfig(context_p))) {
 }
 
 IcebergMultiFileListSharedState::~IcebergMultiFileListSharedState() {
@@ -121,6 +123,10 @@ const IcebergSnapshotScanInfo &IcebergMultiFileList::GetSnapshot() const {
 
 const IcebergTableSchema &IcebergMultiFileList::GetSchema() const {
 	return shared_state->scan_info->schema;
+}
+
+IcebergStructDefaultInterpretation IcebergMultiFileList::GetStructDefaultInterpretation() const {
+	return shared_state->struct_default_interpretation;
 }
 
 IcebergScanPlanProvider &IcebergMultiFileList::GetScanPlanProvider() const {
