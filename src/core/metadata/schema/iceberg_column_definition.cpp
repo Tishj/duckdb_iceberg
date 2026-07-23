@@ -6,6 +6,7 @@
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 #include "duckdb/parser/expression/function_expression.hpp"
 #include "common/iceberg_default.hpp"
+#include "iceberg_options.hpp"
 
 namespace duckdb {
 
@@ -287,32 +288,31 @@ unique_ptr<IcebergColumnDefinition> IcebergColumnDefinition::Copy() const {
 	return res;
 }
 
-MultiFileColumnDefinition
-IcebergColumnDefinition::GetMultiFileColumnDefinition(IcebergStructDefaultInterpretation interpretation) const {
+MultiFileColumnDefinition IcebergColumnDefinition::GetMultiFileColumnDefinition() const {
 	MultiFileColumnDefinition column(name, type);
-	column.default_expression = make_uniq<ConstantExpression>(GetInitialDefault(interpretation));
+	column.default_expression = make_uniq<ConstantExpression>(GetInitialDefault());
 	column.identifier = Value::INTEGER(id);
 	for (auto &child : children) {
-		column.children.push_back(child->GetMultiFileColumnDefinition(interpretation));
+		column.children.push_back(child->GetMultiFileColumnDefinition());
 	}
 	return column;
 }
 
-Value IcebergColumnDefinition::GetInitialDefault(IcebergStructDefaultInterpretation interpretation) const {
+Value IcebergColumnDefinition::GetInitialDefault() const {
 	Value result = initial_default ? *initial_default : Value(type);
 	if (type.id() != LogicalTypeId::STRUCT || !result.IsNull() ||
-	    interpretation == IcebergStructDefaultInterpretation::NULL_VALUE) {
+	    !IcebergUnsafeStructNullDefaultInterpretationEnabled()) {
 		return result;
 	}
 	vector<Value> child_defaults;
 	child_defaults.reserve(children.size());
 	for (auto &child : children) {
-		child_defaults.push_back(child->GetInitialDefault(interpretation));
+		child_defaults.push_back(child->GetInitialDefault());
 	}
 	return Value::STRUCT(type, std::move(child_defaults));
 }
 
-Value IcebergColumnDefinition::GetWriteDefault(IcebergStructDefaultInterpretation interpretation) const {
+Value IcebergColumnDefinition::GetWriteDefault() const {
 	optional_ptr<Value> default_to_use;
 	if (write_default) {
 		//! Use write-default if it's set
@@ -323,39 +323,39 @@ Value IcebergColumnDefinition::GetWriteDefault(IcebergStructDefaultInterpretatio
 	}
 	Value result = default_to_use ? *default_to_use : Value(type);
 	if (type.id() != LogicalTypeId::STRUCT || !result.IsNull() ||
-	    interpretation == IcebergStructDefaultInterpretation::NULL_VALUE) {
+	    !IcebergUnsafeStructNullDefaultInterpretationEnabled()) {
 		return result;
 	}
 	vector<Value> child_defaults;
 	child_defaults.reserve(children.size());
 	for (auto &child : children) {
-		child_defaults.push_back(child->GetWriteDefault(interpretation));
+		child_defaults.push_back(child->GetWriteDefault());
 	}
 	return Value::STRUCT(type, std::move(child_defaults));
 }
 
-Value IcebergColumnDefinition::GetWriteDefaultDescriptor(IcebergStructDefaultInterpretation interpretation) const {
+Value IcebergColumnDefinition::GetWriteDefaultDescriptor() const {
 	D_ASSERT(type.id() == LogicalTypeId::STRUCT);
 	child_list_t<Value> field_defaults;
-	field_defaults.emplace_back(ICEBERG_STRUCT_DEFAULT_FIELD, GetWriteDefault(interpretation));
+	field_defaults.emplace_back(ICEBERG_STRUCT_DEFAULT_FIELD, GetWriteDefault());
 	for (auto &child : children) {
 		if (child->type.id() == LogicalTypeId::STRUCT) {
-			field_defaults.emplace_back(child->name, child->GetWriteDefaultDescriptor(interpretation));
+			field_defaults.emplace_back(child->name, child->GetWriteDefaultDescriptor());
 		} else {
-			field_defaults.emplace_back(child->name, child->GetWriteDefault(interpretation));
+			field_defaults.emplace_back(child->name, child->GetWriteDefault());
 		}
 	}
 	return Value::STRUCT(std::move(field_defaults));
 }
 
-ColumnDefinition IcebergColumnDefinition::GetColumnDefinition(IcebergStructDefaultInterpretation interpretation) const {
+ColumnDefinition IcebergColumnDefinition::GetColumnDefinition() const {
 	auto res = ColumnDefinition(Identifier(name), type);
 
-	auto write_default = GetWriteDefault(interpretation);
+	auto write_default = GetWriteDefault();
 	if (type.id() == LogicalTypeId::STRUCT) {
 		vector<unique_ptr<ParsedExpression>> arguments;
 		arguments.push_back(make_uniq<ConstantExpression>(std::move(write_default)));
-		arguments.push_back(make_uniq<ConstantExpression>(GetWriteDefaultDescriptor(interpretation)));
+		arguments.push_back(make_uniq<ConstantExpression>(GetWriteDefaultDescriptor()));
 		res.SetDefaultValue(make_uniq<FunctionExpression>(Identifier("constant_or_null"), std::move(arguments)));
 	} else if (!write_default.IsNull()) {
 		if (type.IsNested()) {

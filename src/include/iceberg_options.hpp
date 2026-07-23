@@ -7,8 +7,6 @@
 
 namespace duckdb {
 
-struct DBConfig;
-
 static string VERSION_GUESSING_CONFIG_VARIABLE = "unsafe_enable_version_guessing";
 
 // The Iceberg format version used when creating a new table without an explicit
@@ -26,9 +24,8 @@ static string ENABLE_EQUALITY_DELETES_CONFIG_VARIABLE = "unsafe_and_disabled_for
 static constexpr const char *UNSAFE_STRUCT_NULL_DEFAULT_INTERPRETATION_CONFIG_VARIABLE =
     "__iceberg_unsafe_struct_null_default_interpretation";
 
-enum class IcebergStructDefaultInterpretation : uint8_t { NULL_VALUE, EMPTY_STRUCT };
-
-IcebergStructDefaultInterpretation GetIcebergStructDefaultInterpretation(const DBConfig &config);
+bool IcebergUnsafeStructNullDefaultInterpretationEnabled();
+void SetIcebergUnsafeStructNullDefaultInterpretation(bool enabled);
 
 // When this is provided (and unsafe_enable_version_guessing is true)
 // we first look for DEFAULT_VERSION_HINT_FILE, if it doesn't exist we

@@ -1,17 +1,19 @@
 #include "iceberg_options.hpp"
 #include "common/iceberg_utils.hpp"
-#include "duckdb/main/config.hpp"
+#include "duckdb/common/atomic.hpp"
 
 namespace duckdb {
 
-IcebergStructDefaultInterpretation GetIcebergStructDefaultInterpretation(const DBConfig &config) {
-	Value setting_value;
-	if (!config.TryGetCurrentSetting(UNSAFE_STRUCT_NULL_DEFAULT_INTERPRETATION_CONFIG_VARIABLE, setting_value) ||
-	    setting_value.IsNull()) {
-		return IcebergStructDefaultInterpretation::NULL_VALUE;
-	}
-	D_ASSERT(setting_value.GetValue<string>() == "{}");
-	return IcebergStructDefaultInterpretation::EMPTY_STRUCT;
+// This compatibility switch only exists to exercise the old behavior in tests.
+// Keep it process-wide so all catalog and scan paths observe the same value.
+static atomic<bool> unsafe_struct_null_default_interpretation(false);
+
+bool IcebergUnsafeStructNullDefaultInterpretationEnabled() {
+	return unsafe_struct_null_default_interpretation.load();
+}
+
+void SetIcebergUnsafeStructNullDefaultInterpretation(bool enabled) {
+	unsafe_struct_null_default_interpretation.store(enabled);
 }
 
 IcebergOptions::IcebergOptions() : snapshot_lookup(IcebergSnapshotLookup::FromLatest()) {

@@ -658,12 +658,12 @@ void IcebergSchemaEntry::Alter(CatalogTransaction transaction, AlterInfo &info) 
 			                       column_name, table_entry.name);
 		}
 		auto &column = *column_p;
-		if (updated_table.table_metadata.iceberg_version < 3) {
-			throw NotImplementedException("SET DEFAULT is not supported on tables < V3");
-		}
 
 		IcebergDefaultBinder binder(context);
 		auto default_constant_value = binder.Evaluate(expression.get(), column.type);
+		if (updated_table.table_metadata.iceberg_version < 3 && !default_constant_value.IsNull()) {
+			throw InvalidInputException("non-null DEFAULT values are not supported for <V3 tables");
+		}
 		column.SetWriteDefault(default_constant_value);
 
 		auto new_schema_id = new_schema->schema_id;

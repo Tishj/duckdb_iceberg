@@ -43,6 +43,7 @@ static void SetDefaultFormatVersion(ClientContext &context, SetScope scope, Valu
 
 static void SetUnsafeStructNullDefaultInterpretation(ClientContext &context, SetScope scope, Value &parameter) {
 	if (parameter.IsNull()) {
+		SetIcebergUnsafeStructNullDefaultInterpretation(false);
 		return;
 	}
 	auto interpretation = parameter.GetValue<string>();
@@ -50,6 +51,7 @@ static void SetUnsafeStructNullDefaultInterpretation(ClientContext &context, Set
 		throw InvalidConfigurationException("'%s' must be NULL or '{}', got '%s'",
 		                                    UNSAFE_STRUCT_NULL_DEFAULT_INTERPRETATION_CONFIG_VARIABLE, interpretation);
 	}
+	SetIcebergUnsafeStructNullDefaultInterpretation(true);
 }
 
 static unique_ptr<TransactionManager> CreateTransactionManager(optional_ptr<StorageExtensionInfo> storage_info,

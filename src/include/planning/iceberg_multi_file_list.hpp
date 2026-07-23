@@ -110,7 +110,6 @@ private:
 	string path;
 	IcebergTableEntry *table = nullptr;
 	IcebergOptions options;
-	IcebergStructDefaultInterpretation struct_default_interpretation;
 
 	mutable mutex lock;
 	mutable mutex delete_lock;
@@ -163,7 +162,6 @@ public:
 	const IcebergTransactionData &GetTransactionData() const;
 	const IcebergSnapshotScanInfo &GetSnapshot() const;
 	const IcebergTableSchema &GetSchema() const;
-	IcebergStructDefaultInterpretation GetStructDefaultInterpretation() const;
 	IcebergTableEntry *GetTable() const;
 	void SetTable(IcebergTableEntry *table);
 	void SetOptions(const IcebergOptions &options);
