@@ -333,17 +333,10 @@ void IcebergTableInformation::LoadCredentials(ClientContext &context) const {
 		// assume secret already exists
 		return;
 	}
-	LoadCredentials(context, GetVendedCredentials(context));
-}
-
-void IcebergTableInformation::LoadCredentials(ClientContext &context, IRCAPITableCredentials table_credentials) const {
-	if (catalog.attach_options.access_mode != IRCAccessDelegationMode::VENDED_CREDENTIALS) {
-		// assume secret already exists
-		return;
-	}
 	auto &secret_manager = SecretManager::Get(context);
 
 	auto &fs = FileSystem::GetFileSystem(context);
+	auto table_credentials = GetVendedCredentials(context);
 	auto metadata_path = table_metadata.GetMetadataPath(fs);
 
 	unique_ptr<SecretEntry> http_secret_entry;

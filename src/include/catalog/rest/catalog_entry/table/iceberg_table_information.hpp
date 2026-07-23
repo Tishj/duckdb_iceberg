@@ -27,7 +27,6 @@ public:
 
 public:
 	void LoadCredentials(ClientContext &context) const;
-	void LoadCredentials(ClientContext &context, IRCAPITableCredentials table_credentials) const;
 	optional_ptr<CatalogEntry> GetLatestSchema();
 	idx_t GetIcebergVersion() const;
 	optional_ptr<CatalogEntry> GetSchemaVersion(optional_ptr<BoundAtClause> at);
@@ -47,10 +46,6 @@ public:
 	                                               idx_t base_partition_field_id);
 	static IcebergSortOrder BuildSortOrder(const vector<OrderByNode> &orders, const IcebergTableSchema &schema,
 	                                       int32_t sort_order_id);
-	IRCAPITableCredentials GetVendedCredentials(ClientContext &context) const;
-	IRCAPITableCredentials
-	GetVendedCredentials(ClientContext &context,
-	                     const vector<rest_api_objects::StorageCredential> &storage_credentials) const;
 	const string &BaseFilePath() const;
 
 	IcebergTransactionData &GetOrCreateTransactionData(IcebergTransaction &transaction);
@@ -69,6 +64,12 @@ public:
 	void InitializeFromLoadTableResult(const rest_api_objects::LoadTableResult &load_table_result,
 	                                   bool initialize_schemas = true);
 	void RefreshFromCatalog(ClientContext &context);
+
+private:
+	IRCAPITableCredentials GetVendedCredentials(ClientContext &context) const;
+	IRCAPITableCredentials
+	GetVendedCredentials(ClientContext &context,
+	                     const vector<rest_api_objects::StorageCredential> &storage_credentials) const;
 
 public:
 	IcebergCatalog &catalog;
