@@ -25,10 +25,7 @@ CREATE SECRET (
 );
 
 statement ok
-attach or replace 'arn:aws:s3tables:us-east-2:840140254803:bucket/iceberg-testing' as s3_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE S3_TABLES
-);
+attach or replace 'arn:aws:s3tables:us-east-2:840140254803:bucket/iceberg-testing' as s3_catalog;
 
 set ignore_error_messages
 

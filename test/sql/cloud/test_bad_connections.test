@@ -20,36 +20,26 @@ require aws
 
 statement error
 attach 'arn:aws:s3tables:us-east-2:840140254803:bucket/iceberg-testing' as s3tables_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'S3_TABLES',
     SECRET 's3table_secret'
 );
 ----
 Invalid Configuration Error: No secret by the name of 's3table_secret' could be found, consider changing the 'secret'
 
 statement error
-attach '840140254803:s3tablescatalog/pyiceberg-blog-bucket' as glue_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE',
+attach 'arn:aws:glue:us-east-1:840140254803:catalog/s3tablescatalog/pyiceberg-blog-bucket' as glue_catalog (
     SECRET 'glue_secret'
 );
 ----
 Invalid Configuration Error: No secret by the name of 'glue_secret' could be found, consider changing the 'secret'
 
 statement error
-attach 'arn:aws:s3tables:us-east-2:840140254803:bucket/iceberg-testing' as s3tables_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'S3_TABLES_XX'
-);
+attach 'arn:aws:glue:us-east-1:840140254803:catalog/s3tablescatalog/pyiceberg-blog-bucket' as s3tables_catalog;
 ----
 Invalid Configuration Error
 
 
 statement error
-attach '840140254803:s3tablescatalog/pyiceberg-blog-bucket' as glue_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE_XXX'
-);
+attach '840140254803:s3tablescatalog/pyiceberg-blog-bucket' as glue_catalog;
 ----
 Invalid Configuration Error
 
@@ -62,7 +52,7 @@ CREATE SECRET (
 statement error
 attach 'quickstart_catalog' as my_datalake (
     type ICEBERG,
-    ENDPOINT 'http://does_not_exist.com/api/catalog'
+    URI 'http://does_not_exist.com/api/catalog'
 )
 ----
 Invalid Configuration Error: AUTHORIZATION_TYPE is 'oauth2', yet no 'secret' was provided, and no client_id+client_secret were provided. Please provide one of the listed options or change the 'authorization_type'.

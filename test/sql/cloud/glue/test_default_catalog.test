@@ -28,9 +28,16 @@ CREATE SECRET (
 );
 
 statement ok
-attach ':' as glue_catalog (
+attach '' as glue_catalog (
 	type ICEBERG,
-	ENDPOINT_TYPE 'GLUE'
+	URI 'glue.us-east-1.amazonaws.com/iceberg',
+	WAREHOUSE '',
+	AUTHORIZATION_TYPE 'sigv4',
+	SIGV4_SERVICE 'glue',
+	SIGV4_REGION 'us-east-1',
+	STAGE_CREATE_TABLES false,
+	REMOVE_FILES_ON_DELETE false,
+	PURGE_REQUESTED true
 );
 
 

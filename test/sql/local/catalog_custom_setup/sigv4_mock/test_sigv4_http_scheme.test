@@ -29,12 +29,12 @@ CREATE SECRET sigv4_secret (
 statement ok
 call enable_logging(level='debug');
 
-# Attach with http:// endpoint + explicit sigv4_region/sigv4_service to bypass hostname parsing.
+# Attach with http:// URI + explicit sigv4_region/sigv4_service to bypass hostname parsing.
 # The attach triggers a GET /v1/config request through the SigV4 signing path.
 statement ok
 attach 'test_warehouse' as sigv4_http_catalog (
     type ICEBERG,
-    ENDPOINT 'http://127.0.0.1:19130',
+    URI 'http://127.0.0.1:19130',
     AUTHORIZATION_TYPE 'sigv4',
     SIGV4_REGION 'us-east-1',
     SIGV4_SERVICE 'execute-api'

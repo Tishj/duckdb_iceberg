@@ -100,7 +100,7 @@ public:
 	static unique_ptr<SecretEntry> GetHTTPSecret(ClientContext &context, const string &secret_name);
 	void ParsePrefix();
 	void ParseNamespaceSeparator();
-	void GetConfig(ClientContext &context, IcebergEndpointType &endpoint_type);
+	void GetConfig(ClientContext &context);
 	IRCEndpointBuilder GetBaseUrl() const;
 	string GetWarehouse() const {
 		return warehouse;
@@ -152,8 +152,6 @@ public:
 	                                            unique_ptr<LogicalOperator> plan) override;
 	DatabaseSize GetDatabaseSize(ClientContext &context) override;
 	void AddDefaultSupportedEndpoints();
-	void AddS3TablesEndpoints();
-	void AddGlueEndpoints();
 	//! Whether or not this is an in-memory Iceberg database
 	bool InMemory() override;
 	string GetDBPath() override;

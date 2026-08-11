@@ -488,16 +488,6 @@ idx_t IcebergTable::GetIcebergVersion() const {
 	return table_metadata.iceberg_version;
 }
 
-static void AddHTTPSecretsToOptions(SecretEntry &http_secret_entry, case_insensitive_map_t<Value> &options) {
-	auto http_kv_secret = dynamic_cast<const KeyValueSecret &>(*http_secret_entry.secret);
-
-	options["http_proxy"] =
-	    http_kv_secret.TryGetValue("http_proxy").IsNull() ? "" : http_kv_secret.TryGetValue("http_proxy").ToString();
-	options["verify_ssl"] = http_kv_secret.TryGetValue("verify_ssl").IsNull()
-	                            ? Value::BOOLEAN(true)
-	                            : http_kv_secret.TryGetValue("verify_ssl").DefaultCastAs(LogicalType::BOOLEAN);
-}
-
 void IcebergTable::LoadCredentials(ClientContext &context) const {
 	if (catalog.attach_options.access_mode != IRCAccessDelegationMode::VENDED_CREDENTIALS) {
 		// assume secret already exists
@@ -509,7 +499,6 @@ void IcebergTable::LoadCredentials(ClientContext &context) const {
 void IcebergTable::LoadCredentials(ClientContext &context, IRCAPITableCredentials table_credentials) const {
 	auto &secret_manager = SecretManager::Get(context);
 
-	auto &transaction = IcebergTransaction::Get(context, catalog);
 	if (catalog.attach_options.access_mode != IRCAccessDelegationMode::VENDED_CREDENTIALS) {
 		// assume secret already exists
 		return;
@@ -519,9 +508,34 @@ void IcebergTable::LoadCredentials(ClientContext &context, IRCAPITableCredential
 	auto metadata_path = table_metadata.GetMetadataPath(fs);
 
 	auto http_secret_entry = IcebergTableSecretProvider::GetHTTPSecretForCatalog(context, catalog);
+	auto apply_storage_options = [&](CreateSecretInput &info) {
+		if (!StringUtil::CIEquals(info.type.GetIdentifierName(), "s3")) {
+			return;
+		}
+		if (catalog.attach_options.storage_credential_source == IRCStorageCredentialSource::CATALOG) {
+			auto &sigv4 = catalog.auth_handler->Cast<SIGV4Authorization>();
+			auto secret_entry = IcebergCatalog::GetStorageSecret(context, sigv4.secret);
+			auto &secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
+			info.options["key_id"] = secret.TryGetValue("key_id");
+			info.options["secret"] = secret.TryGetValue("secret");
+			auto session_token = secret.TryGetValue("session_token");
+			info.options["session_token"] = session_token.IsNull() ? Value("") : session_token;
+			// These credentials come from the catalog secret rather than the REST response. They are
+			// refreshed by resolving that secret again on the next table-credential load.
+			info.provider = "config";
+			info.options.erase("refresh_info");
+		}
+		if (!catalog.attach_options.storage_region.empty()) {
+			info.options["region"] = catalog.attach_options.storage_region;
+		}
+		if (!catalog.attach_options.storage_endpoint.empty()) {
+			info.options["endpoint"] = catalog.attach_options.storage_endpoint;
+		}
+	};
 
 	if (!table_credentials.config) {
 		for (auto &info : table_credentials.storage_credentials) {
+			apply_storage_options(info);
 			if (http_secret_entry) {
 				IcebergTableSecretProvider::AddHTTPSecretsToOptions(*http_secret_entry, info.options);
 			}
@@ -555,34 +569,7 @@ void IcebergTable::LoadCredentials(ClientContext &context, IRCAPITableCredential
 		}
 	}
 
-	if (StringUtil::StartsWith(catalog.uri, "glue")) {
-		auto &sigv4 = catalog.auth_handler->Cast<SIGV4Authorization>();
-		auto secret_entry = IcebergCatalog::GetStorageSecret(context, sigv4.secret);
-		auto kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
-
-		//! Override the endpoint if 'glue' is the host of the catalog
-		auto region = kv_secret.TryGetValue("region").ToString();
-		auto endpoint = "s3." + region + ".amazonaws.com";
-		info.options["endpoint"] = endpoint;
-	} else if (StringUtil::StartsWith(catalog.uri, "s3tables")) {
-		auto &sigv4 = catalog.auth_handler->Cast<SIGV4Authorization>();
-		auto secret_entry = IcebergCatalog::GetStorageSecret(context, sigv4.secret);
-		auto kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
-
-		//! Override all the options if 's3tables' is the host of the catalog
-		auto substrings = StringUtil::Split(catalog.GetWarehouse(), ":");
-		D_ASSERT(substrings.size() == 6);
-		auto region = substrings[3];
-		auto endpoint = "s3." + region + ".amazonaws.com";
-
-		info.options = {{"key_id", kv_secret.TryGetValue("key_id").ToString()},
-		                {"secret", kv_secret.TryGetValue("secret").ToString()},
-		                {"session_token", kv_secret.TryGetValue("session_token").IsNull()
-		                                      ? ""
-		                                      : kv_secret.TryGetValue("session_token").ToString()},
-		                {"region", region},
-		                {"endpoint", endpoint}};
-	}
+	apply_storage_options(info);
 
 	if (http_secret_entry) {
 		IcebergTableSecretProvider::AddHTTPSecretsToOptions(*http_secret_entry, info.options);

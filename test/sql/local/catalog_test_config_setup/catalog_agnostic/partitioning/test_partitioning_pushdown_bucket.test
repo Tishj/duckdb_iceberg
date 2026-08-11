@@ -34,7 +34,7 @@ CALL enable_logging('HTTP');
 
 # Clear any logs accumulated during catalog attach / table discovery
 statement ok
-call truncate_duckdb_logs();
+call truncate_duckdb_logs;
 
 # Read whole table - should open all 4 parquet files
 statement ok

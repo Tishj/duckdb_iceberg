@@ -34,10 +34,7 @@ CREATE SECRET glue_secret (
 );
 
 statement ok
-attach 'arn:aws:s3tables:us-east-1:840140254803:bucket/duckdblabs-iceberg-testing' as s3_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'S3_TABLES'
-);
+attach 'arn:aws:s3tables:us-east-1:840140254803:bucket/duckdblabs-iceberg-testing' as s3_catalog;
 
 statement ok
 use s3_catalog.tpch_sf01;

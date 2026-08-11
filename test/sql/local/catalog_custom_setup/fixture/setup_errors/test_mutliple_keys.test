@@ -29,10 +29,7 @@ CREATE SECRET amazing_secret (
 
 # the assumed secret is amazing_secret, which has no region
 statement error
-attach '840140254803:s3tablescatalog/pyiceberg-blog-bucket' as glue_lake (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE'
-);
+attach 'arn:aws:glue:us-east-1:840140254803:catalog/s3tablescatalog/pyiceberg-blog-bucket' as glue_lake;
 ----
 <REGEX>:.*Invalid Configuration Error.*
 
@@ -41,7 +38,7 @@ CREATE or replace SECRET amazing_secret (
     TYPE S3,
     KEY_ID 'admin',
     SECRET 'password',
-    ENDPOINT '127.0.0.1:9000',
+    URI '127.0.0.1:9000',
     URL_STYLE 'path',
     USE_SSL 0,
     REGION 'us-east-1'
@@ -49,9 +46,6 @@ CREATE or replace SECRET amazing_secret (
 
 # new secret has a region, but amazing secret is still used. The call to /config? has invalid credentials
 statement error
-attach '840140254803:s3tablescatalog/pyiceberg-blog-bucket' as glue_lake (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE'
-);
+attach 'arn:aws:glue:us-east-1:840140254803:catalog/s3tablescatalog/pyiceberg-blog-bucket' as glue_lake;
 ----
 <REGEX>:.*Invalid Configuration Error.*

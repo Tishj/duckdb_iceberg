@@ -5,174 +5,7 @@
 #include "catalog/rest/storage/authorization/oauth2.hpp"
 #include "catalog/rest/storage/authorization/sigv4.hpp"
 #include "catalog/rest/storage/authorization/none.hpp"
-#include "regex"
-
 namespace duckdb {
-
-namespace {
-
-static IcebergEndpointType EndpointTypeFromString(const string &input) {
-	D_ASSERT(StringUtil::Lower(input) == input);
-
-	static const case_insensitive_map_t<IcebergEndpointType> mapping {{"glue", IcebergEndpointType::AWS_GLUE},
-	                                                                  {"s3_tables", IcebergEndpointType::AWS_S3TABLES}};
-
-	for (auto &entry : mapping) {
-		if (entry.first == input) {
-			return entry.second;
-		}
-	}
-	set<string> options;
-	for (auto &entry : mapping) {
-		options.insert(entry.first);
-	}
-	throw InvalidConfigurationException("Unrecognized 'endpoint_type' (%s), accepted options are: %s", input,
-	                                    StringUtil::Join(options, ", "));
-}
-
-static void S3OrGlueAttachInternal(IcebergAttachOptions &input, const string &service, const string &region) {
-	if (input.authorization_type != IcebergAuthorizationType::INVALID) {
-		throw InvalidConfigurationException("'endpoint_type' can not be combined with 'authorization_type'");
-	}
-
-	input.authorization_type = IcebergAuthorizationType::SIGV4;
-	if (input.endpoint.empty()) {
-		input.endpoint = StringUtil::Format("%s.%s.amazonaws.com/iceberg", service, region);
-	} else {
-		input.options.emplace("sigv4_service", Value(service));
-		input.options.emplace("sigv4_region", Value(region));
-	}
-}
-
-namespace {
-
-struct ParsedARN {
-public:
-	ParsedARN(const string &arn) {
-		idx_t section = 0;
-		idx_t start = 0;
-		//! NOTE: we can't use StringUtil::Split because it doesn't keep empty items
-		for (idx_t i = 0; i < arn.size() && section < 5; i++) {
-			if (arn[i] == ':') {
-				sections[section++] = arn.substr(start, i - start);
-				start = i + 1;
-			}
-		}
-		if (section < 5 || sections[0] != "arn") {
-			throw InvalidInputException("Expected an AWS ARN of the form "
-			                            "'arn:<partition>:<service>:<region>:<account-id>[:<resource>]', got '%s'",
-			                            arn);
-		}
-		sections[5] = arn.substr(start);
-		auto &partition = Partition();
-		if (partition.empty()) {
-			throw InvalidInputException("Invalid PARTITION Section of ARN: '%s'", partition);
-		}
-		auto &service = Service();
-		if (service.empty()) {
-			throw InvalidInputException("Invalid SERVICE Section of ARN: '%s'", service);
-		}
-		auto &resource = Resource();
-		if (resource.empty()) {
-			throw InvalidInputException("Invalid RESOURCE Section of ARN: '%s'", resource);
-		}
-	}
-
-public:
-	const string &Partition() {
-		return sections[1];
-	}
-	const string &Service() {
-		return sections[2];
-	}
-	const string &Region() {
-		return sections[3];
-	}
-	const string &AccountID() {
-		return sections[4];
-	}
-	const string &Resource() {
-		return sections[5];
-	}
-
-private:
-	array<string, 6> sections;
-};
-
-} // namespace
-
-static void S3TablesAttach(IcebergAttachOptions &input) {
-	ParsedARN arn(input.warehouse);
-
-	// Populate sigv4_region so it can be used as a fallback region when creating storage secrets
-	auto &region = arn.Region();
-	if (region.empty()) {
-		throw InvalidInputException("Can't ATTACH to S3Tables with an ARN(%s) that has an empty REGION section",
-		                            input.warehouse);
-	}
-	input.options.emplace("sigv4_region", Value(region));
-	S3OrGlueAttachInternal(input, "s3tables", region);
-}
-
-static bool SanityCheckGlueWarehouse(const string &warehouse) {
-	// See: https://docs.aws.amazon.com/glue/latest/dg/connect-glu-iceberg-rest.html#prefix-catalog-path-parameters
-
-	const std::regex patterns[] = {
-	    std::regex("^:$"),                  // Default catalog ":" in current account
-	    std::regex("^\\d{12}$"),            // Default catalog in a specific account
-	    std::regex("^\\d{12}:[^:/]+$"),     // Specific catalog in a specific account
-	    std::regex("^[^:]+/[^:]+$"),        // Nested catalog in the current account
-	    std::regex("^\\d{12}:[^/]+/[^:]+$") // Nested catalog in a specific account
-	};
-
-	for (const auto &pattern : patterns) {
-		if (std::regex_match(warehouse, pattern)) {
-			return true;
-		}
-	}
-
-	throw InvalidConfigurationException(
-	    "Invalid Glue Catalog Format: '%s'. Expected format: ':', '12-digit account ID', "
-	    "'catalog1/catalog2', or '12-digit accountId:catalog1/catalog2'.",
-	    warehouse);
-}
-
-static void GlueAttach(ClientContext &context, IcebergAttachOptions &input) {
-	SanityCheckGlueWarehouse(input.warehouse);
-
-	string secret;
-	auto secret_it = input.options.find("secret");
-	if (secret_it != input.options.end()) {
-		secret = secret_it->second.ToString();
-	}
-
-	// look up any s3 secret
-
-	// if there is no secret, an error will be thrown
-	auto secret_entry = IcebergCatalog::GetStorageSecret(context, secret);
-	auto kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
-	auto region = kv_secret.TryGetValue("region");
-
-	if (region.IsNull()) {
-		throw InvalidConfigurationException("Assumed catalog secret '%s' for catalog '%s' does not have a region",
-		                                    secret_entry->secret->GetName(), input.name);
-	}
-	S3OrGlueAttachInternal(input, "glue", region.ToString());
-}
-
-static void SetAWSCatalogOptions(IcebergAttachOptions &attach_options, case_insensitive_set_t &set_by_attach_options) {
-	if (set_by_attach_options.find("remove_files_on_delete") == set_by_attach_options.end()) {
-		attach_options.remove_files_on_delete = false;
-	}
-	if (set_by_attach_options.find("stage_create_tables") == set_by_attach_options.end()) {
-		attach_options.stage_create_tables = false;
-	}
-	if (set_by_attach_options.find("purge_requested") == set_by_attach_options.end()) {
-		attach_options.purge_requested = true;
-	}
-}
-
-} // namespace
 
 unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> storage_info, ClientContext &context,
                                           AttachedDatabase &db, const string &name, AttachInfo &info,
@@ -183,10 +16,9 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 
 	// check if we have a secret provided
 	Identifier default_schema;
-	string endpoint_type_string;
 	string authorization_type_string;
 	string access_mode_string;
-	case_insensitive_set_t set_by_attach_options;
+	string storage_credential_source_string;
 	//! First handle generic attach options
 	for (auto &entry : info.options) {
 		auto lower_name = StringUtil::Lower(entry.first);
@@ -194,19 +26,32 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 			continue;
 		}
 
-		if (lower_name == "endpoint_type") {
-			endpoint_type_string = StringUtil::Lower(entry.second.ToString());
-		} else if (lower_name == "authorization_type") {
+		if (lower_name == "authorization_type") {
 			authorization_type_string = StringUtil::Lower(entry.second.ToString());
 		} else if (lower_name == "access_delegation_mode") {
 			access_mode_string = StringUtil::Lower(entry.second.ToString());
-		} else if (lower_name == "endpoint") {
-			attach_options.endpoint = entry.second.ToString();
-			StringUtil::RTrim(attach_options.endpoint, "/");
+		} else if (lower_name == "uri") {
+			attach_options.uri = entry.second.ToString();
+			StringUtil::RTrim(attach_options.uri, "/");
+		} else if (lower_name == "warehouse") {
+			attach_options.warehouse = entry.second.ToString();
+		} else if (lower_name == "supported_endpoints") {
+			if (entry.second.type().id() != LogicalTypeId::LIST) {
+				throw InvalidInputException("'SUPPORTED_ENDPOINTS' must be a list of strings");
+			}
+			for (auto &endpoint : ListValue::GetChildren(entry.second)) {
+				attach_options.supported_endpoints.push_back(
+				    endpoint.DefaultCastAs(LogicalType::VARCHAR).GetValue<string>());
+			}
+		} else if (lower_name == "storage_region") {
+			attach_options.storage_region = entry.second.ToString();
+		} else if (lower_name == "storage_endpoint") {
+			attach_options.storage_endpoint = entry.second.ToString();
+		} else if (lower_name == "storage_credential_source") {
+			storage_credential_source_string = StringUtil::Lower(entry.second.ToString());
 		} else if (lower_name == "stage_create_tables") {
 			auto result = entry.second.DefaultCastAs(LogicalType::BOOLEAN).GetValue<bool>();
 			attach_options.stage_create_tables = result;
-			set_by_attach_options.insert("stage_create_tables");
 		} else if (lower_name == "disable_multi_table_commit") {
 			attach_options.disable_multi_table_commit =
 			    entry.second.DefaultCastAs(LogicalType::BOOLEAN).GetValue<bool>();
@@ -215,14 +60,11 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 			    entry.second.DefaultCastAs(LogicalType::BOOLEAN).GetValue<bool>();
 		} else if (lower_name == "remove_files_on_delete") {
 			attach_options.remove_files_on_delete = entry.second.DefaultCastAs(LogicalType::BOOLEAN).GetValue<bool>();
-			set_by_attach_options.insert("remove_files_on_delete");
 		} else if (lower_name == "support_nested_namespaces") {
 			attach_options.support_nested_namespaces =
 			    entry.second.DefaultCastAs(LogicalType::BOOLEAN).GetValue<bool>();
-			set_by_attach_options.insert("support_nested_namespaces");
 		} else if (lower_name == "purge_requested") {
 			attach_options.purge_requested = entry.second.DefaultCastAs(LogicalType::BOOLEAN).GetValue<bool>();
-			set_by_attach_options.insert("purge_requested");
 		} else if (lower_name == "default_schema") {
 			default_schema = Identifier(entry.second.ToString());
 		} else if (lower_name == "encode_entire_prefix") {
@@ -239,34 +81,20 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 			attach_options.options.emplace(std::move(entry));
 		}
 	}
-	IcebergEndpointType endpoint_type = IcebergEndpointType::INVALID;
-	//! Then check any if the 'endpoint_type' is set, for any well known catalogs
-	if (!endpoint_type_string.empty()) {
-		endpoint_type = EndpointTypeFromString(endpoint_type_string);
-		switch (endpoint_type) {
-		case IcebergEndpointType::AWS_GLUE: {
-			GlueAttach(context, attach_options);
-			endpoint_type = IcebergEndpointType::AWS_GLUE;
-			SetAWSCatalogOptions(attach_options, set_by_attach_options);
-			break;
-		}
-		case IcebergEndpointType::AWS_S3TABLES: {
-			S3TablesAttach(attach_options);
-			endpoint_type = IcebergEndpointType::AWS_S3TABLES;
-			SetAWSCatalogOptions(attach_options, set_by_attach_options);
-			break;
-		}
-		default:
-			throw InternalException("Endpoint type (%s) not implemented", endpoint_type_string);
-		}
-	}
-
 	//! Then check the authorization type
 	if (!authorization_type_string.empty()) {
-		if (attach_options.authorization_type != IcebergAuthorizationType::INVALID) {
-			throw InvalidConfigurationException("'authorization_type' can not be combined with 'endpoint_type'");
-		}
 		attach_options.authorization_type = IcebergAuthorization::TypeFromString(authorization_type_string);
+	}
+	if (!storage_credential_source_string.empty()) {
+		if (storage_credential_source_string == "vended") {
+			attach_options.storage_credential_source = IRCStorageCredentialSource::VENDED;
+		} else if (storage_credential_source_string == "catalog") {
+			attach_options.storage_credential_source = IRCStorageCredentialSource::CATALOG;
+		} else {
+			throw InvalidInputException(
+			    "Unrecognized storage credential source '%s'. Supported options are 'vended' and 'catalog'",
+			    storage_credential_source_string);
+		}
 	}
 	if (!access_mode_string.empty()) {
 		if (access_mode_string == "vended_credentials") {
@@ -301,6 +129,10 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 	default:
 		throw InternalException("Authorization Type (%s) not implemented", authorization_type_string);
 	}
+	if (attach_options.storage_credential_source == IRCStorageCredentialSource::CATALOG &&
+	    attach_options.authorization_type != IcebergAuthorizationType::SIGV4) {
+		throw InvalidConfigurationException("STORAGE_CREDENTIAL_SOURCE 'catalog' requires SigV4 authorization");
+	}
 
 	//! We throw if there are any additional options not handled by previous steps
 	if (!attach_options.options.empty()) {
@@ -312,8 +144,8 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 		                                    StringUtil::Join(unrecognized_options, ", "));
 	}
 
-	if (attach_options.endpoint.empty()) {
-		throw InvalidConfigurationException("Missing 'endpoint' option for Iceberg attach");
+	if (attach_options.uri.empty()) {
+		throw InvalidConfigurationException("Missing 'uri' option for Iceberg attach");
 	}
 
 	D_ASSERT(auth_handler);
@@ -321,7 +153,7 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 	    make_uniq<IcebergCatalog>(db, options.access_mode, std::move(auth_handler), attach_options, default_schema);
 	//! Remember the raw attach options so that a later ATTACH OR REPLACE can detect when they change.
 	catalog->SetAttachOptions(options.options);
-	catalog->GetConfig(context, endpoint_type);
+	catalog->GetConfig(context);
 	if (!default_schema.empty() &&
 	    !IRCAPI::VerifySchemaExistence(context, *catalog, default_schema.GetIdentifierName())) {
 		throw InvalidConfigurationException("default_schema '%s' does not exist", default_schema);

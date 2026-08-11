@@ -9,15 +9,19 @@
 
 namespace duckdb {
 
-enum class IcebergEndpointType : uint8_t { AWS_S3TABLES, AWS_GLUE, INVALID };
-
 enum class IcebergAuthorizationType : uint8_t { OAUTH2, SIGV4, NONE, INVALID };
 
 enum class IRCAccessDelegationMode : uint8_t { NONE, VENDED_CREDENTIALS };
 
+enum class IRCStorageCredentialSource : uint8_t { VENDED, CATALOG };
+
 struct IcebergAttachOptions {
-	string endpoint;
+	string uri;
 	string warehouse;
+	vector<string> supported_endpoints;
+	string storage_region;
+	string storage_endpoint;
+	IRCStorageCredentialSource storage_credential_source = IRCStorageCredentialSource::VENDED;
 	string secret;
 	string name;
 	// some catalogs do not yet support stage create

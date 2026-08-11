@@ -30,10 +30,7 @@ CREATE SECRET glue_secret (
 );
 
 statement ok
-attach '840140254803:s3tablescatalog/pyiceberg-blog-bucket' as my_datalake (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE'
-);
+attach 'arn:aws:glue:us-east-1:840140254803:catalog/s3tablescatalog/pyiceberg-blog-bucket' as my_datalake;
 
 statement ok
 SELECT count(*) FROM my_datalake.myblognamespace.lineitem limit 20;
@@ -59,22 +56,15 @@ l_shipmode	VARCHAR	YES	NULL	NULL	NULL
 l_comment	VARCHAR	YES	NULL	NULL	NULL
 
 statement error
-attach '84014028:s3tablescatalog/pyiceberg-blog-bucket' as bad_account_id (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE'
-);
+attach 'arn:aws:glue:us-east-1:84014028:catalog/s3tablescatalog/pyiceberg-blog-bucket' as bad_account_id;
 ----
-Invalid Configuration Error
+Invalid Input Error: Glue ARN 'arn:aws:glue:us-east-1:84014028:catalog/s3tablescatalog/pyiceberg-blog-bucket' does not contain a 12-digit account ID
 
 statement ok
-attach '840140254803:incorrect/pyiceberg-blog-bucket' as no_s3tables (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE'
-);
+attach 'arn:aws:glue:us-east-1:840140254803:catalog/incorrect/pyiceberg-blog-bucket' as no_s3tables;
 
 # this should be fixed on the glue side. the attach should already fail.
 statement error
 select * from no_s3tables.my_namesepace.my_table;
 ----
 <REGEX>:.*Catalog Error: Table with name.*my_namesepace.my_table.* does not exist because schema .*my_namesepace.* does not exist.*
-

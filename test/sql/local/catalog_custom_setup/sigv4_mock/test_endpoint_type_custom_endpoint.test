@@ -1,5 +1,5 @@
 # name: test/sql/local/catalog_custom_setup/sigv4_mock/test_endpoint_type_custom_endpoint.test
-# description: test custom endpoints for known AWS catalog types
+# description: test custom URIs for AWS ARN catalog delegation
 # group: [sigv4_mock]
 
 # Requires: python3 scripts/sigv4_mock_server.py 19130
@@ -32,18 +32,14 @@ statement ok
 CALL enable_logging(level='debug');
 
 statement ok
-ATTACH ':' AS glue_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE',
-    ENDPOINT 'http://127.0.0.1:19130',
+ATTACH 'arn:aws:glue:us-east-1:123456789012:catalog' AS glue_catalog (
+    URI 'http://127.0.0.1:19130',
     SECRET 'sigv4_secret'
 );
 
 statement ok
 ATTACH 'arn:aws:s3tables:us-east-1:123456789012:bucket/test-bucket' AS s3tables_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'S3_TABLES',
-    ENDPOINT 'http://127.0.0.1:19130',
+    URI 'http://127.0.0.1:19130',
     SECRET 'sigv4_secret'
 );
 

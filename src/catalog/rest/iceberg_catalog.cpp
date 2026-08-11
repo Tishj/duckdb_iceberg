@@ -37,7 +37,7 @@ void LoadTableResultCache::EvictIfCurrent(const IcebergTable &table) {
 IcebergCatalog::IcebergCatalog(AttachedDatabase &db_p, AccessMode access_mode,
                                unique_ptr<IcebergAuthorization> auth_handler, IcebergAttachOptions &attach_options_p,
                                const Identifier &default_schema)
-    : Catalog(db_p), access_mode(access_mode), auth_handler(std::move(auth_handler)), uri(attach_options_p.endpoint),
+    : Catalog(db_p), access_mode(access_mode), auth_handler(std::move(auth_handler)), uri(attach_options_p.uri),
       version("v1"), attach_options(attach_options_p), default_schema(default_schema),
       warehouse(attach_options.warehouse), schemas(*this), table_request_cache(attach_options) {
 }
@@ -295,58 +295,6 @@ void IcebergCatalog::AddDefaultSupportedEndpoints() {
 	supported_urls.insert("POST /v1/{prefix}/transactions/commit");
 }
 
-void IcebergCatalog::AddS3TablesEndpoints() {
-	// insert namespaces based on REST API spec.
-	// List namespaces
-	supported_urls.insert("GET /v1/{prefix}/namespaces");
-	// create namespace
-	supported_urls.insert("POST /v1/{prefix}/namespaces");
-	// Load metadata for a Namespace
-	supported_urls.insert("GET /v1/{prefix}/namespaces/{namespace}");
-	// Drop a namespace
-	supported_urls.insert("DELETE /v1/{prefix}/namespaces/{namespace}");
-	// list all table identifiers
-	supported_urls.insert("GET /v1/{prefix}/namespaces/{namespace}/tables");
-	// create table in the namespace
-	supported_urls.insert("POST /v1/{prefix}/namespaces/{namespace}/tables");
-	// get table from the catalog
-	supported_urls.insert("GET /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// commit updates to a table
-	supported_urls.insert("POST /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// drop table from a catalog
-	supported_urls.insert("DELETE /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// Rename a table from one identifier to another.
-	supported_urls.insert("POST /v1/{prefix}/tables/rename");
-	// table exists
-	supported_urls.insert("HEAD /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// namespace exists
-	supported_urls.insert("HEAD /v1/{prefix}/namespaces/{namespace}");
-}
-
-void IcebergCatalog::AddGlueEndpoints() {
-	// insert namespaces based on REST API spec.
-	// List namespaces
-	supported_urls.insert("GET /v1/{prefix}/namespaces");
-	// create namespace
-	supported_urls.insert("POST /v1/{prefix}/namespaces");
-	// Load metadata for a Namespace
-	supported_urls.insert("GET /v1/{prefix}/namespaces/{namespace}");
-	// Drop a namespace
-	supported_urls.insert("DELETE /v1/{prefix}/namespaces/{namespace}");
-	// list all table identifiers
-	supported_urls.insert("GET /v1/{prefix}/namespaces/{namespace}/tables");
-	// create table in the namespace
-	supported_urls.insert("POST /v1/{prefix}/namespaces/{namespace}/tables");
-	// get table from the catalog
-	supported_urls.insert("GET /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// table exists
-	supported_urls.insert("HEAD /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// commit updates to a table
-	supported_urls.insert("POST /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-	// drop table from a catalog
-	supported_urls.insert("DELETE /v1/{prefix}/namespaces/{namespace}/tables/{table}");
-}
-
 void IcebergCatalog::ParsePrefix() {
 	// save overrides and defaults.
 	// See https://iceberg.apache.org/docs/latest/configuration/#catalog-properties for sometimes used catalog
@@ -392,17 +340,12 @@ void IcebergCatalog::ParseNamespaceSeparator() {
 	namespace_separator = *namespace_separator_property;
 }
 
-void IcebergCatalog::GetConfig(ClientContext &context, IcebergEndpointType &endpoint_type) {
+void IcebergCatalog::GetConfig(ClientContext &context) {
 	// set the prefix to be empty. To get the config endpoint,
 	// we cannot add a default prefix.
 	D_ASSERT(prefix.empty());
 
-	// For AWS Glue, ":" means "default account catalog" — omit the warehouse param
-	string effective_warehouse = warehouse;
-	if (endpoint_type == IcebergEndpointType::AWS_GLUE && warehouse == ":") {
-		effective_warehouse = "";
-	}
-	auto catalog_config = IRCAPI::GetCatalogConfig(context, *this, effective_warehouse);
+	auto catalog_config = IRCAPI::GetCatalogConfig(context, *this, warehouse);
 	overrides = catalog_config.overrides;
 	defaults = catalog_config.defaults;
 	auto uri_override_it = overrides.find("uri");
@@ -418,15 +361,12 @@ void IcebergCatalog::GetConfig(ClientContext &context, IcebergEndpointType &endp
 			supported_urls.insert(endpoint);
 		}
 	}
-	// should be if s3tables
-	if (!catalog_config.endpoints && endpoint_type == IcebergEndpointType::AWS_S3TABLES) {
-		supported_urls.clear();
-		AddS3TablesEndpoints();
-	} else if (!catalog_config.endpoints && endpoint_type == IcebergEndpointType::AWS_GLUE) {
-		supported_urls.clear();
-		AddGlueEndpoints();
-	} else if (!catalog_config.endpoints) {
-		AddDefaultSupportedEndpoints();
+	if (!catalog_config.endpoints) {
+		if (attach_options.supported_endpoints.empty()) {
+			AddDefaultSupportedEndpoints();
+		} else {
+			supported_urls.insert(attach_options.supported_endpoints.begin(), attach_options.supported_endpoints.end());
+		}
 	}
 
 	if (prefix.empty()) {

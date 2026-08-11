@@ -29,9 +29,16 @@ CREATE SECRET (
 
 statement ok
 attach '840140254803' as my_datalake (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'GLUE',
-    purge_requested false
+    type iceberg,
+    uri 'glue.us-east-1.amazonaws.com/iceberg',
+    authorization_type 'sigv4',
+    sigv4_service 'glue',
+    sigv4_region 'us-east-1',
+    storage_region 'us-east-1',
+    storage_endpoint 's3.us-east-1.amazonaws.com',
+    purge_requested false,
+    stage_create_tables false,
+    remove_files_on_delete false
 );
 
 statement ok

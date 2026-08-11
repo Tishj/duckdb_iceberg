@@ -35,10 +35,7 @@ set http_timeout=1;
 
 # This region is in sydney, so we should see a timeout message
 statement error
-attach 'arn:aws:s3tables:ap-southeast-2:840140254803:bucket/test-curl-timeout' as s3_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'S3_TABLES'
-);
+attach 'arn:aws:s3tables:ap-southeast-2:840140254803:bucket/test-curl-timeout' as s3_catalog;
 ----
 <REGEX>:.*Timeout was reached;.*
 
@@ -46,7 +43,4 @@ statement ok
 set http_timeout=30;
 
 statement ok
-attach 'arn:aws:s3tables:ap-southeast-2:840140254803:bucket/test-curl-timeout' as s3_catalog (
-    TYPE ICEBERG,
-    ENDPOINT_TYPE 'S3_TABLES'
-);
+attach 'arn:aws:s3tables:ap-southeast-2:840140254803:bucket/test-curl-timeout' as s3_catalog;
