@@ -16,7 +16,7 @@ enum class IRCAccessDelegationMode : uint8_t { NONE, VENDED_CREDENTIALS };
 enum class IRCStorageCredentialSource : uint8_t { VENDED, CATALOG };
 
 struct IcebergAttachOptions {
-	string uri;
+	string catalog_uri;
 	string warehouse;
 	vector<string> supported_endpoints;
 	string storage_region;
@@ -47,6 +47,7 @@ struct IcebergAttach {
 	static unique_ptr<Catalog> Attach(optional_ptr<StorageExtensionInfo> storage_info, ClientContext &context,
 	                                  AttachedDatabase &db, const string &name, AttachInfo &info,
 	                                  AttachOptions &options);
+	static unordered_map<string, Value> NormalizeIcebergAttachOptions(const unordered_map<string, Value> &options);
 };
 
 } // namespace duckdb

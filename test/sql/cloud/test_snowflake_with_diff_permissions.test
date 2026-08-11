@@ -33,11 +33,11 @@ create secret test_namespace_permissions (
 
 statement ok
 attach 's3-catalog' as my_datalake (
-  	type ICEBERG,
-  	default_region 'eu-west-2',
-  	secret test_namespace_permissions,
-  	URI '{SNOWFLAKE_CATALOG_URI_GCS}',
-  	support_nested_namespaces true
+	type ICEBERG,
+	default_region 'eu-west-2',
+	secret test_namespace_permissions,
+	URI '{SNOWFLAKE_CATALOG_URI_GCS}',
+	support_nested_namespaces true
 );
 
 query I
