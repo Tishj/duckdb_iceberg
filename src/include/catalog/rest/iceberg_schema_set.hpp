@@ -19,7 +19,8 @@ public:
 public:
 	void LoadEntries(ClientContext &context);
 	optional_ptr<CatalogEntry> GetEntry(ClientContext &context, const string &name, OnEntryNotFound if_not_found);
-	void Scan(ClientContext &context, const std::function<void(CatalogEntry &)> &callback);
+	void Scan(ClientContext &context, CatalogEntryScanLevel scan_level,
+	          const std::function<void(CatalogEntry &)> &callback);
 	vector<shared_ptr<IcebergSchemaEntry>> GetEntries(ClientContext &context);
 	void AddEntry(const string &name, shared_ptr<IcebergSchemaEntry> entry);
 	void RemoveEntry(const string &name);

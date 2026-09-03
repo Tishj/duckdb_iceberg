@@ -52,8 +52,9 @@ IcebergCatalog::~IcebergCatalog() = default;
 void IcebergCatalog::Initialize(bool load_builtin) {
 }
 
-void IcebergCatalog::ScanSchemas(ClientContext &context, std::function<void(SchemaCatalogEntry &)> callback) {
-	schemas.Scan(context, [&](CatalogEntry &schema) { callback(schema.Cast<IcebergSchemaEntry>()); });
+void IcebergCatalog::ScanSchemas(ClientContext &context, CatalogEntryScanLevel scan_level,
+                                 std::function<void(SchemaCatalogEntry &)> callback) {
+	schemas.Scan(context, scan_level, [&](CatalogEntry &schema) { callback(schema.Cast<IcebergSchemaEntry>()); });
 }
 
 optional_ptr<SchemaCatalogEntry> IcebergCatalog::LookupSchema(CatalogTransaction transaction,

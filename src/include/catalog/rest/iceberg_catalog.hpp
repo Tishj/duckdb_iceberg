@@ -133,7 +133,8 @@ public:
 	}
 	void DropSchema(ClientContext &context, DropInfo &info) override;
 	optional_ptr<CatalogEntry> CreateSchema(CatalogTransaction transaction, CreateSchemaInfo &info) override;
-	void ScanSchemas(ClientContext &context, std::function<void(SchemaCatalogEntry &)> callback) override;
+	void ScanSchemas(ClientContext &context, CatalogEntryScanLevel scan_level,
+	                 std::function<void(SchemaCatalogEntry &)> callback) override;
 	IcebergSchemaSet &GetSchemas();
 	optional_ptr<SchemaCatalogEntry> LookupSchema(CatalogTransaction transaction, const EntryLookupInfo &schema_lookup,
 	                                              OnEntryNotFound if_not_found) override;

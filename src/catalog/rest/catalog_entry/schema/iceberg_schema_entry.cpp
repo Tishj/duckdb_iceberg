@@ -803,12 +803,12 @@ static bool CatalogTypeIsSupported(CatalogType type) {
 	}
 }
 
-void IcebergSchemaEntry::Scan(ClientContext &context, CatalogType type,
+void IcebergSchemaEntry::Scan(ClientContext &context, CatalogType type, CatalogEntryScanLevel scan_level,
                               const std::function<void(CatalogEntry &)> &callback) {
 	if (!CatalogTypeIsSupported(type)) {
 		return;
 	}
-	GetCatalogSet(type).Scan(context, callback);
+	GetCatalogSet(type).Scan(context, scan_level, callback);
 }
 void IcebergSchemaEntry::Scan(CatalogType type, const std::function<void(CatalogEntry &)> &callback) {
 	throw NotImplementedException("Scan without context not supported");

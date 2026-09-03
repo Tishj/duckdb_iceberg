@@ -4,8 +4,6 @@
 
 require-env CATALOG_TEST_CONFIG_SETUP
 
-require-env DUCKDB_ICEBERG_HAVE_GENERATED_DATA
-
 require avro
 
 require parquet
@@ -14,6 +12,8 @@ require iceberg
 
 require httpfs
 
+statement ok
+SET debug_heap_based_parser=true
 
 statement ok
 set enable_logging=true
@@ -21,14 +21,37 @@ set enable_logging=true
 statement ok
 set logging_level='debug'
 
-# Resolve the table so its full schema is loaded. Until a table is resolved the
-# catalog only exposes a lazy placeholder column (see #515), so column comments
-# are not available in a bare listing.
+# The Iceberg field 'doc' is mapped to the DuckDB column comment. Fields without
+# a 'doc' (e.g. 'name') have a NULL comment. This must work before the table has
+# been referenced directly.
+query II
+select column_name, comment from duckdb_columns()
+where database_name = 'my_datalake' and table_name = 'column_doc_comment'
+order by column_index;
+----
+id	Primary identifier
+population	Resident count, 2024 census
+name	NULL
+
+query III
+select column_name, ordinal_position, data_type from information_schema.columns
+where table_catalog = 'my_datalake' and table_name = 'column_doc_comment'
+order by ordinal_position;
+----
+id	1	BIGINT
+population	2	BIGINT
+name	3	VARCHAR
+
+query I
+select column_count from duckdb_tables()
+where database_name = 'my_datalake' and table_name = 'column_doc_comment';
+----
+3
+
+# Loading the table directly does not change the metadata results.
 statement ok
 describe my_datalake.default.column_doc_comment;
 
-# The Iceberg field 'doc' is mapped to the DuckDB column comment. Fields without
-# a 'doc' (e.g. 'name') have a NULL comment.
 query II
 select column_name, comment from duckdb_columns()
 where database_name = 'my_datalake' and table_name = 'column_doc_comment'

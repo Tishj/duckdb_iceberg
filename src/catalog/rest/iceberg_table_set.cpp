@@ -53,17 +53,10 @@ bool IcebergTableSet::FillEntry(ClientContext &context, IcebergTable &table) {
 	auto get_table_result = IRCAPI::GetTable(context, ic_catalog, schema, table.name);
 	if (get_table_result.error_) {
 		if (get_table_result.status_ == HTTPStatusCode::NotFound_404) {
-			// Glue returns 404 when a table is not an Iceberg Table with the error message
-			// "input table is not an iceberg table" of type "NoSuchIcebergTableException"
-			// Otherwise the error is a standard 404, we return false and duckdb will return
-			// that the table does not exist.
-			// see test/sql/cloud/test_glue_catalog_with_other_tables.test for testing
-			if (get_table_result.error_->_error.type != "NoSuchIcebergTableException") {
-				return false;
-			}
+			// Glue reports both missing and non-Iceberg tables as 404.
+			return false;
 		}
-		// surface all other errror messages. Not found will be returned as a catalog exception
-		// User should not if they do not have permission or if they are not authorized (or 500)
+		// Surface authorization and server errors.
 		throw HTTPException(
 		    StringUtil::Format("GetTableInformation endpoint returned response code %s with message \"%s\"",
 		                       EnumUtil::ToString(get_table_result.status_), get_table_result.error_->_error.message));
@@ -97,14 +90,22 @@ IcebergTableSchemaVersion &IcebergTableSet::GetOrCreateDummy(IcebergTable &table
 	return *table_info.dummy_entry;
 }
 
-void IcebergTableSet::Scan(ClientContext &context, const std::function<void(CatalogEntry &)> &callback) {
+void IcebergTableSet::Scan(ClientContext &context, CatalogEntryScanLevel scan_level,
+                           const std::function<void(CatalogEntry &)> &callback) {
 	annotated_lock_guard<annotated_mutex> lock(entry_lock);
 	auto &iceberg_transaction = IcebergTransaction::Get(context, catalog);
 	LoadEntriesInternal(context);
-	for (auto &entry : entries) {
+	for (auto entry_it = entries.begin(); entry_it != entries.end();) {
+		auto &entry = *entry_it;
 		auto &table_info = *entry.second;
 		auto table_key = table_info.GetTableKey();
 		iceberg_transaction.tables[table_key] = entry.second;
+		if (scan_level == CatalogEntryScanLevel::COLUMN && !FillEntry(context, table_info)) {
+			iceberg_transaction.tables.erase(table_key);
+			iceberg_transaction.SetLatestTableState(table_key, IcebergTableStatus::MISSING);
+			entry_it = entries.erase(entry_it);
+			continue;
+		}
 
 		if (!table_info.schema_versions.empty()) {
 			// The table has already been resolved (e.g. via DESCRIBE or a scan), so its full schema -
@@ -113,12 +114,14 @@ void IcebergTableSet::Scan(ClientContext &context, const std::function<void(Cata
 			auto resolved = table_info.GetLatestSchema();
 			if (resolved) {
 				callback(*resolved);
+				++entry_it;
 				continue;
 			}
 		}
 
 		auto &dummy = GetOrCreateDummy(table_info);
 		callback(dummy);
+		++entry_it;
 	}
 }
 

@@ -21,7 +21,8 @@ public:
 
 public:
 	optional_ptr<CatalogEntry> GetEntry(ClientContext &context, const EntryLookupInfo &lookup);
-	void Scan(ClientContext &context, const std::function<void(CatalogEntry &)> &callback);
+	void Scan(ClientContext &context, CatalogEntryScanLevel scan_level,
+	          const std::function<void(CatalogEntry &)> &callback);
 	void ScanTables(ClientContext &context, const std::function<void(IcebergTable &)> &callback);
 	void DropEntry(ClientContext &context, DropInfo &info, bool delete_entry);
 	void RenameEntry(const string &name, const string &new_name, IcebergTable &&new_table);

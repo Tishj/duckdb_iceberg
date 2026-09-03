@@ -93,7 +93,8 @@ optional_ptr<CatalogEntry> IcebergSchemaSet::GetEntry(ClientContext &context, co
 	return entry->second.get();
 }
 
-void IcebergSchemaSet::Scan(ClientContext &context, const std::function<void(CatalogEntry &)> &callback) {
+void IcebergSchemaSet::Scan(ClientContext &context, CatalogEntryScanLevel scan_level,
+                            const std::function<void(CatalogEntry &)> &callback) {
 	auto schema_entries = GetEntries(context);
 	for (auto &entry : schema_entries) {
 		callback(*entry);
