@@ -48,7 +48,8 @@ public:
 	const IcebergScanPlanner &GetScanPlanner() const;
 
 private:
-	explicit IcebergMultiFileList(unique_ptr<IcebergScanPlanner> planner);
+	IcebergMultiFileList(unique_ptr<IcebergScanPlanner> planner,
+	                     shared_ptr<IcebergDeleteExecutionState> delete_execution);
 	unique_ptr<IcebergMultiFileList> PushdownInternal(TableFilterSet &new_filters,
 	                                                  const vector<ColumnIndex> &column_indexes) const;
 	OpenFileInfo GetFileInternal(idx_t file_id) const;
@@ -58,7 +59,8 @@ private:
 	bool have_bound = false;
 	vector<string> names;
 	vector<LogicalType> types;
-	unique_ptr<IcebergDeleteExecutionState> delete_execution;
+	//! Filtered MultiFileList views share execution caches just as they share metadata planning state.
+	shared_ptr<IcebergDeleteExecutionState> delete_execution;
 };
 
 } // namespace duckdb

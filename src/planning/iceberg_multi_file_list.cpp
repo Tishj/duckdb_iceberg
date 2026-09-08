@@ -15,11 +15,12 @@ namespace duckdb {
 IcebergMultiFileList::IcebergMultiFileList(ClientContext &context, shared_ptr<IcebergScanInfo> scan_info,
                                            const string &path, const IcebergOptions &options)
     : planner(make_uniq<IcebergScanPlanner>(context, std::move(scan_info), path, options)),
-      delete_execution(make_uniq<IcebergDeleteExecutionState>()) {
+      delete_execution(make_shared_ptr<IcebergDeleteExecutionState>()) {
 }
 
-IcebergMultiFileList::IcebergMultiFileList(unique_ptr<IcebergScanPlanner> planner_p)
-    : planner(std::move(planner_p)), delete_execution(make_uniq<IcebergDeleteExecutionState>()) {
+IcebergMultiFileList::IcebergMultiFileList(unique_ptr<IcebergScanPlanner> planner_p,
+                                           shared_ptr<IcebergDeleteExecutionState> delete_execution_p)
+    : planner(std::move(planner_p)), delete_execution(std::move(delete_execution_p)) {
 }
 
 IcebergMultiFileList::~IcebergMultiFileList() {
@@ -121,8 +122,8 @@ IcebergMultiFileList::PushdownInternal(TableFilterSet &new_filters, const vector
 		auto &filter = ExpressionFilter::GetExpressionFilter(entry.Filter(), "IcebergMultiFileList::PushdownInternal");
 		result_filter_set.PushFilter(column_index, filter.Copy());
 	}
-	auto result =
-	    unique_ptr<IcebergMultiFileList>(new IcebergMultiFileList(planner->CreateView(std::move(result_filter_set))));
+	auto result = unique_ptr<IcebergMultiFileList>(
+	    new IcebergMultiFileList(planner->CreateView(std::move(result_filter_set)), delete_execution));
 	result->have_bound = true;
 	result->names = names;
 	result->types = types;
