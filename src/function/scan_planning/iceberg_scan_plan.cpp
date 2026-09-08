@@ -6,20 +6,9 @@
 #include "duckdb/common/types/vector.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "planning/scan_plan/iceberg_scan_planner.hpp"
+#include "planning/scan_plan/iceberg_scan_task.hpp"
 
 namespace duckdb {
-
-static LogicalType DeleteFileType() {
-	return LogicalType::STRUCT({{"file_path", LogicalType::VARCHAR},
-	                            {"file_format", LogicalType::VARCHAR},
-	                            {"content", LogicalType::INTEGER},
-	                            {"file_size_in_bytes", LogicalType::BIGINT},
-	                            {"record_count", LogicalType::BIGINT},
-	                            {"equality_ids", LogicalType::LIST(LogicalType::INTEGER)},
-	                            {"referenced_data_file", LogicalType::VARCHAR},
-	                            {"content_offset", LogicalType::BIGINT},
-	                            {"content_size_in_bytes", LogicalType::BIGINT}});
-}
 
 struct IcebergScanPlanBindData : public TableFunctionData {
 	IcebergScanPlanBindData(IcebergTableSchemaVersion &table, shared_ptr<IcebergScanInfo> scan_info,
@@ -133,13 +122,11 @@ static unique_ptr<FunctionData> IcebergScanPlanBind(ClientContext &context, Tabl
 	}
 	ret->partition_type = LogicalType::STRUCT(std::move(constants));
 
-	names = {"file_path",       "file_format",  "file_size_in_bytes", "record_count",
-	         "sequence_number", "first_row_id", "partition_spec_id",  "partition_constants",
-	         "delete_files",    "snapshot_id",  "schema_id",          "metadata"};
-	return_types = {LogicalType::VARCHAR, LogicalType::VARCHAR, LogicalType::BIGINT,
-	                LogicalType::BIGINT,  LogicalType::BIGINT,  LogicalType::BIGINT,
-	                LogicalType::INTEGER, ret->partition_type,  LogicalType::LIST(DeleteFileType()),
-	                LogicalType::BIGINT,  LogicalType::INTEGER, LogicalType::VARIANT()};
+	for (auto &column :
+	     IcebergScanTaskFormat::Columns(ret->partition_type, IcebergScanTaskFormat::SchemaType(schema))) {
+		names.emplace_back(column.first);
+		return_types.push_back(column.second);
+	}
 	return std::move(ret);
 }
 
@@ -202,7 +189,7 @@ static Value DeleteFiles(const IcebergScanPlanner &planner, const IcebergScanTas
 			equality_ids.push_back(Value::INTEGER(id));
 		}
 		files.push_back(Value::STRUCT(
-		    DeleteFileType(),
+		    IcebergScanTaskFormat::DeleteFileType(),
 		    {Value(file.file_path), Value(file.file_format), Value::INTEGER(static_cast<int32_t>(file.content)),
 		     Value::BIGINT(file.file_size_in_bytes), Value::BIGINT(file.record_count),
 		     Value::LIST(LogicalType::INTEGER, std::move(equality_ids)),
@@ -210,7 +197,7 @@ static Value DeleteFiles(const IcebergScanPlanner &planner, const IcebergScanTas
 		     file.content_offset ? Value::BIGINT(*file.content_offset) : Value(LogicalType::BIGINT),
 		     file.content_size_in_bytes ? Value::BIGINT(*file.content_size_in_bytes) : Value(LogicalType::BIGINT)}));
 	}
-	return Value::LIST(DeleteFileType(), std::move(files));
+	return Value::LIST(IcebergScanTaskFormat::DeleteFileType(), std::move(files));
 }
 
 static void IcebergScanPlanFunction(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
@@ -247,6 +234,7 @@ static void IcebergScanPlanFunction(ClientContext &context, TableFunctionInput &
 	                         count_t(count));
 	output.data[10].Reference(Value::INTEGER(bind.scan_info->snapshot_info.schema_id), count_t(count));
 	output.data[11].Reference(state.metadata);
+	output.data[12].Reference(Value(output.data[12].GetType()), count_t(count));
 	output.SetChildCardinality(count);
 }
 

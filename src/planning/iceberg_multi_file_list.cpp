@@ -1,4 +1,5 @@
 #include "planning/iceberg_multi_file_list.hpp"
+#include "planning/scan_plan/iceberg_scan_task.hpp"
 
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/multi_file/multi_file_reader.hpp"
@@ -177,23 +178,10 @@ OpenFileInfo IcebergMultiFileList::GetFileInternal(idx_t file_id) const {
 		return OpenFileInfo();
 	}
 	auto &data_file = task->data_file.entry.data_file;
-	if (!StringUtil::CIEquals(data_file.file_format, "parquet")) {
-		throw NotImplementedException("File format '%s' not supported, only supports 'parquet' currently",
-		                              data_file.file_format);
-	}
-	OpenFileInfo result(task->file_path);
-	auto extended_info = make_shared_ptr<ExtendedOpenFileInfo>();
-	extended_info->options["file_size"] = Value::UBIGINT(data_file.file_size_in_bytes);
-	extended_info->options["validate_external_file_cache"] = Value::BOOLEAN(false);
-	extended_info->options["etag"] = Value("");
-	extended_info->options["last_modified"] = Value::TIMESTAMP(timestamp_t(0));
-	if (task->data_file.HasFirstRowId()) {
-		extended_info->options["first_row_id"] = Value::BIGINT(task->data_file.GetFirstRowId());
-	}
-	extended_info->options["sequence_number"] =
-	    Value::BIGINT(task->data_file.entry.GetSequenceNumber(task->manifest_file));
-	result.extended_info = std::move(extended_info);
-	return result;
+	return IcebergScanTaskFormat::FileInfo(
+	    task->file_path, data_file.file_format, data_file.file_size_in_bytes,
+	    task->data_file.HasFirstRowId() ? optional<int64_t>(task->data_file.GetFirstRowId()) : nullopt,
+	    task->data_file.entry.GetSequenceNumber(task->manifest_file));
 }
 
 vector<OpenFileInfo> IcebergMultiFileList::GetAllFiles() const {

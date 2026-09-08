@@ -26,6 +26,7 @@ private:
 	static ScalarFunctionSet GetIcebergTruncateFunction();
 
 	static TableFunctionSet GetIcebergScanPlanFunction();
+	static TableFunctionSet GetIcebergScanTasksFunction();
 	static TableFunctionSet GetIcebergSnapshotsFunction();
 	static TableFunctionSet GetIcebergScanFunction(ExtensionLoader &loader);
 	static TableFunctionSet GetIcebergMetadataFunction();

@@ -237,92 +237,72 @@ static void ApplyFieldMapping(MultiFileColumnDefinition &col, const vector<Icebe
 	}
 }
 
-void IcebergMultiFileReader::ApplyPartitionConstants(const IcebergManifestFile &manifest_file,
-                                                     const BoundIcebergManifestEntry &bound_manifest_entry,
-                                                     const IcebergTableMetadata &metadata,
-                                                     MultiFileReaderData &reader_data,
-                                                     const vector<MultiFileColumnDefinition> &global_columns,
-                                                     const vector<ColumnIndex> &global_column_ids,
-                                                     ClientContext &context) {
-	// Get the metadata for this file
-	auto &reader = *reader_data.reader;
-	auto &manifest_entry = bound_manifest_entry.entry;
-	auto &data_file = manifest_entry.data_file;
-
-	// Get the partition spec for this file
-	auto &partition_specs = metadata.partition_specs;
-	auto spec_id = manifest_file.partition_spec_id;
-	auto partition_spec_it = partition_specs.find(spec_id);
-	if (partition_spec_it == partition_specs.end()) {
-		throw InvalidConfigurationException("'partition_spec_id' %d doesn't exist in the metadata", spec_id);
+unordered_map<int32_t, Value> IcebergMultiFileReader::PartitionConstants(
+    const IcebergManifestFile &manifest_file, const BoundIcebergManifestEntry &bound_manifest_entry,
+    const IcebergTableMetadata &metadata, const vector<MultiFileColumnDefinition> &global_columns,
+    ClientContext &context) {
+	auto spec = metadata.partition_specs.find(manifest_file.partition_spec_id);
+	if (spec == metadata.partition_specs.end()) {
+		throw InvalidConfigurationException("'partition_spec_id' %d doesn't exist in the metadata",
+		                                    manifest_file.partition_spec_id);
 	}
-
-	auto &partition_spec = partition_spec_it->second;
-	if (partition_spec.fields.empty()) {
-		return; // No partition fields, continue with normal mapping
+	unordered_map<int32_t, idx_t> field_indexes;
+	for (idx_t i = 0; i < spec->second.fields.size(); i++) {
+		field_indexes[spec->second.fields[i].source_id] = i;
 	}
-
-	unordered_map<uint64_t, idx_t> identifier_to_field_index;
-	for (idx_t i = 0; i < partition_spec.fields.size(); i++) {
-		auto &field = partition_spec.fields[i];
-		identifier_to_field_index[field.source_id] = i;
-	}
-
-	auto &local_columns = reader.columns;
-	unordered_map<uint64_t, idx_t> local_field_id_to_index;
-	for (idx_t i = 0; i < local_columns.size(); i++) {
-		auto &local_column = local_columns[i];
-		if (local_column.identifier.IsNull()) {
-			continue;
-		}
-		auto field_identifier = local_column.identifier.GetValue<int32_t>();
-		auto field_id = static_cast<uint64_t>(field_identifier);
-		local_field_id_to_index[field_id] = i;
-	}
-
-	for (idx_t i = 0; i < global_column_ids.size(); i++) {
-		auto global_id = global_column_ids[i];
-		if (global_id.IsVirtualColumn()) {
-			continue;
-		}
-		auto &global_column = global_columns[global_id.GetPrimaryIndex()];
-		auto field_id = static_cast<uint64_t>(global_column.identifier.GetValue<int32_t>());
-		if (local_field_id_to_index.count(field_id)) {
-			//! Column exists in the local columns of the file
-			continue;
-		}
-
-		auto it = identifier_to_field_index.find(field_id);
-		if (it == identifier_to_field_index.end()) {
-			continue;
-		}
-
-		auto &field = partition_spec.fields[it->second];
+	unordered_map<int32_t, Value> constants;
+	for (auto &item : field_indexes) {
+		auto &field = spec->second.fields[item.second];
 		if (field.transform != IcebergTransformType::IDENTITY) {
-			continue; // Skip non-identity transforms
+			continue;
 		}
-
-		// Get the partition value from the data file's partition info
-		if (data_file.partition_info.empty()) {
-			continue; // No partition info available
-		}
-		optional_ptr<const Value> partition_value;
-		for (auto &partition_info : data_file.partition_info) {
-			if (partition_info.field_id == field.partition_field_id && !partition_info.value.IsNull()) {
-				partition_value = partition_info.value;
+		optional_ptr<const LogicalType> type;
+		for (auto &column : global_columns) {
+			if (!column.identifier.IsNull() && column.GetIdentifierFieldId() == item.first) {
+				type = column.type;
 				break;
 			}
 		}
-		if (!partition_value) {
-			DUCKDB_LOG(context, IcebergLogType,
-			           "Iceberg partition constant missing for data_file '%s', partition field_id=%llu column '%s'",
-			           data_file.file_path, field.partition_field_id, global_column.name);
-			//! This data file doesn't have a value for this partition field (is that an error ??)
+		if (!type) {
+			auto column = metadata.FindColumnByFieldId(item.first);
+			if (column) {
+				type = column->type;
+			}
+		}
+		if (!type) {
 			continue;
 		}
-		auto global_idx = MultiFileGlobalIndex(i);
-		reader_data.constant_map.Add(global_idx,
-		                             IcebergValue::TransformPartitionValue(*partition_value, global_column.type));
+		for (auto &partition : bound_manifest_entry.entry.data_file.partition_info) {
+			if (partition.field_id == field.partition_field_id && !partition.value.IsNull()) {
+				constants.emplace(item.first, IcebergValue::TransformPartitionValue(partition.value, *type));
+				break;
+			}
+		}
+	}
+	return constants;
+}
+
+void IcebergMultiFileReader::ApplyPartitionConstants(const unordered_map<int32_t, Value> &constants,
+                                                     MultiFileReaderData &reader_data,
+                                                     const vector<MultiFileColumnDefinition> &global_columns,
+                                                     const vector<ColumnIndex> &global_column_ids) {
+	unordered_set<int32_t> local_ids;
+	for (auto &column : reader_data.reader->columns) {
+		if (!column.identifier.IsNull()) {
+			local_ids.insert(column.GetIdentifierFieldId());
+		}
+	}
+	for (idx_t i = 0; i < global_column_ids.size(); i++) {
+		auto &id = global_column_ids[i];
+		if (id.IsVirtualColumn()) {
+			continue;
+		}
+		auto &column = global_columns[id.GetPrimaryIndex()];
+		auto field_id = column.GetIdentifierFieldId();
+		auto value = constants.find(field_id);
+		if (!local_ids.count(field_id) && value != constants.end() && !value->second.IsNull()) {
+			reader_data.constant_map.Add(MultiFileGlobalIndex(i), value->second);
+		}
 	}
 }
 
@@ -341,7 +321,19 @@ ReaderInitializeType IcebergMultiFileReader::InitializeReader(MultiFileReaderDat
 	if (!task) {
 		throw InternalException("Unable to find Iceberg scan task for file index %llu", file_id);
 	}
-	auto delete_plan = multi_file_list.ProcessDeletes(*task);
+	auto constants = PartitionConstants(task->manifest_file, task->data_file, metadata, global_columns, context);
+	return InitializeTaskReader(reader_data, bind_data, global_columns, global_column_ids, table_filters, context,
+	                            gstate, metadata, multi_file_list.ProcessDeletes(*task), constants);
+}
+
+ReaderInitializeType IcebergMultiFileReader::InitializeTaskReader(
+    MultiFileReaderData &reader_data, const MultiFileBindData &bind_data,
+    const vector<MultiFileColumnDefinition> &global_columns, const vector<ColumnIndex> &global_column_ids,
+    optional_ptr<TableFilterSet> table_filters, ClientContext &context, MultiFileGlobalState &gstate,
+    const IcebergTableMetadata &metadata, IcebergDeletePlan delete_plan,
+    const unordered_map<int32_t, Value> &partition_constants) {
+	auto &iceberg_state = gstate.multi_file_reader_state->Cast<IcebergMultiFileReaderGlobalState>();
+	auto file_id = reader_data.reader->file_list_idx.GetIndex();
 
 	//! Make a copy of the global columns+column_ids, if we have equality deletes we will add columns to this
 	//! This is done so CreateMapping treats these columns as required for the current file,
@@ -366,8 +358,7 @@ ReaderInitializeType IcebergMultiFileReader::InitializeReader(MultiFileReaderDat
 			ApplyFieldMapping(local_column, mappings, root.field_mapping_indexes, context);
 		}
 	}
-	ApplyPartitionConstants(task->manifest_file, task->data_file, metadata, reader_data, scan_columns, scan_column_ids,
-	                        context);
+	ApplyPartitionConstants(partition_constants, reader_data, scan_columns, scan_column_ids);
 
 	equality_delete_state->expression =
 	    CreateEqualityDeleteExpression(delete_plan.equality_deletes, local_columns, *equality_delete_state);
