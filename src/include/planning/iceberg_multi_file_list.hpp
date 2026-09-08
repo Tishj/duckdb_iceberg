@@ -11,6 +11,7 @@
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 #include "duckdb/planner/table_filter.hpp"
 
+#include "planning/deletes/iceberg_delete_file_scanner.hpp"
 #include "planning/scan_plan/iceberg_scan_planner.hpp"
 
 namespace duckdb {
@@ -42,6 +43,7 @@ public:
 	const IcebergTableSchema &GetSchema() const;
 	IcebergPartition GetPartitionForDataFile(const string &file_path) const;
 	shared_ptr<IcebergDeleteData> GetExistingPositionalDeleteData(const string &file_path) const;
+	IcebergDeletePlan ProcessDeletes(const IcebergScanTask &task) const;
 	IcebergScanPlanner &GetScanPlanner();
 	const IcebergScanPlanner &GetScanPlanner() const;
 
@@ -53,6 +55,10 @@ private:
 
 private:
 	unique_ptr<IcebergScanPlanner> planner;
+	bool have_bound = false;
+	vector<string> names;
+	vector<LogicalType> types;
+	unique_ptr<IcebergDeleteExecutionState> delete_execution;
 };
 
 } // namespace duckdb

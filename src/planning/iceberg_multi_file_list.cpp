@@ -7,14 +7,19 @@
 #include "duckdb/planner/table_filter_set.hpp"
 #include "duckdb/storage/table/row_group_reorderer.hpp"
 
+#include "common/iceberg_utils.hpp"
+#include "core/metadata/iceberg_table_metadata.hpp"
+
 namespace duckdb {
 
 IcebergMultiFileList::IcebergMultiFileList(ClientContext &context, shared_ptr<IcebergScanInfo> scan_info,
                                            const string &path, const IcebergOptions &options)
-    : planner(make_uniq<IcebergScanPlanner>(context, std::move(scan_info), path, options)) {
+    : planner(make_uniq<IcebergScanPlanner>(context, std::move(scan_info), path, options)),
+      delete_execution(make_uniq<IcebergDeleteExecutionState>()) {
 }
 
-IcebergMultiFileList::IcebergMultiFileList(unique_ptr<IcebergScanPlanner> planner_p) : planner(std::move(planner_p)) {
+IcebergMultiFileList::IcebergMultiFileList(unique_ptr<IcebergScanPlanner> planner_p)
+    : planner(std::move(planner_p)), delete_execution(make_uniq<IcebergDeleteExecutionState>()) {
 }
 
 IcebergMultiFileList::~IcebergMultiFileList() {
@@ -49,7 +54,34 @@ void IcebergMultiFileList::DisableServerSidePlanning() {
 }
 
 void IcebergMultiFileList::Bind(vector<LogicalType> &return_types, vector<Identifier> &names) {
-	planner->Bind(return_types, names);
+	if (have_bound) {
+		names = StringsToIdentifiers(this->names);
+		return_types = types;
+		return;
+	}
+	if (!planner->HasScanInfo()) {
+		D_ASSERT(!planner->GetPath().empty());
+		auto resolved_metadata =
+		    IcebergUtils::ResolveTableMetadata(planner->GetContext(), planner->GetPath(), planner->GetOptions());
+		auto temp_data = make_uniq<IcebergScanTemporaryData>();
+		temp_data->metadata = std::move(resolved_metadata.metadata);
+		auto &metadata = temp_data->metadata;
+		auto snapshot_info = metadata.GetSnapshot(*planner->GetOptions().snapshot_lookup);
+		auto schema = metadata.GetSchemaFromId(snapshot_info.schema_id);
+		planner->SetScanInfo(make_shared_ptr<IcebergScanInfo>(resolved_metadata.table_location, std::move(temp_data),
+		                                                      snapshot_info, *schema));
+	}
+	for (auto &schema_entry : planner->GetSchema().columns) {
+		names.push_back(Identifier(schema_entry->name));
+		return_types.push_back(schema_entry->type);
+	}
+	QueryResult::DeduplicateColumns(names);
+	for (idx_t i = 0; i < names.size(); i++) {
+		planner->GetSchema().columns[i]->name = names[i].GetIdentifierName();
+	}
+	have_bound = true;
+	this->names = IdentifiersToStrings(names);
+	types = return_types;
 }
 
 const IcebergTableMetadata &IcebergMultiFileList::GetMetadata() const {
@@ -65,7 +97,11 @@ IcebergPartition IcebergMultiFileList::GetPartitionForDataFile(const string &fil
 }
 
 shared_ptr<IcebergDeleteData> IcebergMultiFileList::GetExistingPositionalDeleteData(const string &file_path) const {
-	return planner->GetExistingPositionalDeleteData(file_path);
+	return delete_execution->GetExistingPositionalDeleteData(file_path);
+}
+
+IcebergDeletePlan IcebergMultiFileList::ProcessDeletes(const IcebergScanTask &task) const {
+	return delete_execution->ProcessDeletes(*planner, task);
 }
 
 void IcebergMultiFileList::GetStatistics(vector<PartitionStatistics> &result) const {
@@ -79,14 +115,18 @@ IcebergMultiFileList::PushdownInternal(TableFilterSet &new_filters, const vector
 		auto projection_index = ProjectionIndex(entry.GetIndex().GetIndex());
 		auto &column_index = column_indexes[projection_index];
 		auto primary_index = column_index.GetPrimaryIndex();
-		if (primary_index >= planner->Names().size()) {
+		if (primary_index >= names.size()) {
 			continue;
 		}
 		auto &filter = ExpressionFilter::GetExpressionFilter(entry.Filter(), "IcebergMultiFileList::PushdownInternal");
 		result_filter_set.PushFilter(column_index, filter.Copy());
 	}
-	return unique_ptr<IcebergMultiFileList>(
-	    new IcebergMultiFileList(planner->CreateView(std::move(result_filter_set))));
+	auto result =
+	    unique_ptr<IcebergMultiFileList>(new IcebergMultiFileList(planner->CreateView(std::move(result_filter_set))));
+	result->have_bound = true;
+	result->names = names;
+	result->types = types;
+	return result;
 }
 
 unique_ptr<MultiFileList>
@@ -168,7 +208,7 @@ vector<OpenFileInfo> IcebergMultiFileList::GetAllFiles() const {
 }
 
 FileExpandResult IcebergMultiFileList::GetExpandResult() const {
-	if (planner->IsBound()) {
+	if (have_bound) {
 		GetFileInternal(1);
 	}
 	return FileExpandResult::MULTIPLE_FILES;

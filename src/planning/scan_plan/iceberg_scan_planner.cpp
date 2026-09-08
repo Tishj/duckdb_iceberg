@@ -3,67 +3,11 @@
 #include "catalog/rest/catalog_entry/table/iceberg_table_schema_version.hpp"
 #include "common/iceberg_utils.hpp"
 #include "core/metadata/iceberg_table_metadata.hpp"
-#include "planning/deletes/iceberg_delete_file_scanner.hpp"
 #include "planning/pruning/iceberg_file_pruner.hpp"
 #include "planning/scan_plan/iceberg_scan_plan_provider.hpp"
 #include "duckdb/storage/table/row_group_reorderer.hpp"
 
 namespace duckdb {
-
-namespace {
-
-static void MergeDeleteScanResult(IcebergScanPlanProvider &provider, IcebergDeleteScanResult &&scan_result) {
-	auto &positional_delete_data = provider.PositionalDeleteData();
-	for (auto &entry : scan_result.positional_delete_data) {
-		auto existing = positional_delete_data.find(entry.first);
-		if (existing == positional_delete_data.end()) {
-			positional_delete_data.emplace(entry.first, std::move(entry.second));
-			continue;
-		}
-		auto &target = existing->second;
-		auto &source = entry.second;
-		if (target->type == IcebergDeleteType::DELETION_VECTOR) {
-			if (source->type == IcebergDeleteType::DELETION_VECTOR) {
-				throw InvalidConfigurationException(
-				    "Table is corrupt, two or more deletion vectors exist for the same referenced_data_file");
-			}
-			continue;
-		}
-		if (source->type == IcebergDeleteType::DELETION_VECTOR) {
-			target = std::move(source);
-			continue;
-		}
-		auto &target_positions = static_cast<IcebergPositionalDeleteData &>(*target);
-		auto &source_positions = static_cast<IcebergPositionalDeleteData &>(*source);
-		for (auto &source_entry : source_positions.entries) {
-			target_positions.entries.push_back(source_entry);
-		}
-		target_positions.invalid_rows.insert(source_positions.invalid_rows.begin(),
-		                                     source_positions.invalid_rows.end());
-	}
-
-	for (auto &entry : scan_result.equality_delete_data) {
-		if (entry.delete_file->equality_values.size() == 0) {
-			continue;
-		}
-		lock_guard<mutex> guard(entry.load->lock);
-		entry.load->equality_delete = std::move(entry.delete_file);
-	}
-}
-
-static void CompleteDeleteFileLoads(const vector<shared_ptr<IcebergDeleteFileLoadState>> &loads,
-                                    const ErrorData &error) {
-	for (auto &load : loads) {
-		{
-			lock_guard<mutex> guard(load->lock);
-			load->error = error;
-			load->complete = true;
-		}
-		load->cv.notify_all();
-	}
-}
-
-} // namespace
 
 IcebergScanPlanner::IcebergScanPlanner(ClientContext &context_p, shared_ptr<IcebergScanInfo> scan_info,
                                        const string &path, const IcebergOptions &options_p)
@@ -87,9 +31,6 @@ unique_ptr<IcebergScanPlanner> IcebergScanPlanner::CreateView(IcebergTableFilter
 	}
 	auto result = unique_ptr<IcebergScanPlanner>(new IcebergScanPlanner(shared_state));
 	result->table_filters = std::move(filters);
-	result->names = names;
-	result->types = types;
-	result->have_bound = have_bound;
 	if (filtered_scan_order) {
 		result->SetScanOrder(std::move(filtered_scan_order));
 	}
@@ -110,6 +51,14 @@ const IcebergTableMetadata &IcebergScanPlanner::GetMetadata() const {
 
 const IcebergTableSchema &IcebergScanPlanner::GetSchema() const {
 	return shared_state->scan_info->schema;
+}
+
+ClientContext &IcebergScanPlanner::GetContext() const {
+	return context;
+}
+
+bool IcebergScanPlanner::HasScanInfo() const {
+	return shared_state->scan_info != nullptr;
 }
 
 bool IcebergScanPlanner::HasTransactionData() const {
@@ -133,6 +82,14 @@ void IcebergScanPlanner::SetTable(IcebergTableSchemaVersion &table) {
 	shared_state->table = table;
 }
 
+void IcebergScanPlanner::SetScanInfo(shared_ptr<IcebergScanInfo> scan_info) {
+	annotated_lock_guard<annotated_mutex> guard(shared_state->lock);
+	if (scan_plan_provider) {
+		throw InternalException("Cannot replace Iceberg scan info after scan planning has started");
+	}
+	shared_state->scan_info = std::move(scan_info);
+}
+
 void IcebergScanPlanner::SetOptions(const IcebergOptions &new_options) {
 	shared_state->options = new_options;
 }
@@ -147,49 +104,6 @@ void IcebergScanPlanner::DisableServerSidePlanning() {
 	if (!shared_state->manifest_list_loaded) {
 		shared_state->server_side_planning_enabled = false;
 	}
-}
-
-void IcebergScanPlanner::Bind(vector<LogicalType> &return_types, vector<Identifier> &return_names) {
-	annotated_lock_guard<annotated_mutex> guard(shared_state->lock);
-	if (have_bound) {
-		return_names = StringsToIdentifiers(names);
-		return_types = types;
-		return;
-	}
-	if (!shared_state->scan_info) {
-		D_ASSERT(!shared_state->path.empty());
-		auto resolved_metadata = IcebergUtils::ResolveTableMetadata(context, shared_state->path, options);
-		auto temp_data = make_uniq<IcebergScanTemporaryData>();
-		temp_data->metadata = std::move(resolved_metadata.metadata);
-		auto &metadata = temp_data->metadata;
-		auto snapshot_info = metadata.GetSnapshot(*options.snapshot_lookup);
-		auto schema = metadata.GetSchemaFromId(snapshot_info.schema_id);
-		shared_state->scan_info = make_shared_ptr<IcebergScanInfo>(resolved_metadata.table_location,
-		                                                           std::move(temp_data), snapshot_info, *schema);
-	}
-	for (auto &schema_entry : GetSchema().columns) {
-		return_names.push_back(Identifier(schema_entry->name));
-		return_types.push_back(schema_entry->type);
-	}
-	QueryResult::DeduplicateColumns(return_names);
-	for (idx_t i = 0; i < return_names.size(); i++) {
-		GetSchema().columns[i]->name = return_names[i].GetIdentifierName();
-	}
-	have_bound = true;
-	names = IdentifiersToStrings(return_names);
-	types = return_types;
-}
-
-const vector<string> &IcebergScanPlanner::Names() const {
-	return names;
-}
-
-const vector<LogicalType> &IcebergScanPlanner::Types() const {
-	return types;
-}
-
-bool IcebergScanPlanner::IsBound() const {
-	return have_bound;
 }
 
 const IcebergTableFilters &IcebergScanPlanner::Filters() const {
@@ -476,7 +390,6 @@ IcebergScanPlanner::ResolveApplicableDeleteFiles(const BoundIcebergManifestEntry
 	}
 	provider->ReadDeleteManifests(manifest_indexes, table_filters.FilterCount());
 	annotated_lock_guard<annotated_mutex> guard(shared_state->lock);
-	annotated_lock_guard<annotated_mutex> delete_guard(shared_state->delete_lock);
 	auto delete_context = GetDeletePlanningContext();
 	auto partition_values = IcebergFilePruner::PartitionValueMap(data_manifest_entry.entry.data_file);
 	for (auto delete_file : provider->GetDeleteFiles(manifest_indexes)) {
@@ -499,76 +412,22 @@ IcebergScanPlanner::ResolveApplicableDeleteFiles(const BoundIcebergManifestEntry
 	return result;
 }
 
-IcebergDeletePlan IcebergScanPlanner::ProcessDeletes(const IcebergScanTask &task) const {
-	IcebergDeletePlan result;
-	if (task.delete_files.empty()) {
-		return result;
+const IcebergManifestListEntry &IcebergScanPlanner::GetDeleteManifest(IcebergDeleteFileReference delete_file) const {
+	annotated_lock_guard<annotated_mutex> guard(shared_state->lock);
+	if (delete_file.manifest_idx >= delete_manifests.size()) {
+		throw InternalException("Delete manifest index %llu is out of bounds", delete_file.manifest_idx);
 	}
-	optional_ptr<IcebergScanPlanProvider> provider;
-	vector<IcebergDeleteScanEntry> scan_entries;
-	vector<shared_ptr<IcebergDeleteFileLoadState>> required_loads;
-	vector<shared_ptr<IcebergDeleteFileLoadState>> new_loads;
-	unique_ptr<IcebergDeletePlanningContext> delete_context;
-	{
-		annotated_lock_guard<annotated_mutex> guard(shared_state->lock);
-		annotated_lock_guard<annotated_mutex> delete_guard(shared_state->delete_lock);
-		provider = scan_plan_provider.get();
-		if (!provider) {
-			throw InternalException("scan_plan_provider is not initialized in ProcessDeletes");
-		}
-		delete_context = make_uniq<IcebergDeletePlanningContext>(GetDeletePlanningContext());
-		unordered_set<IcebergDeleteFileLoadState *> seen_loads;
-		for (auto delete_file : task.delete_files) {
-			auto &delete_manifest = delete_manifests[delete_file.manifest_idx].entry;
-			auto &load = provider->GetDeleteFileLoad(delete_file);
-			if (!load) {
-				load = make_shared_ptr<IcebergDeleteFileLoadState>();
-				new_loads.push_back(load);
-				scan_entries.emplace_back(delete_file.manifest_idx, delete_file.entry_idx, delete_manifest, load);
-			}
-			if (seen_loads.insert(load.get()).second) {
-				required_loads.push_back(load);
-			}
-		}
+	auto &manifest = delete_manifests[delete_file.manifest_idx].entry;
+	if (delete_file.entry_idx >= manifest.GetManifestEntries().size()) {
+		throw InternalException("Delete manifest entry index %llu is out of bounds for manifest %llu",
+		                        delete_file.entry_idx, delete_file.manifest_idx);
 	}
-	if (!scan_entries.empty()) {
-		ErrorData scan_error;
-		try {
-			auto scan_result = IcebergDeleteFileScanner::ScanFiles(*delete_context, scan_entries);
-			annotated_lock_guard<annotated_mutex> delete_guard(shared_state->delete_lock);
-			MergeDeleteScanResult(*provider, std::move(scan_result));
-		} catch (std::exception &ex) {
-			scan_error = ErrorData(ex);
-		} catch (...) { // LCOV_EXCL_START
-			scan_error = ErrorData("Unknown exception while reading Iceberg delete files");
-		} // LCOV_EXCL_STOP
-		CompleteDeleteFileLoads(new_loads, scan_error);
-	}
-	for (auto &load : required_loads) {
-		unique_lock<mutex> guard(load->lock);
-		load->cv.wait(guard, [&load] { return load->complete; });
-		if (load->error.HasError()) {
-			load->error.Throw();
-		}
-		if (load->equality_delete) {
-			result.equality_deletes.emplace_back(*load->equality_delete);
-		}
-	}
-	{
-		annotated_lock_guard<annotated_mutex> delete_guard(shared_state->delete_lock);
-		auto &positional_data = provider->PositionalDeleteData();
-		auto entry = positional_data.find(task.data_file.entry.data_file.file_path);
-		if (entry != positional_data.end()) {
-			result.positional_deletes = entry->second->ToFilter();
-		}
-	}
-	return result;
+	return manifest;
 }
 
-shared_ptr<IcebergDeleteData> IcebergScanPlanner::GetExistingPositionalDeleteData(const string &file_path) const {
+unique_ptr<IcebergDeletePlanningContext> IcebergScanPlanner::CreateDeletePlanningContext() const {
 	annotated_lock_guard<annotated_mutex> guard(shared_state->lock);
-	annotated_lock_guard<annotated_mutex> delete_guard(shared_state->delete_lock);
-	return IcebergDeletePlanner::GetExistingPositionalDeleteData(GetDeletePlanningContext(), file_path);
+	return make_uniq<IcebergDeletePlanningContext>(GetDeletePlanningContext());
 }
 
 } // namespace duckdb

@@ -43,20 +43,19 @@ public:
 
 	void SetTable(IcebergTableSchemaVersion &table);
 	optional_ptr<IcebergTableSchemaVersion> GetTable() const;
+	void SetScanInfo(shared_ptr<IcebergScanInfo> scan_info);
 	void SetOptions(const IcebergOptions &options);
 	void SetScanOrder(unique_ptr<RowGroupOrderOptions> options);
 	void DisableServerSidePlanning();
 
-	void Bind(vector<LogicalType> &return_types, vector<Identifier> &names);
-	const vector<string> &Names() const;
-	const vector<LogicalType> &Types() const;
-	bool IsBound() const;
 	const IcebergTableFilters &Filters() const;
 
 	const IcebergTableMetadata &GetMetadata() const;
 	const IcebergTableSchema &GetSchema() const;
+	ClientContext &GetContext() const;
 	const string &GetPath() const;
 	const IcebergOptions &GetOptions() const;
+	bool HasScanInfo() const;
 
 	optional<IcebergScanTask> GetScanTask(idx_t file_id) const;
 	optional<IcebergScanTask> GetDataFileTask(idx_t file_id) const;
@@ -65,8 +64,8 @@ public:
 	unique_ptr<NodeStatistics> GetCardinality() const;
 	void GetStatistics(vector<PartitionStatistics> &result) const;
 	IcebergPartition GetPartitionForDataFile(const string &file_path) const;
-	IcebergDeletePlan ProcessDeletes(const IcebergScanTask &task) const;
-	shared_ptr<IcebergDeleteData> GetExistingPositionalDeleteData(const string &file_path) const;
+	const IcebergManifestListEntry &GetDeleteManifest(IcebergDeleteFileReference delete_file) const;
+	unique_ptr<IcebergDeletePlanningContext> CreateDeletePlanningContext() const;
 
 private:
 	explicit IcebergScanPlanner(shared_ptr<IcebergScanPlanState> shared_state);
@@ -99,9 +98,6 @@ private:
 	ClientContext &context;
 	FileSystem &fs;
 	const IcebergOptions &options;
-	bool have_bound = false;
-	vector<string> names;
-	vector<LogicalType> types;
 	IcebergTableFilters table_filters;
 
 	mutable unique_ptr<IcebergScanPlanProvider> scan_plan_provider DUCKDB_GUARDED_BY(shared_state->lock);
