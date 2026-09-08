@@ -36,11 +36,11 @@ statement ok
 insert into my_datalake.default.scan_plan_equality values (3, 10);
 
 query III
-select sequence_number, record_count, len(delete_files)
-from iceberg_scan_plan('my_datalake.default.scan_plan_equality') order by sequence_number;
+select sequence_number is null, record_count, len(delete_files)
+from iceberg_scan_plan('my_datalake.default.scan_plan_equality') order by record_count desc;
 ----
-1	2	1
-3	1	0
+true	2	1
+true	1	0
 
 query IIIIII
 select d.content, upper(d.file_format), d.equality_ids, d.referenced_data_file is null,

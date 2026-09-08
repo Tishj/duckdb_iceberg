@@ -53,6 +53,11 @@ select * from iceberg_scan_plan('my_datalake.default.scan_plan_test', snapshot_f
 snapshot arguments cannot be NULL
 
 statement error
+select * from iceberg_scan_plan('my_datalake.default.scan_plan_test', produce_sequence_number=NULL);
+----
+produce_sequence_number cannot be NULL
+
+statement error
 select * from iceberg_scan_plan('my_datalake.default.scan_plan_test', snapshot_from_id=0);
 ----
 Could not find snapshot with id
@@ -61,7 +66,7 @@ statement ok
 insert into my_datalake.default.scan_plan_test values (1, '2024-01-01', 12.34), (2, '2024-01-01', 12.34), (3, NULL, NULL);
 
 query IIII
-select sum(record_count), bool_and(sequence_number = 1), bool_and(first_row_id is null), bool_and(len(delete_files) = 0)
+select sum(record_count), bool_and(sequence_number is null), bool_and(first_row_id is null), bool_and(len(delete_files) = 0)
 from iceberg_scan_plan('my_datalake.default.scan_plan_test');
 ----
 3	true	true	true
@@ -93,6 +98,11 @@ set iceberg_use_server_side_scan_planning=false;
 statement ok
 create temp table scan_plan_client as select * from iceberg_scan_plan('my_datalake.default.scan_plan_test');
 
+query I
+select bool_and(sequence_number is null) from scan_plan_client;
+----
+true
+
 statement ok
 set iceberg_use_server_side_scan_planning=true;
 
@@ -104,6 +114,12 @@ select count(*) from (
 );
 ----
 0
+
+query I
+select bool_and(sequence_number is null)
+from iceberg_scan_plan('my_datalake.default.scan_plan_test', produce_sequence_number=false);
+----
+true
 
 statement ok
 reset iceberg_use_server_side_scan_planning;
@@ -142,7 +158,7 @@ select sum(record_count) from iceberg_scan_plan('my_datalake.default.scan_plan_t
 
 query III
 select partition_constants."1", partition_constants."2", partition_constants."3"
-from iceberg_scan_plan('my_datalake.default.scan_plan_test') where sequence_number = 2;
+from iceberg_scan_plan('my_datalake.default.scan_plan_test') where partition_constants."1" = 4;
 ----
 4	NULL	NULL
 
@@ -198,7 +214,7 @@ insert into my_datalake.default.scan_plan_test values (1), (2), (3);
 query III
 select first_row_id, sequence_number, typeof(partition_constants) from iceberg_scan_plan('my_datalake.default.scan_plan_test');
 ----
-0	1	STRUCT
+0	NULL	STRUCT
 
 statement ok
 alter table my_datalake.default.scan_plan_test add column extra varchar default 'initial';

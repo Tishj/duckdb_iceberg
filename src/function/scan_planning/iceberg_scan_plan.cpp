@@ -30,6 +30,7 @@ struct IcebergScanPlanBindData : public TableFunctionData {
 	IcebergTableSchemaVersion &table;
 	shared_ptr<IcebergScanInfo> scan_info;
 	IcebergOptions options;
+	bool produce_sequence_number = false;
 	vector<uint64_t> partition_source_ids;
 	unordered_set<const IcebergManifestEntry *> transaction_entries;
 	LogicalType partition_type;
@@ -40,6 +41,10 @@ struct IcebergScanPlanGlobalState : public GlobalTableFunctionState {
 	    : planner(context, bind.scan_info, bind.scan_info->metadata.location, bind.options),
 	      metadata(LogicalType::VARIANT(), 1) {
 		planner.SetTable(bind.table);
+		if (bind.produce_sequence_number) {
+			// The server planning API does not yet provide file sequence numbers.
+			planner.DisableServerSidePlanning();
+		}
 		Vector json(LogicalType::JSON(), 1);
 		json.SetValue(0, Value(bind.scan_info->metadata.ToJSON()));
 		VectorOperations::Cast(context, json, metadata, 1);
@@ -79,6 +84,9 @@ static unique_ptr<FunctionData> IcebergScanPlanBind(ClientContext &context, Tabl
 	}
 	for (const auto &parameter : input.named_parameters) {
 		if (parameter.second.IsNull()) {
+			if (parameter.first == "produce_sequence_number") {
+				throw InvalidInputException("iceberg_scan_plan produce_sequence_number cannot be NULL");
+			}
 			throw InvalidInputException("iceberg_scan_plan snapshot arguments cannot be NULL");
 		}
 	}
@@ -94,6 +102,10 @@ static unique_ptr<FunctionData> IcebergScanPlanBind(ClientContext &context, Tabl
 		scan_info->transaction_data = table_entry.table_info.transaction_data.get();
 	}
 	auto ret = make_uniq<IcebergScanPlanBindData>(table_entry, std::move(scan_info), options);
+	auto produce_sequence_number = input.named_parameters.find("produce_sequence_number");
+	if (produce_sequence_number != input.named_parameters.end()) {
+		ret->produce_sequence_number = BooleanValue::Get(produce_sequence_number->second);
+	}
 	if (ret->scan_info->transaction_data) {
 		for (auto &alter : ret->scan_info->transaction_data->alters) {
 			for (const auto &manifest : alter.get().GetManifestFiles()) {
@@ -219,7 +231,10 @@ static void IcebergScanPlanFunction(ClientContext &context, TableFunctionInput &
 		output.data[1].SetValue(count, Value(file.file_format));
 		output.data[2].SetValue(count, Value::BIGINT(file.file_size_in_bytes));
 		output.data[3].SetValue(count, Value::BIGINT(file.record_count));
-		output.data[4].SetValue(count, Value::BIGINT(task->data_file.entry.GetSequenceNumber(task->manifest_file)));
+		// Do not expose the synthetic sequence numbers used internally by server planning.
+		output.data[4].SetValue(count, bind.produce_sequence_number
+		                                   ? Value::BIGINT(task->data_file.entry.GetSequenceNumber(task->manifest_file))
+		                                   : Value(LogicalType::BIGINT));
 		output.data[5].SetValue(count, task->data_file.HasFirstRowId() ? Value::BIGINT(task->data_file.GetFirstRowId())
 		                                                               : Value(LogicalType::BIGINT));
 		output.data[6].SetValue(count, Value::INTEGER(task->manifest_file.partition_spec_id));
@@ -239,6 +254,7 @@ TableFunctionSet IcebergFunctions::GetIcebergScanPlanFunction() {
 	TableFunctionSet function_set("iceberg_scan_plan");
 	auto fun = TableFunction({LogicalType::VARCHAR}, IcebergScanPlanFunction, IcebergScanPlanBind,
 	                         IcebergScanPlanGlobalState::Init);
+	fun.named_parameters["produce_sequence_number"] = LogicalType::BOOLEAN;
 	fun.named_parameters["snapshot_from_id"] = LogicalType::UBIGINT;
 	fun.named_parameters["snapshot_from_timestamp"] = LogicalType::TIMESTAMP_MS;
 	function_set.AddFunction(fun);
