@@ -237,58 +237,6 @@ static void ApplyFieldMapping(MultiFileColumnDefinition &col, const vector<Icebe
 	}
 }
 
-static Value TransformPartitionValueFromBlob(const string_t &blob, const LogicalType &type) {
-	auto result = IcebergValue::DeserializeValue(blob, type);
-	if (result.HasError()) {
-		throw InvalidConfigurationException(result.GetError());
-	}
-	return result.GetValue();
-}
-
-template <class T>
-static Value TransformPartitionValueTemplated(const Value &value, const LogicalType &type) {
-	T val = value.GetValue<T>();
-	string_t blob((const char *)&val, sizeof(T));
-	return TransformPartitionValueFromBlob(blob, type);
-}
-
-static Value TransformPartitionValue(const Value &value, const LogicalType &type) {
-	D_ASSERT(!value.type().IsNested());
-	// DECIMAL partition values are already decoded as proper DuckDB DECIMALs by the Avro reader.
-	// The blob round-trip below misinterprets the little-endian internal representation as
-	// big-endian Iceberg bytes, producing garbage. Return directly (or cast if params differ).
-	if (value.type().id() == LogicalTypeId::DECIMAL) {
-		if (value.type() == type) {
-			return value;
-		}
-		return value.DefaultCastAs(type);
-	}
-	switch (value.type().InternalType()) {
-	case PhysicalType::BOOL:
-		return TransformPartitionValueTemplated<bool>(value, type);
-	case PhysicalType::INT8:
-		return TransformPartitionValueTemplated<int8_t>(value, type);
-	case PhysicalType::INT16:
-		return TransformPartitionValueTemplated<int16_t>(value, type);
-	case PhysicalType::INT32:
-		return TransformPartitionValueTemplated<int32_t>(value, type);
-	case PhysicalType::INT64:
-		return TransformPartitionValueTemplated<int64_t>(value, type);
-	case PhysicalType::INT128:
-		return TransformPartitionValueTemplated<hugeint_t>(value, type);
-	case PhysicalType::FLOAT:
-		return TransformPartitionValueTemplated<float>(value, type);
-	case PhysicalType::DOUBLE:
-		return TransformPartitionValueTemplated<double>(value, type);
-	case PhysicalType::VARCHAR: {
-		return TransformPartitionValueFromBlob(value.GetValueUnsafe<string_t>(), type);
-	}
-	default:
-		throw NotImplementedException("TransformPartitionValue: Value: '%s' -> '%s'", value.ToString(),
-		                              type.ToString());
-	}
-}
-
 void IcebergMultiFileReader::ApplyPartitionConstants(const IcebergManifestFile &manifest_file,
                                                      const BoundIcebergManifestEntry &bound_manifest_entry,
                                                      const IcebergTableMetadata &metadata,
@@ -373,7 +321,8 @@ void IcebergMultiFileReader::ApplyPartitionConstants(const IcebergManifestFile &
 			continue;
 		}
 		auto global_idx = MultiFileGlobalIndex(i);
-		reader_data.constant_map.Add(global_idx, TransformPartitionValue(*partition_value, global_column.type));
+		reader_data.constant_map.Add(global_idx,
+		                             IcebergValue::TransformPartitionValue(*partition_value, global_column.type));
 	}
 }
 
