@@ -46,14 +46,6 @@ void IcebergMultiFileList::SetOptions(const IcebergOptions &options) {
 	planner->SetOptions(options);
 }
 
-void IcebergMultiFileList::SetScanOrder(unique_ptr<RowGroupOrderOptions> options) {
-	planner->SetScanOrder(std::move(options));
-}
-
-void IcebergMultiFileList::DisableServerSidePlanning() {
-	planner->DisableServerSidePlanning();
-}
-
 void IcebergMultiFileList::Bind(vector<LogicalType> &return_types, vector<Identifier> &names) {
 	if (have_bound) {
 		names = StringsToIdentifiers(this->names);
@@ -85,28 +77,12 @@ void IcebergMultiFileList::Bind(vector<LogicalType> &return_types, vector<Identi
 	types = return_types;
 }
 
-const IcebergTableMetadata &IcebergMultiFileList::GetMetadata() const {
-	return planner->GetMetadata();
-}
-
-const IcebergTableSchema &IcebergMultiFileList::GetSchema() const {
-	return planner->GetSchema();
-}
-
-IcebergPartition IcebergMultiFileList::GetPartitionForDataFile(const string &file_path) const {
-	return planner->GetPartitionForDataFile(file_path);
-}
-
 shared_ptr<IcebergDeleteData> IcebergMultiFileList::GetExistingPositionalDeleteData(const string &file_path) const {
 	return delete_execution->GetExistingPositionalDeleteData(file_path);
 }
 
 IcebergDeletePlan IcebergMultiFileList::ProcessDeletes(const IcebergScanTask &task) const {
 	return delete_execution->ProcessDeletes(*planner, task);
-}
-
-void IcebergMultiFileList::GetStatistics(vector<PartitionStatistics> &result) const {
-	planner->GetStatistics(result);
 }
 
 unique_ptr<IcebergMultiFileList>

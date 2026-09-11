@@ -114,7 +114,7 @@ bool IcebergMultiFileReader::Bind(MultiFileOptions &options, MultiFileList &file
 	iceberg_multi_file_list.SetOptions(this->options);
 	iceberg_multi_file_list.Bind(return_types, names);
 	// FIXME: apply final transformation for 'file_row_number' ???
-	auto &schema = iceberg_multi_file_list.GetSchema().columns;
+	auto &schema = iceberg_multi_file_list.GetScanPlanner().GetSchema().columns;
 	auto &columns = bind_data.schema;
 	for (auto &item : schema) {
 		columns.push_back(item->GetMultiFileColumnDefinition());
@@ -762,7 +762,8 @@ vector<PartitionStatistics> IcebergMultiFileReader::IcebergGetPartitionStats(Cli
 	auto &bind_data = input.bind_data->Cast<MultiFileBindData>();
 	vector<PartitionStatistics> result;
 	auto &multi_file_list = bind_data.file_list->Cast<IcebergMultiFileList>();
-	multi_file_list.GetStatistics(result);
+	auto &scan_planner = multi_file_list.GetScanPlanner();
+	scan_planner.GetStatistics(result);
 	return result;
 }
 

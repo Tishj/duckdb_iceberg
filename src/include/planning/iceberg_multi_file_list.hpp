@@ -35,13 +35,7 @@ public:
 	void SetTable(IcebergTableSchemaVersion &table);
 	optional_ptr<IcebergTableSchemaVersion> GetTable() const;
 	void SetOptions(const IcebergOptions &options);
-	void SetScanOrder(unique_ptr<RowGroupOrderOptions> options);
-	void DisableServerSidePlanning();
 	void Bind(vector<LogicalType> &return_types, vector<Identifier> &names);
-	void GetStatistics(vector<PartitionStatistics> &result) const;
-	const IcebergTableMetadata &GetMetadata() const;
-	const IcebergTableSchema &GetSchema() const;
-	IcebergPartition GetPartitionForDataFile(const string &file_path) const;
 	shared_ptr<IcebergDeleteData> GetExistingPositionalDeleteData(const string &file_path) const;
 	IcebergDeletePlan ProcessDeletes(const IcebergScanTask &task) const;
 	IcebergScanPlanner &GetScanPlanner();
