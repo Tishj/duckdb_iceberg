@@ -395,11 +395,14 @@ ReaderInitializeType IcebergMultiFileReader::InitializeReader(MultiFileReaderDat
                                                               ClientContext &context, MultiFileGlobalState &gstate) {
 	auto &iceberg_state = gstate.multi_file_reader_state->Cast<IcebergMultiFileReaderGlobalState>();
 	const auto &multi_file_list = dynamic_cast<const IcebergMultiFileList &>(*iceberg_state.file_list);
-	auto &metadata = multi_file_list.GetMetadata();
+	auto &planner = multi_file_list.GetScanPlanner();
+	auto &metadata = planner.GetMetadata();
 	auto file_id = reader_data.reader->file_list_idx.GetIndex();
-	auto bound_manifest_entry = multi_file_list.GetManifestEntry(file_id);
-	auto manifest_file = multi_file_list.GetManifestFileForDataFile(file_id);
-	auto delete_plan = multi_file_list.ProcessDeletes(bound_manifest_entry);
+	auto task = planner.GetScanTask(file_id);
+	if (!task) {
+		throw InternalException("Unable to find Iceberg scan task for file index %llu", file_id);
+	}
+	auto delete_plan = multi_file_list.ProcessDeletes(*task);
 
 	//! Make a copy of the global columns+column_ids, if we have equality deletes we will add columns to this
 	//! This is done so CreateMapping treats these columns as required for the current file,
@@ -424,7 +427,7 @@ ReaderInitializeType IcebergMultiFileReader::InitializeReader(MultiFileReaderDat
 			ApplyFieldMapping(local_column, mappings, root.field_mapping_indexes, context);
 		}
 	}
-	ApplyPartitionConstants(manifest_file, bound_manifest_entry, metadata, reader_data, scan_columns, scan_column_ids,
+	ApplyPartitionConstants(task->manifest_file, task->data_file, metadata, reader_data, scan_columns, scan_column_ids,
 	                        context);
 
 	vector<bool> accelerated_files;
