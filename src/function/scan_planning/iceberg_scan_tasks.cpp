@@ -18,8 +18,8 @@ struct IcebergScanTasksBindData : public TableFunctionData {
 };
 
 struct IcebergTaskExecutionContext {
-	IcebergTableMetadata metadata;
-	shared_ptr<IcebergTableSchema> schema;
+	IcebergTableMetadata metadata {IcebergTableMetadataSchemas()};
+	optional_ptr<const IcebergTableSchema> schema;
 	IcebergOptions options;
 	IcebergDeleteExecutionState deletes;
 };
@@ -71,11 +71,14 @@ struct IcebergScanTasksGlobalState : public GlobalTableFunctionState {
 			}
 		}
 		result->metadata = IcebergTableMetadata::FromTableMetadata(metadata);
-		auto schema_entry = result->metadata.GetSchemas().find(IntegerValue::Get(schema));
-		if (schema_entry == result->metadata.GetSchemas().end()) {
+		result->metadata.GetSchemas().ForEachSchema([&](const IcebergTableSchema &candidate) {
+			if (candidate.schema_id == IntegerValue::Get(schema)) {
+				result->schema = candidate;
+			}
+		});
+		if (!result->schema) {
 			throw InvalidInputException("iceberg_scan_tasks schema_id is absent from the metadata");
 		}
-		result->schema = schema_entry->second;
 		if (TaskFormat::SchemaType(*result->schema) != bind.schema_type) {
 			throw InvalidInputException("iceberg_scan_tasks schema column does not match the selected metadata schema");
 		}

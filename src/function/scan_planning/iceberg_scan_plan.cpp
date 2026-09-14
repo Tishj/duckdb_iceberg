@@ -84,7 +84,7 @@ static unique_ptr<FunctionData> IcebergScanPlanBind(ClientContext &context, Tabl
 	table_entry.PrepareIcebergScanFromEntry(context);
 	auto &metadata = table_entry.table_info.table_metadata;
 	auto snapshot = metadata.GetSnapshot(*options.snapshot_lookup);
-	auto &schema = *metadata.GetSchemaFromId(snapshot.schema_id);
+	auto &schema = metadata.GetSchemaFromId(snapshot.schema_id);
 	auto &fs = FileSystem::GetFileSystem(context);
 	auto scan_info = make_shared_ptr<IcebergScanInfo>(metadata.GetMetadataPath(fs), metadata, snapshot, schema);
 	if (options.snapshot_lookup->IsLatest() && table_entry.table_info.transaction_data) {
