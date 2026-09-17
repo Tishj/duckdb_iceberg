@@ -4,7 +4,7 @@
 #include "duckdb/common/multi_file/multi_file_states.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/parser/tableref/table_function_ref.hpp"
-#include "planning/iceberg_multi_file_reader.hpp"
+#include "planning/iceberg_scan_reader.hpp"
 #include "planning/scan_plan/iceberg_scan_task.hpp"
 
 namespace duckdb {
@@ -100,10 +100,9 @@ struct IcebergTaskScanInfo : public TableFunctionInfo {
 	vector<Value> delete_files;
 };
 
-//! The ordinary reader owns mapping and chunk finalization. Only its planner-facing
-//! binding and task lookup are replaced for a materialized single-file task.
-struct IcebergTaskReader : public IcebergMultiFileReader {
-	explicit IcebergTaskReader(shared_ptr<TableFunctionInfo> info) : IcebergMultiFileReader(std::move(info)) {
+//! Adapts a materialized task to the shared Iceberg file execution components.
+struct IcebergTaskReader : public MultiFileReader {
+	explicit IcebergTaskReader(shared_ptr<TableFunctionInfo> info) : function_info(std::move(info)) {
 	}
 
 	static unique_ptr<MultiFileReader> CreateInstance(const TableFunction &function) {
@@ -141,10 +140,49 @@ struct IcebergTaskReader : public IcebergMultiFileReader {
 		                                              execution.metadata.location, execution.options,
 		                                              execution.metadata};
 		auto deletes = execution.deletes.ProcessDeletes(delete_context, info.file.path, info.delete_files);
-		return InitializeTaskReader(reader_data, bind, columns, column_ids, filters, context, gstate,
-		                            execution.metadata.GetSchemas(), execution.metadata.mappings, std::move(deletes),
-		                            info.partition_constants);
+		return scan_reader.InitializeReader(*this, reader_data, bind, columns, column_ids, filters, context, gstate,
+		                                    execution.metadata.GetSchemas(), execution.metadata.mappings,
+		                                    std::move(deletes), info.partition_constants);
 	}
+
+	unique_ptr<MultiFileReaderGlobalState>
+	InitializeGlobalState(ClientContext &context, const MultiFileOptions &file_options,
+	                      const MultiFileReaderBindData &bind_data, const MultiFileList &file_list,
+	                      const vector<MultiFileColumnDefinition> &global_columns,
+	                      const vector<ColumnIndex> &global_column_ids) override {
+		return make_uniq<IcebergScanReaderGlobalState>(file_list);
+	}
+
+	void BindOptions(MultiFileOptions &options, MultiFileList &files, vector<LogicalType> &return_types,
+	                 vector<Identifier> &names, MultiFileReaderBindData &bind_data) override {
+		scan_reader.BindOptions(*this, options, files, return_types, names, bind_data);
+	}
+
+	void FinalizeChunk(ClientContext &context, const MultiFileBindData &bind_data, BaseFileReader &reader,
+	                   const MultiFileReaderData &reader_data, DataChunk &input_chunk, DataChunk &output_chunk,
+	                   ExpressionExecutor &executor, optional_ptr<MultiFileReaderGlobalState> global_state) override {
+		scan_reader.FinalizeChunk(*this, context, bind_data, reader, reader_data, input_chunk, output_chunk, executor,
+		                          global_state);
+	}
+
+	MultiFileReaderVirtualColumnBinding
+	GetVirtualColumnExpression(ClientContext &context, MultiFileReaderData &reader_data,
+	                           const vector<MultiFileColumnDefinition> &local_columns, const idx_t column_id,
+	                           const LogicalType &type, MultiFileLocalIndex local_idx) override {
+		return scan_reader.GetVirtualColumnExpression(*this, context, reader_data, local_columns, column_id, type,
+		                                              local_idx);
+	}
+
+	void FinalizeBind(MultiFileReaderData &reader_data, const MultiFileOptions &file_options,
+	                  const MultiFileReaderBindData &options, const vector<MultiFileColumnDefinition> &global_columns,
+	                  const vector<ColumnIndex> &global_column_ids, ClientContext &context,
+	                  optional_ptr<MultiFileReaderGlobalState> global_state) override {
+		throw InternalException("FinalizeBind is unreachable");
+	}
+
+private:
+	shared_ptr<TableFunctionInfo> function_info;
+	IcebergScanReader scan_reader;
 };
 
 //! Member order keeps bind data, descriptors and execution context alive until
