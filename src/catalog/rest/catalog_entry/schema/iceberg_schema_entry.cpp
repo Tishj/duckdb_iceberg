@@ -1,3 +1,4 @@
+#include "catalog/iceberg_catalog_backend.hpp"
 #include "catalog/rest/catalog_entry/schema/iceberg_schema_entry.hpp"
 
 #include "duckdb/parser/column_list.hpp"
@@ -27,8 +28,8 @@
 namespace duckdb {
 
 IcebergSchemaEntry::IcebergSchemaEntry(Catalog &catalog, CreateSchemaInfo &info)
-    : SchemaCatalogEntry(catalog, info),
-      namespace_items(IRCAPI::ParseSchemaName(info.SchemaName().GetIdentifierName())), exists(true), tables(*this) {
+    : SchemaCatalogEntry(catalog, info), namespace_items(StringUtil::Split(info.SchemaName().GetIdentifierName(), '.')),
+      exists(true), tables(*this) {
 }
 
 IcebergSchemaEntry::~IcebergSchemaEntry() {
@@ -861,7 +862,7 @@ optional_ptr<CatalogEntry> IcebergSchemaEntry::LookupEntry(CatalogTransaction tr
 	auto table_entry = GetCatalogSet(type).GetEntry(context, lookup_info);
 	if (!table_entry) {
 		// verify the schema exists
-		if (!IRCAPI::VerifySchemaExistence(context, ic_catalog, name.GetIdentifierName())) {
+		if (!ic_catalog.GetBackend().SchemaExists(context, name.GetIdentifierName())) {
 			// set exists to false here
 			// we would like to throw an error, but this code is also called when listing schemas,
 			// and throwing an error will abort the listing process.
@@ -889,16 +890,7 @@ void IcebergSchemaEntry::LoadProperties(ClientContext &context) {
 	}
 	auto &ic_catalog = catalog.Cast<IcebergCatalog>();
 
-	auto get_namespace_result = IRCAPI::GetNamespace(context, ic_catalog, *this);
-	if (get_namespace_result.error_) {
-		throw HTTPException(StringUtil::Format("GetNamespace endpoint returned response code %s with message \"%s\"",
-		                                       EnumUtil::ToString(get_namespace_result.status_),
-		                                       get_namespace_result.error_->_error.message));
-	}
-
-	if (auto &properties = get_namespace_result.result_->properties) {
-		schema_info.properties = *properties;
-	}
+	ic_catalog.GetBackend().LoadSchemaProperties(context, *this);
 	schema_info.properties_loaded = true;
 	// TODO: eventually set up caching for this response?
 };

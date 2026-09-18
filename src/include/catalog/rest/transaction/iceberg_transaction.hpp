@@ -3,7 +3,6 @@
 
 #include "duckdb/transaction/transaction.hpp"
 #include "catalog/rest/iceberg_schema_set.hpp"
-#include "catalog/rest/api/iceberg_retry.hpp"
 #include "catalog/rest/transaction/iceberg_transaction_update.hpp"
 
 namespace duckdb {
@@ -84,8 +83,6 @@ public:
 	void DoSchemaDeletes(ClientContext &context);
 	void DoSchemaPropertyUpdates(ClientContext &context);
 	IcebergCatalog &GetCatalog();
-	void DoMultiTableCommitUpdates(IcebergTransactionAlterUpdate &alter_update, ClientContext &context);
-	void DoSingleTableCommitUpdates(IcebergTransactionAlterUpdate &alter_update, ClientContext &context);
 	optional_ptr<IcebergTransactionTableState> GetLatestTableState(const string &table_key);
 	IcebergTransactionTableState &SetCatalogTableState(shared_ptr<IcebergTable> table);
 	IcebergTransactionTableState &SetTransactionTableState(const string &table_key, IcebergTable &&table,
@@ -102,16 +99,12 @@ private:
 	bool HasTableUpdate() const;
 	IcebergTransactionAlterUpdate *GetAlterUpdate();
 	const IcebergTransactionAlterUpdate *GetAlterUpdate() const;
-	bool CanUseMultiTableCommit(const IcebergTransactionAlterUpdate &alter_update) const;
 	void VerifyAlterUpdateAtomicity(const IcebergTransactionAlterUpdate &alter_update) const;
-	void CleanupMetadataFiles(ClientContext &context, const vector<string> &paths);
-	void RefreshRetryTables(IcebergTransactionAlterUpdate &alter_update, const case_insensitive_set_t &table_keys,
-	                        ClientContext &context);
 	void CleanupFiles();
-	//! Evict the touched tables' cached LoadTableResult so a retry after a failed commit (e.g. a 409
+	//! Invalidate the touched tables' cached metadata so a retry after a failed commit (e.g. a 409
 	//! conflict) doesn't keep reusing the same stale metadata.
 	void EvictCachedTables();
-	//! Commit outcome unknown (5xx / no HTTP status); CleanupFiles() then keeps the written files.
+	//! If the backend cannot determine the commit outcome, retain the written files.
 	bool commit_state_unknown = false;
 
 private:

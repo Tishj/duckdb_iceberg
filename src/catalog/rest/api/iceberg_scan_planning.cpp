@@ -1,3 +1,4 @@
+#include "catalog/rest/iceberg_rest_catalog_backend.hpp"
 #include "catalog/rest/api/iceberg_scan_planning.hpp"
 
 #include "duckdb/common/exception.hpp"
@@ -74,7 +75,7 @@ struct PlanningAccumulator {
 };
 
 static IRCEndpointBuilder TableEndpoint(IcebergTable &table_info) {
-	auto &catalog = table_info.catalog;
+	auto &catalog = IcebergRESTCatalogBackend::Get(table_info.catalog);
 	auto result = catalog.GetBaseUrl();
 	result.AddPrefixComponents(catalog.prefix);
 	result.AddPathComponent(IRCPathComponent::RegularComponent("namespaces"));
@@ -310,8 +311,8 @@ static void FetchPlanTasks(ClientContext &context, IcebergTable &table_info, Pla
 		ICUtils::LogPostBody(context, endpoint, body);
 		auto headers = PlanningHeaders(context);
 		headers.Insert("Idempotency-Key", UUID::ToString(UUID::GenerateRandomUUID()));
-		auto response =
-		    table_info.catalog.auth_handler->Request(RequestType::POST_REQUEST, context, endpoint, headers, body);
+		auto response = IcebergRESTCatalogBackend::Get(table_info.catalog)
+		                    .auth_handler->Request(RequestType::POST_REQUEST, context, endpoint, headers, body);
 		if (response->status != HTTPStatusCode::OK_200) {
 			ThrowResponseError(endpoint, *response);
 		}
@@ -324,8 +325,9 @@ static void FetchPlanTasks(ClientContext &context, IcebergTable &table_info, Pla
 static void FetchCredentials(ClientContext &context, IcebergTable &table_info, const optional<string> &plan_id,
                              IcebergServerSideScanPlan &result) {
 	if (!result.storage_credentials.empty() ||
-	    table_info.catalog.supported_urls.find(IcebergServerSideScanPlanning::CREDENTIALS_ENDPOINT) ==
-	        table_info.catalog.supported_urls.end()) {
+	    IcebergRESTCatalogBackend::Get(table_info.catalog)
+	            .supported_urls.find(IcebergServerSideScanPlanning::CREDENTIALS_ENDPOINT) ==
+	        IcebergRESTCatalogBackend::Get(table_info.catalog).supported_urls.end()) {
 		return;
 	}
 	if (context.IsInterrupted()) {
@@ -338,7 +340,8 @@ static void FetchCredentials(ClientContext &context, IcebergTable &table_info, c
 		endpoint.SetParam("planId", IRCPathComponent::RegularComponent(*plan_id));
 	}
 	auto headers = PlanningHeaders(context);
-	auto response = table_info.catalog.auth_handler->Request(RequestType::GET_REQUEST, context, endpoint, headers);
+	auto response = IcebergRESTCatalogBackend::Get(table_info.catalog)
+	                    .auth_handler->Request(RequestType::GET_REQUEST, context, endpoint, headers);
 	if (response->status != HTTPStatusCode::OK_200) {
 		ThrowResponseError(endpoint, *response);
 	}
@@ -417,8 +420,8 @@ bool IcebergServerSideScanPlanning::Plan(ClientContext &context, IcebergTable &t
 	headers.Insert("Idempotency-Key", UUID::ToString(UUID::GenerateRandomUUID()));
 	auto body = SerializePlanRequest(request);
 	ICUtils::LogPostBody(context, endpoint, body);
-	auto response =
-	    table_info.catalog.auth_handler->Request(RequestType::POST_REQUEST, context, endpoint, headers, body);
+	auto response = IcebergRESTCatalogBackend::Get(table_info.catalog)
+	                    .auth_handler->Request(RequestType::POST_REQUEST, context, endpoint, headers, body);
 	if (response->status == HTTPStatusCode::NotAcceptable_406) {
 		return false;
 	}
@@ -470,8 +473,8 @@ bool IcebergServerSideScanPlanning::Plan(ClientContext &context, IcebergTable &t
 			endpoint.AddPathComponent(IRCPathComponent::RegularComponent("plan"));
 			endpoint.AddPathComponent(IRCPathComponent::RegularComponent(*active_plan_id));
 			auto poll_headers = PlanningHeaders(context);
-			response =
-			    table_info.catalog.auth_handler->Request(RequestType::GET_REQUEST, context, endpoint, poll_headers);
+			response = IcebergRESTCatalogBackend::Get(table_info.catalog)
+			               .auth_handler->Request(RequestType::GET_REQUEST, context, endpoint, poll_headers);
 			if (response->status != HTTPStatusCode::OK_200) {
 				ThrowResponseError(endpoint, *response);
 			}
@@ -513,8 +516,8 @@ bool IcebergServerSideScanPlanning::Plan(ClientContext &context, IcebergTable &t
 				cancel_endpoint.AddPathComponent(IRCPathComponent::RegularComponent(*active_plan_id));
 				auto cancel_headers = PlanningHeaders(context);
 				cancel_headers.Insert("Idempotency-Key", UUID::ToString(UUID::GenerateRandomUUID()));
-				table_info.catalog.auth_handler->Request(RequestType::DELETE_REQUEST, context, cancel_endpoint,
-				                                         cancel_headers);
+				IcebergRESTCatalogBackend::Get(table_info.catalog)
+				    .auth_handler->Request(RequestType::DELETE_REQUEST, context, cancel_endpoint, cancel_headers);
 			} catch (std::exception &e) {
 				auto error = ErrorData(e);
 				DUCKDB_LOG(context, IcebergLogType,

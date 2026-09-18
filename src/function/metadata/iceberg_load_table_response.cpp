@@ -1,3 +1,4 @@
+#include "catalog/rest/iceberg_rest_catalog_backend.hpp"
 #include "duckdb/catalog/catalog_entry/table_catalog_entry.hpp"
 #include "duckdb/common/http_util.hpp"
 #include "duckdb/common/string.hpp"
@@ -40,7 +41,7 @@ struct IcebergLoadTableResponseGlobalState : public GlobalTableFunctionState {
 };
 
 static unique_ptr<HTTPResponse> MakeRequest(ClientContext &context, const IcebergLoadTableResponseBindData &bind_data) {
-	auto &ic_catalog = bind_data.ic_catalog;
+	auto &ic_catalog = IcebergRESTCatalogBackend::Get(bind_data.ic_catalog);
 	auto &ic_schema = bind_data.ic_schema;
 	auto &ic_table_entry = bind_data.table_entry;
 

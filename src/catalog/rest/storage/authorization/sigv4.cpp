@@ -1,3 +1,4 @@
+#include "catalog/rest/iceberg_rest_catalog_backend.hpp"
 #include "catalog/rest/storage/authorization/sigv4.hpp"
 
 #include "duckdb/main/client_context.hpp"
@@ -93,7 +94,7 @@ AWSInput SIGV4Authorization::CreateAWSInput(ClientContext &context, const IRCEnd
 
 	MaybeRefreshSecret(context);
 
-	auto secret_entry = IcebergCatalog::GetStorageSecret(context, secret);
+	auto secret_entry = IcebergRESTCatalogBackend::GetStorageSecret(context, secret);
 	auto kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
 	aws_input.key_id = kv_secret.secret_map["key_id"].GetValue<string>();
 	aws_input.secret = kv_secret.secret_map["secret"].GetValue<string>();
@@ -134,7 +135,7 @@ void SIGV4Authorization::MaybeRefreshSecret(ClientContext &context) {
 		}
 	}
 
-	auto secret_entry = IcebergCatalog::GetStorageSecret(context, secret);
+	auto secret_entry = IcebergRESTCatalogBackend::GetStorageSecret(context, secret);
 	const auto &kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
 	Value refresh_info;
 	if (!kv_secret.TryGetValue("refresh_info", refresh_info)) {

@@ -10,7 +10,7 @@
 
 #include "catalog/rest/api/catalog_utils.hpp"
 #include "iceberg_logging.hpp"
-#include "catalog/rest/iceberg_catalog.hpp"
+#include "catalog/rest/iceberg_rest_catalog_backend.hpp"
 #include "catalog/rest/catalog_entry/schema/iceberg_schema_entry.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table_schema_version.hpp"
 #include "common/iceberg_utils.hpp"
@@ -103,7 +103,7 @@ static IRCEntryLookupStatus CheckVerificationResponse(ClientContext &context, HT
 	return IRCEntryLookupStatus::API_ERROR;
 }
 
-bool IRCAPI::VerifyResponse(ClientContext &context, IcebergCatalog &catalog, IRCEndpointBuilder &url_builder,
+bool IRCAPI::VerifyResponse(ClientContext &context, IcebergRESTCatalogBackend &catalog, IRCEndpointBuilder &url_builder,
                             bool execute_head) {
 	HTTPHeaders headers(*context.db);
 	IRCEntryLookupStatus entry_status = IRCEntryLookupStatus::API_ERROR;
@@ -140,7 +140,7 @@ bool IRCAPI::VerifyResponse(ClientContext &context, IcebergCatalog &catalog, IRC
 	}
 }
 
-bool IRCAPI::VerifySchemaExistence(ClientContext &context, IcebergCatalog &catalog, const string &schema) {
+bool IRCAPI::VerifySchemaExistence(ClientContext &context, IcebergRESTCatalogBackend &catalog, const string &schema) {
 	auto namespace_items = ParseSchemaName(schema);
 
 	auto url_builder = catalog.GetBaseUrl();
@@ -152,8 +152,8 @@ bool IRCAPI::VerifySchemaExistence(ClientContext &context, IcebergCatalog &catal
 	return VerifyResponse(context, catalog, url_builder, execute_head);
 }
 
-bool IRCAPI::VerifyTableExistence(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema,
-                                  const string &table) {
+bool IRCAPI::VerifyTableExistence(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+                                  const IcebergSchemaEntry &schema, const string &table) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
 	url_builder.AddPathComponent(IRCPathComponent::RegularComponent("namespaces"));
@@ -166,7 +166,7 @@ bool IRCAPI::VerifyTableExistence(ClientContext &context, IcebergCatalog &catalo
 	return VerifyResponse(context, catalog, url_builder, execute_head);
 }
 
-static unique_ptr<HTTPResponse> GetTableMetadata(ClientContext &context, IcebergCatalog &catalog,
+static unique_ptr<HTTPResponse> GetTableMetadata(ClientContext &context, IcebergRESTCatalogBackend &catalog,
                                                  const IcebergSchemaEntry &schema, const string &table) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
@@ -183,7 +183,7 @@ static unique_ptr<HTTPResponse> GetTableMetadata(ClientContext &context, Iceberg
 	return catalog.auth_handler->Request(RequestType::GET_REQUEST, context, url_builder, headers);
 }
 
-static unique_ptr<HTTPResponse> LoadCredentials(ClientContext &context, IcebergCatalog &catalog,
+static unique_ptr<HTTPResponse> LoadCredentials(ClientContext &context, IcebergRESTCatalogBackend &catalog,
                                                 const IcebergSchemaEntry &schema, const string &table) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
@@ -202,7 +202,7 @@ static unique_ptr<HTTPResponse> LoadCredentials(ClientContext &context, IcebergC
 }
 
 APIResult<unique_ptr<const rest_api_objects::LoadTableResult>> IRCAPI::GetTable(ClientContext &context,
-                                                                                IcebergCatalog &catalog,
+                                                                                IcebergRESTCatalogBackend &catalog,
                                                                                 const IcebergSchemaEntry &schema,
                                                                                 const string &table_name) {
 	auto ret = APIResult<unique_ptr<const rest_api_objects::LoadTableResult>>();
@@ -225,8 +225,8 @@ APIResult<unique_ptr<const rest_api_objects::LoadTableResult>> IRCAPI::GetTable(
 }
 
 APIResult<unique_ptr<const rest_api_objects::LoadCredentialsResponse>>
-IRCAPI::GetTableCredentials(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema,
-                            const string &table_name) {
+IRCAPI::GetTableCredentials(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+                            const IcebergSchemaEntry &schema, const string &table_name) {
 	auto ret = APIResult<unique_ptr<const rest_api_objects::LoadCredentialsResponse>>();
 	auto result = LoadCredentials(context, catalog, schema, table_name);
 	if (result->status != HTTPStatusCode::OK_200) {
@@ -247,7 +247,7 @@ IRCAPI::GetTableCredentials(ClientContext &context, IcebergCatalog &catalog, con
 }
 
 APIResult<unique_ptr<const rest_api_objects::GetNamespaceResponse>>
-IRCAPI::GetNamespace(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema) {
+IRCAPI::GetNamespace(ClientContext &context, IcebergRESTCatalogBackend &catalog, const IcebergSchemaEntry &schema) {
 	if (catalog.supported_urls.find("GET /v1/{prefix}/namespaces/{namespace}") == catalog.supported_urls.end()) {
 		throw NotImplementedException("This Iceberg REST catalog server does not support this operation");
 	}
@@ -283,8 +283,8 @@ IRCAPI::GetNamespace(ClientContext &context, IcebergCatalog &catalog, const Iceb
 	return ret;
 }
 
-optional<vector<rest_api_objects::TableIdentifier>> IRCAPI::GetTables(ClientContext &context, IcebergCatalog &catalog,
-                                                                      const IcebergSchemaEntry &schema) {
+optional<vector<rest_api_objects::TableIdentifier>>
+IRCAPI::GetTables(ClientContext &context, IcebergRESTCatalogBackend &catalog, const IcebergSchemaEntry &schema) {
 	vector<rest_api_objects::TableIdentifier> all_identifiers;
 	string page_token;
 
@@ -342,7 +342,8 @@ optional<vector<rest_api_objects::TableIdentifier>> IRCAPI::GetTables(ClientCont
 	return all_identifiers;
 }
 
-vector<IRCAPISchema> IRCAPI::GetSchemas(ClientContext &context, IcebergCatalog &catalog, const vector<string> &parent) {
+vector<IRCAPISchema> IRCAPI::GetSchemas(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+                                        const vector<string> &parent) {
 	vector<IRCAPISchema> result;
 	string page_token = "";
 	do {
@@ -383,7 +384,6 @@ vector<IRCAPISchema> IRCAPI::GetSchemas(ClientContext &context, IcebergCatalog &
 		auto &schemas = *list_namespaces_response.namespaces;
 		for (auto &schema : schemas) {
 			IRCAPISchema schema_result;
-			schema_result.catalog_name = catalog.GetName().GetIdentifierName();
 			schema_result.items = std::move(schema.value);
 
 			if (catalog.attach_options.support_nested_namespaces) {
@@ -432,7 +432,8 @@ static CommitResult BuildCommitResult(ClientContext &context, const unique_ptr<H
 	return result;
 }
 
-CommitResult IRCAPI::CommitMultiTableUpdate(ClientContext &context, IcebergCatalog &catalog, const string &body) {
+CommitResult IRCAPI::CommitMultiTableUpdate(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+                                            const string &body) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
 	url_builder.AddPathComponent(IRCPathComponent::RegularComponent("transactions"));
@@ -444,8 +445,8 @@ CommitResult IRCAPI::CommitMultiTableUpdate(ClientContext &context, IcebergCatal
 	return BuildCommitResult(context, response);
 }
 
-CommitResult IRCAPI::CommitTableUpdate(ClientContext &context, IcebergCatalog &catalog, const vector<string> &schema,
-                                       const string &table, const string &body) {
+CommitResult IRCAPI::CommitTableUpdate(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+                                       const vector<string> &schema, const string &table, const string &body) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
 	url_builder.AddPathComponent(IRCPathComponent::RegularComponent("namespaces"));
@@ -459,7 +460,7 @@ CommitResult IRCAPI::CommitTableUpdate(ClientContext &context, IcebergCatalog &c
 	return BuildCommitResult(context, response);
 }
 
-void IRCAPI::CommitTableDelete(ClientContext &context, IcebergCatalog &catalog, const vector<string> &schema,
+void IRCAPI::CommitTableDelete(ClientContext &context, IcebergRESTCatalogBackend &catalog, const vector<string> &schema,
                                const string &table) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
@@ -481,7 +482,7 @@ void IRCAPI::CommitTableDelete(ClientContext &context, IcebergCatalog &catalog, 
 	}
 }
 
-void IRCAPI::CommitTableRename(ClientContext &context, IcebergCatalog &catalog, const string &body) {
+void IRCAPI::CommitTableRename(ClientContext &context, IcebergRESTCatalogBackend &catalog, const string &body) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
 	url_builder.AddPathComponent(IRCPathComponent::RegularComponent("tables"));
@@ -499,7 +500,7 @@ void IRCAPI::CommitTableRename(ClientContext &context, IcebergCatalog &catalog, 
 	}
 }
 
-void IRCAPI::CommitNamespaceCreate(ClientContext &context, IcebergCatalog &catalog, string body) {
+void IRCAPI::CommitNamespaceCreate(ClientContext &context, IcebergRESTCatalogBackend &catalog, string body) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
 	url_builder.AddPathComponent(IRCPathComponent::RegularComponent("namespaces"));
@@ -514,7 +515,7 @@ void IRCAPI::CommitNamespaceCreate(ClientContext &context, IcebergCatalog &catal
 	}
 }
 
-void IRCAPI::CommitNamespaceDrop(ClientContext &context, IcebergCatalog &catalog,
+void IRCAPI::CommitNamespaceDrop(ClientContext &context, IcebergRESTCatalogBackend &catalog,
                                  const vector<string> &namespace_items) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPrefixComponents(catalog.prefix);
@@ -532,7 +533,7 @@ void IRCAPI::CommitNamespaceDrop(ClientContext &context, IcebergCatalog &catalog
 	}
 }
 
-void IRCAPI::CommitNamespacePropertiesUpdate(ClientContext &context, IcebergCatalog &catalog, string body,
+void IRCAPI::CommitNamespacePropertiesUpdate(ClientContext &context, IcebergRESTCatalogBackend &catalog, string body,
                                              const vector<string> &namespace_items) {
 	if (catalog.supported_urls.find("POST /v1/{prefix}/namespaces/{namespace}/properties") ==
 	    catalog.supported_urls.end()) {
@@ -554,7 +555,7 @@ void IRCAPI::CommitNamespacePropertiesUpdate(ClientContext &context, IcebergCata
 	}
 }
 
-rest_api_objects::LoadTableResult IRCAPI::CommitNewTable(ClientContext &context, IcebergCatalog &catalog,
+rest_api_objects::LoadTableResult IRCAPI::CommitNewTable(ClientContext &context, IcebergRESTCatalogBackend &catalog,
                                                          const vector<string> &namespace_items,
                                                          const IcebergCreateTableRequest &request) {
 	auto url_builder = catalog.GetBaseUrl();
@@ -593,7 +594,7 @@ rest_api_objects::LoadTableResult IRCAPI::CommitNewTable(ClientContext &context,
 	}
 }
 
-rest_api_objects::CatalogConfig IRCAPI::GetCatalogConfig(ClientContext &context, IcebergCatalog &catalog,
+rest_api_objects::CatalogConfig IRCAPI::GetCatalogConfig(ClientContext &context, IcebergRESTCatalogBackend &catalog,
                                                          const string &warehouse) {
 	auto url_builder = catalog.GetBaseUrl();
 	url_builder.AddPathComponent(IRCPathComponent::RegularComponent("config"));

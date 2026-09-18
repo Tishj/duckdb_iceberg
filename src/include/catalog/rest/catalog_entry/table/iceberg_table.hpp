@@ -7,17 +7,18 @@
 #include "core/metadata/manifest/iceberg_manifest.hpp"
 #include "core/metadata/iceberg_table_metadata.hpp"
 #include "catalog/rest/transaction/iceberg_transaction_data.hpp"
-#include "rest_catalog/objects/storage_credential.hpp"
+#include "catalog/iceberg_catalog_backend.hpp"
 #include "iceberg_attach.hpp"
 
 namespace duckdb {
+class IcebergCatalog;
 class IcebergTableSchema;
 class ParsedExpression;
 struct CreateTableInfo;
 class IcebergSchemaEntry;
 struct IcebergManifestEntry;
 
-struct IRCAPITableCredentials {
+struct IcebergTableCredentials {
 	unique_ptr<CreateSecretInput> config;
 	vector<CreateSecretInput> storage_credentials;
 };
@@ -26,15 +27,12 @@ struct IcebergTable {
 public:
 	IcebergTable(IcebergCatalog &catalog, IcebergSchemaEntry &schema, const string &name,
 	             IcebergTableMetadata metadata);
-	IcebergTable(IcebergCatalog &catalog, IcebergSchemaEntry &schema, const string &name,
-	             const rest_api_objects::LoadTableResult &load_table_result);
 	//! A listing placeholder has no schemas until FillEntry resolves it.
 	static shared_ptr<IcebergTable> CreatePlaceholder(IcebergCatalog &catalog, IcebergSchemaEntry &schema,
 	                                                  const string &name);
 
 public:
 	void LoadCredentials(ClientContext &context) const;
-	void LoadCredentials(ClientContext &context, IRCAPITableCredentials table_credentials) const;
 	optional_ptr<CatalogEntry> GetLatestSchema();
 	idx_t GetIcebergVersion() const;
 	optional_ptr<CatalogEntry> GetSchemaVersion(optional_ptr<BoundAtClause> at);
@@ -54,10 +52,7 @@ public:
 	                                               idx_t base_partition_field_id);
 	static IcebergSortOrder BuildSortOrder(const vector<OrderByNode> &orders, const IcebergTableSchema &schema,
 	                                       int32_t sort_order_id);
-	IRCAPITableCredentials GetVendedCredentials(ClientContext &context) const;
-	IRCAPITableCredentials
-	GetVendedCredentials(ClientContext &context,
-	                     const vector<rest_api_objects::StorageCredential> &storage_credentials) const;
+	IcebergTableCredentials GetVendedCredentials(ClientContext &context) const;
 	const string &BaseFilePath() const;
 	bool IsRenamed() const;
 
@@ -75,7 +70,6 @@ public:
 	void InitSchemaVersions();
 
 	bool HasTransactionUpdates() const;
-	void InitializeFromLoadTableResult(const rest_api_objects::LoadTableResult &load_table_result);
 	void RefreshFromCatalog(ClientContext &context);
 
 public:
@@ -84,17 +78,13 @@ public:
 	string name;
 	IcebergTableMetadata table_metadata;
 	case_insensitive_map_t<string> config;
-	vector<rest_api_objects::StorageCredential> storage_credentials;
+	shared_ptr<const IcebergTableBackendData> backend_data;
 	unordered_map<int32_t, unique_ptr<IcebergTableSchemaVersion>> schema_versions;
 	// dummy entry to hold existence of a table, but no schema versions
 	unique_ptr<IcebergTableSchemaVersion> dummy_entry;
 	unique_ptr<IcebergTransactionData> transaction_data;
-	//! The cached response this table was initialized from, used as an identity and never dereferenced.
-	optional_ptr<const rest_api_objects::LoadTableResult> initialization_source;
 
 private:
-	void SetLoadTableResult(const rest_api_objects::LoadTableResult &load_table_result);
-
 	//! Unchanged by rename, used to check for a rename
 	const string original_name;
 };

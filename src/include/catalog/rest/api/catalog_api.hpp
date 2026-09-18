@@ -14,7 +14,7 @@
 
 namespace duckdb {
 
-class IcebergCatalog;
+class IcebergRESTCatalogBackend;
 struct IcebergCreateTableRequest;
 class IcebergSchemaEntry;
 class IcebergTableSchemaVersion;
@@ -22,7 +22,6 @@ class IcebergTableSchemaVersion;
 struct IRCAPISchema {
 	//! The (potentially multiple) levels that the namespace is made up of
 	vector<string> items;
-	string catalog_name;
 };
 
 enum class IRCEntryLookupStatus : uint8_t { EXISTS = 0, NOT_FOUND = 1, API_ERROR = 2 };
@@ -69,41 +68,42 @@ public:
 	static const string API_VERSION_1;
 	//! Returns 'nullopt' if the catalog refused the listing, which must not be read as "the schema is empty".
 	static optional<vector<rest_api_objects::TableIdentifier>>
-	GetTables(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema);
-	static bool VerifyResponse(ClientContext &context, IcebergCatalog &catalog, IRCEndpointBuilder &url_builder,
-	                           bool execute_head);
-	static bool VerifySchemaExistence(ClientContext &context, IcebergCatalog &catalog, const string &schema);
-	static bool VerifyTableExistence(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema,
-	                                 const string &table);
+	GetTables(ClientContext &context, IcebergRESTCatalogBackend &catalog, const IcebergSchemaEntry &schema);
+	static bool VerifyResponse(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+	                           IRCEndpointBuilder &url_builder, bool execute_head);
+	static bool VerifySchemaExistence(ClientContext &context, IcebergRESTCatalogBackend &catalog, const string &schema);
+	static bool VerifyTableExistence(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+	                                 const IcebergSchemaEntry &schema, const string &table);
 	static vector<string> ParseSchemaName(const string &namespace_name);
 	static APIResult<unique_ptr<const rest_api_objects::LoadTableResult>> GetTable(ClientContext &context,
-	                                                                               IcebergCatalog &catalog,
+	                                                                               IcebergRESTCatalogBackend &catalog,
 	                                                                               const IcebergSchemaEntry &schema,
 	                                                                               const string &table_name);
 	static APIResult<unique_ptr<const rest_api_objects::LoadCredentialsResponse>>
-	GetTableCredentials(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema,
+	GetTableCredentials(ClientContext &context, IcebergRESTCatalogBackend &catalog, const IcebergSchemaEntry &schema,
 	                    const string &table_name);
 	static APIResult<unique_ptr<const rest_api_objects::GetNamespaceResponse>>
-	GetNamespace(ClientContext &context, IcebergCatalog &catalog, const IcebergSchemaEntry &schema);
-	static vector<IRCAPISchema> GetSchemas(ClientContext &context, IcebergCatalog &catalog,
+	GetNamespace(ClientContext &context, IcebergRESTCatalogBackend &catalog, const IcebergSchemaEntry &schema);
+	static vector<IRCAPISchema> GetSchemas(ClientContext &context, IcebergRESTCatalogBackend &catalog,
 	                                       const vector<string> &parent);
-	static CommitResult CommitTableUpdate(ClientContext &context, IcebergCatalog &catalog, const vector<string> &schema,
-	                                      const string &table_name, const string &body);
-	static void CommitTableDelete(ClientContext &context, IcebergCatalog &catalog, const vector<string> &schema,
-	                              const string &table_name);
-	static void CommitTableRename(ClientContext &context, IcebergCatalog &catalog, const string &body);
-	static CommitResult CommitMultiTableUpdate(ClientContext &context, IcebergCatalog &catalog, const string &body);
-	static void CommitNamespaceCreate(ClientContext &context, IcebergCatalog &catalog, string body);
-	static void CommitNamespaceDrop(ClientContext &context, IcebergCatalog &catalog,
+	static CommitResult CommitTableUpdate(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+	                                      const vector<string> &schema, const string &table_name, const string &body);
+	static void CommitTableDelete(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+	                              const vector<string> &schema, const string &table_name);
+	static void CommitTableRename(ClientContext &context, IcebergRESTCatalogBackend &catalog, const string &body);
+	static CommitResult CommitMultiTableUpdate(ClientContext &context, IcebergRESTCatalogBackend &catalog,
+	                                           const string &body);
+	static void CommitNamespaceCreate(ClientContext &context, IcebergRESTCatalogBackend &catalog, string body);
+	static void CommitNamespaceDrop(ClientContext &context, IcebergRESTCatalogBackend &catalog,
 	                                const vector<string> &namespace_items);
-	static void CommitNamespacePropertiesUpdate(ClientContext &context, IcebergCatalog &catalog, string body,
+	static void CommitNamespacePropertiesUpdate(ClientContext &context, IcebergRESTCatalogBackend &catalog, string body,
 	                                            const vector<string> &namespace_items);
 	//! stage create = false, table is created immediately in the IRC
 	//! stage create = true, table is not created, but metadata is initialized and returned
-	static rest_api_objects::LoadTableResult CommitNewTable(ClientContext &context, IcebergCatalog &catalog,
+	static rest_api_objects::LoadTableResult CommitNewTable(ClientContext &context, IcebergRESTCatalogBackend &catalog,
 	                                                        const vector<string> &namespace_items,
 	                                                        const IcebergCreateTableRequest &request);
-	static rest_api_objects::CatalogConfig GetCatalogConfig(ClientContext &context, IcebergCatalog &catalog,
+	static rest_api_objects::CatalogConfig GetCatalogConfig(ClientContext &context, IcebergRESTCatalogBackend &catalog,
 	                                                        const string &warehouse);
 };
 

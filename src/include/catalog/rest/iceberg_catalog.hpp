@@ -8,103 +8,25 @@
 #include "duckdb/main/secret/secret_manager.hpp"
 #include "duckdb/parser/parsed_data/attach_info.hpp"
 #include "duckdb/storage/storage_extension.hpp"
-#include "duckdb/common/http_util.hpp"
 
-#include "catalog/rest/api/url_utils.hpp"
 #include "catalog/rest/iceberg_schema_set.hpp"
-#include "rest_catalog/objects/load_table_result.hpp"
-#include "catalog/rest/storage/iceberg_authorization.hpp"
 #include "common/iceberg_utils.hpp"
 
 namespace duckdb {
 
+class IcebergCatalogBackend;
 class IcebergSchemaEntry;
 struct IcebergTable;
 
-class MetadataCacheValue {
-public:
-	MetadataCacheValue(timestamp_ms_t expire_timestamp_ms,
-	                   unique_ptr<const rest_api_objects::LoadTableResult> load_table_result)
-	    : expire_timestamp_ms(expire_timestamp_ms), load_table_result(std::move(load_table_result)) {
-	}
-
-public:
-	//! The timestamp until when this entry is valid
-	timestamp_ms_t expire_timestamp_ms;
-	//! The payload of the cache entry
-	unique_ptr<const rest_api_objects::LoadTableResult> load_table_result;
-};
-
-class LoadTableResultCache {
-public:
-	LoadTableResultCache(IcebergAttachOptions &attach_options) : attach_options(attach_options) {
-	}
-
-public:
-	bool Get(ClientContext &context, const string &table_key,
-	         const std::function<void(const rest_api_objects::LoadTableResult &)> &callback,
-	         bool validate_cache = true) {
-		annotated_lock_guard<annotated_mutex> guard(lock);
-		auto it = tables.find(table_key);
-		if (it == tables.end()) {
-			return false;
-		}
-
-		auto transaction_start_ms = IcebergUtils::GetTransactionStartTimeMS(context);
-
-		auto &entry = it->second;
-		if (validate_cache && transaction_start_ms > entry.expire_timestamp_ms) {
-			// cached value has expired
-			return false;
-		}
-		callback(*entry.load_table_result);
-		return true;
-	}
-	void SetOrOverwrite(const string &table_key,
-	                    unique_ptr<const rest_api_objects::LoadTableResult> load_table_result) {
-		annotated_lock_guard<annotated_mutex> guard(lock);
-		// If max_table_staleness_minutes is not set, use a time in the past so cache is always expired
-		system_clock::time_point expires_at;
-		if (attach_options.max_table_staleness_micros.IsValid()) {
-			expires_at =
-			    system_clock::now() + std::chrono::microseconds(attach_options.max_table_staleness_micros.GetIndex());
-		} else {
-			expires_at = system_clock::time_point::min();
-		}
-		auto epoch_micros = timestamp_t(duration_cast<microseconds>(expires_at.time_since_epoch()).count());
-		auto expire_timestamp_ms = timestamp_ms_t(Timestamp::GetEpochMs(epoch_micros));
-
-		// erase load table result if it exists.
-		tables.erase(table_key);
-		tables.emplace(table_key, MetadataCacheValue(expire_timestamp_ms, std::move(load_table_result)));
-	}
-
-	//! Evict only if the table was initialized from the result that is still cached for its key.
-	void EvictIfCurrent(const IcebergTable &table);
-
-private:
-	IcebergAttachOptions &attach_options;
-	annotated_mutex lock;
-	case_insensitive_map_t<MetadataCacheValue> tables DUCKDB_GUARDED_BY(lock);
-};
-
 class IcebergCatalog : public Catalog {
 public:
-	explicit IcebergCatalog(AttachedDatabase &db_p, AccessMode access_mode,
-	                        unique_ptr<IcebergAuthorization> auth_handler, IcebergAttachOptions &attach_options,
-	                        const Identifier &default_schema);
+	explicit IcebergCatalog(AttachedDatabase &db_p, AccessMode access_mode, unique_ptr<IcebergCatalogBackend> backend,
+	                        IcebergAttachOptions &attach_options, const Identifier &default_schema);
 	~IcebergCatalog() override;
 
 public:
-	static unique_ptr<SecretEntry> GetStorageSecret(ClientContext &context, const string &secret_name);
-	static unique_ptr<SecretEntry> GetIcebergSecret(ClientContext &context, const string &secret_name);
-	static unique_ptr<SecretEntry> GetHTTPSecret(ClientContext &context, const string &secret_name);
-	void ParsePrefix();
-	void ParseNamespaceSeparator();
-	void GetConfig(ClientContext &context, IcebergEndpointType &endpoint_type);
-	IRCEndpointBuilder GetBaseUrl() const;
-	string GetWarehouse() const {
-		return warehouse;
+	IcebergCatalogBackend &GetBackend() const {
+		return *backend;
 	}
 	//! Whether or not this catalog should search a specific type with the standard priority
 	CatalogLookupBehavior CatalogTypeLookupRule(CatalogType type) const override {
@@ -154,9 +76,6 @@ public:
 	unique_ptr<LogicalOperator> BindCreateIndex(Binder &binder, CreateStatement &stmt, TableCatalogEntry &table,
 	                                            unique_ptr<LogicalOperator> plan) override;
 	DatabaseSize GetDatabaseSize(ClientContext &context) override;
-	void AddDefaultSupportedEndpoints();
-	void AddS3TablesEndpoints();
-	void AddGlueEndpoints();
 	//! Whether or not this is an in-memory Iceberg database
 	bool InMemory() override;
 	string GetDBPath() override;
@@ -168,31 +87,17 @@ public:
 
 public:
 	AccessMode access_mode;
-	unique_ptr<IcebergAuthorization> auth_handler;
-	//! Base URI of the REST catalog
-	string base_uri;
-	//! version
-	const string version;
-	//! optional prefix path components
-	vector<string> prefix;
-	string namespace_separator = "\x1f";
 	//! attach options
 	IcebergAttachOptions attach_options;
 	Identifier default_schema;
 
 private:
-	//! warehouse
-	string warehouse;
-	// defaults and overrides provided by a catalog.
-	case_insensitive_map_t<string> defaults;
-	case_insensitive_map_t<string> overrides;
+	unique_ptr<IcebergCatalogBackend> backend;
 	//! Normalized attach options (after core stripping) used to detect a conflicting ATTACH OR REPLACE
 	unordered_map<string, Value> normalized_attach_options;
 
 public:
-	unordered_set<string> supported_urls;
 	IcebergSchemaSet schemas;
-	LoadTableResultCache table_request_cache;
 };
 
 } // namespace duckdb

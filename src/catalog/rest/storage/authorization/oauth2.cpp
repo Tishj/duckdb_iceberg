@@ -1,3 +1,4 @@
+#include "catalog/rest/iceberg_rest_catalog_backend.hpp"
 #include "catalog/rest/storage/authorization/oauth2.hpp"
 
 #include "duckdb/main/extension_helper.hpp"
@@ -244,7 +245,7 @@ unique_ptr<OAuth2Authorization> OAuth2Authorization::FromAttachOptions(AttachedD
 
 	if (create_secret_options.empty()) {
 		//! Look up an ICEBERG secret
-		iceberg_secret = IcebergCatalog::GetIcebergSecret(context, secret);
+		iceberg_secret = IcebergRESTCatalogBackend::GetIcebergSecret(context, secret);
 		if (!iceberg_secret) {
 			if (!secret.empty()) {
 				throw InvalidConfigurationException("No ICEBERG secret by the name of '%s' could be found", secret);

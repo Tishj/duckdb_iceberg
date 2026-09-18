@@ -1,3 +1,4 @@
+#include "catalog/rest/iceberg_rest_catalog_backend.hpp"
 #include "iceberg_attach.hpp"
 #include "catalog/rest/iceberg_catalog.hpp"
 
@@ -150,7 +151,7 @@ static void GlueAttach(ClientContext &context, IcebergAttachOptions &input) {
 	// look up any s3 secret
 
 	// if there is no secret, an error will be thrown
-	auto secret_entry = IcebergCatalog::GetStorageSecret(context, secret);
+	auto secret_entry = IcebergRESTCatalogBackend::GetStorageSecret(context, secret);
 	auto kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
 	auto region = kv_secret.TryGetValue("region");
 
@@ -360,13 +361,13 @@ unique_ptr<Catalog> IcebergAttach::Attach(optional_ptr<StorageExtensionInfo> sto
 	}
 
 	D_ASSERT(auth_handler);
+	auto backend = make_uniq<IcebergRESTCatalogBackend>(std::move(auth_handler), attach_options);
+	backend->GetConfig(context, endpoint_type);
 	auto catalog =
-	    make_uniq<IcebergCatalog>(db, options.access_mode, std::move(auth_handler), attach_options, default_schema);
+	    make_uniq<IcebergCatalog>(db, options.access_mode, std::move(backend), attach_options, default_schema);
 	//! Remember the normalized attach options so that a later ATTACH OR REPLACE can detect when they change.
 	catalog->SetAttachOptions(options.options);
-	catalog->GetConfig(context, endpoint_type);
-	if (!default_schema.empty() &&
-	    !IRCAPI::VerifySchemaExistence(context, *catalog, default_schema.GetIdentifierName())) {
+	if (!default_schema.empty() && !catalog->GetBackend().SchemaExists(context, default_schema.GetIdentifierName())) {
 		throw InvalidConfigurationException(
 		    "default_schema '%s' does not exist. ATTACH with no DEFAULT_SCHEMA to successfully attach",
 		    default_schema.GetIdentifierName());

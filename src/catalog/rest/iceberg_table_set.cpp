@@ -3,8 +3,6 @@
 #include "duckdb/parser/expression/constant_expression.hpp"
 #include "duckdb/planner/parsed_data/bound_create_table_info.hpp"
 #include "duckdb/parser/parsed_data/drop_info.hpp"
-#include "duckdb/common/enums/http_status_code.hpp"
-#include "duckdb/common/exception/http_exception.hpp"
 #include "duckdb/parser/parsed_data/create_table_info.hpp"
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/planner/tableref/bound_at_clause.hpp"
@@ -12,14 +10,13 @@
 #include "duckdb/execution/expression_executor.hpp"
 #include "duckdb/logging/logger.hpp"
 
-#include "catalog/rest/api/catalog_api.hpp"
-#include "catalog/rest/api/catalog_utils.hpp"
+#include "catalog/iceberg_catalog_backend.hpp"
+#include "catalog/iceberg_create_table_info.hpp"
+#include "catalog/rest/api/iceberg_create_table_request.hpp"
 #include "catalog/rest/iceberg_catalog.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table_schema_version.hpp"
 #include "catalog/rest/transaction/iceberg_transaction.hpp"
-#include "catalog/rest/storage/authorization/sigv4.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table.hpp"
-#include "catalog/rest/storage/authorization/oauth2.hpp"
 #include "catalog/rest/catalog_entry/schema/iceberg_schema_entry.hpp"
 #include "core/metadata/partition/iceberg_partition_spec.hpp"
 #include "catalog/rest/transaction/iceberg_transaction_update.hpp"
@@ -36,44 +33,7 @@ bool IcebergTableSet::FillEntry(ClientContext &context, IcebergTable &table) {
 		return true;
 	}
 
-	auto &ic_catalog = catalog.Cast<IcebergCatalog>();
-	auto table_key = table.GetTableKey();
-
-	// Only check cache if MAX_TABLE_STALENESS option is set
-	if (ic_catalog.attach_options.max_table_staleness_micros.IsValid()) {
-		auto cache_hit = ic_catalog.table_request_cache.Get(
-		    context, table_key, [&](const rest_api_objects::LoadTableResult &cached_result) {
-			    // Use the cached result instead of making a new request
-			    table.InitializeFromLoadTableResult(cached_result);
-		    });
-		if (cache_hit) {
-			return true;
-		}
-	}
-
-	// No valid cached result or caching disabled, make a new request
-	auto get_table_result = IRCAPI::GetTable(context, ic_catalog, schema, table.name);
-	if (get_table_result.error_) {
-		if (get_table_result.status_ == HTTPStatusCode::NotFound_404) {
-			// Glue returns 404 when a table is not an Iceberg Table with the error message
-			// "input table is not an iceberg table" of type "NoSuchIcebergTableException"
-			// Otherwise the error is a standard 404, we return false and duckdb will return
-			// that the table does not exist.
-			// see test/sql/cloud/test_glue_catalog_with_other_tables.test for testing
-			if (get_table_result.error_->_error.type != "NoSuchIcebergTableException") {
-				return false;
-			}
-		}
-		// surface all other errror messages. Not found will be returned as a catalog exception
-		// User should not if they do not have permission or if they are not authorized (or 500)
-		throw HTTPException(
-		    StringUtil::Format("GetTableInformation endpoint returned response code %s with message \"%s\"",
-		                       EnumUtil::ToString(get_table_result.status_), get_table_result.error_->_error.message));
-	}
-	auto &load_table_result = *get_table_result.result_;
-	table.InitializeFromLoadTableResult(load_table_result);
-	ic_catalog.table_request_cache.SetOrOverwrite(table_key, std::move(get_table_result.result_));
-	return true;
+	return catalog.Cast<IcebergCatalog>().GetBackend().LoadTable(context, table);
 }
 
 IcebergTableSchemaVersion &IcebergTableSet::GetOrCreateDummy(IcebergTable &table_info) const {
@@ -191,13 +151,13 @@ void IcebergTableSet::LoadEntriesInternal(ClientContext &context) {
 		return;
 	}
 	auto &ic_catalog = catalog.Cast<IcebergCatalog>();
-	auto tables = IRCAPI::GetTables(context, ic_catalog, schema);
+	auto tables = ic_catalog.GetBackend().ListTables(context, schema);
 	// A refused listing says nothing about which tables exist, so the cache is left untouched.
 	if (tables) {
 		case_insensitive_set_t listed;
 		for (auto &table : *tables) {
-			listed.insert(table.name);
-			entries.emplace(table.name, IcebergTable::CreatePlaceholder(ic_catalog, schema, table.name));
+			listed.insert(table);
+			entries.emplace(table, IcebergTable::CreatePlaceholder(ic_catalog, schema, table));
 		}
 		// 'entries' outlives the transaction, so drop the names the listing no longer reports.
 		// Tables created in this transaction live on the transaction, not here, so they are safe.
@@ -312,44 +272,14 @@ IcebergTable &IcebergTableSet::CreateNewEntry(ClientContext &context, IcebergCat
 	}
 
 	auto initial_partition_spec = IcebergTable::BuildPartitionSpec(info.partition_keys, *new_schema, 0, 1000);
-	IcebergCreateTableRequest create_table_request(info.GetTableName().GetIdentifierName(), new_schema,
-	                                               std::move(initial_partition_spec), iceberg_version.GetIndex(),
-	                                               bootstrap_metadata.table_properties, bootstrap_metadata.location);
+	IcebergCreateTableInfo create_table_info {info.GetTableName().GetIdentifierName(), new_schema,
+	                                          std::move(initial_partition_spec),       iceberg_version.GetIndex(),
+	                                          bootstrap_metadata.table_properties,     bootstrap_metadata.location};
 
-	// Immediately create the table with stage_create = true to get metadata & data location(s)
-	// transaction commit will either commit with data (OR) create the table with stage_create = false
-	auto new_table_result = make_uniq<const rest_api_objects::LoadTableResult>(
-	    IRCAPI::CommitNewTable(context, catalog, schema.namespace_items, create_table_request));
-
-	auto key = IcebergTable::GetTableKey(catalog, schema.namespace_items, info.GetTableName().GetIdentifierName());
-	auto &load_table_result = *new_table_result;
-	auto &alter_update = iceberg_transaction.GetOrCreateAlter();
-	auto &table_info = alter_update.CreateTable(
-	    key, IcebergTable(catalog, schema, info.GetTableName().GetIdentifierName(), load_table_result));
-	catalog.table_request_cache.SetOrOverwrite(key, std::move(new_table_result));
-
-	// if we stage created the table, we add an assert create
-	auto &transaction_data = table_info.GetOrCreateTransactionData(iceberg_transaction);
-	if (catalog.attach_options.stage_create_tables) {
-		transaction_data.TableAddAssertCreate();
-	}
-	if (!catalog.attach_options.stage_create_tables && catalog.attach_options.skip_create_table_metadata_updates) {
-		return table_info;
-	}
-
-	// other required updates to the table
-	transaction_data.TableAssignUUID();
-	transaction_data.TableAddUpradeFormatVersion();
-	transaction_data.TableAddSchema(0);
-	transaction_data.TableAddPartitionSpec();
-	transaction_data.TableSetDefaultSpec();
-	transaction_data.TableAddSortOrder();
-	transaction_data.TableSetDefaultSortOrder();
-	transaction_data.TableSetLocation();
-	transaction_data.TableSetProperties(table_info.table_metadata.table_properties);
-
-	iceberg_transaction.SetLatestTableState(key, IcebergTableStatus::ALIVE);
-	return table_info;
+	// Let the backend initialize the metadata, locations and transaction state for the new table.
+	auto table = IcebergTable(catalog, schema, info.GetTableName().GetIdentifierName(),
+	                          IcebergTableMetadata(IcebergTableMetadataSchemas {}));
+	return catalog.GetBackend().CreateTable(context, iceberg_transaction, std::move(table), create_table_info);
 }
 
 optional_ptr<CatalogEntry> IcebergTableSet::GetEntry(ClientContext &context, const EntryLookupInfo &lookup) {

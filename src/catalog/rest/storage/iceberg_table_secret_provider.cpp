@@ -9,7 +9,7 @@
 #include "duckdb/main/extension/extension_loader.hpp"
 #include "duckdb/main/secret/secret_manager.hpp"
 
-#include "catalog/rest/api/catalog_api.hpp"
+#include "catalog/iceberg_catalog_backend.hpp"
 #include "catalog/rest/catalog_entry/schema/iceberg_schema_entry.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table.hpp"
 #include "catalog/rest/iceberg_catalog.hpp"
@@ -108,55 +108,6 @@ static string GetRequiredRefreshOption(const CreateSecretInput &input, const str
 	return entry->second.ToString();
 }
 
-static bool SecretHasHTTPProxy(const SecretEntry &entry) {
-	auto http_kv_secret = dynamic_cast<const KeyValueSecret &>(*entry.secret);
-	return !http_kv_secret.TryGetValue("http_proxy").IsNull();
-}
-
-static unique_ptr<SecretEntry> GetNamedHTTPProxySecret(ClientContext &context, const string &secret_name) {
-	if (secret_name.empty()) {
-		return nullptr;
-	}
-	auto transaction = CatalogTransaction::GetSystemCatalogTransaction(context);
-	auto secret_entry = context.db->GetSecretManager().GetSecretByName(transaction, secret_name);
-	if (!secret_entry) {
-		throw InternalException("Secret '%s' not found", secret_name);
-	}
-	if (SecretHasHTTPProxy(*secret_entry)) {
-		return secret_entry;
-	}
-	return nullptr;
-}
-
-static unique_ptr<SecretEntry> LookupHTTPSecretForCatalog(ClientContext &context, IcebergCatalog &catalog) {
-	auto transaction = CatalogTransaction::GetSystemCatalogTransaction(context);
-	auto catalog_url = catalog.GetBaseUrl().GetURLEncoded();
-	auto secret_match = context.db->GetSecretManager().LookupSecret(transaction, catalog_url, "http");
-	if (!secret_match.HasMatch()) {
-		return nullptr;
-	}
-	return std::move(secret_match.secret_entry);
-}
-
-unique_ptr<SecretEntry> IcebergTableSecretProvider::GetHTTPSecretForCatalog(ClientContext &context,
-                                                                            IcebergCatalog &catalog) {
-	switch (catalog.auth_handler->type) {
-	case IcebergAuthorizationType::SIGV4: {
-		auto &sigv4 = catalog.auth_handler->Cast<SIGV4Authorization>();
-		auto named_secret = GetNamedHTTPProxySecret(context, sigv4.secret);
-		if (named_secret) {
-			return named_secret;
-		}
-		return LookupHTTPSecretForCatalog(context, catalog);
-	}
-	case IcebergAuthorizationType::OAUTH2:
-		return LookupHTTPSecretForCatalog(context, catalog);
-	default:
-		return nullptr;
-	}
-	return nullptr;
-}
-
 static CreateSecretInput ReVendVendedCredentials(ClientContext &context, CreateSecretInput &input) {
 	auto catalog_name = Identifier(GetRequiredRefreshOption(input, "catalog_name"));
 	auto schema_name = Identifier(GetRequiredRefreshOption(input, "schema"));
@@ -177,16 +128,7 @@ static CreateSecretInput ReVendVendedCredentials(ClientContext &context, CreateS
 	auto &table_entry = table_entry_p->Cast<IcebergTableSchemaVersion>();
 	auto &table_info = table_entry.table_info;
 
-	auto refreshed_credentials =
-	    IRCAPI::GetTableCredentials(context, ic_catalog, iceberg_schema, table_name.GetIdentifierName());
-	if (refreshed_credentials.error_) {
-		throw HTTPException(StringUtil::Format("Could not refresh Iceberg vended credentials for table '%s': "
-		                                       "GetTableInformation returned response code %s with message \"%s\"",
-		                                       table_name.GetIdentifierName(),
-		                                       EnumUtil::ToString(refreshed_credentials.status_),
-		                                       refreshed_credentials.error_->_error.message));
-	}
-	auto credentials = table_info.GetVendedCredentials(context, refreshed_credentials.result_->storage_credentials);
+	auto credentials = ic_catalog.GetBackend().RefreshTableCredentials(context, table_info);
 
 	optional_ptr<CreateSecretInput> match;
 	if (credentials.config) {
@@ -217,7 +159,7 @@ static CreateSecretInput ReVendVendedCredentials(ClientContext &context, CreateS
 	result.on_conflict = OnCreateConflict::REPLACE_ON_CONFLICT;
 	result.persist_type = input.persist_type;
 
-	auto http_secret_entry = IcebergTableSecretProvider::GetHTTPSecretForCatalog(context, ic_catalog);
+	auto http_secret_entry = ic_catalog.GetBackend().GetHTTPSecret(context);
 	if (http_secret_entry) {
 		IcebergTableSecretProvider::AddHTTPSecretsToOptions(*http_secret_entry, result.options);
 	}
