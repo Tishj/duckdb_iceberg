@@ -112,12 +112,31 @@ set variable first_snapshot = (
 	offset 0 limit 1
 );
 
+# Both committed snapshots remain readable. The rolled-back insert added no snapshot.
 query I
-SELECT i FROM my_datalake.default.time_travel_future_timestamp AT (VERSION => getvariable('first_snapshot')) ORDER BY i;
+SELECT count(*) FROM iceberg_snapshots(my_datalake.default.time_travel_future_timestamp);
 ----
-1
 2
-3
+
+statement ok
+SET VARIABLE snapshot_ids = (
+	SELECT list(snapshot_id ORDER BY sequence_number)
+	FROM iceberg_snapshots(my_datalake.default.time_travel_future_timestamp)
+);
+
+foreach snapshot_id <variable:snapshot_ids>
+
+# Keep the expected rows independent of the historical read being checked.
+query I
+SELECT list(i ORDER BY i) = CASE
+	WHEN {snapshot_id} = getvariable('first_snapshot') THEN [1, 2, 3]
+	ELSE [1, 2, 3, 4]
+END
+FROM my_datalake.default.time_travel_future_timestamp AT (VERSION => {snapshot_id});
+----
+true
+
+endloop
 
 # 'now()' lies after the last snapshot of the table, but it is not in the
 # future, so it resolves to the latest snapshot instead of throwing.
@@ -139,21 +158,12 @@ set variable first_timestamp = (
 	offset 0 limit 1
 );
 
-# `AT (TIMESTAMP => ...)` does not accept a getvariable() expression, so the
-# query text is built up and run through the `query` table function.
-statement ok
-set variable time_travel_query = $$
-	SELECT i FROM my_datalake.default.time_travel_future_timestamp
-		AT (TIMESTAMP => TIMESTAMP 'COMPONENT') ORDER BY i
-$$
+# Capture the timestamp as a tester variable to supply a SQL literal.
+set variable FIRST_TIMESTAMP <variable:first_timestamp>
 
 query I
-select * from query(
-	getvariable('time_travel_query').replace(
-		'COMPONENT'::VARCHAR,
-		getvariable('first_timestamp')::VARCHAR
-	)
-)
+SELECT i FROM my_datalake.default.time_travel_future_timestamp
+AT (TIMESTAMP => TIMESTAMP '{FIRST_TIMESTAMP}') ORDER BY i;
 ----
 1
 2

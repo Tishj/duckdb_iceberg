@@ -95,40 +95,32 @@ set variable latest_txn_manifest_list = (
 );
 
 statement ok
-set variable txn_manifest_1 = (
-	select manifest_path
+set variable txn_manifests = (
+	select list(manifest_path order by manifest_path)
 	from read_avro(getvariable('latest_txn_manifest_list'))
-	order by manifest_path
-	limit 1
 );
 
-statement ok
-set variable txn_manifest_2 = (
-	select manifest_path
-	from read_avro(getvariable('latest_txn_manifest_list'))
-	order by manifest_path
-	limit 1 offset 1
-);
+query I
+select len(getvariable('txn_manifests'));
+----
+3
 
 statement ok
-set variable txn_manifest_3 = (
-	select manifest_path
-	from read_avro(getvariable('latest_txn_manifest_list'))
-	order by manifest_path
-	limit 1 offset 2
-);
+create or replace temp table manifest_schemas (schema_id VARCHAR);
+
+foreach manifest_path <variable:txn_manifests>
+
+statement ok
+insert into manifest_schemas
+select value from avro_metadata('{manifest_path}') where key = 'schema-id';
+
+endloop
 
 query II
 select
 	count(*) filter (where schema_id = '0'),
 	count(*) filter (where schema_id = '1')
-from (
-	select value as schema_id from avro_metadata(getvariable('txn_manifest_1')) where key = 'schema-id'
-	union all
-	select value as schema_id from avro_metadata(getvariable('txn_manifest_2')) where key = 'schema-id'
-	union all
-	select value as schema_id from avro_metadata(getvariable('txn_manifest_3')) where key = 'schema-id'
-) t;
+from manifest_schemas;
 ----
 2	1
 
@@ -170,40 +162,32 @@ set variable latest_txn_manifest_list = (
 );
 
 statement ok
-set variable txn_manifest_1 = (
-	select manifest_path
+set variable txn_manifests = (
+	select list(manifest_path order by manifest_path)
 	from read_avro(getvariable('latest_txn_manifest_list'))
-	order by manifest_path
-	limit 1
 );
 
-statement ok
-set variable txn_manifest_2 = (
-	select manifest_path
-	from read_avro(getvariable('latest_txn_manifest_list'))
-	order by manifest_path
-	limit 1 offset 1
-);
+query I
+select len(getvariable('txn_manifests'));
+----
+3
 
 statement ok
-set variable txn_manifest_3 = (
-	select manifest_path
-	from read_avro(getvariable('latest_txn_manifest_list'))
-	order by manifest_path
-	limit 1 offset 2
-);
+create or replace temp table manifest_schemas (schema_id VARCHAR);
+
+foreach manifest_path <variable:txn_manifests>
+
+statement ok
+insert into manifest_schemas
+select value from avro_metadata('{manifest_path}') where key = 'schema-id';
+
+endloop
 
 query II
 select
 	count(*) filter (where schema_id = '0'),
 	count(*) filter (where schema_id = '1')
-from (
-	select value as schema_id from avro_metadata(getvariable('txn_manifest_1')) where key = 'schema-id'
-	union all
-	select value as schema_id from avro_metadata(getvariable('txn_manifest_2')) where key = 'schema-id'
-	union all
-	select value as schema_id from avro_metadata(getvariable('txn_manifest_3')) where key = 'schema-id'
-) t;
+from manifest_schemas;
 ----
 1	2
 

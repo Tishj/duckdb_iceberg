@@ -45,26 +45,48 @@ select count(*), sum(id) from my_datalake.default.compress_default;
 statement ok
 begin
 
-# Prove the manifest is actually deflate-compressed AND valid:
-#  - the Avro object-container header records avro.codec -> deflate (in the first bytes; the
-#    compressed data blocks that follow are not valid UTF-8, so we slice the header first), and
-#  - read_avro can decompress and read it back (it would fail if the codec were written wrong).
+# Check every manifest reachable from both snapshots, including historical ones.
+query I
+select count(*) from iceberg_snapshots(my_datalake.default.compress_default);
+----
+2
+
 statement ok
-SET VARIABLE manifest_default = (
-	SELECT manifest_path FROM iceberg_metadata(my_datalake.default.compress_default)
-	ORDER BY manifest_sequence_number DESC LIMIT 1
+set variable manifest_lists = (
+	select list(manifest_list order by sequence_number)
+	from iceberg_snapshots(my_datalake.default.compress_default)
 );
 
+foreach manifest_list <variable:manifest_lists>
+
+statement ok
+set variable snapshot_manifests = (
+	select list(manifest_path order by manifest_path)
+	from read_avro('{manifest_list}')
+);
+
+query I
+select len(getvariable('snapshot_manifests')) > 0;
+----
+true
+
+foreach manifest_path <variable:snapshot_manifests>
+
+# The Avro header records the codec; read_avro also checks decompression.
 query II
 SELECT position('deflate' IN (content[1:60]::VARCHAR)) > 0, position('null' IN (content[1:60]::VARCHAR)) = 0
-FROM read_blob(getvariable('manifest_default'));
+FROM read_blob('{manifest_path}');
 ----
 true	true
 
 query I
-SELECT count(*) > 0 FROM read_avro(getvariable('manifest_default'));
+SELECT count(*) > 0 FROM read_avro('{manifest_path}');
 ----
 true
+
+endloop
+
+endloop
 
 statement ok
 commit

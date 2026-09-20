@@ -39,30 +39,9 @@ statement ok
 insert into my_datalake.default.sort_identity_integer
 values (4, 20), (2, 10), (3, 30), (1, 10);
 
-statement ok
-set variable latest_manifest_sequence = (
-	select max(manifest_sequence_number)
-	from iceberg_metadata(my_datalake.default.sort_identity_integer)
-);
+set variable TABLE my_datalake.default.sort_identity_integer
 
-query I
-select count(*)
-from iceberg_metadata(my_datalake.default.sort_identity_integer)
-where manifest_sequence_number = cast(getvariable('latest_manifest_sequence') as bigint)
-and manifest_content = 'DATA'
-and status = 'ADDED';
-----
-1
-
-statement ok
-set variable file_path = (
-	select file_path
-	from iceberg_metadata(my_datalake.default.sort_identity_integer)
-	where manifest_sequence_number = cast(getvariable('latest_manifest_sequence') as bigint)
-	and manifest_content = 'DATA'
-	and status = 'ADDED'
-	limit 1
-);
+include test/sql/include/latest_added_data_file.inc
 
 # Use the Iceberg scan handle and assert the exact physical row order by sorting
 # on file_row_number.

@@ -34,39 +34,40 @@ begin
 statement ok
 set variable mp = (select manifest_path from iceberg_metadata(my_datalake.default.metrics_mode_test) order by manifest_sequence_number desc limit 1);
 
-# a (field 1): lower + upper bound truncated to the configured 8 bytes.
+# Explicit expectations: inherited truncate(8), full, and per-column truncate(4).
+statement ok
+create temp table bound_cases (field_id INTEGER, expected_bytes INTEGER);
+
+statement ok
+insert into bound_cases values (1, 8), (2, 16), (5, 4);
+
+statement ok
+set variable bound_fields = (select list(field_id order by field_id) from bound_cases);
+
+foreach field_id <variable:bound_fields>
+
+# Comparing lists also asserts that exactly one bound was written for this field.
 query I
-select octet_length(lb) from (
+select list(octet_length(lb)) =
+    [ (select expected_bytes from bound_cases where field_id = {field_id}) ]
+from (
     select unnest(map_keys(lower_bounds)) k, unnest(map_values(lower_bounds)) lb
     from (select unnest(data_file) from read_avro(getvariable('mp')))
-) where k = 1;
+) where k = {field_id};
 ----
-8
+true
 
 query I
-select octet_length(ub) from (
+select list(octet_length(ub)) =
+    [ (select expected_bytes from bound_cases where field_id = {field_id}) ]
+from (
     select unnest(map_keys(upper_bounds)) k, unnest(map_values(upper_bounds)) ub
     from (select unnest(data_file) from read_avro(getvariable('mp')))
-) where k = 1;
+) where k = {field_id};
 ----
-8
+true
 
-# b (field 2): full mode keeps the whole 16-byte value for both bounds.
-query I
-select octet_length(lb) from (
-    select unnest(map_keys(lower_bounds)) k, unnest(map_values(lower_bounds)) lb
-    from (select unnest(data_file) from read_avro(getvariable('mp')))
-) where k = 2;
-----
-16
-
-query I
-select octet_length(ub) from (
-    select unnest(map_keys(upper_bounds)) k, unnest(map_values(upper_bounds)) ub
-    from (select unnest(data_file) from read_avro(getvariable('mp')))
-) where k = 2;
-----
-16
+endloop
 
 # c (field 3): counts mode writes no bound...
 query I
@@ -102,15 +103,6 @@ select count(*) from (
 ) where k = 4;
 ----
 0
-
-# e (field 5): per-column truncate(4) overrides the truncate(8) default.
-query I
-select octet_length(lb) from (
-    select unnest(map_keys(lower_bounds)) k, unnest(map_values(lower_bounds)) lb
-    from (select unnest(data_file) from read_avro(getvariable('mp')))
-) where k = 5;
-----
-4
 
 statement ok
 commit
