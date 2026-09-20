@@ -1,6 +1,6 @@
 {
 	"description": "Use apache/iceberg-rest-fixture as Iceberg Rest Catalog.",
-	"init_script": "test/configs/fixture_init.sql",
+	"init_sqllogic": "test/configs/fixture_init.inc",
 	"skip_error_messages": [],
 	"statically_loaded_extensions": [
 		"core_functions",

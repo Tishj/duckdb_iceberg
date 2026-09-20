@@ -50,23 +50,58 @@ It can therefore use a SQL variable assigned by the enclosing loop. A standalone
 `set variable NAME <variable:...>` is parsed immediately and cannot capture a
 value that a deferred loop body has not produced yet.
 
-## 1. Move config SQL into a readable initialization script
+## 1. Compose catalog setup from parameterized sqllogictest includes
 
-[fixture.json](configs/fixture.json) references
-[fixture_init.sql](configs/fixture_init.sql) through `init_script`. This keeps
-credentials, attachment options, and schema setup readable without embedding an
-escaped SQL program in JSON. The SQL file replaces the previous setup string;
-it does not add another copy of the fixture's configuration.
+[fixture.json](configs/fixture.json) selects
+[fixture_init.inc](configs/fixture_init.inc) through `init_sqllogic`. Setup uses
+ordinary tester directives and `statement ok` blocks, so configs and custom-setup
+tests can share the same implementation.
 
-`init_script` is loaded as `on_init` SQL, preserving initialization when a
-connection is created. Keep connection-local settings in this lifecycle when
-reconnections or named connections need them. `init_sqllogic` instead runs a
-sqllogictest script once before the test body; it is useful for tester directives,
-but is not a drop-in lifecycle replacement for `on_init`.
+The fixture setup is split into three reusable parts:
+
+- [defaults.inc](sql/include/fixture/defaults.inc) initializes tester parameters
+  for the warehouse, catalog alias, REST credentials, URI, and extra attach
+  options. Include it once before overriding parameters.
+- [storage_secret.inc](sql/include/fixture/storage_secret.inc) creates storage
+  credentials once per database, independently of attachment.
+- [attach.inc](sql/include/fixture/attach.inc) attaches using the current
+  parameters. It does not reset defaults, recreate secrets, or create schemas.
+
+The config wrapper composes these and creates the default schema.
+[table_resolution.test](sql/local/catalog_custom_setup/fixture/attach_options/table_resolution.test)
+uses the same components directly, without the config's automatic attachment.
+It reuses the attach include with default options, then overrides it for eager
+resolution:
+
+```text
+statement ok
+SET VARIABLE fixture_attach_options = ', TABLE_RESOLUTION ''eager''';
+
+set variable FIXTURE_ATTACH_OPTIONS <variable:fixture_attach_options>
+
+include test/sql/include/fixture/attach.inc
+```
+
+Detach the current alias before attaching again. Other overrides, such as
+`set variable FIXTURE_CATALOG another_catalog`, follow the same pattern.
+`FIXTURE_WAREHOUSE` is a complete SQL string literal; `FIXTURE_CATALOG` is an
+identifier. Extra options are raw SQL with a leading comma, or an empty string.
+Use a SQL variable and the scalar bridge for fragments with spaces: tester
+`set variable` values must be a single token. Parameters persist across includes,
+so explicitly reset options when changing scenarios.
+
+`init_sqllogic` runs once before the test body. Named connections in that database
+share its attachment and storage secrets; they do not need to repeat setup.
+Unlike `on_init` / `init_script`, this hook does not rerun when a database is
+loaded or restarted. Tests that explicitly create a fresh database must include
+setup again. Keep connection-local initialization in `on_new_connection` when
+needed. Do not assume this config supports automatic forced reloads without
+additional lifecycle support.
 
 Keep catalog markers and reasoned skip policies in JSON. The separate
-`fixture_duckdb_tests.json` configuration remains independent. Run from the
-repository root, as with existing test commands.
+`fixture_duckdb_tests.json` configuration remains independent. Run custom-setup
+tests with their availability marker and without `fixture.json`, so they own the
+attachment lifecycle. Run from the repository root, as with existing commands.
 
 ## 2. Give a parameterized include an explicit contract
 
