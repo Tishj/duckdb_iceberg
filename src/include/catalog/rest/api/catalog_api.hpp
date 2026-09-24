@@ -16,6 +16,7 @@
 namespace duckdb {
 
 class IcebergCatalog;
+class IcebergRequestContext;
 struct IcebergCreateTableRequest;
 class IcebergSchemaEntry;
 class IcebergTableSchemaVersion;
@@ -52,7 +53,7 @@ public:
 	using Result = IcebergLoadViewResult;
 
 	IcebergLoadViewRequest(vector<string> namespace_items, string view_name);
-	IcebergLoadViewResult Execute(ClientContext &context, IcebergCatalog &catalog) const;
+	IcebergLoadViewResult Execute(IcebergRequestContext &context) const;
 
 private:
 	vector<string> namespace_items;
@@ -60,13 +61,13 @@ private:
 };
 
 //! Owns the request inputs; execution only fetches and parses a response.
-//! The caller supplies a live context and catalog and owns cache lookup and result publication.
+//! The caller supplies an execution context and owns cache lookup and result publication.
 class IcebergLoadTableRequest {
 public:
 	using Result = IcebergLoadTableResult;
 
 	IcebergLoadTableRequest(vector<string> namespace_items, string table_name);
-	IcebergLoadTableResult Execute(ClientContext &context, IcebergCatalog &catalog) const;
+	IcebergLoadTableResult Execute(IcebergRequestContext &context) const;
 
 private:
 	vector<string> namespace_items;
@@ -86,7 +87,7 @@ public:
 	using Result = IcebergListViewsResult;
 
 	explicit IcebergListViewsRequest(vector<string> namespace_items);
-	IcebergListViewsResult Execute(ClientContext &context, IcebergCatalog &catalog) const;
+	IcebergListViewsResult Execute(IcebergRequestContext &context) const;
 
 private:
 	vector<string> namespace_items;
@@ -98,7 +99,7 @@ public:
 	using Result = IcebergListTablesResult;
 
 	explicit IcebergListTablesRequest(vector<string> namespace_items);
-	IcebergListTablesResult Execute(ClientContext &context, IcebergCatalog &catalog) const;
+	IcebergListTablesResult Execute(IcebergRequestContext &context) const;
 
 private:
 	vector<string> namespace_items;
@@ -110,7 +111,7 @@ public:
 	using Result = IcebergListSchemasResult;
 
 	explicit IcebergListSchemasRequest(vector<string> parent);
-	IcebergListSchemasResult Execute(ClientContext &context, IcebergCatalog &catalog) const;
+	IcebergListSchemasResult Execute(IcebergRequestContext &context) const;
 
 private:
 	vector<string> parent;

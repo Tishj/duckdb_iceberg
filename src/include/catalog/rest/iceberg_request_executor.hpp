@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/rest/iceberg_request_task.hpp"
+#include "duckdb/main/client_context.hpp"
 
 #include <chrono>
 
@@ -11,14 +12,14 @@ namespace duckdb {
 class IcebergRequestExecutor {
 public:
 	IcebergRequestExecutor(ClientContext &context, IcebergCatalog &catalog)
-	    : context(context), catalog(catalog), executor(context, TaskSchedulerType::ASYNC) {
+	    : context(context), request_context(context, catalog), executor(context, TaskSchedulerType::ASYNC) {
 	}
 
 	template <class REQUEST>
 	shared_ptr<IcebergRequestResult<typename REQUEST::Result>> Schedule(REQUEST request) {
 		auto result = make_shared_ptr<IcebergRequestResult<typename REQUEST::Result>>();
 		executor.ScheduleTask(
-		    make_uniq<IcebergRequestTask<REQUEST>>(executor, context, catalog, std::move(request), result));
+		    make_uniq<IcebergRequestTask<REQUEST>>(executor, request_context, std::move(request), result));
 		return result;
 	}
 
@@ -70,7 +71,7 @@ public:
 
 private:
 	ClientContext &context;
-	IcebergCatalog &catalog;
+	IcebergRequestContext request_context;
 	TaskExecutor executor;
 };
 

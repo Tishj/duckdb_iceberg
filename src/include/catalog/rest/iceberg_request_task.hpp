@@ -4,7 +4,7 @@
 #include "duckdb/common/mutex.hpp"
 #include "duckdb/common/optional.hpp"
 #include "duckdb/common/shared_ptr.hpp"
-#include "duckdb/main/client_context.hpp"
+#include "catalog/rest/iceberg_request_context.hpp"
 #include "duckdb/parallel/task_executor.hpp"
 
 #include <condition_variable>
@@ -75,10 +75,9 @@ class IcebergRequestTask : public BaseExecutorTask {
 public:
 	using Result = typename REQUEST::Result;
 
-	IcebergRequestTask(TaskExecutor &executor, ClientContext &context, IcebergCatalog &catalog, REQUEST request,
+	IcebergRequestTask(TaskExecutor &executor, IcebergRequestContext &context, REQUEST request,
 	                   shared_ptr<IcebergRequestResult<Result>> result)
-	    : BaseExecutorTask(executor), context(context), catalog(catalog), request(std::move(request)),
-	      result(std::move(result)) {
+	    : BaseExecutorTask(executor), context(context), request(std::move(request)), result(std::move(result)) {
 	}
 
 	void ExecuteTask() override {
@@ -87,7 +86,7 @@ public:
 			throw InterruptException();
 		}
 		try {
-			result->SetResult(request.Execute(context, catalog));
+			result->SetResult(request.Execute(context));
 		} catch (std::exception &ex) {
 			// Let the caller decide whether a request failure aborts the operation or is only a warning.
 			result->SetError(ErrorData(ex));
@@ -106,8 +105,7 @@ public:
 	}
 
 private:
-	ClientContext &context;
-	IcebergCatalog &catalog;
+	IcebergRequestContext &context;
 	REQUEST request;
 	shared_ptr<IcebergRequestResult<Result>> result;
 };
