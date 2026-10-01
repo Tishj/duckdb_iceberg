@@ -101,10 +101,10 @@ bool IcebergTableSet::ApplyLoadResult(IcebergTable &table, IcebergLoadTableResul
 namespace {
 
 struct PendingTableLoad {
-	explicit PendingTableLoad(IcebergTable &table) : table(table) {
+	explicit PendingTableLoad(shared_ptr<IcebergTable> table) : table(std::move(table)) {
 	}
 
-	IcebergTable &table;
+	shared_ptr<IcebergTable> table;
 	unique_ptr<LoadTableCachePublication> publication;
 	shared_ptr<IcebergRequestResult<IcebergLoadTableResult>> result;
 };
@@ -130,8 +130,8 @@ void IcebergTableSet::ScanEagerEntries(ClientContext &context, const std::functi
 		context.InterruptCheck();
 		auto &table = *entry->second;
 		transaction.tables[table.GetTableKey()] = entry->second;
+		auto load = make_uniq<PendingTableLoad>(entry->second);
 		++entry;
-		auto load = make_uniq<PendingTableLoad>(table);
 		bool needs_load = false;
 		try {
 			needs_load = !TryFillEntryFromCache(context, table);
@@ -154,14 +154,14 @@ void IcebergTableSet::ScanEagerEntries(ClientContext &context, const std::functi
 		pending.pop_front();
 		if (load->result) {
 			try {
-				ApplyLoadResult(load->table, executor.WaitAndTakeResult(*load->result), *load->publication);
+				ApplyLoadResult(*load->table, executor.WaitAndTakeResult(*load->result), *load->publication);
 			} catch (std::exception &ex) {
 				ErrorData error(ex);
 				if (error.Type() == ExceptionType::INTERRUPT || executor.HasError()) {
 					throw;
 				}
 				context.InterruptCheck();
-				WarnTableLoadFailure(context, load->table, error);
+				WarnTableLoadFailure(context, *load->table, error);
 			}
 		}
 		// Refill before invoking the callback, so requests can overlap both consumption and callback work.
@@ -169,44 +169,21 @@ void IcebergTableSet::ScanEagerEntries(ClientContext &context, const std::functi
 		if (entry != entries.end()) {
 			schedule_next();
 		}
-		callback(GetScanEntry(load->table));
+		callback(GetScanEntry(transaction, load->table));
 	}
 	// Join at the scan boundary. Exceptions instead cancel and drain through the executor's destructor.
 	executor.Drain();
 }
 
-CatalogEntry &IcebergTableSet::GetScanEntry(IcebergTable &table_info) const {
-	if (!table_info.schema_versions.empty()) {
+CatalogEntry &IcebergTableSet::GetScanEntry(IcebergTransaction &transaction, shared_ptr<IcebergTable> table) const {
+	if (!table->schema_versions.empty()) {
 		// Surface resolved columns, including comments, instead of a listing placeholder.
-		auto resolved = table_info.GetLatestSchema();
+		auto resolved = table->GetLatestSchema();
 		if (resolved) {
 			return *resolved;
 		}
 	}
-	return GetOrCreateDummy(table_info);
-}
-
-IcebergTableSchemaVersion &IcebergTableSet::GetOrCreateDummy(IcebergTable &table_info) const {
-	if (table_info.dummy_entry) {
-		return *table_info.dummy_entry;
-	}
-	// create a table entry with fake schema data to avoid calling the LoadTableInformation endpoint for every
-	// table while listing schemas
-	CreateTableInfo info(schema, Identifier(table_info.name));
-	vector<ColumnDefinition> columns;
-	auto col = ColumnDefinition(Identifier("__"), LogicalType::UNKNOWN);
-	columns.push_back(std::move(col));
-	info.columns = ColumnList(std::move(columns));
-	auto table_entry = make_uniq<IcebergTableSchemaVersion>(table_info, catalog, schema, info, optional_idx());
-	if (!table_entry->internal) {
-		table_entry->internal = schema.internal;
-	}
-	auto result = table_entry.get();
-	if (result->name.empty()) {
-		throw InternalException("IcebergTableSet::CreateEntry called with empty name");
-	}
-	table_info.dummy_entry = std::move(table_entry);
-	return *table_info.dummy_entry;
+	return transaction.GetOrCreateTableListingEntry(std::move(table));
 }
 
 void IcebergTableSet::Scan(ClientContext &context, const std::function<void(CatalogEntry &)> &callback) {
@@ -220,7 +197,7 @@ void IcebergTableSet::Scan(ClientContext &context, const std::function<void(Cata
 	for (auto &entry : entries) {
 		auto &table = *entry.second;
 		transaction.tables[table.GetTableKey()] = entry.second;
-		callback(GetScanEntry(table));
+		callback(GetScanEntry(transaction, entry.second));
 	}
 }
 

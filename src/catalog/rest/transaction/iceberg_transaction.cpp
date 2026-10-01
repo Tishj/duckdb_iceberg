@@ -71,6 +71,37 @@ IcebergTable &IcebergTransactionTableState::GetOrCreateTransactionInfo(IcebergTr
 	return *transaction_table;
 }
 
+struct IcebergTransaction::TableListingEntry {
+	explicit TableListingEntry(shared_ptr<IcebergTable> table_p) : table(std::move(table_p)) {
+		// Keep the existing lazy listing behavior until listing entries can resolve their columns on demand.
+		CreateTableInfo info(table->schema, Identifier(table->name));
+		vector<ColumnDefinition> columns;
+		columns.emplace_back(Identifier("__"), LogicalType::UNKNOWN);
+		info.columns = ColumnList(std::move(columns));
+		entry = make_uniq<IcebergTableSchemaVersion>(*table, table->catalog, table->schema, info, optional_idx());
+		entry->internal = table->schema.internal;
+		if (entry->name.empty()) {
+			throw InternalException("IcebergTransaction::GetOrCreateTableListingEntry called with empty name");
+		}
+	}
+
+	//! Pin the exact table referenced by the entry, independently of the transaction's name-keyed table map.
+	shared_ptr<IcebergTable> table;
+	unique_ptr<IcebergTableSchemaVersion> entry;
+};
+
+IcebergTableSchemaVersion &IcebergTransaction::GetOrCreateTableListingEntry(shared_ptr<IcebergTable> table) {
+	auto existing = table_listing_entries.find(table.get());
+	if (existing != table_listing_entries.end()) {
+		return *existing->second->entry;
+	}
+	auto key = table.get();
+	auto listing = make_uniq<TableListingEntry>(std::move(table));
+	auto &entry = *listing->entry;
+	table_listing_entries.emplace(key, std::move(listing));
+	return entry;
+}
+
 IcebergTransaction::IcebergTransaction(IcebergCatalog &ic_catalog, TransactionManager &manager, ClientContext &context)
     : Transaction(manager, context), db(*context.db), catalog(ic_catalog), access_mode(ic_catalog.access_mode) {
 }

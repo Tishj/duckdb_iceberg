@@ -101,6 +101,7 @@ public:
 	IcebergTable &DeleteTable(IcebergTable &table);
 	IcebergTable &RenameTable(IcebergTable &table, const string &new_name);
 	bool MultiTableCommitAvailable() const;
+	IcebergTableSchemaVersion &GetOrCreateTableListingEntry(shared_ptr<IcebergTable> table);
 
 public:
 	//! Set while a MERGE INTO is planned: its UPDATE and DELETE actions are governed by write.merge.mode, not by
@@ -167,6 +168,12 @@ public:
 	mutex lock;
 
 	case_insensitive_map_t<SchemaPropertyUpdates> schema_property_updates;
+
+private:
+	struct TableListingEntry;
+	//! Listing entries retain their table generation, even if a lookup replaces the same name in tables.
+	//! Declared last so their schema and table references remain alive during destruction.
+	unordered_map<const IcebergTable *, unique_ptr<TableListingEntry>> table_listing_entries;
 };
 
 void ApplyTableUpdate(IcebergTable &table_info, IcebergTransaction &iceberg_transaction,

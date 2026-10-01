@@ -723,7 +723,6 @@ void IcebergTable::ApplyRefreshResult(IcebergLoadTableResult get_table_result, L
 	}
 	auto &load_table_result = *get_table_result.result_;
 	schema_versions.clear();
-	dummy_entry.reset();
 	InitializeFromLoadTableResult(load_table_result);
 	initialization_source = nullptr;
 	if (publication.TryPublish(std::move(get_table_result.result_))) {
