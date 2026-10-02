@@ -7,8 +7,9 @@ REST_CATALOG_CODEGEN_PYTHON := $(PROJ_DIR)duckdb/.cache/format-venv/bin/python
 EXT_NAME=iceberg
 EXT_CONFIG=${PROJ_DIR}extension_config.cmake
 
-# We need this for testing
-CORE_EXTENSIONS='httpfs;parquet;tpch'
+# Named dependency configs retain their platform conditions and pinned revisions.
+EXTENSION_CONFIG_BASE_DIR := $(PROJ_DIR)make/extension_configs
+DEFAULT_TEST_EXTENSION_DEPS := httpfs;parquet;tpch;avro;aws
 
 ifeq (${EQUALITY_DELETE_WRITES_ENABLED}, 1)
 	EXT_FLAGS:=${EXT_FLAGS} -DICEBERG_ENABLE_EQUALITY_DELETE_WRITES=1
