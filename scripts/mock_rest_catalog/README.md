@@ -1,5 +1,10 @@
 # Mock REST catalog
 
+For tests without any external service, use
+[`make test_mock_native_reldebug`](../../test/native_catalog/README.md).
+The native backend runs inside DuckDB and shares this server's capability and
+skip policy. This Python backend remains available for testing over real HTTP.
+
 This test-only Python standard-library server exercises the real Iceberg HTTP client
 and local Parquet/Avro writes without Docker, Spark, or an object store.
 
