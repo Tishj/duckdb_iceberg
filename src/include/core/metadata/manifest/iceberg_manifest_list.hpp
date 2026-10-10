@@ -11,11 +11,13 @@
 
 #include "core/metadata/manifest/iceberg_manifest.hpp"
 
+#include <type_traits>
 #include <variant>
 
 namespace duckdb {
 
 struct IcebergPartitionSpec;
+struct IcebergManifestListEntry;
 
 using sequence_number_t = int64_t;
 
@@ -141,6 +143,9 @@ struct IcebergManifestFile : public IcebergManifest {
 
 //! A written manifest with its metadata and complete entry set materialized.
 struct IcebergLoadedManifest {
+	//! Consume scan buffers after all readers for this entry have finished.
+	static IcebergLoadedManifest FromScan(IcebergManifestListEntry entry);
+
 	IcebergManifestFile file;
 	IcebergManifestMetadata metadata;
 	vector<IcebergManifestEntry> entries;
@@ -150,15 +155,14 @@ struct IcebergManifestListEntry {
 public:
 	IcebergManifestListEntry(IcebergManifestFile file) : manifest(std::move(file)) {
 	}
-	IcebergManifestListEntry(IcebergLoadedManifest loaded)
-	    : manifest_metadata(std::move(loaded.metadata)), manifest_entries(std::move(loaded.entries)),
-	      manifest(std::move(loaded.file)) {
+	IcebergManifestListEntry(IcebergLoadedManifest loaded) : manifest(std::move(loaded)) {
 	}
 	IcebergManifestListEntry(const IcebergManifestListEntry &) = default;
 	IcebergManifestListEntry(IcebergManifestListEntry &&) = default;
 	IcebergManifestListEntry &operator=(const IcebergManifestListEntry &other) {
 		if (this != &other) {
-			manifest = other.manifest;
+			std::visit([this](const auto &value) { manifest.emplace<std::decay_t<decltype(value)>>(value); },
+			           other.manifest);
 			manifest_entries = other.manifest_entries;
 			if (other.manifest_metadata) {
 				manifest_metadata.reset();
@@ -171,7 +175,8 @@ public:
 	}
 	IcebergManifestListEntry &operator=(IcebergManifestListEntry &&other) {
 		if (this != &other) {
-			manifest = std::move(other.manifest);
+			std::visit([this](auto &value) { manifest.emplace<std::decay_t<decltype(value)>>(std::move(value)); },
+			           other.manifest);
 			manifest_entries = std::move(other.manifest_entries);
 			if (other.manifest_metadata) {
 				manifest_metadata.reset();
@@ -189,50 +194,93 @@ public:
 	                                              const IcebergTableMetadata &table_metadata,
 	                                              const IcebergManifestMetadata &manifest_metadata,
 	                                              vector<IcebergManifestEntry> entries);
-	bool HasManifestEntries() const {
-		return manifest_entries.has_value();
+	bool HasLoadedManifest() const {
+		return std::holds_alternative<IcebergLoadedManifest>(manifest);
+	}
+	IcebergLoadedManifest TakeLoadedManifest() && {
+		if (!HasLoadedManifest()) {
+			throw InternalException("Manifest contents have not been fully loaded");
+		}
+		return std::move(std::get<IcebergLoadedManifest>(manifest));
 	}
 	vector<IcebergManifestEntry> &GetManifestEntries() {
+		if (HasLoadedManifest()) {
+			return std::get<IcebergLoadedManifest>(manifest).entries;
+		}
 		D_ASSERT(manifest_entries);
 		return *manifest_entries;
 	}
 	const vector<IcebergManifestEntry> &GetManifestEntries() const {
+		if (HasLoadedManifest()) {
+			return std::get<IcebergLoadedManifest>(manifest).entries;
+		}
 		D_ASSERT(manifest_entries);
 		return *manifest_entries;
 	}
-	vector<IcebergManifestEntry> &GetOrCreateManifestEntries() {
+	//! Buffers may be reserved or partially filled; their presence does not establish completion.
+	//! Call before scan tasks start, or hold the scan's per-manifest lock through mutation and batch publication.
+	//! Streaming reads must reserve capacity before task launch to keep published entry references stable.
+	vector<IcebergManifestEntry> &GetOrCreateReadBuffer() {
+		if (!std::holds_alternative<IcebergManifestFile>(manifest)) {
+			throw InternalException("Only an unloaded manifest file can receive scan buffers");
+		}
 		if (!manifest_entries) {
 			manifest_entries.emplace();
 		}
 		return *manifest_entries;
 	}
+	optional_ptr<const IcebergManifestMetadata> TryGetManifestMetadata() const {
+		if (HasLoadedManifest()) {
+			return std::get<IcebergLoadedManifest>(manifest).metadata;
+		}
+		return manifest_metadata ? &*manifest_metadata : nullptr;
+	}
+	void InitializeManifestMetadata(IcebergManifestMetadata metadata) {
+		if (TryGetManifestMetadata()) {
+			throw InternalException("Manifest metadata is already initialized");
+		}
+		manifest_metadata.emplace(std::move(metadata));
+	}
 
 public:
 	bool HasFile() const {
-		return std::holds_alternative<IcebergManifestFile>(manifest);
+		return std::holds_alternative<IcebergManifestFile>(manifest) || HasLoadedManifest();
 	}
 	const IcebergManifestFile &GetFile() const {
+		if (HasLoadedManifest()) {
+			return std::get<IcebergLoadedManifest>(manifest).file;
+		}
 		if (!HasFile()) {
 			throw InternalException("In-memory manifest content has no Avro file");
 		}
 		return std::get<IcebergManifestFile>(manifest);
 	}
 	IcebergManifest &GetManifest() {
+		if (HasLoadedManifest()) {
+			return std::get<IcebergLoadedManifest>(manifest).file;
+		}
 		return HasFile() ? std::get<IcebergManifestFile>(manifest) : std::get<IcebergManifest>(manifest);
 	}
 	const IcebergManifest &GetManifest() const {
+		if (HasLoadedManifest()) {
+			return std::get<IcebergLoadedManifest>(manifest).file;
+		}
 		return HasFile() ? std::get<IcebergManifestFile>(manifest) : std::get<IcebergManifest>(manifest);
 	}
-	optional<IcebergManifestMetadata> manifest_metadata;
-	optional<vector<IcebergManifestEntry>> manifest_entries;
 
 private:
+	friend struct IcebergLoadedManifest;
+
 	IcebergManifestListEntry(IcebergManifest manifest, IcebergManifestMetadata metadata,
 	                         vector<IcebergManifestEntry> entries)
 	    : manifest_metadata(std::move(metadata)), manifest_entries(std::move(entries)), manifest(std::move(manifest)) {
 	}
 
-	std::variant<IcebergManifest, IcebergManifestFile> manifest;
+	//! Read buffers for file descriptors, or the complete content of an in-memory scan.
+	//! Loaded files keep their metadata and entries together in the variant instead.
+	optional<IcebergManifestMetadata> manifest_metadata;
+	optional<vector<IcebergManifestEntry>> manifest_entries;
+	std::variant<IcebergManifest, IcebergManifestFile, IcebergLoadedManifest> manifest;
 };
 
 //! Contains only descriptors for written Avro files; in-memory scan entries cannot be added to this list.

@@ -603,11 +603,11 @@ ReaderInitializeType IcebergAvroMultiFileReader::InitializeReader(
 			auto file_idx = manifest_scan_info.GetManifestIndex(reader_data.reader->file_list_idx.GetIndex());
 			lock_guard<mutex> manifest_guard(manifest_scan_info.GetManifestLock(file_idx));
 			auto &manifest_list_entry = manifest_scan_info.manifest_files[file_idx];
-			if (!manifest_list_entry.manifest_metadata) {
+			if (!manifest_list_entry.TryGetManifestMetadata()) {
 				auto manifest_path = manifest_list_entry.GetFile().manifest_path.empty()
 				                         ? reader_data.reader->GetFileName()
 				                         : manifest_list_entry.GetFile().manifest_path;
-				manifest_list_entry.manifest_metadata.emplace(
+				manifest_list_entry.InitializeManifestMetadata(
 				    ParseManifestMetadata(reader_data.reader->GetMetadata(), manifest_path));
 			}
 		}
@@ -653,8 +653,9 @@ void IcebergAvroMultiFileReader::FinalizeChunk(ClientContext &context, const Mul
 
 		//! InitializeReader publishes this immutable value under the per-manifest lock
 		//! before this reader can produce chunks.
-		D_ASSERT(manifest_file.manifest_metadata);
-		auto &manifest_metadata = *manifest_file.manifest_metadata;
+		auto manifest_metadata_p = manifest_file.TryGetManifestMetadata();
+		D_ASSERT(manifest_metadata_p);
+		auto &manifest_metadata = *manifest_metadata_p;
 		auto spec_id = manifest_metadata.partition_spec_id;
 		auto partition_spec_p = metadata.FindPartitionSpecById(spec_id);
 		if (!partition_spec_p) {
@@ -671,7 +672,7 @@ void IcebergAvroMultiFileReader::FinalizeChunk(ClientContext &context, const Mul
 		                                         decoded_entries);
 
 		lock_guard<mutex> manifest_guard(manifest_scan_info.GetManifestLock(manifest_file_idx));
-		auto &manifest_entries = manifest_file.GetOrCreateManifestEntries();
+		auto &manifest_entries = manifest_file.GetOrCreateReadBuffer();
 		idx_t start_index = manifest_entries.size();
 		if (manifest_scan_info.read_state) {
 			//! Streaming consumers retain references into this vector after publication. LoadManifestList

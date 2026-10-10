@@ -134,6 +134,19 @@ void IcebergManifest::SetCountsFromEntries(const vector<IcebergManifestEntry> &e
 	}
 }
 
+IcebergLoadedManifest IcebergLoadedManifest::FromScan(IcebergManifestListEntry entry) {
+	if (entry.HasLoadedManifest()) {
+		return std::move(entry).TakeLoadedManifest();
+	}
+	const auto &file = entry.GetFile();
+	if (!entry.manifest_metadata) {
+		throw InvalidConfigurationException("Could not read metadata from manifest '%s'", file.manifest_path);
+	}
+	auto entries = entry.manifest_entries ? std::move(*entry.manifest_entries) : vector<IcebergManifestEntry>();
+	auto loaded_file = std::move(std::get<IcebergManifestFile>(entry.manifest));
+	return {std::move(loaded_file), *entry.manifest_metadata, std::move(entries)};
+}
+
 IcebergManifest IcebergManifest::CreateFromEntries(sequence_number_t sequence_number,
                                                    const IcebergTableMetadata &table_metadata,
                                                    const IcebergManifestMetadata &manifest_metadata,
@@ -760,13 +773,17 @@ unique_ptr<IcebergManifestList> IcebergManifestList::Load(const string &iceberg_
 		}
 	}
 
-	//! Read all manifest files, producing 'manifest_entry' items
-	auto manifest_scan =
-	    AvroScan::ScanManifest(snapshot_info, ret->manifest_entries, options, fs, iceberg_path, metadata, context);
-	auto manifest_file_reader = make_uniq<manifest_file::ManifestReader>(*manifest_scan);
-
-	while (!manifest_file_reader->Finished()) {
-		manifest_file_reader->Read();
+	{
+		//! Read all manifest files, producing 'manifest_entry' items.
+		auto manifest_scan =
+		    AvroScan::ScanManifest(snapshot_info, ret->manifest_entries, options, fs, iceberg_path, metadata, context);
+		auto manifest_file_reader = make_uniq<manifest_file::ManifestReader>(*manifest_scan);
+		while (!manifest_file_reader->Finished()) {
+			manifest_file_reader->Read();
+		}
+	}
+	for (auto &entry : ret->manifest_entries) {
+		entry = IcebergManifestListEntry(IcebergLoadedManifest::FromScan(std::move(entry)));
 	}
 	return ret;
 }

@@ -139,7 +139,7 @@ void IcebergScanPlanner::InitializeView(annotated_lock_guard<annotated_mutex> &g
 		data_manifest_matches.push_back(pruner.ManifestMatchesFilter(manifest));
 	}
 	for (auto &manifest : GetScanPlanProvider().TransactionDataManifests()) {
-		auto &metadata = manifest.get().manifest_metadata;
+		auto metadata = manifest.get().TryGetManifestMetadata();
 		D_ASSERT(metadata);
 		auto lineage_mode =
 		    metadata->format_version >= 3 ? IcebergRowLineageMode::STORED_ONLY : IcebergRowLineageMode::NONE;

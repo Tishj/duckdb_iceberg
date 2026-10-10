@@ -71,12 +71,12 @@ optional_ptr<const IcebergSnapshot> IcebergCommitState::GetLatestSnapshot() cons
 }
 
 IcebergLoadedManifest IcebergCommitState::LoadManifest(IcebergManifestListEntry manifest, int32_t schema_id) {
-	if (manifest.HasManifestEntries() && manifest.manifest_metadata) {
-		auto file = manifest.GetFile();
-		if (!file.counts || !file.counts->Complete()) {
-			file.SetCountsFromEntries(manifest.GetManifestEntries());
+	if (manifest.HasLoadedManifest()) {
+		auto loaded = std::move(manifest).TakeLoadedManifest();
+		if (!loaded.file.counts || !loaded.file.counts->Complete()) {
+			loaded.file.SetCountsFromEntries(loaded.entries);
 		}
-		return {std::move(file), *manifest.manifest_metadata, std::move(manifest.GetManifestEntries())};
+		return loaded;
 	}
 	IcebergSnapshotScanInfo snapshot_info;
 	snapshot_info.snapshot = GetLatestSnapshot();

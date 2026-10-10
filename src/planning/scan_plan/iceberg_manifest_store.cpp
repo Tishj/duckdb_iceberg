@@ -131,7 +131,7 @@ void IcebergManifestStore::LoadManifestList() {
 		for (idx_t manifest_idx = 0; manifest_idx < data_manifests.size(); manifest_idx++) {
 			auto &list_entry = data_manifests[manifest_idx];
 			auto &manifest = list_entry.GetManifest();
-			if (list_entry.HasManifestEntries()) {
+			if (list_entry.HasLoadedManifest()) {
 				eagerly_loaded_data_manifests[manifest_idx] = true;
 				if (!manifest.counts || !manifest.counts->Complete()) {
 					manifest.SetCountsFromEntries(list_entry.GetManifestEntries());
@@ -147,7 +147,7 @@ void IcebergManifestStore::LoadManifestList() {
 
 			idx_t reserve_size =
 			    *counts->existing_files_count + *counts->added_files_count + *counts->deleted_files_count;
-			list_entry.GetOrCreateManifestEntries().reserve(reserve_size);
+			list_entry.GetOrCreateReadBuffer().reserve(reserve_size);
 		}
 
 		if (!manifests_to_eagerly_load.empty()) {
@@ -160,7 +160,9 @@ void IcebergManifestStore::LoadManifestList() {
 			}
 			for (auto manifest_idx : manifests_to_eagerly_load) {
 				auto &manifest = data_manifests[manifest_idx];
-				manifest.GetManifest().SetCountsFromEntries(manifest.GetManifestEntries());
+				auto loaded = IcebergLoadedManifest::FromScan(std::move(manifest));
+				loaded.file.SetCountsFromEntries(loaded.entries);
+				manifest = IcebergManifestListEntry(std::move(loaded));
 				eagerly_loaded_data_manifests[manifest_idx] = true;
 			}
 		}
@@ -271,7 +273,7 @@ void IcebergManifestStore::ReadDeleteManifests(const vector<idx_t> &manifest_ind
 				continue;
 			}
 			auto &manifest = committed_delete_manifests[manifest_idx];
-			if (manifest.HasManifestEntries()) {
+			if (manifest.HasLoadedManifest()) {
 				//! Scan for this manifest is already completed
 				continue;
 			}
@@ -333,8 +335,8 @@ void IcebergManifestStore::ReadDeleteManifests(const vector<idx_t> &manifest_ind
 				auto manifest_idx = new_load->manifest_indexes[load_idx];
 				auto &target = committed_delete_manifests[manifest_idx];
 				auto &source = new_load->manifests[load_idx];
-				D_ASSERT(!target.HasManifestEntries());
-				target.manifest_entries = std::move(source.manifest_entries);
+				D_ASSERT(!target.HasLoadedManifest());
+				target = IcebergManifestListEntry(IcebergLoadedManifest::FromScan(std::move(source)));
 			}
 		} catch (std::exception &ex) {
 			load_error = ErrorData(ex);
@@ -370,7 +372,7 @@ vector<IcebergDeleteFileReference> IcebergManifestStore::GetDeleteFiles(const ve
 
 		if (manifest_idx < committed_manifest_count) {
 			auto &manifest_list_entry = committed_delete_manifests[manifest_idx];
-			if (!manifest_list_entry.HasManifestEntries()) {
+			if (!manifest_list_entry.HasLoadedManifest()) {
 				throw InternalException("Selected delete manifest %llu was not loaded", manifest_idx);
 			}
 			auto &manifest_entries = manifest_list_entry.GetManifestEntries();

@@ -15,6 +15,9 @@ statement ok
 set enable_external_file_cache=false;
 
 statement ok
+set threads=4;
+
+statement ok
 drop table if exists my_datalake.default.delete_manifest_late_materialization;
 
 statement ok
@@ -26,15 +29,18 @@ create table my_datalake.default.delete_manifest_late_materialization (
 	'commit.manifest-merge.enabled' = 'false'
 );
 
-# Both of these data files precede the delete manifest.
+# These data files precede the delete manifest. Two files share the matching partition.
 statement ok
 insert into my_datalake.default.delete_manifest_late_materialization select 1, range from range(10, 14);
+
+statement ok
+insert into my_datalake.default.delete_manifest_late_materialization select 1, range from range(14, 18);
 
 statement ok
 insert into my_datalake.default.delete_manifest_late_materialization select 2, range from range(20, 24);
 
 statement ok
-delete from my_datalake.default.delete_manifest_late_materialization where part = 1 and payload = 10;
+delete from my_datalake.default.delete_manifest_late_materialization where part = 1 and payload IN (10, 14);
 
 # This data file has a sequence number newer than the delete manifest.
 statement ok
@@ -47,7 +53,7 @@ where status <> 'DELETED'
 group by manifest_content
 order by manifest_content;
 ----
-DATA	3
+DATA	4
 DELETE	1
 
 statement ok
@@ -86,14 +92,14 @@ where type = 'Iceberg' and message.contains('phase=delete_manifest_scan_started'
 ----
 0
 
-# The matching older data file causes the one applicable delete manifest to be loaded.
+# Both matching files use the same delete manifest; its completed contents are loaded only once.
 statement ok
 call truncate_duckdb_logs();
 
 query I
 select sum(payload) from my_datalake.default.delete_manifest_late_materialization where part = 1;
 ----
-36
+84
 
 query I
 select count(*) from duckdb_logs()
