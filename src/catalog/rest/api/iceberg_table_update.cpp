@@ -6,8 +6,7 @@
 #include "common/iceberg_utils.hpp"
 #include "core/metadata/iceberg_table_metadata.hpp"
 #include "core/metadata/snapshot/iceberg_snapshot_writer.hpp"
-#include "planning/metadata_io/avro/avro_scan.hpp"
-#include "planning/metadata_io/manifest_list/iceberg_manifest_list_reader.hpp"
+#include "planning/metadata_io/manifest/iceberg_manifest_reader.hpp"
 
 namespace duckdb {
 
@@ -71,13 +70,25 @@ optional_ptr<const IcebergSnapshot> IcebergCommitState::GetLatestSnapshot() cons
 	return GetTableMetadata().GetLatestSnapshot();
 }
 
+IcebergLoadedManifest IcebergCommitState::LoadManifest(IcebergManifestListEntry manifest, int32_t schema_id) {
+	if (manifest.HasManifestEntries() && manifest.manifest_metadata) {
+		auto file = manifest.GetFile();
+		if (!file.counts || !file.counts->Complete()) {
+			file.SetCountsFromEntries(manifest.GetManifestEntries());
+		}
+		return {std::move(file), *manifest.manifest_metadata, std::move(manifest.GetManifestEntries())};
+	}
+	IcebergSnapshotScanInfo snapshot_info;
+	snapshot_info.snapshot = GetLatestSnapshot();
+	snapshot_info.schema_id = schema_id;
+	return manifest_file::ManifestReader::Load(manifest.GetFile(), snapshot_info, GetTableMetadata(), context);
+}
+
 int64_t IcebergCommitState::ReconstructTotalFilesSize(int32_t schema_id) {
 	int64_t total_files_size = 0;
 	for (const auto &manifest : manifests) {
-		auto loaded_manifest = manifest.HasManifestEntries()
-		                           ? manifest
-		                           : IcebergManifestMerge::ScanManifestEntries(manifest, *this, schema_id);
-		for (const auto &entry : loaded_manifest.GetManifestEntries()) {
+		auto loaded_manifest = LoadManifest(manifest, schema_id);
+		for (const auto &entry : loaded_manifest.entries) {
 			if (entry.status == IcebergManifestEntryStatusType::DELETED) {
 				continue;
 			}
@@ -92,13 +103,10 @@ static optional<IcebergManifestListEntry> RewriteManifestFile(const IcebergManif
                                                               IcebergSnapshotWriter &writer,
                                                               IcebergCommitState &commit_state, int32_t schema_id,
                                                               const VersionedIcebergManifestDeletes &deletes) {
-	auto loaded_manifest = list_entry.HasManifestEntries()
-	                           ? list_entry
-	                           : IcebergManifestMerge::ScanManifestEntries(list_entry, commit_state, schema_id);
-	D_ASSERT(loaded_manifest.manifest_metadata);
-	const auto &file = loaded_manifest.GetFile();
+	auto loaded_manifest = commit_state.LoadManifest(list_entry, schema_id);
+	const auto &file = loaded_manifest.file;
 
-	auto rewritten_entries = file.PrepareEntriesForRewrite(std::move(loaded_manifest.GetManifestEntries()));
+	auto rewritten_entries = file.PrepareEntriesForRewrite(std::move(loaded_manifest.entries));
 	bool removed_any_entries = false;
 	for (auto &manifest_entry : rewritten_entries) {
 		if (manifest_entry.status == IcebergManifestEntryStatusType::DELETED) {
@@ -116,8 +124,7 @@ static optional<IcebergManifestListEntry> RewriteManifestFile(const IcebergManif
 	if (!removed_any_entries) {
 		return nullopt;
 	}
-	return writer.WriteReplacementManifest(*loaded_manifest.manifest_metadata, std::move(rewritten_entries),
-	                                       file.first_row_id);
+	return writer.WriteReplacementManifest(loaded_manifest.metadata, std::move(rewritten_entries), file.first_row_id);
 }
 
 void IcebergCommitState::WriteExistingManifests(IcebergSnapshotWriter &writer, int32_t schema_id,
@@ -206,7 +213,7 @@ void IcebergCommitState::LoadExistingManifests(DatabaseInstance &db,
 		if (counts && counts->Complete()) {
 			continue;
 		}
-		manifest = IcebergManifestMerge::ScanManifestEntries(manifest, *this, metadata.GetCurrentSchemaId());
+		manifest = IcebergManifestListEntry(LoadManifest(std::move(manifest), metadata.GetCurrentSchemaId()));
 	}
 
 	AssignManifestFirstRowIds(metadata, current_snapshot, manifests, row_ids);

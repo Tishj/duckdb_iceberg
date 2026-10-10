@@ -28,6 +28,10 @@ public:
 	void Read();
 
 public:
+	//! Read a whole manifest, validating its metadata and materializing counts from its entries.
+	static IcebergLoadedManifest Load(IcebergManifestFile file, const IcebergSnapshotScanInfo &snapshot_info,
+	                                  const IcebergTableMetadata &metadata, ClientContext &context);
+
 	static void ReadChunk(DataChunk &chunk, const map<idx_t, LogicalType> &partition_field_id_to_type,
 	                      IcebergManifestReaderInput &reader_input, vector<IcebergManifestEntry> &result);
 };

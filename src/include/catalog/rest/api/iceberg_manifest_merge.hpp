@@ -29,12 +29,6 @@ struct IcebergManifestMerge {
 	//! of input indices it contains, in original order. Pure logic, unit-testable, no IO.
 	static vector<vector<idx_t>> BinPackManifests(const vector<int64_t> &weights, int64_t target_weight);
 
-	//! Read the manifest_entries of a manifest from its Avro file, reusing the vectorized manifest
-	//! reader. Returns the list entry with `manifest_entries` populated. Shared by the delete-rewrite
-	//! path and the merge path so both load entries identically.
-	static IcebergManifestListEntry ScanManifestEntries(const IcebergManifestListEntry &list_entry,
-	                                                    IcebergCommitState &commit_state, int32_t schema_id);
-
 	//! Decide whether a bin should be physically merged into a single manifest:
 	//!  - a single-manifest bin is never merged;
 	//!  - a bin is merged only once it holds at least `min_count_to_merge` manifests (Apache Iceberg's

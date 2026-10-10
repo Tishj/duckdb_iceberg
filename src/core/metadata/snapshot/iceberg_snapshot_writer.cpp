@@ -68,7 +68,7 @@ IcebergManifestListEntry IcebergSnapshotWriter::WriteManifestFile(const IcebergM
 	created_metadata_files.push_back(path);
 	auto length = manifest_file::WriteToFile(table_metadata, metadata, entries, path, avro_copy, db, context);
 	IcebergManifestFile file(std::move(path), length, snapshot.snapshot_id, std::move(manifest));
-	return IcebergManifestListEntry(std::move(file), std::move(metadata), std::move(entries));
+	return IcebergManifestListEntry(IcebergLoadedManifest {std::move(file), std::move(metadata), std::move(entries)});
 }
 
 void IcebergSnapshotWriter::WriteManifest(const IcebergPendingManifest &pending) {

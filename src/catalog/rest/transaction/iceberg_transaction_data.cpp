@@ -11,9 +11,7 @@
 #include "catalog/rest/iceberg_table_set.hpp"
 #include "catalog/rest/api/table_update.hpp"
 #include "catalog/rest/catalog_entry/table/iceberg_table.hpp"
-#include "planning/metadata_io/avro/avro_scan.hpp"
 #include "planning/metadata_io/manifest/iceberg_manifest_reader.hpp"
-#include "planning/metadata_io/manifest_list/iceberg_manifest_list_reader.hpp"
 
 namespace duckdb {
 
@@ -24,20 +22,8 @@ static void LoadMissingManifestCounts(ClientContext &context, const IcebergTable
 	if (counts && counts->Complete()) {
 		return;
 	}
-	vector<IcebergManifestListEntry> manifest_files;
-	manifest_files.push_back(manifest_list_entry);
-	manifest_files[0].manifest_entries.reset();
-
-	IcebergOptions options;
-	auto &fs = FileSystem::GetFileSystem(context);
-	auto scan = AvroScan::ScanManifest(snapshot_info, manifest_files, options, fs, "", metadata, context);
-	auto reader = make_uniq<manifest_file::ManifestReader>(*scan);
-	while (!reader->Finished()) {
-		reader->Read();
-	}
-
-	manifest_list_entry = std::move(manifest_files[0]);
-	manifest_list_entry.GetManifest().SetCountsFromEntries(manifest_list_entry.GetManifestEntries());
+	manifest_list_entry = IcebergManifestListEntry(
+	    manifest_file::ManifestReader::Load(manifest_list_entry.GetFile(), snapshot_info, metadata, context));
 }
 
 static optional<int64_t> LoadExistingManifestList(ClientContext &context, const IcebergTableMetadata &metadata,

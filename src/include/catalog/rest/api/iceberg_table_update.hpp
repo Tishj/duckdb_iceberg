@@ -48,6 +48,8 @@ public:
 	IcebergCommitState(const IcebergTable &table_info, ClientContext &context);
 	~IcebergCommitState();
 	void LoadExistingManifests(DatabaseInstance &db, vector<IcebergManifestListEntry> &&existing_manifests);
+	//! Commit-owned entries are either descriptors or complete cached contents from reads and writes.
+	IcebergLoadedManifest LoadManifest(IcebergManifestListEntry manifest, int32_t schema_id);
 	const IcebergTableMetadata &GetTableMetadata() const;
 	void SetFormatVersion(int32_t format_version);
 	optional_ptr<const IcebergSnapshot> GetLatestSnapshot() const;

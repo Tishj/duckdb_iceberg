@@ -139,13 +139,20 @@ struct IcebergManifestFile : public IcebergManifest {
 	int64_t added_snapshot_id;
 };
 
+//! A written manifest with its metadata and complete entry set materialized.
+struct IcebergLoadedManifest {
+	IcebergManifestFile file;
+	IcebergManifestMetadata metadata;
+	vector<IcebergManifestEntry> entries;
+};
+
 struct IcebergManifestListEntry {
 public:
 	IcebergManifestListEntry(IcebergManifestFile file) : manifest(std::move(file)) {
 	}
-	IcebergManifestListEntry(IcebergManifestFile file, IcebergManifestMetadata metadata,
-	                         vector<IcebergManifestEntry> entries)
-	    : manifest_metadata(std::move(metadata)), manifest_entries(std::move(entries)), manifest(std::move(file)) {
+	IcebergManifestListEntry(IcebergLoadedManifest loaded)
+	    : manifest_metadata(std::move(loaded.metadata)), manifest_entries(std::move(loaded.entries)),
+	      manifest(std::move(loaded.file)) {
 	}
 	IcebergManifestListEntry(const IcebergManifestListEntry &) = default;
 	IcebergManifestListEntry(IcebergManifestListEntry &&) = default;

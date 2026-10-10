@@ -1,4 +1,5 @@
 #include "planning/metadata_io/manifest/iceberg_manifest_reader.hpp"
+#include "planning/metadata_io/avro/avro_scan.hpp"
 
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/common/types/string.hpp"
@@ -23,6 +24,30 @@ void ManifestReader::Read() {
 		return;
 	}
 	ScanInternal();
+}
+
+IcebergLoadedManifest ManifestReader::Load(IcebergManifestFile file, const IcebergSnapshotScanInfo &snapshot_info,
+                                           const IcebergTableMetadata &metadata, ClientContext &context) {
+	vector<IcebergManifestListEntry> manifest_files;
+	manifest_files.emplace_back(std::move(file));
+	auto &loaded = manifest_files[0];
+	//! An empty manifest still has a fully materialized (empty) entry set.
+	loaded.GetOrCreateManifestEntries();
+
+	IcebergOptions options;
+	auto &fs = FileSystem::GetFileSystem(context);
+	auto scan = AvroScan::ScanManifest(snapshot_info, manifest_files, options, fs, "", metadata, context);
+	ManifestReader reader(*scan);
+	while (!reader.Finished()) {
+		reader.Read();
+	}
+
+	if (!loaded.manifest_metadata) {
+		throw InvalidConfigurationException("Could not read metadata from manifest '%s'",
+		                                    loaded.GetFile().manifest_path);
+	}
+	loaded.GetManifest().SetCountsFromEntries(loaded.GetManifestEntries());
+	return {loaded.GetFile(), *loaded.manifest_metadata, std::move(loaded.GetManifestEntries())};
 }
 
 using IntStringMapEntries = VectorIterator<VectorListType<VectorStructType<int32_t, string_t>>>;
