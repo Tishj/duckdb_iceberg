@@ -1,73 +1,84 @@
 # name: test/sql/iceberg_to_ducklake.test_slow
+# description: Self-contained conversion of larger data, position deletes, and retained history
 # group: [sql]
 
 require-env CATALOG_TEST_CONFIG_SETUP
+
+require-env STAGED_CREATE_SUPPORT
 
 include test/sql/init_requires
 
 require ducklake
 
-# Do not ignore 'HTTP' error messages!
-set ignore_error_messages
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.conversion_stress;
 
 statement ok
-set enable_logging=true
+DROP TABLE IF EXISTS my_datalake.default.conversion_stress_roundtrip;
 
 statement ok
-set logging_level='debug'
+CREATE TABLE my_datalake.default.conversion_stress AS
+SELECT i AS id, 'label-' || (i % 11) AS label, {'x': i * 2, 'y': [i * 0.5, NULL]} AS nested
+FROM range(100000) r(i);
 
 statement ok
-ATTACH 'ducklake:duckdb:__TEST_DIR__/ducklake.duckdb' as my_ducklake (DATA_PATH '__TEST_DIR__/data_path');
+DELETE FROM my_datalake.default.conversion_stress WHERE id % 100 = 0;
 
 statement ok
-call iceberg_to_ducklake(
-    'my_datalake',
-    'my_ducklake',
-    skip_tables := [
-        'pyspark_iceberg_table_v2',
-        'deletion_vectors',
-        'variant_column',
-        'simple_v3_table',
-        'truncate_partitioned_varchar',
-        'truncate_partitioned_decimal',
-        'truncate_partitioned_binary',
-        'truncate_partitioned_bigint',
-        'row_lineage_test_upgraded_insert',
-        'bucket_partitioned_bigint',
-        'bucket_partitioned_timestamp',
-        'bucket_partitioned_sparse_integer',
-        'bucket_partitioned_decimal',
-        'bucket_partitioned_date',
-        'bucket_partitioned_string',
-        'bucket_partitioned_binary',
-        'bucket_partitioned_integer',
-    ]
-)
+INSERT INTO my_datalake.default.conversion_stress
+SELECT i, 'label-' || (i % 11), {'x': i * 2, 'y': [i * 0.5, NULL]}
+FROM range(100000, 100100) r(i);
 
-# These are empty, so they are omitted:
-# - insert_all_types
-# - simple_v3_table
-# - test_not_null
-# - tpch
+statement ok
+ALTER TABLE my_datalake.default.conversion_stress RENAME COLUMN label TO renamed;
 
-# These have an ALTER at the end, with no new snapshot added afterwards
-# Without a snapshot, that means the change isn't recorded by the conversion
-# So the results will not match
-# - schema_evolve_struct_in_list
-# - schema_evolve_struct_in_map
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/conversion_stress.ducklake' AS stress_lake
+(DATA_PATH '{TEST_DIR}/conversion_stress_files', DATA_INLINING_ROW_LIMIT 0);
 
-foreach table_name lineitem_partitioned_l_shipmode_deletes all_types_table day_timestamp day_timestamptz empty_insert filtering_on_bounds complicated_partitioned_table filtering_on_partition_bounds issue_328 lineitem_001_deletes lineitem_partitioned_l_shipmode lineitem_sf_01_1_delete lineitem_sf_01_no_deletes lineitem_sf1_deletes many_adds_deletes nested_types pyspark_iceberg_table_v1 quickstart_table schema_evolve_float_to_double schema_evolve_int_to_bigint schema_evolve_struct schema_evolve_widen_decimal table_more_deletes table_partitioned table_unpartitioned table_with_deletes year_timestamp year_timestamptz
+query I
+CALL iceberg_to_ducklake('my_datalake', 'stress_lake', tables := ['default.conversion_stress']);
+----
+1
 
-# Verify current state matches
-query I rowsort expected_res
-select * from my_datalake.default.${table_name}
+query II
+SELECT count(*), sum(id) FROM stress_lake.default.conversion_stress;
+----
+99100	4960004950
+
+query I rowsort matching_sample
+SELECT * FROM my_datalake.default.conversion_stress WHERE id % 997 = 0;
 ----
 
-query I rowsort expected_res
-select * from my_ducklake.default.${table_name}
+query I rowsort matching_sample
+SELECT * FROM stress_lake.default.conversion_stress WHERE id % 997 = 0;
 ----
 
-reset label expected_res
+reset label matching_sample
 
-# table_name
-endloop
+statement ok
+INSERT INTO stress_lake.default.conversion_stress VALUES (999999, 'new', {'x': 1999998, 'y': [499999.5, NULL]});
+
+statement ok
+ALTER TABLE stress_lake.default.conversion_stress RENAME TO conversion_stress_roundtrip;
+
+query I
+CALL ducklake_to_iceberg('stress_lake', 'my_datalake', tables := ['default.conversion_stress_roundtrip']);
+----
+1
+
+query II
+SELECT count(*), sum(id) FROM my_datalake.default.conversion_stress_roundtrip;
+----
+99101	4961004949
+
+query I
+SELECT count(*) > 3 FROM iceberg_snapshots('my_datalake.default.conversion_stress_roundtrip');
+----
+true
+
+statement ok
+DROP TABLE my_datalake.default.conversion_stress;
+
+statement ok
+DROP TABLE my_datalake.default.conversion_stress_roundtrip;

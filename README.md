@@ -7,6 +7,10 @@ This repository contains DuckDB's Apache Iceberg extension. It adds support for 
 
 User-facing documentation is available on the [Iceberg extension page](https://duckdb.org/docs/extensions/iceberg).
 
+For metadata-only migration in either direction, see
+[Iceberg and DuckLake conversion](docs/ducklake_conversion.md), including retained
+history, supported file layouts, conversion failures, and shared-file cleanup.
+
 ## Row lineage inside transactions
 
 For format version 3 tables, rows inserted within a transaction have NULL `_row_id`

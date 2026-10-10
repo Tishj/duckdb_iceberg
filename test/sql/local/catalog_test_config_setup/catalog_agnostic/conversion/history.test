@@ -1,0 +1,111 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/history.test
+# description: Equal timestamps, table rename, nested evolution, and schema-only states
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require-env STAGED_CREATE_SUPPORT
+
+include test/sql/init_requires
+
+require ducklake
+
+require json
+
+statement ok
+CREATE SCHEMA IF NOT EXISTS my_datalake.main;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.main.history_export;
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/history_source.ducklake' AS history_lake (DATA_PATH '{TEST_DIR}/history_files', DATA_INLINING_ROW_LIMIT 0);
+
+statement ok
+CREATE TABLE history_lake.history_source (id INTEGER, payload STRUCT(a INTEGER));
+
+statement ok
+INSERT INTO history_lake.history_source VALUES (1, {'a': 10});
+
+statement ok
+SET VARIABLE history_first_insert = (SELECT id FROM ducklake_current_snapshot('history_lake'));
+
+statement ok
+ALTER TABLE history_lake.history_source ADD COLUMN payload.b VARCHAR;
+
+statement ok
+ALTER TABLE history_lake.history_source ALTER COLUMN id TYPE BIGINT;
+
+statement ok
+INSERT INTO history_lake.history_source VALUES (2, {'a': 20, 'b': 'b'});
+
+statement ok
+ALTER TABLE history_lake.history_source ADD COLUMN payload.c BIGINT;
+
+statement ok
+UPDATE __ducklake_metadata_history_lake.ducklake_snapshot SET snapshot_time = TIMESTAMPTZ '2020-01-01 12:00:00.123456+00' WHERE snapshot_id > 0;
+
+statement ok
+ALTER TABLE history_lake.history_source RENAME TO history_export;
+
+query I
+CALL ducklake_to_iceberg('history_lake', 'my_datalake', tables := ['main.history_export']);
+----
+1
+
+query IITI rowsort
+SELECT id, payload.a, payload.b, payload.c FROM my_datalake.main.history_export;
+----
+1	10	NULL	NULL
+2	20	b	NULL
+
+query IIT
+SELECT id, payload.a, typeof(id) FROM my_datalake.main.history_export AT (VERSION => getvariable('history_first_insert'));
+----
+1	10	INTEGER
+
+query I rowsort snapshot_count
+SELECT count(*) FROM iceberg_snapshots('my_datalake.main.history_export');
+----
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/history_back.ducklake' AS history_back (DATA_PATH '{TEST_DIR}/history_back_files');
+
+statement ok
+SET GLOBAL TimeZone = 'Pacific/Honolulu';
+
+query I
+CALL iceberg_to_ducklake('my_datalake', 'history_back', tables := ['main.history_export']);
+----
+1
+
+query I rowsort snapshot_count
+SELECT count(*) FROM __ducklake_metadata_history_back.ducklake_snapshot_changes WHERE try_cast(commit_extra_info::JSON ->> 'snapshot-id' AS BIGINT) > 0;
+----
+
+reset label snapshot_count
+
+statement ok
+SET VARIABLE mapped_history_version = (SELECT snapshot_id FROM __ducklake_metadata_history_back.ducklake_snapshot_changes WHERE try_cast(commit_extra_info::JSON ->> 'snapshot-id' AS BIGINT) = getvariable('history_first_insert'));
+
+query I
+SELECT epoch_ms(snapshot_time) FROM __ducklake_metadata_history_back.ducklake_snapshot WHERE snapshot_id = getvariable('mapped_history_version');
+----
+1577880000123
+
+statement ok
+SET GLOBAL TimeZone = 'UTC';
+
+query IIT
+SELECT id, payload.a, typeof(id) FROM history_back.main.history_export AT (VERSION => getvariable('mapped_history_version'));
+----
+1	10	INTEGER
+
+query IITI rowsort
+SELECT id, payload.a, payload.b, payload.c FROM history_back.main.history_export;
+----
+1	10	NULL	NULL
+2	20	b	NULL
+
+statement ok
+DROP TABLE my_datalake.main.history_export;

@@ -1,0 +1,105 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/ducklake_to_iceberg.test
+# description: Export DuckLake history to a catalog containing unrelated tables
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require-env STAGED_CREATE_SUPPORT
+
+include test/sql/init_requires
+
+require ducklake
+
+statement ok
+CREATE SCHEMA IF NOT EXISTS my_datalake.conversion;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.conversion.exported;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.conversion.empty_export;
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/conversion_export.ducklake' AS source_lake (DATA_PATH '{TEST_DIR}/conversion_export_data', DATA_INLINING_ROW_LIMIT 0);
+
+statement ok
+CREATE SCHEMA source_lake.conversion;
+
+statement ok
+CREATE TABLE source_lake.conversion.exported (id INTEGER, value VARCHAR);
+
+statement ok
+INSERT INTO source_lake.conversion.exported VALUES (1, 'one'), (2, 'two');
+
+statement ok
+SET VARIABLE first_insert = (SELECT id FROM ducklake_current_snapshot('source_lake'));
+
+statement ok
+ALTER TABLE source_lake.conversion.exported ADD COLUMN extra BIGINT;
+
+statement ok
+INSERT INTO source_lake.conversion.exported VALUES (3, 'three', 30);
+
+statement ok
+ALTER TABLE source_lake.conversion.exported RENAME COLUMN value TO renamed;
+
+statement ok
+CREATE TABLE source_lake.conversion.empty_export (a INTEGER, b STRUCT(x BIGINT, y VARCHAR[]));
+
+query I
+CALL ducklake_to_iceberg('source_lake', 'my_datalake', tables := ['conversion.exported', 'conversion.empty_export']);
+----
+2
+
+query ITI rowsort
+SELECT * FROM my_datalake.conversion.exported;
+----
+1	one	NULL
+2	two	NULL
+3	three	30
+
+query I
+SELECT count(*) FROM my_datalake.conversion.empty_export;
+----
+0
+
+query IT rowsort
+SELECT * FROM my_datalake.conversion.exported AT (VERSION => getvariable('first_insert'));
+----
+1	one
+2	two
+
+query I
+SELECT count(*) > 2 FROM iceberg_snapshots('my_datalake.conversion.exported');
+----
+true
+
+statement error
+CALL ducklake_to_iceberg('source_lake', 'my_datalake', tables := ['conversion.exported']);
+----
+already exists
+
+# Exclusion makes a retry a no-op without replacing the completed table.
+query I
+CALL ducklake_to_iceberg('source_lake', 'my_datalake', tables := ['conversion.exported'], skip_tables := ['conversion.exported']);
+----
+0
+
+statement ok
+INSERT INTO my_datalake.conversion.exported VALUES (4, 'four', 40);
+
+query II
+SELECT count(*), sum(id) FROM my_datalake.conversion.exported;
+----
+4	10
+
+query II
+SELECT count(*), sum(id) FROM source_lake.conversion.exported;
+----
+3	6
+
+statement ok
+DROP TABLE my_datalake.conversion.exported;
+
+statement ok
+DROP TABLE my_datalake.conversion.empty_export;

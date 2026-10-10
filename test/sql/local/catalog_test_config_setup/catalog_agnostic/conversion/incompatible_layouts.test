@@ -1,0 +1,84 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/incompatible_layouts.test
+# description: Reject incompatible metadata, missing files, and old delete field IDs before publishing
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+include test/sql/init_requires
+
+require ducklake
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/incompatible.ducklake' AS bad_lake (DATA_PATH '{WORKING_DIRECTORY}/{TEST_DIR}/bad_files', DATA_INLINING_ROW_LIMIT 0);
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/other_empty.ducklake' AS other_lake (DATA_PATH '{TEST_DIR}/other_files');
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'bad_lake', tables := [], metadata_catalog := '__ducklake_metadata_other_lake');
+----
+must match the DuckLake attachment
+
+statement ok
+ALTER TABLE __ducklake_metadata_bad_lake.ducklake_data_file ADD COLUMN future_column INTEGER;
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'bad_lake', tables := []);
+----
+Unsupported DuckLake metadata layout
+
+statement ok
+ALTER TABLE __ducklake_metadata_bad_lake.ducklake_data_file DROP COLUMN future_column;
+
+statement ok
+UPDATE __ducklake_metadata_bad_lake.ducklake_metadata SET value = '99.0' WHERE key = 'version';
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'bad_lake', tables := []);
+----
+99.0
+
+statement ok
+UPDATE __ducklake_metadata_bad_lake.ducklake_metadata SET value = '1.1-dev1' WHERE key = 'version';
+
+statement ok
+CREATE TABLE bad_lake.old_ids AS SELECT i AS id FROM range(1000) r(i);
+
+statement ok
+DELETE FROM bad_lake.old_ids WHERE id = 0;
+
+statement ok
+SET VARIABLE original_delete_path = (SELECT delete_file FROM ducklake_list_files('bad_lake', 'old_ids') WHERE delete_file IS NOT NULL LIMIT 1);
+
+statement ok
+COPY (SELECT file_path, pos FROM read_parquet(getvariable('original_delete_path')))
+TO '{WORKING_DIRECTORY}/{TEST_DIR}/legacy-delete.parquet'
+(FORMAT PARQUET, FIELD_IDS {file_path: 2147483646, pos: 2147483645});
+
+statement ok
+UPDATE __ducklake_metadata_bad_lake.ducklake_delete_file SET
+path = '{WORKING_DIRECTORY}/{TEST_DIR}/legacy-delete.parquet', path_is_relative = false,
+file_size_bytes = (SELECT octet_length(content) FROM read_blob('{TEST_DIR}/legacy-delete.parquet')),
+footer_size = NULL;
+
+statement error
+CALL ducklake_to_iceberg('bad_lake', 'my_datalake', tables := ['main.old_ids']);
+----
+incompatible Parquet field IDs
+
+statement ok
+CREATE TABLE bad_lake.missing_file AS SELECT 1::INTEGER id;
+
+statement ok
+UPDATE __ducklake_metadata_bad_lake.ducklake_data_file SET path = '{WORKING_DIRECTORY}/{TEST_DIR}/does-not-exist.parquet', path_is_relative = false
+WHERE table_id = (SELECT table_id FROM __ducklake_metadata_bad_lake.ducklake_table WHERE table_name = 'missing_file' AND end_snapshot IS NULL);
+
+statement error
+CALL ducklake_to_iceberg('bad_lake', 'my_datalake', tables := ['main.missing_file']);
+----
+does-not-exist.parquet
+
+query I
+SELECT count(*) FROM duckdb_tables() WHERE database_name = 'my_datalake' AND table_name IN ('old_ids', 'missing_file');
+----
+0

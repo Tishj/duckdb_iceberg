@@ -1,0 +1,108 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/iceberg_to_ducklake.test
+# description: Import empty tables, retained data, and schema-only evolution
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+include test/sql/init_requires
+
+require ducklake
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.conversion_source;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.conversion_empty;
+
+statement ok
+CREATE TABLE my_datalake.default.conversion_source (id INTEGER, name VARCHAR);
+
+statement ok
+INSERT INTO my_datalake.default.conversion_source VALUES (1, 'O''Brien'), (2, 'two');
+
+statement ok
+ALTER TABLE my_datalake.default.conversion_source ADD COLUMN extra BIGINT;
+
+statement ok
+INSERT INTO my_datalake.default.conversion_source VALUES (3, 'three', 30);
+
+# There is no data snapshot after this rename.
+statement ok
+ALTER TABLE my_datalake.default.conversion_source RENAME COLUMN name TO "quoted name";
+
+statement ok
+CREATE TABLE my_datalake.default.conversion_empty (id INTEGER, nested STRUCT(a INTEGER, b VARCHAR[]));
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/conversion_import.ducklake' AS converted (DATA_PATH '{TEST_DIR}/conversion_import_data');
+
+query I
+CALL iceberg_to_ducklake('my_datalake', 'converted', tables := ['default.conversion_source', 'default.conversion_empty']);
+----
+2
+
+query ITI rowsort
+SELECT * FROM converted.default.conversion_source;
+----
+1	O'Brien	NULL
+2	two	NULL
+3	three	30
+
+query I
+SELECT count(*) FROM converted.default.conversion_empty;
+----
+0
+
+query T
+SELECT column_name FROM duckdb_columns() WHERE database_name = 'converted' AND table_name = 'conversion_source' ORDER BY column_index;
+----
+id
+quoted name
+extra
+
+# The importer reuses source Parquet files.
+query I
+SELECT bool_and(NOT path_is_relative) FROM __ducklake_metadata_converted.ducklake_data_file;
+----
+true
+
+query I
+SELECT count(*) > 2 FROM __ducklake_metadata_converted.ducklake_snapshot;
+----
+true
+
+statement ok
+DETACH converted;
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/conversion_import.ducklake' AS converted;
+
+query II
+SELECT count(*), sum(id) FROM converted.default.conversion_source;
+----
+3	6
+
+# Imported IDs/counters must also support subsequent writes.
+statement ok
+INSERT INTO converted.default.conversion_source VALUES (4, 'four', 40);
+
+query II
+SELECT count(*), sum(id) FROM converted.default.conversion_source;
+----
+4	10
+
+query II
+SELECT count(*), sum(id) FROM my_datalake.default.conversion_source;
+----
+3	6
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'converted', tables := ['default.conversion_empty']);
+----
+empty DuckLake catalog
+
+statement ok
+DROP TABLE my_datalake.default.conversion_source;
+
+statement ok
+DROP TABLE my_datalake.default.conversion_empty;

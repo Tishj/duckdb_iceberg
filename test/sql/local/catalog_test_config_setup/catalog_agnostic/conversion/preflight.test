@@ -1,0 +1,92 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/preflight.test
+# description: Validation must leave destination catalogs unchanged
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+include test/sql/init_requires
+
+require ducklake
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/conversion_preflight.ducklake' AS preflight (DATA_PATH '{TEST_DIR}/conversion_preflight_data');
+
+statement error
+CALL iceberg_to_ducklake(NULL, 'preflight');
+----
+non-NULL
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'preflight', tables := ['unqualified']);
+----
+schema-qualified
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'preflight', tables := [NULL]);
+----
+NULL
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'preflight', tables := ['default.this_table_does_not_exist']);
+----
+does not exist
+
+query I
+CALL iceberg_to_ducklake('my_datalake', 'preflight', tables := []);
+----
+0
+
+statement ok
+EXPLAIN CALL iceberg_to_ducklake('my_datalake', 'preflight');
+
+query I
+SELECT max(snapshot_id) FROM __ducklake_metadata_preflight.ducklake_snapshot;
+----
+0
+
+statement ok
+BEGIN;
+
+statement error
+CALL iceberg_to_ducklake('my_datalake', 'preflight', tables := []);
+----
+autocommit
+
+statement ok
+ROLLBACK;
+
+statement ok
+CREATE TABLE preflight.inlined AS SELECT 1::INTEGER AS id;
+
+statement error
+CALL ducklake_to_iceberg('preflight', 'my_datalake', tables := ['main.inlined']);
+----
+inline rows
+
+statement ok
+CREATE TABLE preflight.unsupported (id UHUGEINT);
+
+statement error
+CALL ducklake_to_iceberg('preflight', 'my_datalake', tables := ['main.unsupported']);
+----
+lossless Iceberg mapping
+
+query I
+SELECT count(*) FROM duckdb_tables() WHERE database_name = 'my_datalake' AND table_name IN ('inlined', 'unsupported');
+----
+0
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/mixed_case.ducklake' AS "MiXeD" (DATA_PATH '{TEST_DIR}/mixed_case_files');
+
+statement ok
+CREATE TABLE "MiXeD".inline_deletes AS SELECT i AS id FROM range(2000) r(i);
+
+statement ok
+DELETE FROM "MiXeD".inline_deletes WHERE id = 0;
+
+# Catalog aliases are case insensitive; this must still find the inline-delete table.
+statement error
+CALL ducklake_to_iceberg('mixed', 'my_datalake', tables := ['main.inline_deletes']);
+----
+inline deletes

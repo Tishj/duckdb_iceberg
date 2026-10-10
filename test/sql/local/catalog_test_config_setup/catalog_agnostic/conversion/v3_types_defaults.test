@@ -1,0 +1,75 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/v3_types_defaults.test
+# description: Variant, nanosecond timestamps, and literal defaults in both directions
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require-env STAGED_CREATE_SUPPORT
+
+require-env FORMAT_V3_SUPPORT
+
+require-env COLUMN_DEFAULT_SUPPORT
+
+include test/sql/init_requires
+
+require ducklake
+
+statement ok
+CREATE SCHEMA IF NOT EXISTS my_datalake.conversion;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.conversion.v3_values;
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/v3_source.ducklake' AS v3_lake (DATA_PATH '{TEST_DIR}/v3_files', DATA_INLINING_ROW_LIMIT 0);
+
+statement ok
+CREATE SCHEMA v3_lake.conversion;
+
+statement ok
+CREATE TABLE v3_lake.conversion.v3_values (id INTEGER DEFAULT 42, s VARCHAR DEFAULT 'NULL', v VARIANT, ts TIMESTAMP_NS);
+
+statement ok
+INSERT INTO v3_lake.conversion.v3_values (v, ts) VALUES ({'x': 1}::VARIANT, TIMESTAMP_NS '2020-01-01 00:00:00.123456789');
+
+query I
+CALL ducklake_to_iceberg('v3_lake', 'my_datalake', tables := ['conversion.v3_values']);
+----
+1
+
+query IIIII
+SELECT id, s = 'NULL', s IS NULL, v.x::BIGINT, epoch_ns(ts) FROM my_datalake.conversion.v3_values;
+----
+42	true	false	1	1577836800123456789
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/v3_back.ducklake' AS v3_back (DATA_PATH '{TEST_DIR}/v3_back_files');
+
+query I
+CALL iceberg_to_ducklake('my_datalake', 'v3_back', tables := ['conversion.v3_values']);
+----
+1
+
+query IIIII
+SELECT id, s = 'NULL', s IS NULL, v.x::BIGINT, epoch_ns(ts) FROM v3_back.conversion.v3_values;
+----
+42	true	false	1	1577836800123456789
+
+statement ok
+INSERT INTO my_datalake.conversion.v3_values (v) VALUES ({'x': 2}::VARIANT);
+
+statement ok
+INSERT INTO v3_back.conversion.v3_values (v) VALUES ({'x': 2}::VARIANT);
+
+query III
+SELECT id, s = 'NULL', s IS NULL FROM my_datalake.conversion.v3_values WHERE v.x::BIGINT = 2;
+----
+42	true	false
+
+query III
+SELECT id, s = 'NULL', s IS NULL FROM v3_back.conversion.v3_values WHERE v.x::BIGINT = 2;
+----
+42	true	false
+
+statement ok
+DROP TABLE my_datalake.conversion.v3_values;

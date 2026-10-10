@@ -1,0 +1,99 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/conversion/roundtrip.test
+# description: Both metadata versions, custom metadata names, nested types, and file reuse
+# group: [conversion]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require-env STAGED_CREATE_SUPPORT
+
+include test/sql/init_requires
+
+require ducklake
+
+statement ok
+CREATE SCHEMA IF NOT EXISTS my_datalake."conversion weird";
+
+foreach lake_version 1.0 1.1-dev1
+
+statement ok
+DROP TABLE IF EXISTS my_datalake."conversion weird"."table's name";
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/source_{lake_version}.ducklake' AS versioned (DATA_PATH '{TEST_DIR}/source_{lake_version}', DUCKLAKE_VERSION '{lake_version}', DATA_INLINING_ROW_LIMIT 0, METADATA_CATALOG 'source metadata', METADATA_SCHEMA 'source schema');
+
+statement ok
+CREATE SCHEMA versioned."conversion weird";
+
+statement ok
+CREATE TABLE versioned."conversion weird"."table's name" (
+    id INTEGER, txt VARCHAR, d DECIMAL(18, 3), date_col DATE, ts TIMESTAMP,
+    b BLOB, u UUID, nested STRUCT(x INTEGER, y VARCHAR[]), m MAP(VARCHAR, BIGINT)
+);
+
+statement ok
+INSERT INTO versioned."conversion weird"."table's name" VALUES
+    (1, 'O''Brien', 123.456, DATE '1969-12-31', TIMESTAMP '1969-12-31 23:59:59.999999',
+     '\x00\xFF', '550e8400-e29b-41d4-a716-446655440000', {'x': 42, 'y': ['a', NULL]}, MAP {'key': 9}),
+    (2, 'NULL', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+statement ok
+CREATE TABLE original_files AS SELECT filename, sha256(content) AS hash FROM read_blob('{TEST_DIR}/source_{lake_version}/**/*.parquet');
+
+query I
+CALL ducklake_to_iceberg('versioned', 'my_datalake', tables := ['"conversion weird"."table''s name"'], metadata_catalog := 'source metadata', metadata_schema := 'source schema');
+----
+1
+
+query I rowsort same_rows
+SELECT * FROM versioned."conversion weird"."table's name";
+----
+
+query I rowsort same_rows
+SELECT * FROM my_datalake."conversion weird"."table's name";
+----
+
+statement ok
+ATTACH 'ducklake:{TEST_DIR}/target_{lake_version}.ducklake' AS back_again (DATA_PATH '{TEST_DIR}/target_{lake_version}', DUCKLAKE_VERSION '{lake_version}', METADATA_CATALOG 'target metadata', METADATA_SCHEMA 'target schema');
+
+query I
+CALL iceberg_to_ducklake('my_datalake', 'back_again', tables := ['"conversion weird"."table''s name"']);
+----
+1
+
+query I rowsort same_rows
+SELECT * FROM back_again."conversion weird"."table's name";
+----
+
+reset label same_rows
+
+query I
+SELECT count(*) FROM (
+    SELECT file_path FROM iceberg_metadata('my_datalake."conversion weird"."table''s name"') WHERE content = 'DATA'
+) files WHERE NOT EXISTS (
+    SELECT 1 FROM original_files
+    WHERE ends_with(replace(files.file_path, chr(92), '/'), replace(filename, chr(92), '/'))
+);
+----
+0
+
+query I
+SELECT count(*) FROM (
+    SELECT filename, sha256(content) AS hash FROM read_blob('{TEST_DIR}/source_{lake_version}/**/*.parquet')
+    EXCEPT SELECT * FROM original_files
+);
+----
+0
+
+statement ok
+DROP TABLE original_files;
+
+statement ok
+DETACH versioned;
+
+statement ok
+DETACH back_again;
+
+statement ok
+DROP TABLE my_datalake."conversion weird"."table's name";
+
+endloop

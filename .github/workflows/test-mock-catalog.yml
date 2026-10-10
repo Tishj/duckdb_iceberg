@@ -48,6 +48,23 @@ jobs:
       - name: Run catalog-agnostic SQL tests
         run: make test_mock_relassert
 
+      - name: Install conversion reader dependencies
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          import sys
+          from pathlib import Path
+          requirements = [
+              line for line in Path("scripts/requirements.txt").read_text().splitlines()
+              if line.startswith(("pyiceberg==", "pyarrow=="))
+          ]
+          assert len(requirements) == 2
+          subprocess.check_call([sys.executable, "-m", "pip", "install", *requirements])
+          PY
+
+      - name: Test conversion publication and interoperability
+        run: python3 -m scripts.mock_rest_catalog.test_conversion --unittest-binary build/relassert/test/unittest --pyiceberg
+
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

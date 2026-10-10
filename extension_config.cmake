@@ -26,11 +26,17 @@ if (NOT EMSCRIPTEN)
   duckdb_extension_load(tpch)
   duckdb_extension_load(icu)
   duckdb_extension_statically_link(tpch icu httpfs)
-  #  duckdb_extension_load(ducklake
-  #        LOAD_TESTS
-  #        GIT_URL https://github.com/duckdb/ducklake
-  #        GIT_TAG a92abf755a7b4e2f3e410f8b89c72b990a0698da
-  #)
+  duckdb_extension_load(ducklake
+        LOAD_TESTS
+        GIT_URL https://github.com/duckdb/ducklake
+        GIT_TAG 94092e61a164cdca7ea838bd0c8a9f873fd0f17e
+  )
+  if (DUCKDB_EXTENSION_DUCKLAKE_SHOULD_BUILD)
+    if (NOT DUCKDB_EXTENSION_DUCKLAKE_PREBUILT_PATH)
+      include("${CMAKE_CURRENT_LIST_DIR}/make/ducklake_compat.cmake")
+    endif()
+    duckdb_extension_statically_link(ducklake)
+  endif()
 
   if (NOT MINGW)
     duckdb_extension_load(aws
