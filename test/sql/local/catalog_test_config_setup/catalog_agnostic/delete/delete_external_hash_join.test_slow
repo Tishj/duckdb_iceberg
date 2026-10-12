@@ -1,0 +1,79 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/delete/delete_external_hash_join.test_slow
+# description: External hash join filters must not drop Iceberg rows or commit a partial DELETE
+# group: [delete]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+include test/sql/init_requires
+
+statement ok
+SET threads=1;
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.delete_external_hash_join;
+
+# Match the duplicate-heavy build side from https://github.com/duckdb/duckdb/issues/25702.
+# Each of the 25 keys has 120,000 rows on both sides, so every Iceberg row matches.
+statement ok
+CREATE TABLE my_datalake.default.delete_external_hash_join
+WITH ('format-version'='2')
+AS SELECT (i % 25)::INTEGER AS a FROM range(3000000) tbl(i);
+
+statement ok
+CREATE TEMP TABLE matching_keys AS SELECT (i % 25)::INTEGER AS b FROM range(3000000) tbl(i);
+
+# Force the build side to spill and be processed over multiple rounds. Keep join
+# filter pushdown enabled: a Bloom filter containing only the first round's keys
+# incorrectly discards probe rows belonging to later rounds.
+statement ok
+SET memory_limit='60MB';
+
+statement ok
+CALL enable_logging('PhysicalOperator');
+
+# Save the read result so we also exercise the DELETE and its commit before
+# checking either result.
+statement ok
+SET VARIABLE matching_row_count = (
+    SELECT count(*) FROM my_datalake.default.delete_external_hash_join
+    WHERE a IN (SELECT b FROM matching_keys)
+);
+
+statement ok
+BEGIN;
+
+statement ok
+DELETE FROM my_datalake.default.delete_external_hash_join
+WHERE a IN (SELECT b FROM matching_keys);
+
+statement ok
+COMMIT;
+
+statement ok
+CALL disable_logging();
+
+# Both the SELECT and DELETE must have used the external hash join path.
+query I
+SELECT count(*) FROM duckdb_logs_parsed('PhysicalOperator')
+WHERE class = 'PhysicalHashJoin' AND event = 'Finalize' AND info.external;
+----
+2
+
+# All rows must match the read predicate and none may remain after the commit.
+query II
+SELECT getvariable('matching_row_count'), count(*)
+FROM my_datalake.default.delete_external_hash_join;
+----
+3000000	0
+
+statement ok
+RESET memory_limit;
+
+statement ok
+RESET threads;
+
+statement ok
+DROP TABLE matching_keys;
+
+statement ok
+DROP TABLE my_datalake.default.delete_external_hash_join;
