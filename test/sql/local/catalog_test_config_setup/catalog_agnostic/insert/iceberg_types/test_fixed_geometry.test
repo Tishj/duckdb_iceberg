@@ -1,0 +1,160 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/insert/iceberg_types/test_fixed_geometry.test
+# description: Geometry writes cannot violate fixed binary widths
+# group: [iceberg_types]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+include test/sql/init_requires
+
+# The destination is fixed binary, so these tests also apply to v2 catalogs.
+foreach geometry_type GEOMETRY GEOMETRY('OGC:CRS84') GEOMETRY('OGC:CRS83')
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.fixed_geometry_writes;
+
+statement ok
+CREATE TABLE my_datalake.default.fixed_geometry_writes (
+    id INTEGER, f ICEBERG_FIXED(21), l ICEBERG_FIXED(21)[],
+    s STRUCT(f ICEBERG_FIXED(21)), m MAP(ICEBERG_FIXED(21), ICEBERG_FIXED(21))
+);
+
+statement ok
+INSERT INTO my_datalake.default.fixed_geometry_writes
+SELECT 1, g, [g, NULL], {'f': g}, MAP([g], [g])
+FROM (SELECT 'POINT (1 2)'::{geometry_type} AS g);
+
+statement ok
+INSERT INTO my_datalake.default.fixed_geometry_writes (id, f)
+VALUES (2, NULL::{geometry_type});
+
+query IIIIII
+SELECT id, octet_length(f), f = 'POINT (1 2)'::GEOMETRY::BLOB,
+       l[1] = f AND l[2] IS NULL, s.f = f, map_keys(m)[1] = f AND map_values(m)[1] = f
+FROM my_datalake.default.fixed_geometry_writes ORDER BY id;
+----
+1	21	true	true	true	true
+2	NULL	NULL	NULL	NULL	NULL
+
+# Both implicit assignments and explicit casts must fail before publishing a snapshot.
+statement ok
+SET VARIABLE fixed_geometry_snapshots = (
+    SELECT count(*) FROM iceberg_snapshots(my_datalake.default.fixed_geometry_writes)
+);
+
+statement error
+INSERT INTO my_datalake.default.fixed_geometry_writes (f)
+VALUES ('LINESTRING (0 0, 1 1)'::{geometry_type});
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+INSERT INTO my_datalake.default.fixed_geometry_writes (f)
+SELECT 'LINESTRING (0 0, 1 1)'::{geometry_type}::ICEBERG_FIXED(21);
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+INSERT INTO my_datalake.default.fixed_geometry_writes (l)
+VALUES (['LINESTRING (0 0, 1 1)'::{geometry_type}]);
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+INSERT INTO my_datalake.default.fixed_geometry_writes (s)
+VALUES ({'f': 'LINESTRING (0 0, 1 1)'::{geometry_type}});
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+INSERT INTO my_datalake.default.fixed_geometry_writes (m)
+VALUES (MAP(['LINESTRING (0 0, 1 1)'::{geometry_type}], ['POINT (1 2)'::{geometry_type}]));
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+INSERT INTO my_datalake.default.fixed_geometry_writes (m)
+VALUES (MAP(['POINT (1 2)'::{geometry_type}], ['LINESTRING (0 0, 1 1)'::{geometry_type}]));
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+UPDATE my_datalake.default.fixed_geometry_writes SET f = 'LINESTRING (0 0, 1 1)'::{geometry_type} WHERE id = 1;
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+UPDATE my_datalake.default.fixed_geometry_writes
+SET s = {'f': 'LINESTRING (0 0, 1 1)'::{geometry_type}} WHERE id = 1;
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+statement error
+MERGE INTO my_datalake.default.fixed_geometry_writes AS dst
+USING (SELECT 'LINESTRING (0 0, 1 1)'::{geometry_type} AS g) AS src ON dst.id = 1
+WHEN MATCHED THEN UPDATE SET f = src.g;
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+query I
+SELECT count(*) = getvariable('fixed_geometry_snapshots')
+FROM iceberg_snapshots(my_datalake.default.fixed_geometry_writes);
+----
+true
+
+query II
+SELECT count(*), bool_and(f = 'POINT (1 2)'::GEOMETRY::BLOB)
+FROM my_datalake.default.fixed_geometry_writes;
+----
+2	true
+
+statement ok
+UPDATE my_datalake.default.fixed_geometry_writes SET f = 'POINT (3 4)'::{geometry_type} WHERE id = 1;
+
+query I
+SELECT f = 'POINT (3 4)'::GEOMETRY::BLOB FROM my_datalake.default.fixed_geometry_writes WHERE id = 1;
+----
+true
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.fixed_geometry_ctas;
+
+statement error
+CREATE TABLE my_datalake.default.fixed_geometry_ctas AS
+SELECT 'LINESTRING (0 0, 1 1)'::{geometry_type}::ICEBERG_FIXED(21) AS f;
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+query I
+SELECT count(*) FROM information_schema.tables
+WHERE table_catalog = 'my_datalake' AND table_schema = 'default' AND table_name = 'fixed_geometry_ctas';
+----
+0
+
+# A stored geometry column provides nonconstant CTAS input, including NULLs.
+statement ok
+CREATE TABLE fixed_geometry_source AS
+SELECT i, CASE WHEN i % 2 = 0 THEN printf('POINT (%d %d)', i, i + 1) END::{geometry_type} AS g
+FROM range(5000) t(i);
+
+statement ok
+CREATE TABLE my_datalake.default.fixed_geometry_ctas AS
+SELECT i, g::ICEBERG_FIXED(21) AS f, {'f': g}::STRUCT(f ICEBERG_FIXED(21)) AS s
+FROM fixed_geometry_source;
+
+query IIII
+SELECT count(*), count(f), min(octet_length(f)),
+       bool_and(f = printf('POINT (%d %d)', i, i + 1)::GEOMETRY::BLOB AND s.f = f)
+FROM my_datalake.default.fixed_geometry_ctas;
+----
+5000	2500	21	true
+
+statement ok
+DROP TABLE fixed_geometry_source;
+
+statement ok
+DROP TABLE my_datalake.default.fixed_geometry_ctas;
+
+statement ok
+DROP TABLE my_datalake.default.fixed_geometry_writes;
+
+endloop

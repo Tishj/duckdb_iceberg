@@ -136,7 +136,7 @@ void IcebergFixedType::Register(ExtensionLoader &loader) {
 	loader.RegisterType(FIXED_TYPE_NAME, type, std::move(constructors));
 	loader.RegisterCastFunction(LogicalType::BLOB, type, BoundCastInfo(BlobToFixedCast));
 	for (auto &source : vector<LogicalType> {LogicalType::VARCHAR, LogicalType::JSON(), LogicalType::UUID,
-	                                         LogicalType::BIT, LogicalType::VARIANT()}) {
+	                                         LogicalType::BIT, LogicalType::VARIANT(), LogicalType::GEOMETRY()}) {
 		loader.RegisterCastFunction(source, type, BindToFixedCast);
 	}
 	loader.RegisterCastFunction(type, type, BoundCastInfo(BlobToFixedCast));

@@ -1,0 +1,232 @@
+# name: test/sql/local/iceberg_fixed_geometry.test
+# description: Geometry casts validate fixed WKB widths with and without a CRS
+# group: [local]
+
+include test/sql/init_requires
+
+# Both CRS definitions are built in and require no spatial extension or CRS provider.
+foreach geometry_type GEOMETRY GEOMETRY('OGC:CRS84') GEOMETRY('OGC:CRS83')
+
+query TII
+SELECT typeof(f), octet_length(f), f = g::BLOB
+FROM (SELECT g, g::ICEBERG_FIXED(21) AS f FROM (SELECT 'POINT (1 2)'::{geometry_type} AS g));
+----
+ICEBERG_FIXED(21)	21	true
+
+statement error
+SELECT 'POINT (1 2)'::{geometry_type}::ICEBERG_FIXED(4);
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+statement error
+SELECT 'POINT (1 2)'::{geometry_type}::ICEBERG_FIXED(22);
+----
+Expected 22 bytes for ICEBERG_FIXED(22), got 21
+
+query III
+SELECT TRY_CAST('POINT (1 2)'::{geometry_type} AS ICEBERG_FIXED(4)) IS NULL,
+       TRY_CAST(NULL::{geometry_type} AS ICEBERG_FIXED(21)) IS NULL,
+       (NULL::{geometry_type}::ICEBERG_FIXED(4)) IS NULL;
+----
+true	true	true
+
+# Empty geometries and additional dimensions have their own WKB lengths.
+query III
+SELECT octet_length('POINT EMPTY'::{geometry_type}::ICEBERG_FIXED(21)),
+       octet_length('LINESTRING EMPTY'::{geometry_type}::ICEBERG_FIXED(9)),
+       octet_length('POINT Z (1 2 3)'::{geometry_type}::ICEBERG_FIXED(29));
+----
+21	9	29
+
+statement error
+SELECT 'LINESTRING EMPTY'::{geometry_type}::ICEBERG_FIXED(21);
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 9
+
+# Materialized geometry input exercises flat and filtered vectors across several chunks.
+statement ok
+CREATE TABLE fixed_geometry_input AS
+SELECT i, CASE i % 5
+    WHEN 0 THEN printf('POINT (%d %d)', i, i + 1)
+    WHEN 1 THEN 'LINESTRING (0 0, 1 1)'
+    WHEN 3 THEN 'POINT EMPTY'
+    WHEN 4 THEN 'POINT Z (1 2 3)'
+END::{geometry_type} AS g
+FROM range(10000) t(i);
+
+query II
+SELECT i, octet_length(TRY_CAST(g AS ICEBERG_FIXED(21)))
+FROM fixed_geometry_input WHERE i < 5 ORDER BY i;
+----
+0	21
+1	NULL
+2	NULL
+3	21
+4	NULL
+
+statement error
+SELECT g::ICEBERG_FIXED(21) FROM fixed_geometry_input ORDER BY i;
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+# WKB exceeds inline string storage; sorting and materializing must retain its heap.
+query IIII
+WITH converted AS MATERIALIZED (
+    SELECT i, g::BLOB AS expected, TRY_CAST(g AS ICEBERG_FIXED(21)) AS f
+    FROM fixed_geometry_input WHERE i % 2 = 0 ORDER BY i DESC
+)
+SELECT count(*), count(f), min(octet_length(f)), bool_and(f::BLOB = expected) FROM converted;
+----
+5000	2000	21	true
+
+query II
+SELECT count(*), bool_and(g::ICEBERG_FIXED(21) = g::BLOB)
+FROM fixed_geometry_input WHERE i % 5 IN (0, 3);
+----
+4000	true
+
+# Prepared casts must validate each execution, including after an error.
+statement ok
+PREPARE fixed_geometry_parameter AS SELECT octet_length($1::{geometry_type}::ICEBERG_FIXED(21));
+
+query I
+EXECUTE fixed_geometry_parameter('POINT (1 2)');
+----
+21
+
+statement error
+EXECUTE fixed_geometry_parameter('LINESTRING (0 0, 1 1)');
+----
+Expected 21 bytes for ICEBERG_FIXED(21), got 41
+
+query I
+EXECUTE fixed_geometry_parameter(NULL);
+----
+NULL
+
+query I
+EXECUTE fixed_geometry_parameter('POINT EMPTY');
+----
+21
+
+# Nested casts must use the same length check at every child position.
+query IIIII
+SELECT l[1] = g::BLOB, l[2] IS NULL, s.f = g::BLOB,
+       map_keys(m)[1] = g::BLOB, map_values(m)[1] = g::BLOB
+FROM (
+    SELECT g, [g, NULL]::ICEBERG_FIXED(21)[] AS l,
+           {'f': g}::STRUCT(f ICEBERG_FIXED(21)) AS s,
+           MAP([g], [g])::MAP(ICEBERG_FIXED(21), ICEBERG_FIXED(21)) AS m
+    FROM (SELECT 'POINT (1 2)'::{geometry_type} AS g)
+);
+----
+true	true	true	true	true
+
+statement error
+SELECT ['POINT (1 2)'::{geometry_type}]::ICEBERG_FIXED(4)[];
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+statement error
+SELECT {'f': 'POINT (1 2)'::{geometry_type}}::STRUCT(f ICEBERG_FIXED(4));
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+statement error
+SELECT MAP(['POINT (1 2)'::{geometry_type}], [1])::MAP(ICEBERG_FIXED(4), INTEGER);
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+statement error
+SELECT MAP([1], ['POINT (1 2)'::{geometry_type}])::MAP(INTEGER, ICEBERG_FIXED(4));
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+statement error
+SELECT ['POINT (1 2)'::{geometry_type}, NULL]::ICEBERG_FIXED(4)[2];
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+query III
+SELECT l[1] IS NULL, l[2] IS NULL, octet_length(l[3])
+FROM (
+    SELECT TRY_CAST([g, NULL, 'LINESTRING EMPTY'::{geometry_type}] AS ICEBERG_FIXED(9)[]) AS l
+    FROM (SELECT 'POINT (1 2)'::{geometry_type} AS g)
+);
+----
+true	true	9
+
+statement ok
+DROP TABLE fixed_geometry_input;
+
+endloop
+
+# Untyped parameters rebind when successive executions supply different CRS types.
+statement ok
+PREPARE fixed_geometry_dynamic AS SELECT octet_length(TRY_CAST($1 AS ICEBERG_FIXED(21)));
+
+query I
+EXECUTE fixed_geometry_dynamic('POINT (1 2)'::GEOMETRY);
+----
+21
+
+query I
+EXECUTE fixed_geometry_dynamic('LINESTRING (0 0, 1 1)'::GEOMETRY('OGC:CRS83'));
+----
+NULL
+
+query I
+EXECUTE fixed_geometry_dynamic('POINT (3 4)'::GEOMETRY('OGC:CRS84'));
+----
+21
+
+query I
+EXECUTE fixed_geometry_dynamic(NULL::GEOMETRY('OGC:CRS84'));
+----
+NULL
+
+# Ordinary WKB conversion and CRS constraints remain intact.
+query IT
+SELECT hex('POINT (1 2)'::GEOMETRY::BLOB) = '0101000000000000000000F03F0000000000000040',
+       ('POINT (1 2)'::GEOMETRY('OGC:CRS83')::ICEBERG_FIXED(21)::BLOB)::GEOMETRY::VARCHAR;
+----
+true	POINT (1 2)
+
+statement error
+SELECT 'POINT (1 2)'::GEOMETRY('OGC:CRS83')::GEOMETRY('OGC:CRS84');
+----
+Cannot cast GEOMETRY with CRS 'OGC:CRS83' to GEOMETRY with different CRS 'OGC:CRS84'
+
+statement error
+COPY (SELECT 'POINT (1 2)'::GEOMETRY::ICEBERG_FIXED(4) AS f)
+TO '{TEST_DIR}/invalid_fixed_geometry_copy' (FORMAT ICEBERG);
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+statement error
+COPY (SELECT {'f': 'POINT (1 2)'::GEOMETRY('OGC:CRS83')}::STRUCT(f ICEBERG_FIXED(4)) AS s)
+TO '{TEST_DIR}/invalid_fixed_geometry_copy' (FORMAT ICEBERG);
+----
+Expected 4 bytes for ICEBERG_FIXED(4), got 21
+
+query I
+SELECT count(*) FROM glob('{TEST_DIR}/invalid_fixed_geometry_copy/metadata/*.metadata.json');
+----
+0
+
+statement ok
+COPY (
+    SELECT i, g::ICEBERG_FIXED(21) AS f, [g, NULL]::ICEBERG_FIXED(21)[] AS l
+    FROM (
+        SELECT i, CASE WHEN i % 2 = 0 THEN printf('POINT (%d %d)', i, i + 1) END::GEOMETRY('OGC:CRS84') AS g
+        FROM range(5000) t(i)
+    )
+) TO '{TEST_DIR}/valid_fixed_geometry_copy' (FORMAT ICEBERG);
+
+query IIIT
+SELECT count(*), count(f),
+       bool_and(f = printf('POINT (%d %d)', i, i + 1)::GEOMETRY::BLOB AND l[1] = f AND l[2] IS NULL),
+       min(typeof(f))
+FROM iceberg_scan('{TEST_DIR}/valid_fixed_geometry_copy');
+----
+5000	2500	true	ICEBERG_FIXED(21)
