@@ -30,10 +30,48 @@ CALL iceberg_rewrite_manifests('my_datalake.default.does_not_exist');
 does_not_exist
 
 statement ok
+CREATE TEMP TABLE regular_rewrite_table (id INTEGER);
+
+statement error
+CALL iceberg_rewrite_manifests('regular_rewrite_table');
+----
+Cannot call iceberg_rewrite_manifests on non-iceberg table
+
+statement ok
 INSERT INTO my_datalake.default.rewrite_manifests_errors VALUES (1);
 
 statement ok
 INSERT INTO my_datalake.default.rewrite_manifests_errors VALUES (2);
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors', spec_id => NULL);
+----
+'spec_id' cannot be NULL
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors', sort_by => NULL);
+----
+'sort_by' cannot be NULL
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors', sort_by => ['id', NULL]);
+----
+'sort_by' cannot contain NULL
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors', target_manifest_size_bytes => NULL);
+----
+'target_manifest_size_bytes' cannot be NULL
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors', target_manifest_size_bytes => '4 apples');
+----
+invalid 'target_manifest_size_bytes'
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors', target_manifest_size_bytes => '0 B');
+----
+'target_manifest_size_bytes' is out of range
 
 # The rewrite is planned against the committed manifests, so it cannot follow data changes in the same transaction.
 statement ok
@@ -115,6 +153,35 @@ statement error
 CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors');
 ----
 already has a manifest rewrite in this transaction
+
+statement ok
+ROLLBACK;
+
+# Both maintenance procedures plan from the committed snapshot.
+statement ok
+BEGIN;
+
+statement ok
+CALL iceberg_rewrite_data_files('my_datalake.default.rewrite_manifests_errors', rewrite_all => true);
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors');
+----
+after rewriting its data files in the same transaction
+
+statement ok
+ROLLBACK;
+
+statement ok
+BEGIN;
+
+statement ok
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_errors');
+
+statement error
+CALL iceberg_rewrite_data_files('my_datalake.default.rewrite_manifests_errors', rewrite_all => true);
+----
+has uncommitted changes in this transaction
 
 statement ok
 ROLLBACK;

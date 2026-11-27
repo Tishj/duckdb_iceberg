@@ -119,36 +119,30 @@ static RewriteManifestsSpec ResolveRewriteManifestsSpec(ClientContext &context,
 		throw InvalidInputException("iceberg_rewrite_manifests: partition spec %d does not exist", spec.spec_id);
 	}
 	auto &fields = spec_it->second.GetFields();
-	auto &schema = metadata.GetLatestSchema();
 	if (bind_data.sort_by) {
-		//! Spark names the partition fields of the spec being rewritten. Spark names an identity field after
-		//! its source column, so accept that too.
-		for (auto &name : *bind_data.sort_by) {
-			optional_ptr<const IcebergPartitionSpecField> match;
-			for (auto &field : fields) {
-				if (StringUtil::CIEquals(field.GetPartitionSpecFieldName(), name)) {
-					match = &field;
-					break;
-				}
+		case_insensitive_map_t<uint64_t> sort_fields;
+		unordered_map<uint64_t, uint64_t> identity_fields;
+		for (const auto &field : fields) {
+			sort_fields.emplace(field.GetPartitionSpecFieldName(), field.partition_field_id);
+			if (field.transform.Type() == IcebergTransformType::IDENTITY) {
+				identity_fields.emplace(field.source_id, field.partition_field_id);
 			}
-			for (auto &field : fields) {
-				if (match) {
-					break;
-				}
-				if (field.transform.Type() != IcebergTransformType::IDENTITY) {
-					continue;
-				}
-				auto source_column = schema.TryGetColumnByFieldId(field.source_id);
-				if (source_column && StringUtil::CIEquals(source_column->name, name)) {
-					match = &field;
-				}
+		}
+		//! A renamed identity source is an alias. Keep the stored partition label if the names collide.
+		for (const auto &column : metadata.GetLatestSchema().GetFullNames()) {
+			auto identity = identity_fields.find(column.first);
+			if (identity != identity_fields.end()) {
+				sort_fields.emplace(column.second, identity->second);
 			}
-			if (!match) {
+		}
+		for (const auto &name : *bind_data.sort_by) {
+			auto match = sort_fields.find(name);
+			if (match == sort_fields.end()) {
 				throw InvalidInputException(
 				    "iceberg_rewrite_manifests: '%s' is not a partition field of partition spec %d", name,
 				    spec.spec_id);
 			}
-			spec.sort_field_ids.push_back(match->partition_field_id);
+			spec.sort_field_ids.push_back(match->second);
 		}
 	} else {
 		for (auto &field : fields) {

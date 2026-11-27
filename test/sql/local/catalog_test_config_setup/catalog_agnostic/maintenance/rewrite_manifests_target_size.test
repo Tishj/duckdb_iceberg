@@ -68,5 +68,34 @@ CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_target_siz
 ----
 must be > 0
 
+# A formatted size overrides the table property. Without the override, the single large
+# manifest splits, with one output per live file even though the target calls for more.
+statement ok
+CALL set_iceberg_table_properties(my_datalake.default.rewrite_manifests_target_size,
+    {'commit.manifest.target-size-bytes': '1'});
+
+query II
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_target_size', target_manifest_size_bytes => '1 MiB');
+----
+3	1
+
+query II
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_target_size');
+----
+1	12
+
+query III
+SELECT count(*), min(existing_data_files_count), max(existing_data_files_count)
+FROM iceberg_manifests(my_datalake.default.rewrite_manifests_target_size);
+----
+12	1	1
+
+# The largest accepted BIGINT target still packs all files into one manifest.
+query II
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_target_size',
+    target_manifest_size_bytes => 9223372036854775807);
+----
+12	1
+
 statement ok
 DROP TABLE my_datalake.default.rewrite_manifests_target_size;

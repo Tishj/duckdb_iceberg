@@ -90,8 +90,7 @@ RewriteManifestsResult PlanRewriteManifests(const vector<IcebergManifestListEntr
 
 	//! Spark RewriteManifestsSparkAction: ceil(total size / target size), and a lone manifest that would be
 	//! rewritten into a lone manifest is left alone.
-	auto target_manifests = (total_bytes + spec.target_manifest_size_bytes - 1) / spec.target_manifest_size_bytes;
-	target_manifests = MaxValue<int64_t>(target_manifests, 1);
+	auto target_manifests = total_bytes > 0 ? 1 + (total_bytes - 1) / spec.target_manifest_size_bytes : 1;
 	if (result.rewritten_manifests_count == 1 && target_manifests == 1 && !any_tombstones && live_files > 0) {
 		return RewriteManifestsResult();
 	}
@@ -110,12 +109,18 @@ vector<IcebergManifestListEntry> WriteRewrittenManifests(vector<IcebergManifestL
 
 	//! Entries keep their snapshot ids, sequence numbers and (V3) row ids; only their manifest changes.
 	vector<IcebergManifestEntry> entries;
+	int32_t manifest_schema_id = 0;
 	for (auto &manifest : selected) {
 		auto loaded = manifest.HasManifestEntries()
 		                  ? std::move(manifest)
 		                  : IcebergManifestMerge::ScanManifestEntries(manifest, commit_state, schema_id);
 		//! Tombstones only describe the snapshot that removed the file; PrepareEntriesForRewrite drops them.
-		auto prepared = loaded.GetFile().PrepareEntriesForRewrite(std::move(loaded.GetManifestEntries()));
+		auto prepared = loaded.GetFile().PrepareEntriesForRewrite(loaded.TakeManifestEntries());
+		//! The snapshot schema may have dropped a partition source. The newest contributing writer schema
+		//! describes the selected spec and includes any type promotions needed by its live files.
+		if (!prepared.empty()) {
+			manifest_schema_id = MaxValue(manifest_schema_id, loaded.manifest_metadata->schema_id);
+		}
 		for (auto &entry : prepared) {
 			D_ASSERT(entry.status != IcebergManifestEntryStatusType::DELETED);
 			entries.push_back(std::move(entry));
@@ -133,7 +138,7 @@ vector<IcebergManifestListEntry> WriteRewrittenManifests(vector<IcebergManifestL
 
 	auto manifest_count = MaxValue<idx_t>(MinValue<idx_t>(output_count, entries.size()), 1);
 	auto manifest_metadata =
-	    IcebergManifestMetadata(schema_id, spec.spec_id, NumericCast<int32_t>(table_metadata.iceberg_version),
+	    IcebergManifestMetadata(manifest_schema_id, spec.spec_id, NumericCast<int32_t>(table_metadata.iceberg_version),
 	                            IcebergManifestContentType::DATA);
 	for (idx_t i = 0; i < manifest_count; i++) {
 		auto begin = i * entries.size() / manifest_count;

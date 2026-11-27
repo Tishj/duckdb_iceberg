@@ -102,6 +102,8 @@ COPY (
 	}
 );
 
+foreach layout all hidden dead
+
 statement ok
 COPY (
 	SELECT '{TEST_DIR}/rewrite_manifests_tombstone_' || idx::VARCHAR || '.avro' AS manifest_path,
@@ -109,11 +111,12 @@ COPY (
 	       0::INTEGER AS content, (idx + 3)::BIGINT AS sequence_number,
 	       2::BIGINT AS min_sequence_number, (idx + 3)::BIGINT AS added_snapshot_id,
 	       (CASE WHEN idx < 2 THEN 2 ELSE 0 END)::INTEGER AS added_files_count, 0::INTEGER AS existing_files_count,
-	       1::INTEGER AS deleted_files_count,
+	       ('{layout}' <> 'hidden')::INTEGER AS deleted_files_count,
 	       (CASE WHEN idx < 2 THEN 2 ELSE 0 END)::BIGINT AS added_rows_count, 0::BIGINT AS existing_rows_count,
-	       1::BIGINT AS deleted_rows_count
+	       ('{layout}' <> 'hidden')::BIGINT AS deleted_rows_count
 	FROM range(3) t(idx)
-) TO '{TEST_DIR}/rewrite_manifests_tombstone_list.avro' (
+	WHERE '{layout}' = 'all' OR ('{layout}' = 'hidden' AND idx = 0) OR ('{layout}' = 'dead' AND idx = 2)
+) TO '{TEST_DIR}/rewrite_manifests_tombstone_{layout}_list.avro' (
 	FORMAT AVRO,
 	FIELD_IDS {
 		manifest_path: 500, manifest_length: 501, partition_spec_id: 502,
@@ -123,17 +126,23 @@ COPY (
 	}
 );
 
+endloop
+
 statement ok
 COMMIT;
 
-query I
+statement ok
+CREATE TEMP MACRO publish_manifest_list(layout, sid, live_files) AS TABLE
 SELECT status FROM iceberg_test_catalog_request('POST', '/v1/namespaces/default/tables/rewrite_manifests_tombstones',
 	json_object('requirements', json_array(), 'updates', json_array(
 		json_object('action', 'add-snapshot', 'snapshot', json_object(
-			'snapshot-id', 3, 'sequence-number', 3, 'schema-id', 0,
-			'timestamp-ms', epoch_ms(current_timestamp), 'manifest-list', '{TEST_DIR}/rewrite_manifests_tombstone_list.avro',
-			'summary', json_object('operation', 'overwrite', 'total-data-files', '4', 'total-records', '4'))),
-		json_object('action', 'set-snapshot-ref', 'ref-name', 'main', 'type', 'branch', 'snapshot-id', 3))));
+			'snapshot-id', sid, 'sequence-number', sid, 'schema-id', 0,
+			'timestamp-ms', epoch_ms(current_timestamp), 'manifest-list', '{TEST_DIR}/rewrite_manifests_tombstone_' || layout || '_list.avro',
+			'summary', json_object('operation', 'overwrite', 'total-data-files', live_files::VARCHAR, 'total-records', live_files::VARCHAR))),
+		json_object('action', 'set-snapshot-ref', 'ref-name', 'main', 'type', 'branch', 'snapshot-id', sid))));
+
+query I
+FROM publish_manifest_list('all', 3, 4);
 ----
 200
 
@@ -202,6 +211,43 @@ SELECT id, category FROM my_datalake.default.rewrite_manifests_tombstones ORDER 
 2	b
 3	a
 4	b
+
+# One candidate looks clean in the list, but its entries still contain a tombstone.
+query I
+FROM publish_manifest_list('hidden', 5, 2);
+----
+200
+
+query II
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_tombstones');
+----
+1	1
+
+query II
+SELECT status, count(*) FROM iceberg_metadata(my_datalake.default.rewrite_manifests_tombstones) GROUP BY status;
+----
+EXISTING	2
+
+# With only tombstones the rewrite publishes an empty list and writes no replacement manifest.
+query I
+FROM publish_manifest_list('dead', 7, 0);
+----
+200
+
+query II
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_tombstones');
+----
+1	0
+
+query I
+SELECT count(*) FROM iceberg_manifests(my_datalake.default.rewrite_manifests_tombstones);
+----
+0
+
+query I
+SELECT count(*) FROM my_datalake.default.rewrite_manifests_tombstones;
+----
+0
 
 statement ok
 DROP TABLE my_datalake.default.rewrite_manifests_tombstones;

@@ -1,0 +1,64 @@
+# name: test/sql/local/catalog_test_config_setup/catalog_agnostic/maintenance/rewrite_manifests_nested_sort.test
+# description: Identity sort keys use full source names when nested partition fields share a leaf name.
+# group: [maintenance]
+
+require-env CATALOG_TEST_CONFIG_SETUP
+
+require-env METADATA_FILE_READ_SUPPORT
+
+include test/sql/init_requires
+
+statement ok
+DROP TABLE IF EXISTS my_datalake.default.rewrite_manifests_nested_sort;
+
+statement ok
+CREATE TABLE my_datalake.default.rewrite_manifests_nested_sort (lhs STRUCT(id INTEGER), rhs STRUCT(id INTEGER))
+PARTITIONED BY (lhs.id, rhs.id) WITH ('format-version' = 2, 'commit.manifest-merge.enabled' = false);
+
+statement ok
+INSERT INTO my_datalake.default.rewrite_manifests_nested_sort VALUES
+    ({'id': 10}, {'id': 2}), ({'id': 2}, {'id': 1}), ({'id': 11}, NULL);
+
+statement ok
+INSERT INTO my_datalake.default.rewrite_manifests_nested_sort VALUES
+    (NULL, NULL), ({'id': 2}, {'id': 2}), (NULL, {'id': 1}), ({'id': 10}, {'id': 1});
+
+statement ok
+ALTER TABLE my_datalake.default.rewrite_manifests_nested_sort RENAME COLUMN rhs TO renamed;
+
+statement error
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_nested_sort', sort_by => ['id']);
+----
+'id' is not a partition field
+
+query II
+CALL iceberg_rewrite_manifests('my_datalake.default.rewrite_manifests_nested_sort', sort_by => ['RENAMED.id', 'lhs.id']);
+----
+2	1
+
+statement ok
+BEGIN;
+
+statement ok
+SET VARIABLE sorted_manifest = (SELECT path FROM iceberg_manifests(my_datalake.default.rewrite_manifests_nested_sort));
+
+# Inspect physical entry order: NULLs first on both keys, with numeric order for ties on the renamed field.
+query II
+SELECT t.renamed.id, t.lhs.id
+FROM read_avro(getvariable('sorted_manifest')) WITH ORDINALITY m
+JOIN my_datalake.default.rewrite_manifests_nested_sort t ON m.data_file.file_path = t.filename
+ORDER BY m.ordinality;
+----
+NULL	NULL
+NULL	11
+1	NULL
+1	2
+1	10
+2	2
+2	10
+
+statement ok
+COMMIT;
+
+statement ok
+DROP TABLE my_datalake.default.rewrite_manifests_nested_sort;
